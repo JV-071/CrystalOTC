@@ -288,6 +288,7 @@ void DrawPool::release() {
         SpinLock::Guard guard(m_threadLock);
         m_vkFbDest = m_vkPendingFbDest;
         m_vkFbSrc = m_vkPendingFbSrc;
+        m_vkMapHole = m_vkPendingMapHole;
         return;
     }
 
@@ -299,6 +300,7 @@ void DrawPool::release() {
     // under the same lock, so the feeder never sees rects from a different frame than the objects.
     m_vkFbDest = m_vkPendingFbDest;
     m_vkFbSrc = m_vkPendingFbSrc;
+    m_vkMapHole = m_vkPendingMapHole;
 
     m_objectsDraw[0].clear();
 

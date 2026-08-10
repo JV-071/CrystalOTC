@@ -380,6 +380,13 @@ private:
     Rect m_vkFbDest;
     Rect m_vkFbSrc;
 
+    // Explicit "map hole punch" rect for the Vulkan feeder: UIMap registers the rectangle of the
+    // alpha-0 window it cuts over the game view, so the feeder only cuts UI geometry for a shape
+    // MATCHING this rect. Guessing by "untextured + alpha=0" alone cut holes through regular UI
+    // (any widget faded to zero opacity), letting the world show through e.g. the prey window.
+    Rect m_vkPendingMapHole;
+    Rect m_vkMapHole;
+
     friend class DrawPoolManager;
     friend class VkDrawFeeder;
 };

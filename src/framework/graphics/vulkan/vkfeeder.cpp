@@ -306,6 +306,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
 
     Rect fbDest;
     Rect fbSrc;
+    Rect mapHole;
 
     {
         // EXACTLY the same protocol as DrawPoolManager::drawObjects: swap under the lock and clear
@@ -318,6 +319,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
         }
         fbDest = pool->m_vkFbDest;
         fbSrc = pool->m_vkFbSrc;
+        mapHole = pool->m_vkMapHole;
     }
 
     if (pool->m_objectsDraw[1].empty())
@@ -450,27 +452,54 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
         // The map hole punch: GL cut a transparent window in the foreground FBO by
         // writing alpha=0 with blending DISABLED (UIMap::drawSelf). For us the map already lies
         // UNDER the interface on the same image, so the equivalent is CUTTING OUT the previously
-        // emitted geometry of this pool within that rectangle. Heuristic: a solid untextured
-        // shape with alpha=0 in a pool with a framebuffer - apart from a pair of blend actions
-        // (which we do not see) nobody draws such a thing for any other purpose.
+        // emitted geometry of this pool within that rectangle. A shape only counts as the map
+        // window when it MATCHES the rect UIMap registered on the pool (m_vkMapHole) - guessing
+        // by "untextured + alpha=0" alone used to cut holes through regular UI (any widget with
+        // an alpha-0 fill), letting the world show through e.g. the prey window.
         if (hasFb && fbStack.empty() && !st.texture && st.textureId == 0 && rgba[3] == 0) {
-            float bx0 = 0.0f, by0 = 0.0f, bx1 = 0.0f, by1 = 0.0f;
+            // Bounding box in pool-local coordinates - the same space m_vkMapHole lives in.
+            float lx0 = 0.0f, ly0 = 0.0f, lx1 = 0.0f, ly1 = 0.0f;
             for (int i = 0; i < count; ++i) {
                 float x = positions[i * 2];
                 float y = positions[i * 2 + 1];
                 if (hasTransform)
                     applyTransform(matrix, x, y);
-                mapping.apply(x, y);
                 if (i == 0) {
-                    bx0 = bx1 = x;
-                    by0 = by1 = y;
+                    lx0 = lx1 = x;
+                    ly0 = ly1 = y;
                 } else {
-                    bx0 = std::min(bx0, x);
-                    by0 = std::min(by0, y);
-                    bx1 = std::max(bx1, x);
-                    by1 = std::max(by1, y);
+                    lx0 = std::min(lx0, x);
+                    ly0 = std::min(ly0, y);
+                    lx1 = std::max(lx1, x);
+                    ly1 = std::max(ly1, y);
                 }
             }
+
+            // 2 px slack: Rect right/bottom are inclusive, and the widget rect may differ from
+            // the emitted quad by a border pixel.
+            constexpr float kHoleTolerance = 2.0f;
+            const bool isMapHole = mapHole.isValid() &&
+                std::abs(lx0 - static_cast<float>(mapHole.x())) <= kHoleTolerance &&
+                std::abs(ly0 - static_cast<float>(mapHole.y())) <= kHoleTolerance &&
+                std::abs(lx1 - static_cast<float>(mapHole.x() + mapHole.width())) <= kHoleTolerance &&
+                std::abs(ly1 - static_cast<float>(mapHole.y() + mapHole.height())) <= kHoleTolerance;
+
+            if (!isMapHole) {
+                // Untextured with alpha=0 = invisible either way; skip it WITHOUT cutting.
+                // One-shot log so a lingering visual bug report can pinpoint the emitter.
+                if (!m_loggedSuspectPunch) {
+                    m_loggedSuspectPunch = true;
+                    g_logger.info("[vulkan] feeder: ignored a non-map alpha-0 shape {}x{} at ({},{}) - registered map hole is {}x{} at ({},{})",
+                                  static_cast<int>(lx1 - lx0), static_cast<int>(ly1 - ly0),
+                                  static_cast<int>(lx0), static_cast<int>(ly0),
+                                  mapHole.width(), mapHole.height(), mapHole.x(), mapHole.y());
+                }
+                continue;
+            }
+
+            float bx0 = lx0, by0 = ly0, bx1 = lx1, by1 = ly1;
+            mapping.apply(bx0, by0);
+            mapping.apply(bx1, by1);
             batch.punchRect(poolStartVertex, bx0, by0, bx1, by1);
             continue;
         }

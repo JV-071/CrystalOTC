@@ -54,6 +54,9 @@ public:
     void addBoundingRect(const Rect& dest, const Color& color = Color::white, uint16_t innerLineWidth = 1) const;
     void addAction(const std::function<void()>& action, size_t hash = 0) const { getCurrentPool()->addAction(action, hash); }
 
+    // Registers the rect of UIMap's alpha-0 cutout for the Vulkan feeder (see DrawPool::m_vkMapHole).
+    void setVkMapHole(const Rect& rect) const { getCurrentPool()->m_vkPendingMapHole = rect; }
+
     void bindFrameBuffer(const Size& size, const Color& color = Color::white) const { getCurrentPool()->bindFrameBuffer(size, color); }
     void releaseFrameBuffer(const Rect& dest) const { getCurrentPool()->releaseFrameBuffer(dest); };
     void releaseFrameBuffer(const Rect& dest, uint8_t flipDirection) const { getCurrentPool()->releaseFrameBuffer(dest, flipDirection); };

@@ -115,6 +115,7 @@ private:
     std::unordered_set<uint32_t> m_loggedMissing;
     bool m_loggedShader{ false };
     bool m_loggedGlOnly{ false };
+    bool m_loggedSuspectPunch{ false };
     bool m_loggedLight{ false };
     bool m_loggedOverflow{ false };
     bool m_loggedComposition{ false };
