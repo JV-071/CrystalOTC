@@ -164,12 +164,6 @@ end
 if g_game then
 	connect(g_game, {
 		onGameStart = function()
-			local player = g_game.getLocalPlayer()
-
-			if player then
-				g_logger.info(string.format("[login] player id=%s name=%s", tostring(player:getId()), g_game.getCharacterName() or "?"))
-			end
-
 			if CipImportApplier then
 				if CipImportApplier.applyPendingSidebars then
 					CipImportApplier.applyPendingSidebars()

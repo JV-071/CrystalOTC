@@ -1702,8 +1702,6 @@ void Game::setClientVersion(const uint16_t version)
     if (version != 0 && (version < 740 || version > g_gameConfig.getLastSupportedVersion()))
         throw Exception("Client version {} not supported", version);
 
-    g_logger.info("[features] setClientVersion {} -> {} (resetuje flagi protokolu)", m_clientVersion, version);
-
     m_features.reset();
 
     m_clientVersion = version;

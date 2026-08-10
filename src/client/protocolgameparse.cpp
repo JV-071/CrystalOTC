@@ -708,12 +708,6 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
             fullDump << fmt::format("{:02X} ", static_cast<uint8_t>(byte));
         }
 
-        g_logger.error("[featdbg] stackpos={} itemShader={} creatureShader={} attachedEffect={} wings={} quiver={} marks={} mounts={}",
-                       g_game.getFeature(Otc::GameTileAddThingWithStackpos), g_game.getFeature(Otc::GameItemShader),
-                       g_game.getFeature(Otc::GameCreatureShader), g_game.getFeature(Otc::GameCreatureAttachedEffect),
-                       g_game.getFeature(Otc::GameWingsAurasEffectsShader), g_game.getFeature(Otc::GameThingQuiver),
-                       g_game.getFeature(Otc::GameThingMarks), g_game.getFeature(Otc::GamePlayerMounts));
-
         g_logger.error(
             "ProtocolGame parse message exception ({} bytes, {} unread at pos {}, last opcode: 0x{:02X} ({:d}), prev opcode: 0x{:02X} ({:d}), protocol: {}): {}\n"
             "Next unread bytes: {}\n"
@@ -7357,17 +7351,15 @@ void ProtocolGame::parseCreatureTyping(const InputMessagePtr& msg)
 void ProtocolGame::parseFeatures(const InputMessagePtr& msg)
 {
     const uint16_t features = msg->getU16();
-    g_logger.info("[featdbg] server sent 0x43 with {} feature(s)", features);
     for (auto i = 0; i < features; ++i) {
         const auto feature = static_cast<Otc::GameFeature>(msg->getU8());
         const auto enabled = static_cast<bool>(msg->getU8());
-        g_logger.info("[featdbg]   feature {} -> {}", static_cast<int>(feature), enabled ? "ON" : "OFF");
 
         // canary/crystal always writes the tile stackpos byte (msg.addByte(stackpos) with no
         // condition in sendAddTileItem/sendAddCreature), so letting the server's feature list
         // clear this flag desyncs every 0x6A/0x6C by exactly one byte
         if (!enabled && feature == Otc::GameTileAddThingWithStackpos && g_game.getClientVersion() >= 1281) {
-            g_logger.warning("[features] ignoruje serwerowe wylaczenie GameTileAddThingWithStackpos");
+            g_logger.warning("[features] ignoring the server disabling GameTileAddThingWithStackpos");
             continue;
         }
 

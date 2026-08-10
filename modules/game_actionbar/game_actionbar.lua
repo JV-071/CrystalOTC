@@ -3562,8 +3562,6 @@ function online()
 	end
 
 	addEvent(function()
-		local startedAt = g_clock.realMillis()
-
 		setupActionBar()
 
 		if g_settings.getBoolean("autoSwitchPreset") then
@@ -3576,8 +3574,6 @@ function online()
 
 					return
 				end
-			elseif name and name ~= "" then
-				g_logger.info(string.format("[login] autoSwitchPreset: no preset named \"%s\" (current=%s)", name, Keybind.currentPreset or "?"))
 			end
 		end
 
@@ -3592,8 +3588,6 @@ function online()
 		else
 			reloadActionBarForPreset(presetName, nil)
 		end
-
-		g_logger.info(string.format("[login] actionbar ready in %d ms (preloaded=%s)", g_clock.realMillis() - startedAt, tostring(reusedPreparedPreset)))
 	end)
 end
 
@@ -9157,7 +9151,6 @@ function prepareActionBarForLogin()
 		return
 	end
 
-	local startedAt = g_clock.realMillis()
 	local storedSlots = getActionBarSlotsForPreset(presetName)
 
 	setupActionBar()
@@ -9169,8 +9162,6 @@ function prepareActionBarForLogin()
 	endActionBarBatch()
 
 	actionBarPreparedPreset = presetName
-
-	g_logger.info(string.format("[login] actionbar preset %s preloaded in %d ms", presetName, g_clock.realMillis() - startedAt))
 end
 
 function reloadActionBarForPreset(presetName, previousPreset)
@@ -9191,7 +9182,6 @@ function reloadActionBarForPreset(presetName, previousPreset)
 	end
 
 	local storedSlots = getActionBarSlotsForPreset(presetName)
-	local storedCount = countActionBarSlotsWithContent(storedSlots)
 
 	beginActionBarBatch()
 	unbindHotkeys()
@@ -9204,8 +9194,6 @@ function reloadActionBarForPreset(presetName, previousPreset)
 	updateSlotsVocation()
 
 	actionBarPreparedPreset = presetName
-
-	g_logger.info(string.format("[actionbar] reload preset=%s storedSlots=%d", presetName, storedCount))
 end
 
 function onHotkeyPresetChanged(newPreset, oldPreset)

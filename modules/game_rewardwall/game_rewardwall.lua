@@ -95,7 +95,6 @@ local function getClaimUsedToken()
 end
 
 local function claimInstantDailyReward()
-	g_logger.info(string.format("[rewardwall] wysylam odbior: token=%s items=%d", tostring(getClaimUsedToken()), table.size(actualUsed)))
 	g_game.requestGetRewardDaily(getClaimUsedToken(), actualUsed)
 
 	generalBox, windowsPickWindow = destroyWindows({

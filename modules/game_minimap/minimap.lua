@@ -68,8 +68,6 @@ local function loadMinimapOtmm()
 				foundBundled = true
 
 				if g_minimap.loadOtmm(path) then
-					g_logger.info(string.format("[game_minimap] OTMM loaded from %s", path))
-
 					return path
 				end
 
@@ -104,7 +102,6 @@ function applyBundledMarkers(minimapWidget)
 		return 0
 	end
 
-	g_logger.info(string.format("[game_minimap] Bundled markers: %d loaded from %s (visible set updates with camera)", total, BUNDLED_MARKERS_PATH))
 	minimapWidget:scheduleBundledFlagsRefresh()
 
 	return total
@@ -128,8 +125,6 @@ local function loadPersistentMinimapData()
 		return false
 	end
 
-	local startedAt = g_clock.realMillis()
-
 	g_minimap.clean()
 	loadMinimapOtmm()
 
@@ -145,8 +140,6 @@ local function loadPersistentMinimapData()
 	loadBundledMinimapMarkers()
 
 	persistentMinimapDataLoaded = true
-
-	g_logger.info(string.format("[login] persistent minimap data ready in %d ms", g_clock.realMillis() - startedAt))
 
 	return true
 end

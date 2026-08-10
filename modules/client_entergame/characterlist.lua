@@ -3,7 +3,6 @@
 CharacterList = {}
 
 local charactersWindow, loadBox, characterList, errorBox, waitingWindow, updateWaitEvent, resendWaitEvent, loginEvent, outfitCreatureBox
-local worldLoginStartedAt = 0
 local restoreCharacterListEvent
 local WORLD_TYPE_NAMES = {
 	[0] = "Open PvP",
@@ -338,8 +337,6 @@ local function tryLogin(charInfo, tries)
 	CharacterList.hide()
 	g_logger.info("Login to " .. charInfo.worldHost .. ":" .. charInfo.worldPort)
 
-	worldLoginStartedAt = g_clock.realMillis()
-
 	g_game.loginWorld(G.account, G.password, charInfo.worldName, charInfo.worldHost, charInfo.worldPort, charInfo.characterName, G.authenticatorToken, G.sessionKey)
 
 	loadBox = displayCancelBox(tr("Connecting"), tr("Connecting to the game world. Please wait."))
@@ -524,12 +521,6 @@ local function onGameStart()
 	manualLogoutPending = false
 
 	resetReconnectBackoff()
-
-	if worldLoginStartedAt > 0 then
-		g_logger.info(string.format("[login] game start after %d ms", g_clock.realMillis() - worldLoginStartedAt))
-
-		worldLoginStartedAt = 0
-	end
 end
 
 local function onGameEnd()

@@ -33,8 +33,6 @@ local function finishMapTransition(timedOut)
 
 	if timedOut then
 		g_logger.warning(string.format("[login] map loading art timed out after %d ms", MAP_READY_TIMEOUT_MS))
-	else
-		g_logger.info(string.format("[login] map ready after %d ms", g_clock.realMillis() - mapTransitionStartedAt))
 	end
 
 	background:hide()

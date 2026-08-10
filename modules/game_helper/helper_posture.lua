@@ -636,10 +636,6 @@ function HelperPosture.refreshUI()
 	local groups = HelperPosture.getGroups()
 	local vocation, rawVocation = resolvePlayerVocation(getPlayer())
 
-	if g_logger and g_logger.info then
-		g_logger.info(("[Posture] refreshUI voc=%d rawVoc=%d groups=%d"):format(vocation, rawVocation, #groups))
-	end
-
 	if label then
 		label:setVisible(true)
 	end
