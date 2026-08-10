@@ -2,6 +2,113 @@
 
 UIMiniWindow = extends(UIWindow, "UIMiniWindow")
 
+-- ====================================================================================
+-- Free window placement (floating mini-windows)
+-- Lets any mini-window (minimap, containers, trackers, helper, prey...) be dropped
+-- anywhere over the game area instead of only into the side dock panels, and dragged
+-- back to re-dock. Positions are stored per widget id + character in g_settings as
+-- SCREEN FRACTIONS so they survive window resizes and resolution changes.
+-- Enabled by the "freeWindowPlacement" option (default on); when off, behavior is the
+-- classic dock-only bounce-back.
+-- ====================================================================================
+local FLOATING_SETTINGS_NODE = "floatingMiniWindows"
+
+local function freePlacementEnabled()
+	if not modules.client_options or not modules.client_options.getOption then
+		return true
+	end
+
+	local v = modules.client_options.getOption("freeWindowPlacement")
+
+	-- treat nil (option not present yet) as enabled
+	return v == nil or v == true
+end
+
+local function floatingStoreKey()
+	local player = g_game.getLocalPlayer()
+	local id = player and player:getId()
+
+	return id and tostring(id) or "default"
+end
+
+local function floatingGameRoot()
+	return modules.game_interface and modules.game_interface.getRootPanel and modules.game_interface.getRootPanel()
+end
+
+local function saveFloatingPosition(widget)
+	if not widget.save then
+		return
+	end
+
+	local root = floatingGameRoot()
+
+	if not root or root:isDestroyed() then
+		return
+	end
+
+	local rootSize = root:getSize()
+
+	if rootSize.width <= 0 or rootSize.height <= 0 then
+		return
+	end
+
+	local pos = widget:getPosition()
+	local rootPos = root:getPosition()
+	local node = g_settings.getNode(FLOATING_SETTINGS_NODE) or {}
+	local key = floatingStoreKey()
+
+	node[key] = node[key] or {}
+	node[key][widget:getId()] = {
+		-- fraction of the game-root rect, so the window keeps its relative spot
+		fx = (pos.x - rootPos.x) / rootSize.width,
+		fy = (pos.y - rootPos.y) / rootSize.height
+	}
+
+	g_settings.setNode(FLOATING_SETTINGS_NODE, node)
+end
+
+local function eraseFloatingPosition(widget)
+	local node = g_settings.getNode(FLOATING_SETTINGS_NODE)
+
+	if not node then
+		return
+	end
+
+	local key = floatingStoreKey()
+
+	if node[key] then
+		node[key][widget:getId()] = nil
+		g_settings.setNode(FLOATING_SETTINGS_NODE, node)
+	end
+end
+
+local function readFloatingPosition(widget)
+	local node = g_settings.getNode(FLOATING_SETTINGS_NODE)
+	local key = floatingStoreKey()
+
+	if node and node[key] then
+		return node[key][widget:getId()]
+	end
+
+	return nil
+end
+
+-- Public: re-raise every floating window above the map. Must run AFTER the game
+-- interface reorders center/sidebar widgets, or floating windows slip under the map.
+function UIMiniWindow.raiseAllFloating()
+	local root = floatingGameRoot()
+
+	if not root or root:isDestroyed() then
+		return
+	end
+
+	for _, child in ipairs(root:getChildren()) do
+		if child.floating then
+			child:raise()
+		end
+	end
+end
+
 local OPEN_HIGHLIGHT_COLOR = "#FFFFFF"
 local OPEN_HIGHLIGHT_WIDTH = 2
 local OPEN_HIGHLIGHT_HOLD_TIME = 90
@@ -387,6 +494,44 @@ function UIMiniWindow:setup()
 	end
 end
 
+function UIMiniWindow:scheduleFloatingRestore()
+	if not freePlacementEnabled() then
+		return
+	end
+
+	local stored = readFloatingPosition(self)
+
+	if not stored then
+		return
+	end
+
+	removeEvent(self._floatRestoreEvent)
+
+	self._floatRestoreEvent = scheduleEvent(function()
+		self._floatRestoreEvent = nil
+
+		local root = floatingGameRoot()
+
+		if not root or root:isDestroyed() then
+			return
+		end
+
+		local rootSize = root:getSize()
+		local rootPos = root:getPosition()
+
+		if rootSize.width <= 0 or rootSize.height <= 0 then
+			return
+		end
+
+		self:setFloating()
+		self:setPosition({
+			x = math.floor(rootPos.x + (stored.fx or 0) * rootSize.width + 0.5),
+			y = math.floor(rootPos.y + (stored.fy or 0) * rootSize.height + 0.5)
+		})
+		self:bindRectToParent()
+	end, 650)
+end
+
 function UIMiniWindow:setupOnStart()
 	self._restoringOnStart = true
 
@@ -397,6 +542,11 @@ function UIMiniWindow:setupOnStart()
 
 		return
 	end
+
+	-- Restore a stored floating position, if this window had one. Deferred past the sidebar
+	-- persistence retry passes (its last re-order runs ~500 ms in) so we win the final say
+	-- and the window is not yanked back into a panel.
+	self:scheduleFloatingRestore()
 
 	if SidebarPersistence and SidebarPersistence.active then
 		self.miniLoaded = true
@@ -677,6 +827,34 @@ local function appendToDefaultSidebar(widget)
 	return true
 end
 
+function UIMiniWindow:setFloating()
+	local root = floatingGameRoot()
+
+	-- During drag onDragEnter already reparented us to the game root, so normally we are
+	-- there already; make sure of it for the "dock -> float" and restore paths.
+	if root and not root:isDestroyed() and self:getParent() ~= root then
+		local p = self:getParent()
+
+		if p then
+			p:removeChild(self)
+		end
+
+		root:addChild(self)
+	end
+
+	self.floating = true
+	self._fromSidebar = false
+	self.oldParentDrag = nil
+
+	self:raise()
+	saveFloatingPosition(self)
+
+	if self._lastSavedContainer ~= self:getParent() then
+		self._lastSavedContainer = self:getParent()
+		signalcall(self.onContainerChanged, self, self:getParent())
+	end
+end
+
 function UIMiniWindow:onDragEnter(mousePos)
 	local parent = self:getParent()
 
@@ -686,6 +864,12 @@ function UIMiniWindow:onDragEnter(mousePos)
 
 	self.oldParentDragLast = nil
 	self._fromSidebar = false
+
+	-- Re-grab a window that is already floating: remember where it was so a failed action
+	-- can restore it, and let it move freely (it stays a child of the game root).
+	if self.floating then
+		self._floatDragStart = self:getPosition()
+	end
 
 	if parent:getClassName() == "UIMiniWindowContainer" then
 		self._fromSidebar = true
@@ -785,7 +969,11 @@ function UIMiniWindow:onDragLeave(droppedWidget, mousePos)
 
 	local needsBounce = false
 
-	if self.moveOnlyToMain or droppedWidget and droppedWidget.onlyPhantomDrop then
+	-- With free placement on, a moveOnlyToMain window released over nothing (droppedWidget nil)
+	-- is allowed to float instead of being forced back to the main panel.
+	local floatReleaseAllowed = freePlacementEnabled() and not droppedWidget and not self.locked
+
+	if (self.moveOnlyToMain or droppedWidget and droppedWidget.onlyPhantomDrop) and not floatReleaseAllowed then
 		local widgetAllowsHorizontal = self.allowHorizontalDrop and droppedWidget and droppedWidget.isHorizontalPanel
 
 		if not widgetAllowsHorizontal and (not droppedWidget or self.moveOnlyToMain and not droppedWidget.onlyPhantomDrop or not self.moveOnlyToMain and droppedWidget.onlyPhantomDrop) then
@@ -793,16 +981,28 @@ function UIMiniWindow:onDragLeave(droppedWidget, mousePos)
 		end
 	end
 
-	if not needsBounce and self._fromSidebar then
-		local currentParent = self:getParent()
-		local landedOnSidebar = currentParent and currentParent:getClassName() == "UIMiniWindowContainer"
+	-- Was the window released outside every dock container?
+	local landedParent = self:getParent()
+	local landedOnSidebar = landedParent and landedParent:getClassName() == "UIMiniWindowContainer"
 
-		if not landedOnSidebar then
-			needsBounce = true
-		end
+	-- FREE PLACEMENT: if it left a sidebar and did not land on another one, keep it floating
+	-- over the game area instead of bouncing back - as long as the option allows it and the
+	-- window is not policy-bounced above (onlyPhantomDrop mismatch) or locked.
+	local wantsFloat = self._fromSidebar and not landedOnSidebar and not needsBounce and
+		freePlacementEnabled() and not self.locked and not (droppedWidget and droppedWidget.onlyPhantomDrop)
+
+	-- A window that is ALREADY floating and gets dropped again outside a container just stays
+	-- where the user released it.
+	local stayFloating = self.floating and not landedOnSidebar and not needsBounce and freePlacementEnabled()
+
+	-- With free placement OFF, leaving a dock and landing on nothing must bounce back (classic).
+	if not needsBounce and not wantsFloat and not stayFloating and self._fromSidebar and not landedOnSidebar then
+		needsBounce = true
 	end
 
-	if needsBounce then
+	if wantsFloat or stayFloating then
+		self:setFloating()
+	elseif needsBounce then
 		if self._fromSidebar and not self.moveOnlyToMain and isMainPanelDropTarget(droppedWidget, mousePos) then
 			if not appendToDefaultSidebar(self) then
 				bounceBackToOrigin()
@@ -810,6 +1010,10 @@ function UIMiniWindow:onDragLeave(droppedWidget, mousePos)
 		else
 			bounceBackToOrigin()
 		end
+	elseif landedOnSidebar and self.floating then
+		-- re-docked into a container: drop the floating marker + stored position
+		self.floating = nil
+		eraseFloatingPosition(self)
 	end
 
 	local placeholderParent = self._sidebarDragPlaceholder and self._sidebarDragPlaceholder:getParent()
@@ -840,7 +1044,9 @@ end
 function UIMiniWindow:onDragMove(mousePos, mouseMoved)
 	local moved = UIWindow.onDragMove(self, mousePos, mouseMoved)
 
-	if self.moveOnlyToMain and not self.allowHorizontalDrop and self.oldParentDrag and not self.oldParentDrag:isDestroyed() then
+	-- moveOnlyToMain windows (minimap, health, inventory) are X-locked to the main panel
+	-- while docked. With free placement on we let them roam once they leave the dock.
+	if self.moveOnlyToMain and not self.allowHorizontalDrop and not freePlacementEnabled() and self.oldParentDrag and not self.oldParentDrag:isDestroyed() then
 		local cRect = self.oldParentDrag:getPaddingRect()
 		local wSize = self:getSize()
 		local lockedX = cRect.x
@@ -1316,6 +1522,12 @@ end
 function UIMiniWindow:closeAndForgetLayout()
 	if not self:isExplicitlyVisible() then
 		return
+	end
+
+	-- A floating window closed via its X button forgets its floating spot.
+	if self.floating then
+		self.floating = nil
+		eraseFloatingPosition(self)
 	end
 
 	local parent = self:getParent()

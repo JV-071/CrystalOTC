@@ -654,6 +654,55 @@ float VkTextureAtlas::getOccupancy() const
     return static_cast<float>(static_cast<double>(m_tilePixels) / static_cast<double>(total));
 }
 
+bool VkTextureAtlas::reset()
+{
+    if (!m_ready || m_device == VK_NULL_HANDLE)
+        return false;
+
+    // Nothing to do if the atlas is already at its minimum footprint.
+    if (m_gpuLayers <= 1 && m_tileCount == 0)
+        return true;
+
+    // Wait for the card to finish every frame still sampling the current image, so destroying
+    // it is safe. Rare (only when the atlas crossed the growth threshold), so the stall is fine.
+    if (vkDeviceWaitIdle)
+        vkDeviceWaitIdle(m_device);
+
+    if (m_view != VK_NULL_HANDLE && m_vkDestroyImageView) {
+        m_vkDestroyImageView(m_device, m_view, nullptr);
+        m_view = VK_NULL_HANDLE;
+    }
+    if (m_image != VK_NULL_HANDLE && m_vkDestroyImage) {
+        m_vkDestroyImage(m_device, m_image, nullptr);
+        m_image = VK_NULL_HANDLE;
+    }
+    if (m_memory != VK_NULL_HANDLE && m_vkFreeMemory) {
+        m_vkFreeMemory(m_device, m_memory, nullptr);
+        m_memory = VK_NULL_HANDLE;
+    }
+
+    // Reset all bookkeeping to a blank atlas, then build ONE fresh layer.
+    m_layers.clear();
+    m_layers.emplace_back();
+    m_pendingPixels.clear();
+    m_pendingPixels.shrink_to_fit();
+    m_pendingCopies.clear();
+    m_pendingCopies.shrink_to_fit();
+    m_gpuLayers = 0;
+    m_gpuBytes = 0;
+    m_tileCount = 0;
+    m_tilePixels = 0;
+    m_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (!ensureLayerCapacity(1)) {
+        m_error = "atlas rebuild failed to create the first layer";
+        return false;
+    }
+
+    // ensureLayerCapacity already bumped m_generation, so the caller's descriptor re-syncs.
+    return true;
+}
+
 void VkTextureAtlas::terminate()
 {
     // Note: we do NOT call vkDeviceWaitIdle here - VkContext::terminate does it before calling us,

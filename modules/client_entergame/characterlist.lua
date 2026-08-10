@@ -962,9 +962,11 @@ function CharacterList.show()
 		return false
 	end
 
+	-- Fade the window in (appear effect). Hiding stays synchronous so ESC->login works.
 	charactersWindow:show()
 	charactersWindow:raise()
 	charactersWindow:focus()
+	g_effects.fadeIn(charactersWindow, 300)
 
 	return true
 end
@@ -975,7 +977,9 @@ function CharacterList.hide(showLogin)
 	showLogin = showLogin or false
 
 	if isWidgetAlive(charactersWindow) then
+		g_effects.cancelFade(charactersWindow)
 		charactersWindow:hide()
+		charactersWindow:setOpacity(1)
 	end
 
 	if showLogin and EnterGame and not g_game.isOnline() then

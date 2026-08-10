@@ -633,6 +633,28 @@ void VkDrawFeeder::feedFrame(VkSpriteBatch& batch, const VkExtent2D& extent)
 
     ++m_frame;
 
+    // Cap unbounded atlas growth. The atlas never shrinks on its own - every new sprite that
+    // comes into view adds a region, and over a long/dense session it climbs to 20+ layers
+    // (16 MB each = 300+ MB of device memory, which counts toward the process's private bytes).
+    //
+    // DISABLED: a mid-session reset() reliably left the map GROUND rendering black while
+    // creatures/UI kept drawing - re-registering the whole working set inside one frame does not
+    // repopulate ground-tile slots correctly. A full nuke-and-rebuild is the wrong tool; RAM has
+    // to be reclaimed with per-slot/per-layer LRU eviction instead (kept for a later pass). The
+    // reset() method stays in VkTextureAtlas but is no longer triggered from the hot path.
+    static constexpr bool kAtlasResetEnabled = false;
+    static constexpr uint32_t kMaxAtlasLayers = 8; // 8 * 16 MB = 128 MB ceiling
+    if (kAtlasResetEnabled && batch.getAtlas().getLayerCount() > kMaxAtlasLayers) {
+        if (batch.getAtlas().reset()) {
+            m_slots.clear();
+            m_slotsByContent.clear();
+            m_bigSlots.clear();
+            m_white = VkAtlasSlot{};
+            g_logger.info("[vulkan] feeder: atlas exceeded {} layers - rebuilt (frame {})",
+                          kMaxAtlasLayers, m_frame);
+        }
+    }
+
     batch.beginExternal(extent);
 
     // The same order as the GL loop in DrawPoolManager::draw: the map at the bottom, the interface

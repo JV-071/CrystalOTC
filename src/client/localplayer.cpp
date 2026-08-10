@@ -612,7 +612,7 @@ void LocalPlayer::setResourceBalance(const Otc::ResourceTypes_t type, const uint
 
     m_resourcesBalance[type] = value;
     g_lua.callGlobalField("g_game", "onResourcesBalanceChange", value, oldBalance, type);
-    // modules from the Paulistinha client (prey, taskboard, market, imbuing, proficiency) listen to
+    // the ported modules (prey, taskboard, market, imbuing, proficiency) listen to
     // onResourceBalance(type, value) - without this the wildcard/token/gold counters did not refresh
     g_lua.callGlobalField("g_game", "onResourceBalance", type, value);
 }

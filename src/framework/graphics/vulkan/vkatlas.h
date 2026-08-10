@@ -84,6 +84,13 @@ public:
     // reloading the sprite set must not keep giving memory back to the driver and taking it again.
     void clear();
 
+    // Full rebuild: frees ALL GPU layers back to a single fresh one and resets the allocator.
+    // Unlike clear() this ACTUALLY releases card memory - used to cap unbounded atlas growth
+    // (the atlas never shrinks on its own as new sprites keep coming into view). Waits for the
+    // device to go idle first, so no in-flight frame is sampling the image being destroyed.
+    // Bumps the generation, so the descriptor is re-synced by the caller.
+    bool reset();
+
     void terminate();
 
     bool isReady() const { return m_ready; }

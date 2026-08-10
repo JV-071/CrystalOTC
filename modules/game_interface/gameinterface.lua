@@ -2342,15 +2342,12 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing, mapTi
 
 	local effectiveUseThing = resolveHirelingUseThing(useThing, creatureThing)
 
+	-- Classic behavior: exactly ONE use-options block. Adding a second block for lookThing
+	-- duplicated identical "Use / Browse Field" pairs whenever the looked item and the used
+	-- item were different things on the same tile (e.g. a field on top of the ground).
 	if effectiveUseThing then
 		addUseThingMenuOptions(menu, effectiveUseThing, useThingShortcuts)
-	end
-
-	if lookThing and lookThing:isItem() and (not effectiveUseThing or lookThing ~= effectiveUseThing) then
-		if effectiveUseThing then
-			menu:addSeparator()
-		end
-
+	elseif lookThing and lookThing:isItem() then
 		addUseThingMenuOptions(menu, lookThing, useThingShortcuts)
 	end
 
@@ -2864,6 +2861,42 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 			return true
 		end
 	elseif classicControl ~= "classic" and classicControl ~= true then
+		-- Left Smart Click: a plain left click performs the smart action instead of only
+		-- walking. Priority: attack a hostile creature, greet an NPC ("hi" opens its dialog),
+		-- open/use the thing under the cursor. Without this branch a left click on an NPC just
+		-- walked toward it and the dialog never opened.
+		if classicControl == "leftSmart" and mouseButton == MouseLeftButton and keyboardModifiers == KeyboardNoModifier then
+			-- NPC BEFORE attack: the clicked NPC shows up as attackCreature too, so checking
+			-- attack first would try to attack the NPC instead of greeting it.
+			if creatureThing and creatureThing:isNpc() then
+				g_game.talk("hi")
+
+				return true
+			elseif attackCreature and attackCreature ~= player and not attackCreature:isNpc() then
+				g_game.attack(attackCreature)
+
+				return true
+			elseif effectiveUseThing then
+				if effectiveUseThing:isContainer() then
+					if effectiveUseThing:getParentContainer() then
+						g_game.open(effectiveUseThing, effectiveUseThing:getParentContainer())
+					else
+						g_game.open(effectiveUseThing)
+					end
+
+					return true
+				elseif effectiveUseThing:isMultiUse() then
+					startUseWith(effectiveUseThing)
+
+					return true
+				else
+					handleUseThing(effectiveUseThing, false)
+
+					return true
+				end
+			end
+		end
+
 		if keyboardModifiers == KeyboardNoModifier and mouseButton == MouseRightButton then
 			createThingMenu(menuPosition, lookThing, useThing, creatureThing, autoWalkPos)
 
@@ -3508,6 +3541,12 @@ local function stackGameCenterAboveSidebars()
 
 	if rightDecreaseSidePanels and not rightDecreaseSidePanels:isDestroyed() then
 		rightDecreaseSidePanels:raise()
+	end
+
+	-- Floating mini-windows must sit above the map (which we just raised), otherwise every
+	-- sidebar toggle / geometry change would bury them under the game view.
+	if UIMiniWindow and UIMiniWindow.raiseAllFloating then
+		UIMiniWindow.raiseAllFloating()
 	end
 end
 

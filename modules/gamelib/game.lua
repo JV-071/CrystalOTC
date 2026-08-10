@@ -288,3 +288,17 @@ end
 function g_game.onOtcToggle(opCode, enabled)
 	return
 end
+
+-- Crosshair / aimed spell cast. The 4 crosshair spells (Divine Grenade/Barrage,
+-- Ethereal Barrage, Death Echo) are server-side needPosition spells: they must carry the
+-- cursor/target tile position in the say packet, otherwise the server casts them on the
+-- caster's own tile. This is the missing glue: stage the aim, then talk normally - sendTalk
+-- appends the staged position (15.30 say tail) and clears it.
+--   mode 1 = release-on-tile, mode 2 = cast at cursor tile, mode 3 = target (no tile aim).
+function g_game.talkSpell(words, mode, pos)
+	if pos and pos.x and pos.x ~= 0 and pos.x ~= 65535 and g_game.setNextTalkAim then
+		g_game.setNextTalkAim(pos)
+	end
+
+	g_game.talk(words)
+end

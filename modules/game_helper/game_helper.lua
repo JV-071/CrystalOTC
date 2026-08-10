@@ -3008,7 +3008,9 @@ function init()
 	validateHelperRuntime()
 
 	if modules.game_mainpanel then
-		helperButton = modules.game_mainpanel.addToggleButton("helperButton", tr("Open Helper Stats"), "/images/options/button_helper", toggleHelperStatsWindow, false, 1002, "HelperMainToggleButton")
+		-- Special-buttons grid (top-right, next to the settings gear) instead of the bottom
+		-- button row, at the user's request.
+		helperButton = modules.game_mainpanel.addSpecialToggleButton("helperButton", tr("Open Helper Stats"), "/images/options/button_helper", toggleHelperStatsWindow, false, 1002, "HelperMainToggleButton")
 
 		helperButton:setImageBorder(0)
 	end

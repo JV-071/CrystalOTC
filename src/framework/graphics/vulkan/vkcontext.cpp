@@ -7,6 +7,7 @@
 
 #include <framework/core/configmanager.h>
 #include <framework/core/logger.h>
+#include <framework/platform/platformwindow.h>
 
 #include <algorithm>
 
@@ -382,9 +383,15 @@ bool VkContext::createSwapchain(const int width, const int height)
         }
     }
 
-    // Presentation mode: MAILBOX (latest frame, no waiting and no tearing) before IMMEDIATE
-    // (no waiting, tearing possible) before FIFO (vsync, the only guaranteed one). Hard-coded FIFO
-    // would pin the FPS to the monitor refresh rate regardless of the client's settings.
+    // Presentation mode, driven by the client's vsync setting:
+    //   vsync ON  -> FIFO: capped at the monitor refresh, no tearing.
+    //   vsync OFF -> IMMEDIATE preferred: UNCAPPED FPS (may tear), lowest latency; then MAILBOX,
+    //                then FIFO as the last resort.
+    // Why not MAILBOX when vsync is off: MAILBOX presents at most once per vblank (it just swaps
+    // the queued image for a fresher one), so it STILL pins the FPS to the refresh rate - which
+    // is exactly the "max 144 fps" the user saw. Only IMMEDIATE lets the FPS exceed the refresh.
+    const bool wantVsync = g_window.vsyncEnabled();
+
     VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
     {
         uint32_t presentModeCount = 0;
@@ -393,31 +400,36 @@ bool VkContext::createSwapchain(const int width, const int height)
         if (presentModeCount > 0)
             m_vkGetPhysicalDeviceSurfacePresentModesKHR(m_physicalDevice, m_surface, &presentModeCount, presentModes.data());
 
+        bool hasImmediate = false;
+        bool hasMailbox = false;
         std::string availableModes;
         for (const VkPresentModeKHR mode : presentModes) {
             if (!availableModes.empty())
                 availableModes += ", ";
             switch (mode) {
-                case VK_PRESENT_MODE_IMMEDIATE_KHR: availableModes += "IMMEDIATE"; break;
-                case VK_PRESENT_MODE_MAILBOX_KHR: availableModes += "MAILBOX"; break;
+                case VK_PRESENT_MODE_IMMEDIATE_KHR: availableModes += "IMMEDIATE"; hasImmediate = true; break;
+                case VK_PRESENT_MODE_MAILBOX_KHR: availableModes += "MAILBOX"; hasMailbox = true; break;
                 case VK_PRESENT_MODE_FIFO_KHR: availableModes += "FIFO"; break;
                 case VK_PRESENT_MODE_FIFO_RELAXED_KHR: availableModes += "FIFO_RELAXED"; break;
                 default: availableModes += std::to_string(static_cast<int>(mode)); break;
             }
-
-            if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
-                presentMode = mode;
-            else if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR && presentMode != VK_PRESENT_MODE_MAILBOX_KHR)
-                presentMode = mode;
         }
 
-        // FPS-limit diagnostics: FIFO = hard vsync (pins FPS to the monitor refresh rate).
-        // On hybrid laptops (presentation through the iGPU) the driver can expose
-        // FIFO ONLY - then this log is the only way to tell.
-        g_logger.info("[vulkan] presentation modes: [{}], selected: {}", availableModes,
-                      presentMode == VK_PRESENT_MODE_MAILBOX_KHR ? "MAILBOX (no limit, no tearing)" :
-                      presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR ? "IMMEDIATE (no limit, tearing possible)" :
-                      "FIFO (vsync - FPS limited to the monitor refresh rate)");
+        if (!wantVsync) {
+            if (hasImmediate)
+                presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            else if (hasMailbox)
+                presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+        }
+
+        // FPS-limit diagnostics: FIFO/MAILBOX both cap at the monitor refresh; only IMMEDIATE
+        // goes above. On hybrid laptops (presentation through the iGPU) windowed DWM
+        // compositing can still re-cap IMMEDIATE at the refresh - exclusive fullscreen escapes it.
+        g_logger.info("[vulkan] presentation modes: [{}], vsync={}, selected: {}", availableModes,
+                      wantVsync ? "on" : "off",
+                      presentMode == VK_PRESENT_MODE_MAILBOX_KHR ? "MAILBOX (capped at refresh, no tearing)" :
+                      presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR ? "IMMEDIATE (uncapped, tearing possible)" :
+                      "FIFO (vsync - capped at the monitor refresh rate)");
     }
 
     VkExtent2D extent = caps.currentExtent;

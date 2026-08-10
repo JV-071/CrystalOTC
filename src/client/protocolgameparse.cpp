@@ -5211,7 +5211,10 @@ void ProtocolGame::parseMonkData(const InputMessagePtr& msg) {
                 spellIds.reserve(count);
                 for (auto i = 0; i < count; ++i)
                     spellIds.push_back(msg->getU16());
-                g_lua.callGlobalField("g_game", "onStanceHighlight", spellIds);
+                // Emit under the name the action bar / spell list / helper already listen to
+                // (onVirtuesYellowBorder). The full spellId list handles the Master Sorcerer's
+                // two simultaneous stances automatically - the consumers light a frame per id.
+                g_lua.callGlobalField("g_game", "onVirtuesYellowBorder", spellIds);
                 break;
             }
             const uint8_t virtueValue = msg->getU8();

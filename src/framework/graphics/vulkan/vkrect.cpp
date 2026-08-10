@@ -23,7 +23,7 @@ namespace
 
     // Any existing PNG - the icon is square and it is immediately obvious whether the texture
     // uploaded correctly (swapped channels or a wrong stride would be instantly visible).
-    // (clientlogo.png removed at the user's request - it was Paulistinha branding)
+    // (clientlogo.png removed at the user's request - it was third-party branding)
     constexpr const char* kRectTexturePath = "/data/images/clienticon.png";
 
     // One vertex: position within the unit square + texture coordinate.

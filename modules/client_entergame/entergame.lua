@@ -520,13 +520,19 @@ function EnterGame.show()
 		background.serverLogo:show()
 	end
 
+	-- Fade the window in (appear effect on launch and whenever we return to the login screen).
+	-- Hiding stays synchronous so the login<->character-list transitions (e.g. ESC) are not blocked
+	-- by a window that is still "visible" mid-fade.
 	enterGame:show()
 	enterGame:raise()
 	enterGame:focus()
+	g_effects.fadeIn(enterGame, 300)
 end
 
 function EnterGame.hide()
+	g_effects.cancelFade(enterGame)
 	enterGame:hide()
+	enterGame:setOpacity(1)
 
 	local background = modules.client_background.getBackground()
 
