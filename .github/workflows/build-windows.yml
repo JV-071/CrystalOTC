@@ -133,3 +133,35 @@ jobs:
         with:
           name: CrystalOTC-windows-release
           path: ${{ github.workspace }}/artifacts
+
+  release:
+    name: Publish "latest" release
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: CrystalOTC-windows-release
+          path: artifacts
+
+      - name: Zip binaries
+        run: cd artifacts && zip -r ../CrystalOTC-windows.zip .
+
+      - name: Recreate "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -R "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create latest CrystalOTC-windows.zip \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Latest build ($(date -u +%Y-%m-%d), ${GITHUB_SHA::7})" \
+            --notes "Automatic build of the latest \`main\` commit ${GITHUB_SHA::7}.
+
+          Contains the client executable and required DLLs. Game assets are NOT included - download \`data/things\` separately (see the README or the wiki's Game Assets page)."
