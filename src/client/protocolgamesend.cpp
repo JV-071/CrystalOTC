@@ -1029,14 +1029,6 @@ void ProtocolGame::sendWheelGemAction(uint8_t actionType, uint8_t param, uint8_t
         msg->addU8(pos);
 
     send(msg);
-
-    // 🔍 Log of successful send
-    g_logger.debug(fmt::format(
-        "[Client Gem Action] sendWheelGemAction sent successfully -> actionType={} param={} pos={}",
-        static_cast<int>(actionType),
-        static_cast<int>(param),
-        static_cast<int>(pos)
-    ));
 }
 
 void ProtocolGame::sendDebugReport(const std::string_view a, const std::string_view b, const std::string_view c, const std::string_view d)
@@ -1771,7 +1763,6 @@ void ProtocolGame::sendOpenWheelOfDestiny(uint32_t playerId)
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientOpenWheel);
     msg->addU32(playerId);
-    g_logger.info("Sending Wheel of Destiny request for player ID {}", playerId);
     send(msg);
 }
 
@@ -1855,51 +1846,31 @@ void ProtocolGame::sendApplyWheelPoints(const std::vector<uint16_t>& slotPoints,
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientSaveWheel); // 0x62 (ClientSaveWheel)
-    g_logger.debug("[Wheel C++ Send] sendApplyWheelPoints started");
-
 
     // Send points per slot (36 valid slots)
     for (int i = 0; i < 36; ++i) {
         uint16_t value = (i < static_cast<int>(slotPoints.size())) ? slotPoints[i] : 0;
         msg->addU16(value);
-        g_logger.debug(fmt::format("  [Slot {:02d}] points={}", i, value));
     }
 
     // Gem Green
     msg->addU8(greenGem != UINT16_MAX ? 1 : 0);
     if (greenGem != UINT16_MAX) msg->addU16(greenGem);
-    g_logger.debug(fmt::format("[Gem Green C++] hasGem={} gemId={}", greenGem != UINT16_MAX, greenGem));
 
     // Gem Red
     msg->addU8(redGem != UINT16_MAX ? 1 : 0);
     if (redGem != UINT16_MAX) msg->addU16(redGem);
-    g_logger.debug(fmt::format("[Gem Red C++] hasGem={} gemId={}", redGem != UINT16_MAX, redGem));
 
     // Gem Acqua
     msg->addU8(acquaGem != UINT16_MAX ? 1 : 0);
     if (acquaGem != UINT16_MAX) msg->addU16(acquaGem);
-    g_logger.debug(fmt::format("[Gem Acqua C++] hasGem={} gemId={}", acquaGem != UINT16_MAX, acquaGem));
 
     // Gem Purple
     msg->addU8(purpleGem != UINT16_MAX ? 1 : 0);
     if (purpleGem != UINT16_MAX) msg->addU16(purpleGem);
-    g_logger.debug(fmt::format("[Gem Purple C++] hasGem={} gemId={}", purpleGem != UINT16_MAX, purpleGem));
-    
-    msg->addU8(0);
-    g_logger.debug(fmt::format(
-        "[Wheel C++ Send] Sending apply: {} slots, gems(G={} R={} A={} P={})",
-        slotPoints.size(), greenGem, redGem, acquaGem, purpleGem));
 
-    g_logger.debug("[Wheel C++ Send] Sending ApplyWheelPoints packet...");
-    std::ostringstream oss;
-    const auto& buffer = msg->getBuffer();
-    const size_t length = msg->getMessageSize(); // uses the existing method
-    for (size_t i = 0; i < length; ++i) {
-        oss << fmt::format("{:02X} ", static_cast<uint8_t>(buffer[i]));
-    }
-    g_logger.debug(fmt::format("[WheelDebugHex] Full packet ({} bytes): {}", length, oss.str()));
+    msg->addU8(0);
     send(msg);
-    g_logger.debug("[Wheel C++ Send] Packet sent successfully.");
 }
 
 void ProtocolGame::sendWeaponProficiencyAction(const uint8_t actionType, const uint16_t itemId)

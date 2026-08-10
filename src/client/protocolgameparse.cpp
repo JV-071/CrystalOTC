@@ -3035,8 +3035,6 @@ void ProtocolGame::parseTextMessage(const InputMessagePtr& msg)
     const Otc::MessageMode mode = Proto::translateMessageModeFromServer(code);
     std::string text;
 
-    g_logger.debug("[ProtocolGame::parseTextMessage] code: {}, mode: {}", code, std::to_string(mode));
-
     switch (mode) {
         case Otc::MessageChannelManagement:
             msg->getU16(); // channelId
@@ -5211,8 +5209,7 @@ void ProtocolGame::parseMonkData(const InputMessagePtr& msg) {
                 g_lua.callGlobalField("g_game", "onVirtuesYellowBorder", spellIds);
                 break;
             }
-            const uint8_t virtueValue = msg->getU8();
-            g_logger.debug("unused {} TO-DO L4381", virtueValue);
+            msg->getU8(); // unused virtue value
             break;
         }
         default:
@@ -7564,15 +7561,12 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
 {
     // Player ID
     uint32_t playerId = msg->getU32();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] parseOpenWheelWindow -> playerId={}", playerId));
 
     // CanView
     uint8_t canView = msg->getU8();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] canView={}", static_cast<int>(canView)));
 
     // If it cannot be viewed, stop and fire an "empty" callback
     if (!canView) {
-        g_logger.debug("[Wheel C++ Parse] Player cannot open the Wheel of Destiny.");
         g_lua.callGlobalField("g_game", "onDestinyWheel",
             playerId, canView, 0, 0, 0, 0,
             std::vector<uint16_t>(), std::vector<uint16_t>(),
@@ -7584,16 +7578,10 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
     // Change state + vocation
     uint8_t changeState = msg->getU8();
     uint8_t vocationId = msg->getU8();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] changeState={} vocationId={}",
-        static_cast<int>(changeState), static_cast<int>(vocationId)));
 
     // Points
     uint16_t points = msg->getU16();
     uint16_t extraPoints = msg->getU16();
-
-    g_logger.debug(fmt::format("[Wheel C++ Parse] points={} extraPoints={}",
-        static_cast<int>(points),
-        static_cast<int>(extraPoints)));
 
     // Points per slot (37 fixed slots, same as the server, 0 to 36)
     std::vector<uint16_t> pointInvested;
@@ -7604,37 +7592,21 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
         pointInvested.push_back(slotPoints);
     }
 
-    g_logger.debug(fmt::format("[Wheel C++ Parse] pointInvested ({} slots)", static_cast<int>(pointInvested.size())));
-
-    // Detailed log of each slot
-    for (int i = 0; i < static_cast<int>(pointInvested.size()); ++i) {
-        g_logger.debug(fmt::format("  [Slot {:>2}] points={}", i, pointInvested[i]));
-    }
-
     // Promotion scrolls
     std::vector<uint16_t> usedPromotionScrolls;
     uint16_t scrollCount = msg->getU16();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] scrollCount={}", static_cast<int>(scrollCount)));
 
     for (uint16_t i = 0; i < scrollCount; ++i) {
         uint16_t itemId = msg->getU16();
         // In protocols 1500+ the server sends 1 extra byte (extraPoints)
-        uint8_t extraPoints = 0;
         if (g_game.getProtocolVersion() >= 1500 && msg->getUnreadSize() > 0) {
-            extraPoints = msg->getU8();
+            msg->getU8();
         }
         usedPromotionScrolls.push_back(itemId);
-
-        g_logger.debug(fmt::format("  [Scroll {}] id={} extraPoints={}",
-            static_cast<int>(i),
-            static_cast<int>(itemId),
-            static_cast<int>(extraPoints)));
     }
 
-    uint8_t hasMonkQuest = 0;
     if (g_game.getProtocolVersion() >= 1500 && msg->getUnreadSize() > 0) {
-        hasMonkQuest = msg->getU8();
-        g_logger.debug(fmt::format("[Wheel C++ Parse] hasMonkQuest read (value={})", static_cast<int>(hasMonkQuest)));
+        msg->getU8(); // hasMonkQuest
     }
     if (g_game.getProtocolVersion() >= 1520) {
         msg->getU16(); // getExtraPointsFromHuntingTaskShop
@@ -7642,17 +7614,14 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
     // Active gems (equipped)
     std::vector<uint16_t> equipedGems;
     uint8_t activeGemCount = msg->getU8();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] activeGemCount={}", static_cast<int>(activeGemCount)));
     for (uint8_t i = 0; i < activeGemCount; ++i) {
         uint16_t gemIndex = msg->getU16();
         equipedGems.push_back(gemIndex);
-        g_logger.debug(fmt::format("  [ActiveGem {}] index={}", static_cast<int>(i), static_cast<int>(gemIndex)));
     }
 
     // Revealed gems (atelier)
     std::vector<GemData> atelierGems;
     uint16_t revealedCount = msg->getU16();
-    g_logger.debug(fmt::format("[Wheel C++ Parse] revealedGemCount={}", static_cast<int>(revealedCount)));
 
     for (uint16_t i = 0; i < revealedCount; ++i) {
         GemData gem;
@@ -7668,48 +7637,29 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
             gem.supremeBonus = msg->getU8();
 
         atelierGems.push_back(gem);
-
-        g_logger.debug(fmt::format(
-            "  [RevealedGem {:02}] id={} locked={} domain={} type={} lesser={} regular={} supreme={}",
-            static_cast<int>(i),
-            static_cast<int>(gem.gemID),
-            static_cast<int>(gem.locked),
-            static_cast<int>(gem.gemDomain),
-            static_cast<int>(gem.gemType),
-            static_cast<int>(gem.lesserBonus),
-            static_cast<int>(gem.regularBonus),
-            static_cast<int>(gem.supremeBonus)
-        ));
     }
 
     // Basic upgrades
     std::map<uint8_t, uint8_t> basicUpgraded;
     uint8_t basicCount = msg->getU8(); // usually 0x2E (46)
-    g_logger.debug(fmt::format("[Wheel C++ Parse] basicUpgraded count={}", static_cast<int>(basicCount)));
     for (uint8_t i = 0; i < basicCount; ++i) {
         uint8_t pos = msg->getU8();
         uint8_t val = msg->getU8();
         basicUpgraded[pos] = val;
-        g_logger.debug(fmt::format("  [BasicUpgrade {}] pos={} val={}",
-            static_cast<int>(i), static_cast<int>(pos), static_cast<int>(val)));
     }
 
     // Supreme upgrades
     std::map<uint8_t, uint8_t> supremeUpgraded;
     uint8_t supCount = msg->getU8(); // usually 0x17 (23)
-    g_logger.debug(fmt::format("[Wheel C++ Parse] supremeUpgraded count={}", static_cast<int>(supCount)));
     for (uint8_t i = 0; i < supCount; ++i) {
         uint8_t pos = msg->getU8();
         uint8_t val = msg->getU8();
         supremeUpgraded[pos] = val;
-        g_logger.debug(fmt::format("  [SupremeUpgrade {}] pos={} val={}",
-            static_cast<int>(i), static_cast<int>(pos), static_cast<int>(val)));
     }
 
     // Additional field (since Canary 15.10+)
     if (g_game.getProtocolVersion() >= 1510 && msg->getUnreadSize() >= 1) {
-        uint8_t earnedFromAchievements = msg->getU8();
-        g_logger.debug(fmt::format("[Wheel C++ Parse] earnedFromAchievements={}", static_cast<int>(earnedFromAchievements)));
+        msg->getU8(); // earnedFromAchievements
     }
 
     // Check whether any bytes remained after the parse

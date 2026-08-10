@@ -225,7 +225,6 @@ function Workshop.showFragmentList(startUp, nextPage, selectCurrent, searchText,
 				local count = isSupreme and (WheelOfDestiny.supremeModCount[tostring(info.modID)] or 0) or WheelOfDestiny.basicModCount[tostring(info.modID)] or 0
 
 				updateWidget(widget, info, isSupreme and equippedSupreme or equippedBasic, count)
-				g_logger.debug(string.format("[WorkshopCount] modID=%d supreme=%s -> count=%d (key='%s')", info.modID, tostring(isSupreme), count, tostring(info.modID)))
 			end
 		end
 	end
@@ -390,7 +389,6 @@ function sendgemAction(actionType, param, pos)
 	param = param or 0
 	pos = pos or 0
 
-	g_logger.debug(string.format("[GemAtelier] Sending action -> type=%d param=%d pos=%d", actionType, param, pos))
 	g_game.gemAction(actionType, param, pos)
 
 	if actionType == 3 then
@@ -398,14 +396,12 @@ function sendgemAction(actionType, param, pos)
 			local gem = GemAtelier.getGemDataById(param)
 
 			if not gem then
-				g_logger.debug(string.format("[GemAtelier] Failed to toggle lock: gem id=%d not found.", param))
 
 				return
 			end
 
 			gem.locked = gem.locked == 1 and 0 or 1
 
-			g_logger.debug(string.format("[GemAtelier] Toggled local lock of gem id=%d -> %s", param, gem.locked == 1 and "locked" or "unlocked"))
 
 			if lastSelectedGem and lastSelectedGem.locker then
 				lastSelectedGem.locker:setChecked(gem.locked == 1)
@@ -426,7 +422,6 @@ function Workshop.onUpgradeModification(button)
 	local selected = fragmentWindow:recursiveGetChildById("fragmentContent")
 
 	if not selected or not button:isOn() then
-		g_logger.debug("[Workshop] No fragment selected or button not active.")
 
 		return true
 	end
@@ -434,7 +429,6 @@ function Workshop.onUpgradeModification(button)
 	local selectedWidget = selected:getFocusedChild()
 
 	if not selectedWidget then
-		g_logger.debug("[Workshop] No modification widget focused.")
 
 		return true
 	end
@@ -445,7 +439,6 @@ function Workshop.onUpgradeModification(button)
 
 	pos = modID
 
-	g_logger.debug(string.format("[Workshop] Requesting UpgradeModification -> action=4 | fragmentType=%d | pos=%d | supreme=%s", fragmentType, pos, tostring(supreme)))
 	sendgemAction(4, fragmentType, pos)
 end
 
