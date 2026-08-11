@@ -1717,6 +1717,13 @@ void Game::setAttackingCreature(const CreaturePtr& creature)
     const CreaturePtr oldCreature = m_attackingCreature;
     m_attackingCreature = creature;
 
+    // The ported modules expect the engine to mark the attack target on the map (their
+    // original exe did it in C++ via markTargetVisually): classic red static square.
+    if (oldCreature)
+        oldCreature->hideStaticSquare();
+    if (creature)
+        creature->showStaticSquare(Color::red);
+
     g_lua.callGlobalField("g_game", "onAttackingCreatureChange", creature, oldCreature);
 }
 
@@ -1727,6 +1734,12 @@ void Game::setFollowingCreature(const CreaturePtr& creature)
 
     const CreaturePtr oldCreature = m_followingCreature;
     m_followingCreature = creature;
+
+    // Same engine-side marking as for the attack target: classic green square on follow.
+    if (oldCreature)
+        oldCreature->hideStaticSquare();
+    if (creature)
+        creature->showStaticSquare(Color::green);
 
     g_lua.callGlobalField("g_game", "onFollowingCreatureChange", creature, oldCreature);
 }
