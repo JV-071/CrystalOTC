@@ -30,6 +30,8 @@
 // a Linux build already fails on the mere #include <vulkan/vulkan.h>.
 #include "framework/graphics/vulkan/vkcontext.h"
 #include "framework/graphics/vulkan/vkloader.h"
+#include "framework/graphics/graphics.h"
+#include "framework/platform/platformwindow.h"
 #endif
 #include "framework/core/graphicalapplication.h"
 #include "framework/core/resourcemanager.h"
