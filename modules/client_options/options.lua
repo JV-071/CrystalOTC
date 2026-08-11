@@ -968,6 +968,11 @@ local function updateDisplayedButtonsList(keepSelection)
 			updateButtonStates()
 		end
 
+		function label:onDoubleClick(mousePos)
+			self:focus()
+			moveToAvailable()
+		end
+
 		if selectedId and buttonData.id == selectedId then
 			label:focus()
 		end
@@ -1021,6 +1026,11 @@ local function updateAvailableButtonsList(keepSelection)
 			end
 
 			updateButtonStates()
+		end
+
+		function label:onDoubleClick(mousePos)
+			self:focus()
+			moveToDisplayed()
 		end
 
 		if selectedId and buttonData.id == selectedId then
