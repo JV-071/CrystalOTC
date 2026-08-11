@@ -55,6 +55,9 @@ if (MSVC)
     message(STATUS "assets.pak not found at ${CMAKE_SOURCE_DIR}/assets.pak — building without embedded resource (runtime falls back to disk)")
   endif()
   add_executable(${PROJECT_NAME} "" ${_OTC_MSVC_RC_FILES})
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+    OUTPUT_NAME "CrystalOTC"
+  )
 elseif(ANDROID)
   add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 else()
@@ -435,17 +438,12 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/graphics/texture.cpp
           framework/graphics/texturemanager.cpp
           framework/graphics/shadermanager.cpp
-          framework/platform/win32window.cpp
-          framework/platform/x11window.cpp
-          # Renderer Vulkan: pliki kompiluja sie na kazdej platformie, ale ich TRESC jest
-          # w calosci pod #ifdef WIN32 (powierzchnia okna to na razie tylko Win32, a zaleznosc
-          # vulkan-headers jest w vcpkg.json oznaczona jako windows-only).
           framework/graphics/vulkan/vkloader.cpp
           framework/graphics/vulkan/vkcontext.cpp
           framework/graphics/vulkan/vkrect.cpp
           framework/graphics/vulkan/vkatlas.cpp
-          framework/graphics/vulkan/vkbatch.cpp
-          framework/graphics/vulkan/vkfeeder.cpp
+          framework/graphics/vkbatch.cpp
+          framework/graphics/vkfeeder.cpp
           framework/ui/uianchorlayout.cpp
           framework/ui/uiboxlayout.cpp
           framework/ui/uigridlayout.cpp
@@ -702,7 +700,7 @@ elseif(ANDROID)
           ${PHYSFS_INCLUDE_DIR}
           ${EGL_INCLUDE_DIR}
           ${PARALLEL_HASHMAP_INCLUDE_DIRS}
-          ${NLOHMANN_JSON_INCLUDE_DIR}
+          ${NLOHM_JSON_INCLUDE_DIR}
           ${CPPCODEC_INCLUDE_DIRS}
   )
   target_link_libraries(otclient_core
@@ -711,7 +709,7 @@ elseif(ANDROID)
           ${LUAJIT_LIBRARY}
           ${PHYSFS_LIBRARY}
           ${ZLIB_LIBRARY}
-          ${NLOHMANN_JSON_LIBRARY}
+          ${NLOHM_JSON_LIBRARY}
           ${EGL_LIBRARY}
           ${OGG_LIBRARY}
           ${VORBISFILE_LIBRARY}
@@ -766,7 +764,7 @@ elseif(WASM)
           ${PHYSFS_INCLUDE_DIR}
           ${GLEW_INCLUDE_DIR}
           ${PARALLEL_HASHMAP_INCLUDE_DIRS}
-          ${NLOHMANN_JSON_INCLUDE_DIR}
+          ${NLOHM_JSON_INCLUDE_DIR}
           ${OPENSSL_INCLUDE_DIR}
           ${BROWSER_INCLUDE_DIR}
           ${CPPCODEC_INCLUDE_DIRS}
@@ -777,7 +775,7 @@ elseif(WASM)
           ${PHYSFS_LIBRARY}
           ${ZLIB_LIBRARY}
 
-          ${NLOHMANN_JSON_LIBRARY}
+          ${NLOHM_JSON_LIBRARY}
           ${GLEW_LIBRARY}
           ${OPENGL_LIBRARIES}
           ${DirectX_LIBRARY}
@@ -890,7 +888,7 @@ else() # Linux
           ${PHYSFS_INCLUDE_DIR}
           ${GLEW_INCLUDE_DIR}
           ${PARALLEL_HASHMAP_INCLUDE_DIRS}
-          ${NLOHMANN_JSON_INCLUDE_DIR}
+          ${NLOHM_JSON_INCLUDE_DIR}
           ${OPENSSL_INCLUDE_DIR}
           ${CPPCODEC_INCLUDE_DIRS}
   )
@@ -899,7 +897,7 @@ else() # Linux
           ${LUAJIT_LIBRARY}
           ${PHYSFS_LIBRARY}
           ${ZLIB_LIBRARY}
-          ${NLOHMANN_JSON_LIBRARY}
+          ${NLOHM_JSON_LIBRARY}
           ${GLEW_LIBRARY}
           ${OPENGL_LIBRARIES}
           ${DirectX_LIBRARY}
