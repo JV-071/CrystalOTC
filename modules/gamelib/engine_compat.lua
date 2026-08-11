@@ -25,10 +25,31 @@ do
 	local hoveredCreature = nil
 
 	install(g_game, "setHoveredCreature", function(creature)
+		if hoveredCreature == creature then
+			return
+		end
+
+		local oldCreature = hoveredCreature
+
 		hoveredCreature = creature
+
+		-- The real engine fires this event from C++; without it listeners like the
+		-- battle list never receive hoveredMark (white border + label on hover).
+		signalcall(g_game.onHoveredCreatureChange, creature, oldCreature)
 	end)
-	install(g_game, "clearHoveredCreature", function()
+	install(g_game, "clearHoveredCreature", function(creature)
+		-- optional argument: clear only when this creature is still the hovered one
+		if creature ~= nil and hoveredCreature ~= creature then
+			return
+		end
+
+		local oldCreature = hoveredCreature
+
 		hoveredCreature = nil
+
+		if oldCreature then
+			signalcall(g_game.onHoveredCreatureChange, nil, oldCreature)
+		end
 	end)
 	install(g_game, "getHoveredCreature", function()
 		return hoveredCreature
@@ -347,6 +368,14 @@ if UICreature then
 	install(UICreature, "setCenterByBoundingBox", function() end)
 	install(UICreature, "setPodiumPreview", function() end)
 	install(UICreature, "setCreatureSmooth", function() end)
+
+	-- SEMANTICS OVERRIDE (not a missing-method shim): the ported modules treat
+	-- creatureSize as a zoom PERCENT (0 = auto, 100 = normal, up to 255). Our engine
+	-- treats it as a pixel box and setCreatureSize(0) collapses the widget to 0x0 -
+	-- that is why battle list miniatures vanished (every unmounted creature got 0).
+	-- Neutralize it: the creature always fills the widget rect (engine default when
+	-- m_creatureSize stays 0). TODO: implement real percent zoom in UICreature (C++).
+	UICreature.setCreatureSize = function(self, size) end
 end
 
 -- NOTE: setDrawOutfitLayers is called on Creature (previewCreature:getCreature()),

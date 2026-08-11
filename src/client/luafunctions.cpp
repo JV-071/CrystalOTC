@@ -1201,6 +1201,8 @@ void Client::registerLuaFunctions()
     g_lua.bindClassMemberFunction<UICreature>("setCreature", &UICreature::setCreature);
     g_lua.bindClassMemberFunction<UICreature>("setOutfit", &UICreature::setOutfit);
     g_lua.bindClassMemberFunction<UICreature>("setCreatureSize", &UICreature::setCreatureSize);
+    g_lua.bindClassMemberFunction<UICreature>("setAutoFit", &UICreature::setAutoFit);
+    g_lua.bindClassMemberFunction<UICreature>("isAutoFit", &UICreature::isAutoFit);
     g_lua.bindClassMemberFunction<UICreature>("getCreature", &UICreature::getCreature);
     g_lua.bindClassMemberFunction<UICreature>("getCreatureSize", &UICreature::getCreatureSize);
     // note: check function
@@ -1224,6 +1226,8 @@ void Client::registerLuaFunctions()
     g_lua.registerClass<UIMap, UIWidget>();
     g_lua.bindClassStaticFunction<UIMap>("create", [] { return std::make_shared<UIMap>(); });
     g_lua.bindClassMemberFunction<UIMap>("drawSelf", &UIMap::drawSelf);
+    g_lua.bindClassMemberFunction<UIMap>("isReadyToDisplay", &UIMap::isReadyToDisplay);
+    g_lua.bindClassMemberFunction<UIMap>("resetReadyToDisplay", &UIMap::resetReadyToDisplay);
     g_lua.bindClassMemberFunction<UIMap>("movePixels", &UIMap::movePixels);
     g_lua.bindClassMemberFunction<UIMap>("setZoom", &UIMap::setZoom);
     g_lua.bindClassMemberFunction<UIMap>("setFloatZoom", &UIMap::setFloatZoom);
