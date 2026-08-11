@@ -121,7 +121,7 @@ jobs:
             exit 1
           }
 
-          Copy-Item $exePath.FullName -Destination $artifactDir
+          Copy-Item $exePath.FullName -Destination "$artifactDir\CrystalOTC.exe"
 
           $dlls = Get-ChildItem -Path $exePath.Directory.FullName -Filter "*.dll"
           foreach ($dll in $dlls) {
