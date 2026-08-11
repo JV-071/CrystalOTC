@@ -135,7 +135,7 @@ void Creature::drawLight(const Point& dest, LightView* lightView) {
         paperdoll->drawLight(dest, m_outfit.hasMount(), lightView);
 }
 
-void Creature::draw(const Rect& destRect, const uint8_t size, const bool center)
+void Creature::draw(const Rect& destRect, const uint8_t size, const bool center, const bool autoFit)
 {
     if (!canDraw())
         return;
@@ -145,7 +145,12 @@ void Creature::draw(const Rect& destRect, const uint8_t size, const bool center)
         ? getExactSize(0, 0, 0)
         : std::max<int>(getRealSize(), getExactSize());
     const int tileCount = 2;
-    const int fbSize = tileCount * baseSprite;
+
+    // autoFit (opt-in, battle list miniatures): size the preview framebuffer to the
+    // creature itself instead of the fixed 2x2-tile canvas, so a 32 px monster fills
+    // a ~20 px widget instead of occupying a quarter of a 64 px canvas. Everything
+    // else (character list, outfit window, cyclopedia) keeps the legacy canvas.
+    const int fbSize = autoFit ? std::max<int>(nativeSize, baseSprite) : tileCount * baseSprite;
 
     g_drawPool.bindFrameBuffer(fbSize); {
         Point p = center

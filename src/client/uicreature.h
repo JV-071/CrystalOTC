@@ -41,6 +41,11 @@ public:
     void setCenter(const bool v) { m_center = v; }
     bool isCentered() { return m_center; }
 
+    // Opt-in (battle list miniatures): size the preview canvas to the creature so it
+    // fills the widget; everywhere else the legacy 2x2-tile canvas stays untouched.
+    void setAutoFit(const bool v) { m_autoFit = v; }
+    bool isAutoFit() { return m_autoFit; }
+
     void setShader(std::string_view name) override;
     bool hasShader() override;
 
@@ -58,4 +63,5 @@ protected:
     Otc::Direction m_direction{ Otc::South };
     Outfit m_outfit;
     bool m_center{ true };
+    bool m_autoFit{ false };
 };

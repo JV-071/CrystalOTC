@@ -41,11 +41,14 @@ void UICreature::drawSelf(const DrawPoolType drawPane)
         // category ThingInvalidCategory (4) and id/auxId 0; drawing it makes
         // Creature::canDraw()->getThingType() spam "invalid thing type client id 0 in
         // category 4" every frame (worst on the Cyclopedia Map tab, whose animated minimap
-        // forces the foreground pool to repaint continuously).
+        // forces the foreground pool to repaint continuously). Also require a resolved
+        // client id and a valid category - a half-initialized preview creature (setOutfit
+        // rejected the outfit) otherwise reaches getThingType() with the same error spam.
         const auto& outfit = m_creature->getOutfit();
-        if ((outfit.isCreature() ? outfit.getId() : outfit.getAuxId()) != 0) {
+        if ((outfit.isCreature() ? outfit.getId() : outfit.getAuxId()) != 0
+            && outfit.getCategory() < ThingInvalidCategory) {
             m_creature->setMarked(m_imageColor);
-            m_creature->draw(getPaddingRect(), m_creatureSize, m_center);
+            m_creature->draw(getPaddingRect(), m_creatureSize, m_center, m_autoFit);
         }
     }
 }
@@ -92,6 +95,8 @@ void UICreature::onStyleApply(const std::string_view styleName, const OTMLNodePt
     for (const auto& node : styleNode->children()) {
         if (node->tag() == "creature-center") {
             m_center = node->value<bool>();
+        } else if (node->tag() == "creature-auto-fit") {
+            m_autoFit = node->value<bool>();
         } else if (node->tag() == "creature-size") {
             setCreatureSize(node->value<int>());
         } else if (node->tag() == "outfit-id") {

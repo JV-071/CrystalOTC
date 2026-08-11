@@ -162,6 +162,11 @@ function UICreatureButton:updateOutfitPreview(outfit)
 		return
 	end
 
+	-- battle list only: the miniature canvas hugs the creature so it fills the 20 px box
+	if creatureWidget.setAutoFit then
+		creatureWidget:setAutoFit(true)
+	end
+
 	local mountId = tonumber(outfit and outfit.mount) or 0
 	local mounted = mountId > 0
 
