@@ -52,7 +52,7 @@ if ENABLE_SERVERS then
     -- release endpoint. Release (no flag) = the production login below.
     if g_resources.fileExists("/devserver.flag") then
         Servers_init = {
-            ["http://127.0.0.1/login.php"] = {
+            ["http://127.0.0.1/summer/login.php"] = {
                 port = 80,
                 protocol = 1530,
                 httpLogin = true,
@@ -61,7 +61,7 @@ if ENABLE_SERVERS then
         }
     else
         Servers_init = {
-            ["http://127.0.0.1/login.php"] = {
+            ["http://127.0.0.1/summer/login.php"] = {
                 port = 80,
                 protocol = 1530,
                 httpLogin = true,
