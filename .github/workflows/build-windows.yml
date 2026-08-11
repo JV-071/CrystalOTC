@@ -114,12 +114,17 @@ jobs:
           $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-          $exePath = Get-ChildItem -Recurse -Path "$env:GITHUB_WORKSPACE\build" -Filter "otclient*.exe" | Select-Object -First 1
+          $exePath = Get-ChildItem -Recurse 
+              -Path "$env:GITHUB_WORKSPACE\build" 
+              -Filter "CrystalOTC.exe" |
+              Select-Object -First 1
 
           if (-not $exePath) {
-            Write-Error "otclient*.exe not found!"
+            Write-Error "CrystalOTC.exe not found!"
             exit 1
           }
+
+          Write-Host "Found main executable: $($exePath.FullName)"
 
           Copy-Item $exePath.FullName -Destination $artifactDir
 
