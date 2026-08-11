@@ -1970,11 +1970,12 @@ function Cyclopedia.loadItemDetail(itemId, descriptions)
 
 	descriptions = descriptions or {}
 
-	g_logger.info(string.format("[cyc-items] loadItemDetail itemId=%s opisow=%d listaSzerokosc=%s",
-		tostring(itemId), #descriptions, tostring(UI.InfoBase.DetailsBase.List:getWidth())))
-
 	for _, description in ipairs(descriptions) do
-		Cyclopedia.appendDetailKeyValueRow(UI.InfoBase.DetailsBase.List, tostring(description[1] or ""), tostring(description[2] or ""))
+		-- our C++ pushes {key=..., value=...}; keep the array shape as a fallback
+		local key = description.key or description[1]
+		local value = description.value or description[2]
+
+		Cyclopedia.appendDetailKeyValueRow(UI.InfoBase.DetailsBase.List, tostring(key or ""), tostring(value or ""))
 	end
 end
 
