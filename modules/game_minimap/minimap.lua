@@ -1,4 +1,4 @@
-﻿-- chunkname: @/game_minimap/minimap.lua
+-- chunkname: @/game_minimap/minimap.lua
 
 local minimapWidget, oldPos, fullscreenWidget
 local virtualFloor = 7
@@ -886,6 +886,13 @@ function mapController:onInit()
 		mini:getChildById("zoomInButton"):hide()
 		mini:getChildById("zoomOutButton"):hide()
 		mini:getChildById("resetButton"):hide()
+		
+		if not Services or not Services.minimap or Services.minimap == "" then
+			local dlBtn = mini:getChildById("downloadMapButton")
+			if dlBtn then
+				dlBtn:hide()
+			end
+		end
 	end
 
 	local defaultLayers = getLayoutWidget(getLayoutRoot(self.ui, false), "layersPanel")
@@ -1091,4 +1098,60 @@ end
 
 function getMiniMapUi()
 	return mapController.ui.minimapBorder.minimap
+end
+
+function downloadFullMap()
+	local url = Services.minimap
+	if not url or url == "" then
+		g_logger.error("[game_minimap] Services.minimap URL is not configured.")
+		return
+	end
+
+	local minimap = getMiniMapUi()
+	local button = minimap and minimap:getChildById("downloadMapButton") or nil
+	if button then
+		button:setEnabled(false)
+		button:setText(tr('Downloading...'))
+	end
+
+	HTTP.download(url, "minimap.otmm", function(path, checksum, err)
+		if button and not button:isDestroyed() then
+			button:setEnabled(true)
+			button:setText(tr('Download Map'))
+		end
+
+		if err then
+			g_logger.error("[game_minimap] Failed to download full map: " .. tostring(err))
+			if modules.game_textmessage then
+				modules.game_textmessage.displayFailureMessage(tr("Failed to download the map."))
+			end
+			return
+		end
+		
+		g_logger.info("[game_minimap] Full map downloaded successfully!")
+		if modules.game_textmessage then
+			modules.game_textmessage.displayGameMessage(tr("Map downloaded successfully. Reloading..."))
+		end
+		
+		if minimap then
+			-- Read the downloaded map from the virtual /downloads/ memory array
+			local content = g_resources.readFileContents("/downloads/" .. path)
+			if content and #content > 0 then
+				-- Save it directly to the local disk as user progress
+				g_resources.writeFileContents("/user_minimap.otmm", content)
+				
+				-- Force a full UI redraw
+				g_minimap.clean()
+				persistentMinimapDataLoaded = false
+				loadPersistentMinimapData()
+				
+				local player = g_game.getLocalPlayer()
+				if player then
+					minimap:setCameraPosition(player:getPosition())
+				end
+			else
+				g_logger.error("[game_minimap] Failed to read downloaded OTMM map from memory!")
+			end
+		end
+	end)
 end

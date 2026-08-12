@@ -8,6 +8,7 @@ Services = {
     --websites = "http://localhost/?subtopic=accountmanagement", --./client_entergame "Forgot password and/or email"
     --createAccount = "http://localhost/clientcreateaccount.php", --./client_entergame -- createAccount.lua
     --getCoinsUrl = "http://localhost/?subtopic=shop&step=terms", --./game_market
+    --minimap = "http://localhost/minimap.otmm", --./game_minimap
 }
 
 --- Enables or disables the entire server configuration block.
