@@ -1636,7 +1636,7 @@ function createBattleListCreatureMenu(menuPosition, creature)
 	if sameFloor then
 		if creature:isNpc() then
 			menu:addOption(tr("Talk"), function()
-				g_game.attack(creature)
+				g_game.talk("hi")
 			end, talkShortcut)
 		elseif g_game.getAttackingCreature() ~= creature then
 			menu:addOption(tr("Attack"), function()
@@ -2477,7 +2477,7 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing, mapTi
 
 			if isHireling then
 				menu:addOption(tr("Talk"), function()
-					g_game.attack(creatureThing)
+					g_game.talk("hi")
 				end, talkShortcut)
 				menu:addSeparator()
 				menu:addOption(tr(g_game.getClientVersion() >= 1000 and "Customise Character" or "Set Outfit"), function()
@@ -2502,7 +2502,7 @@ function createThingMenu(menuPosition, lookThing, useThing, creatureThing, mapTi
 			elseif creatureThing:getPosition().z == localPosition.z then
 				if creatureThing:isNpc() then
 					menu:addOption(tr("Talk"), function()
-						g_game.attack(creatureThing)
+						g_game.talk("hi")
 					end, talkShortcut)
 				elseif g_game.getAttackingCreature() ~= creatureThing then
 					menu:addOption(tr("Attack"), function()
@@ -2758,14 +2758,29 @@ local function handleUseThing(thing, quickLootContainers)
 	end
 end
 
+local function greetNpc(creature)
+	if not creature or not creature.isNpc or not creature:isNpc() then
+		return false
+	end
+
+	g_game.talk("hi")
+
+	return true
+end
+
 local function tryClassicAttack(player, attackCreature, creatureThing, autoWalkPos)
+	-- NPCs must be greeted, not attacked (attack is blocked in protection zones).
+	if greetNpc(creatureThing) or greetNpc(attackCreature) then
+		return true
+	end
+
 	if attackCreature and attackCreature ~= player then
 		g_game.attack(attackCreature)
 
 		return true
 	end
 
-	if creatureThing and creatureThing ~= player and creatureThing:getPosition().z == autoWalkPos.z then
+	if creatureThing and creatureThing ~= player and autoWalkPos and creatureThing:getPosition().z == autoWalkPos.z then
 		g_game.attack(creatureThing)
 
 		return true
@@ -2828,7 +2843,11 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 
 			return true
 		elseif shortcut == "attack" then
-			if attackCreature and attackCreature ~= player then
+			if greetNpc(creatureThing) or greetNpc(attackCreature) then
+				modules.game_shortcuts.resetShortcuts()
+
+				return true
+			elseif attackCreature and attackCreature ~= player then
 				modules.game_shortcuts.resetShortcuts()
 				g_game.attack(attackCreature)
 
@@ -2929,11 +2948,11 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 			g_game.open(useThing)
 
 			return true
-		elseif attackCreature and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
+		elseif attackCreature and not attackCreature:isNpc() and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
 			g_game.attack(attackCreature)
 
 			return true
-		elseif creatureThing and creatureThing:getPosition().z == autoWalkPos.z and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
+		elseif creatureThing and not creatureThing:isNpc() and creatureThing:getPosition().z == autoWalkPos.z and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
 			g_game.attack(creatureThing)
 
 			return true
@@ -3009,11 +3028,11 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 			createThingMenu(menuPosition, lookThing, useThing, creatureThing, autoWalkPos)
 
 			return true
-		elseif attackCreature and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
+		elseif attackCreature and not attackCreature:isNpc() and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
 			g_game.attack(attackCreature)
 
 			return true
-		elseif creatureThing and creatureThing:getPosition().z == autoWalkPos.z and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
+		elseif creatureThing and not creatureThing:isNpc() and creatureThing:getPosition().z == autoWalkPos.z and g_keyboard.isAltPressed() and (mouseButton == MouseLeftButton or mouseButton == MouseRightButton) then
 			g_game.attack(creatureThing)
 
 			return true
