@@ -803,7 +803,7 @@ elseif(WASM)
           OpenSSL::SSL
           OpenSSL::Crypto
           httplib::httplib
-          fmt::fmt
+          fmt::fmt-header-only
           utf8cpp::utf8cpp
           Ogg::ogg
           Vorbis::vorbisfile
