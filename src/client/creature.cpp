@@ -1233,6 +1233,12 @@ const Light& Creature::getLight() const
 }
 
 ThingType* Creature::getThingType() const {
+    // Half-initialized preview creatures (empty outfit rejected by setOutfit) keep the
+    // default invalid category; asking the manager would just spam "invalid thing type
+    // client id 0 in category 4" on every query (canDraw, getExactSize, ...).
+    if (m_outfit.getCategory() >= ThingLastCategory)
+        return nullptr;
+
     return g_things.getRawThingType(m_outfit.isCreature() ? m_outfit.getId() : m_outfit.getAuxId(), m_outfit.getCategory());
 }
 
