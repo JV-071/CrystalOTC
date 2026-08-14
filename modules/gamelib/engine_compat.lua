@@ -33,9 +33,6 @@ install(g_game, "sendMarketAction", function(action, itemId, tier)
 	end
 end)
 
--- Resource balances are pushed by the server; there is nothing to request.
-install(g_game, "sendResourceBalance", function() end)
-
 install(g_game, "isZoomEnabled", function()
 	return true
 end)
@@ -124,6 +121,9 @@ install(g_game, "requestResource", function() end)
 -- ===== g_game: sends with no counterpart in our protocol (no-op + warning) =====
 
 local missingSends = {
+	-- has a real counterpart (opcode 0xED) once the native binding lands; until then
+	-- warn instead of silently swallowing, so the call is never hidden
+	"sendResourceBalance",
 	"processRuleViolation",
 	"changeOutfitPodium",
 	"changeHirelingOutfit",
