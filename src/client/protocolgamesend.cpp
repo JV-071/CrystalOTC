@@ -1518,13 +1518,21 @@ void ProtocolGame::sendPreyAction(const uint8_t slot, const uint8_t actionType, 
 void ProtocolGame::sendPreyRequest()
 {
     const auto& msg = std::make_shared<OutputMessage>();
-    msg->addU8(Proto::ClientPreyRequest);
+    msg->addU8(Proto::ClientResourceBalance);
     send(msg);
 }
 
 void ProtocolGame::sendOpenPortableForge() {
     const auto& msg = std::make_shared<OutputMessage>();
-    msg->addU8(Proto::ClientPreyRequest);
+    msg->addU8(Proto::ClientResourceBalance);
+    send(msg);
+}
+
+void ProtocolGame::sendResourceBalance(uint8_t resourceType)
+{
+    const auto& msg = std::make_shared<OutputMessage>();
+    msg->addU8(Proto::ClientResourceBalance);
+    msg->addU8(resourceType);
     send(msg);
 }
 
