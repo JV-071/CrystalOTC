@@ -53,7 +53,19 @@ void UIItem::drawSelf(const DrawPoolType drawPane)
         g_drawPool.bindFrameBuffer(exactSize);
         m_item->setColor(m_color);
         m_item->draw(Point(exactSize - g_gameConfig.getSpriteSize()) + m_item->getDisplacement());
-        g_drawPool.releaseFrameBuffer(getPaddingRect(), m_flipDirection);
+
+        // Blit the item at its native size, centered in the slot. Slots larger than the
+        // sprite (e.g. the 66x66 task-board and 70x70 store cells) used to upscale it and
+        // it looked oversized/blurry; now they show it 1:1. Slots smaller than the sprite
+        // still shrink to fit.
+        Rect itemDest = getPaddingRect();
+        const int nativeSide = std::min<int>(exactSize, std::min<int>(itemDest.width(), itemDest.height()));
+        if (nativeSide < itemDest.width() || nativeSide < itemDest.height()) {
+            itemDest = Rect(itemDest.x() + (itemDest.width() - nativeSide) / 2,
+                            itemDest.y() + (itemDest.height() - nativeSide) / 2,
+                            nativeSide, nativeSide);
+        }
+        g_drawPool.releaseFrameBuffer(itemDest, m_flipDirection);
 
         const auto itemCountFont = g_gameConfig.getItemCountFont();
         const auto& countFont = itemCountFont ? itemCountFont : m_font;

@@ -17,6 +17,22 @@ end
 
 -- ===== g_game: simple replacements =====
 
+-- These exist in our engine under different names; map the ported calls to the real
+-- bindings instead of stubbing them, so the features work and stop warning [compat].
+install(g_game, "requestStoreOfferDescription", function(offerId)
+	g_game.sendRequestStoreOfferById(offerId)
+end)
+
+install(g_game, "sendMarketAction", function(action, itemId, tier)
+	if action == 3 and itemId then
+		g_game.browseMarket(3, itemId, tier or 0)
+	elseif action == 2 then
+		g_game.browseMarket(2, 0, 0)
+	elseif action == 1 then
+		g_game.browseMarket(1, 0, 0)
+	end
+end)
+
 install(g_game, "isZoomEnabled", function()
 	return true
 end)
@@ -105,6 +121,9 @@ install(g_game, "requestResource", function() end)
 -- ===== g_game: sends with no counterpart in our protocol (no-op + warning) =====
 
 local missingSends = {
+	-- has a real counterpart (opcode 0xED) once the native binding lands; until then
+	-- warn instead of silently swallowing, so the call is never hidden
+	"sendResourceBalance",
 	"processRuleViolation",
 	"changeOutfitPodium",
 	"changeHirelingOutfit",
@@ -113,14 +132,11 @@ local missingSends = {
 	"getBaseInformationForAuctionCharacter",
 	"sendCharacterAuction",
 	"sendChangeHirelingName",
-	"requestStoreOfferDescription",
 	"closeContainerByItemId",
 	"organizeContainer",
 	"useHireling",
 	"sendRewardCollectAll",
 	"reportRuleViolationReport",
-	"sendResourceBalance",
-	"sendMarketAction",
 	"requestSearchLocker",
 	"closeSearchLocker",
 	"requestLockerItem",

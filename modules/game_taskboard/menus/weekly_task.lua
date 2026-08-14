@@ -73,7 +73,13 @@ local function setKillSlotCreature(panel, raceData)
 		return
 	end
 
+	local anyCreatureIcon = outfitIcon:getChildById("anyCreatureIcon")
+
 	if raceData and raceData.outfit and raceData.raceId ~= 0 then
+		if anyCreatureIcon then
+			anyCreatureIcon:hide()
+		end
+
 		outfitIcon:setOutfit(raceData.outfit)
 		outfitIcon:setFixedCreatureSize(true)
 		outfitIcon:setVisible(true)
@@ -84,12 +90,14 @@ local function setKillSlotCreature(panel, raceData)
 			c:setStaticWalking(1000)
 		end
 	else
+		-- Keep the dark /images/ui/item slot frame (from the .otui) and show the arbitrary
+		-- icon as a child over it, so "Any Creature" matches the other slots instead of
+		-- replacing the frame with a lighter standalone icon.
 		outfitIcon:setVisible(true)
-		outfitIcon:setImageSource("/images/icons_big/icon-arbitrarymonster64x64")
-		outfitIcon:setImageSize({
-			width = 66,
-			height = 66
-		})
+
+		if anyCreatureIcon then
+			anyCreatureIcon:show()
+		end
 	end
 end
 

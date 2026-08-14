@@ -20,7 +20,15 @@ KillSlots < Panel
     phantom: true
     image-source: /images/ui/item
     image-border: 10
-  
+
+    UIWidget
+      id: anyCreatureIcon
+      anchors.centerIn: parent
+      size: 64 64
+      image-source: /images/icons_big/icon-arbitrarymonster64x64
+      phantom: true
+      visible: false
+
   Label
     id: killAnyMonstersLabel
     text: 0
