@@ -119,7 +119,6 @@ local missingSends = {
 	"useHireling",
 	"sendRewardCollectAll",
 	"reportRuleViolationReport",
-	"sendResourceBalance",
 	"sendMarketAction",
 	"requestSearchLocker",
 	"closeSearchLocker",
