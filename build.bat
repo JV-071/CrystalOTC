@@ -81,6 +81,13 @@ set "VCPKG_ROOT=%~dp0vcpkg"
 :vcpkg_ok
 echo     VCPKG_ROOT=%VCPKG_ROOT%
 
+REM Let vcpkg's internal git fetches (e.g. angle) work even if a cache directory
+REM was created by a previous elevated/admin run and is owned by another user.
+REM Scoped to this process via env vars - does NOT touch the global git config.
+set "GIT_CONFIG_COUNT=1"
+set "GIT_CONFIG_KEY_0=safe.directory"
+set "GIT_CONFIG_VALUE_0=*"
+
 REM --- sccache is optional; disable it in the preset when it is not installed ---
 set "EXTRA="
 where sccache >nul 2>&1
