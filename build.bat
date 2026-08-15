@@ -51,13 +51,21 @@ if errorlevel 1 (
     goto :fail
 )
 
-REM --- vcpkg: reuse VCPKG_ROOT, else a local .\vcpkg, else clone it ---
+REM --- vcpkg: find an existing install before cloning ------------------------
+REM Checked in order: VCPKG_ROOT, vcpkg on PATH, VCPKG_INSTALLATION_ROOT, common
+REM folders, then .\vcpkg. Direct folder checks matter because a machine-level
+REM VCPKG_ROOT does not reach processes started before it was set.
 echo ==^> Checking vcpkg...
-if defined VCPKG_ROOT if exist "%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" goto :vcpkg_ok
-if exist "%~dp0vcpkg\scripts\buildsystems\vcpkg.cmake" (
-    set "VCPKG_ROOT=%~dp0vcpkg"
-    goto :vcpkg_ok
-)
+call :find_vcpkg "%VCPKG_ROOT%"              && goto :vcpkg_ok
+for /f "delims=" %%p in ('where vcpkg 2^>nul') do call :find_vcpkg "%%~dpp." && goto :vcpkg_ok
+call :find_vcpkg "%VCPKG_INSTALLATION_ROOT%" && goto :vcpkg_ok
+call :find_vcpkg "%SystemDrive%\vcpkg"       && goto :vcpkg_ok
+call :find_vcpkg "%USERPROFILE%\vcpkg"       && goto :vcpkg_ok
+call :find_vcpkg "%SystemDrive%\dev\vcpkg"   && goto :vcpkg_ok
+call :find_vcpkg "%SystemDrive%\src\vcpkg"   && goto :vcpkg_ok
+call :find_vcpkg "%SystemDrive%\tools\vcpkg" && goto :vcpkg_ok
+call :find_vcpkg "%~dp0vcpkg"                && goto :vcpkg_ok
+
 where git >nul 2>&1
 if errorlevel 1 (
     echo ERROR: vcpkg not found and git is unavailable to clone it.
@@ -107,6 +115,13 @@ if defined EXE (
 echo.
 echo Done.
 pause
+exit /b 0
+
+:find_vcpkg
+REM %~1 = candidate directory. Sets VCPKG_ROOT and returns 0 when it holds vcpkg.
+if "%~1"=="" exit /b 1
+if not exist "%~f1\scripts\buildsystems\vcpkg.cmake" exit /b 1
+set "VCPKG_ROOT=%~f1"
 exit /b 0
 
 :fail
