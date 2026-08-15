@@ -1671,6 +1671,7 @@ function onEngineMarketBrowse(intOffers, nameOffers, browseState, tier)
 			state = raw[6],
 			timestamp = raw[7],
 			tier = raw[9] or 0,
+			itemTier = raw[9] or 0, -- own-offers/history widgets read data.itemTier
 			playerName = nameOffers and nameOffers[i] or ""
 		}
 
@@ -1681,7 +1682,21 @@ function onEngineMarketBrowse(intOffers, nameOffers, browseState, tier)
 		end
 	end
 
-	onMarketBrowse(browseState, tier, buyList, sellList)
+	-- Route by browseState. The engine funnels own offers (2) and history (1) through this same
+	-- callback, but onMarketBrowse() only renders an item browse (3) and returns on anything else -
+	-- so the own-offers and history panels never received their data. Our C++ engine never fires the
+	-- module's expected onParseMyOffers / onParseMarketHistory events, so dispatch to them here.
+	if browseState == 2 then -- MARKETREQUEST_OWN_OFFERS: My / Current Offers
+		if MarketOwnOffers and MarketOwnOffers.onParseMyOffers then
+			MarketOwnOffers.onParseMyOffers(buyList, sellList)
+		end
+	elseif browseState == 1 then -- MARKETREQUEST_OWN_HISTORY: Offer History
+		if MarketHistory and MarketHistory.onParseMarketHistory then
+			MarketHistory.onParseMarketHistory(buyList, sellList)
+		end
+	else -- item browse (3)
+		onMarketBrowse(browseState, tier, buyList, sellList)
+	end
 end
 
 function onMarketBrowse(browseState, tier, buyList, sellList)
