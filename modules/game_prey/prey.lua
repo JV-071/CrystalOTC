@@ -368,7 +368,9 @@ function init()
 		onPreyWildcard = onPreyWildcard,
 		onPreyInactive = onPreyInactive,
 		onPreyActive = onPreyActive,
-		onPreySelection = onPreySelection
+		onPreySelection = onPreySelection,
+		onPreyListSelection = onPreyListSelection,
+		onPreySelectionChangeMonster = onPreySelectionChangeMonster
 	})
 
 	preyWindow = g_ui.displayUI("prey")
@@ -694,7 +696,9 @@ function terminate()
 		onPreyWildcard = onPreyWildcard,
 		onPreyInactive = onPreyInactive,
 		onPreyActive = onPreyActive,
-		onPreySelection = onPreySelection
+		onPreySelection = onPreySelection,
+		onPreyListSelection = onPreyListSelection,
+		onPreySelectionChangeMonster = onPreySelectionChangeMonster
 	})
 
 	if preyButton then
@@ -768,6 +772,17 @@ function setUnsupportedSettings()
 				if getPreyTotalGold() < rerollPrice and not isFreeRerollAvailable(preySlot) then
 					rerollPricePanel.text:setColor("#d33c3c")
 					row.reroll.button.rerollButton:setOn(false)
+				end
+
+				-- Wire the List Reroll ("Free"/gold) button here as well. It used to be set
+				-- only in onPreyFreeRolls, which may not fire for a selection slot - leaving
+				-- the "Free" button dead. setUnsupportedSettings runs on every prey update.
+				function row.reroll.button.rerollButton.onClick()
+					if not row.reroll.button.rerollButton:isOn() then
+						return
+					end
+
+					onRerollButtonAction(preySlot, isFreeRerollAvailable(preySlot))
 				end
 
 				local progressBar = row.reroll.button.time
@@ -1582,7 +1597,12 @@ function updatePreyWidget(slot, state)
 	if state == SLOT_STATE_ACTIVE then
 		local creatureAndBonus = preySlot.active.creatureAndBonus
 
-		preyTrackerSlot.creature:setOutfit(creatureAndBonus.creature:getOutfit())
+		-- UICreature:getOutfit() is not bound to Lua in this client; read the outfit from the
+		-- inner Creature (getCreature() IS bound) instead, guarded in case it is not set yet.
+		local activeCreature = creatureAndBonus.creature:getCreature()
+		if activeCreature then
+			preyTrackerSlot.creature:setOutfit(activeCreature:getOutfit())
+		end
 		preyTrackerSlot.creature:getCreature():setStaticWalking(1000)
 		preyTrackerSlot.creatureName:setText(formatKillTrackerCreatureName(preySlot.title:getText()))
 		preyTrackerSlot.time:setPercent(creatureAndBonus.timeLeft:getPercent())
@@ -1948,6 +1968,16 @@ function onPreySelection(slot, names, outfits, timeUntilFreeReroll, wildcards)
 	updatePreyWidget(slot, SLOT_STATE_SELECTION)
 end
 
+function onPreySelectionChangeMonster(slot, names, outfits, bonusType, bonusValue, bonusGrade, timeUntilFreeReroll, wildcards)
+	-- A List Reroll on an ACTIVE prey moves the slot to PreyDataState_SelectionChangeMonster:
+	-- a fresh list of creatures to pick from while the existing bonus is kept server-side.
+	-- This client port shipped without the handler, so the reroll charged gold but the new
+	-- list never appeared ("takes money, doesn't change the monster"). Reuse the normal
+	-- selection UI - picking a creature sends PREY_ACTION_MONSTERSELECTION, which the server
+	-- accepts in this state (canSelect() is true; the slot is not occupied after eraseBonus).
+	return onPreySelection(slot, names, outfits, timeUntilFreeReroll, wildcards)
+end
+
 function updateSearchWildcard(prey)
 	local monsterList = getWildcardMonsterList(prey.wildcard)
 
@@ -2288,6 +2318,14 @@ function onPreyWildcard(slot, races, _, lockType, bonusType, bonusValue, bonusGr
 	setUnsupportedSettings()
 	updatePreyWidget(slot, SLOT_STATE_WILDCARD)
 	updateWildCardWindow()
+end
+
+function onPreyListSelection(slot, races, timeUntilFreeReroll, wildcards)
+	-- "Pick a creature from all available" (Prey Wildcard) list. The server sends it as
+	-- PREY_STATE_LIST_SELECTION with no attached bonus; reuse the wildcard-selection UI
+	-- (zeroed bonus) so the monster picker actually opens. Without this handler the 5
+	-- Prey Wildcards were consumed server-side but no selection window ever appeared.
+	return onPreyWildcard(slot, races, timeUntilFreeReroll, wildcards, 0, 0, 0)
 end
 
 function onPreyLocked(slot, unlockState, timeUntilFreeReroll, lockType)
