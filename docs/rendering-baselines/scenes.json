@@ -59,9 +59,10 @@
     },
     {
       "id": "temporary-framebuffers",
-      "automation": "fixture-server",
-      "requiresOnlineGame": true,
-      "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"]
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip-horizontal", "item-widget-flip-vertical", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"],
+      "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png"
     },
     {
       "id": "shader-matrix",

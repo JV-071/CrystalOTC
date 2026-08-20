@@ -22,6 +22,8 @@ The `particles-blends` fixture uses one fixed, single-burst particle for each co
 
 The `outfit-masks` fixture freezes creature animation and captures mask recoloring, both addon layers, a mount, the creature-preview framebuffer, and the framebuffer-backed Outline shader. Outline deliberately retains its production `u_Time` brightness pulse. Two captures therefore differed in 520 pixels (0.0792%, below the 0.1% policy limit); the diff was confined to the outlined preview and is expected for this scene.
 
+The `temporary-framebuffers` fixture covers every surveyed call site: creature preview, the nested Outline/ThingType path, item blits with both flip directions, effect and missile widgets, and spell-preview object compositing. Its animated outline probe is kept small enough for the whole-scene tolerance: the repeated XQuartz capture differed in 449 pixels (0.0684%), confined to the expected shader pulse.
+
 No XQuartz-versus-llvmpipe image has been compared yet, so no cross-environment pixel difference is accepted. Small rasterization and sampling differences may be accepted only after side-by-side evidence is attached here. XQuartz performance numbers are never compared directly with llvmpipe or native GPU numbers.
 
 The client must link `libGL`, `libX11`, and `libXext` from the same XQuartz installation. Mixing XQuartz GL with Homebrew X11 links successfully but causes GLX visual selection to fail at runtime. The macOS CMake path now pins all four headers/libraries under `/opt/X11`.

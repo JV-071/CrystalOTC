@@ -265,6 +265,77 @@ function RendererBaseline.buildOutfitMaskScene()
     return true
 end
 
+local function makeFboCard(root, x, y, width, height, title, accent)
+    makeLabel(root, x + 8, y - 28, width - 16, 24, title, "Verdana Bold-11px-new", accent, AlignCenter)
+    return makePanel(root, x, y, width, height, "#0f172aff", accent)
+end
+
+function RendererBaseline.buildTemporaryFramebufferScene()
+    local root = beginClientScene(
+        "OpenGL temporary framebuffer matrix",
+        "Every surveyed offscreen-widget idiom is represented, including flip blits and nested shader framebuffers"
+    )
+
+    local outfit = { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 3, mount = 0 }
+
+    local creatureCard = makeFboCard(root, 48, 146, 286, 176, "CREATURE PREVIEW", "#38bdf8ff")
+    local creature = place(g_ui.createWidget("UICreature", creatureCard), 116, 158, 150, 150)
+    creature:setOutfit(outfit)
+    creature:setDirection(South)
+    creature:getCreature():setAnimate(false)
+
+    local outlineCard = makeFboCard(root, 358, 146, 286, 176, "OUTLINE + NESTED FBO", "#c084fcff")
+    local outline = place(g_ui.createWidget("UICreature", outlineCard), 466, 189, 70, 70)
+    outline:setOutfit(outfit)
+    outline:setDirection(South)
+    outline:getCreature():setAnimate(false)
+    outline:setShader("Outfit - Outline")
+
+    local itemCard = makeFboCard(root, 668, 146, 286, 176, "ITEM BLIT FLIPS", "#4ade80ff")
+    local itemFlips = {
+        { value = 0, label = "none" },
+        { value = 1, label = "horizontal" },
+        { value = 2, label = "vertical" }
+    }
+    for index, flip in ipairs(itemFlips) do
+        local x = 684 + (index - 1) * 86
+        local item = place(g_ui.createWidget("UIItem", itemCard), x, 174, 76, 76)
+        item:setBackgroundColor("#334155ff")
+        item:setItemId(3582)
+        item:setFlipDirection(flip.value)
+        if item:getItem() then
+            item:getItem():setAnimate(false)
+        end
+        makeLabel(itemCard, x, 262, 76, 24, flip.label, "Verdana-8px-outline", "#e2e8f0ff", AlignCenter)
+    end
+
+    local effectCard = makeFboCard(root, 48, 382, 286, 176, "EFFECT WIDGET", "#fb7185ff")
+    local effect = place(g_ui.createWidget("UIEffect", effectCard), 111, 394, 160, 150)
+    effect:setBackgroundColor("#334155ff")
+    effect:setEffectId(1)
+    if effect:getEffect() then
+        effect:getEffect():setAnimate(false)
+    end
+
+    local missileCard = makeFboCard(root, 358, 382, 286, 176, "MISSILE WIDGET", "#fbbf24ff")
+    local missile = place(g_ui.createWidget("UIMissile", missileCard), 421, 394, 160, 150)
+    missile:setBackgroundColor("#334155ff")
+    missile:setMissileId(1)
+    missile:setDirection(SouthEast)
+    if missile:getMissile() then
+        missile:getMissile():setAnimate(false)
+    end
+
+    local spellCard = makeFboCard(root, 668, 382, 286, 176, "SPELL PREVIEW", "#60a5faff")
+    local spell = place(g_ui.createWidget("UISpellPreview", spellCard), 680, 394, 262, 150)
+    spell:setGridBounds(-1, -1, 1, 1)
+    spell:addObject(0, 0, 3582)
+    spell:setTargetPosition(1, 0)
+
+    makeLabel(root, 48, 582, 906, 26, "Creature, ThingType, item, effect, missile, and spell-preview paths all allocate and composite temporary targets.", nil, "#94a3b8ff", AlignCenter)
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -394,6 +465,10 @@ function RendererBaseline.onRun()
         end
     elseif activeScenario == "outfit-masks" then
         if RendererBaseline.buildOutfitMaskScene() then
+            RendererBaseline.captureScene(activeScenario, 1500)
+        end
+    elseif activeScenario == "temporary-framebuffers" then
+        if RendererBaseline.buildTemporaryFramebufferScene() then
             RendererBaseline.captureScene(activeScenario, 1500)
         end
     else
