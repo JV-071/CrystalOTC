@@ -178,6 +178,67 @@ to screen blit, and `Client::canDraw(MAP)` is literally `g_game.isOnline()`, so 
 connection produces no MAP-pool content. `shader-matrix-map` is declared in the manifest as the
 online scene still owing that coverage.
 
+## Three determinism traps worth knowing before adding a scene
+
+Each of these produced a large, confusing pixel difference and each has the same shape: a
+capture that trusted a delay instead of verifying a state.
+
+**A randomized login background.** `client_background` picks one of six backgrounds at random
+on every startup, seeded from the wall clock. Any scene showing the login screen was therefore
+one-in-six likely to match its own previous capture. `startup-ui` had never been compared
+against a second local run -- only inspected -- so this went unnoticed until `windowing`'s
+first frame differed by 68% for no reason its driver could explain. The background is now
+pinned for capture runs; `startup-ui` measures 0 differing pixels.
+
+**A teleport that does not always land.** Online scenes fired the `!fixture` talkaction at
+game start and captured after a fixed delay. `Game::playerSaySpell` returns early while the
+player is walk-exhausted, and the player may not be fully placed when the first one goes out,
+so a swallowed talkaction produced a capture from wherever the character happened to be --
+two consecutive `map-core` runs differing across 38% of the frame purely because the camera
+was elsewhere. The driver now polls the player position against the fixture anchor and
+re-sends periodically, failing loudly rather than capturing the wrong place.
+
+**Settings that need a frame.** `setMinimumAmbientLight`, `setAnimate` and the console
+splitter all take effect on the *following* frame. Applying any of them in the same tick as
+the screenshot records the pre-change state: it left the light ambient grey in one run out of
+two, left creatures on whatever animation phase they already held, and gave the first frame of
+a multi-capture scene a map panel 153 px shorter than the thirteen after it. All three are now
+applied ahead of the shutter, not inside it.
+
+## windowing
+
+Four captures plus a state file. The resize round-trip is exact -- grown to 1200x700 and
+restored, the frame is byte-identical to the initial capture -- and the HUD-scale step differs
+from the initial frame across 86% of the image, which is the measurement behind the quirk 7
+correction below.
+
+Two constraints are structural. The window can only be tested by **growing** it, because
+`modules/startup/startup.lua` sets a desktop minimum size of exactly the capture size, so any
+smaller request is clamped and never lands. And the fullscreen probe must run **last and take
+no image**: toggling fullscreen recreates the window, and a framebuffer read back immediately
+afterwards came out entirely black.
+
+`focus` is a pure state bit with no consumers anywhere in the tree, and a headless runner has
+no window manager, so `setFullscreen` is silently dropped there while the client still flips
+its own state bit. Both are recorded in `windowing-state.txt` rather than asserted as pixels,
+and the scene is marked `ciCapture: false` because CI can provide neither a window manager nor
+a display larger than the capture size.
+
+## shader-matrix-map
+
+Fourteen captures: one per map shader plus a `Default` frame to diff against. A map shader
+applies to the whole composed map, so only one can be shown per frame.
+
+This is the only coverage of the route map shaders actually take -- bound at the MAP
+framebuffer to screen blit through the pool's `onBeforeDraw` hook, which is also where the
+four map uniforms are written. `shader-matrix` covers the same fragment programs but on image
+widgets, which never reaches that bind site.
+
+Every shader measurably changes the map, from 1,768 changed pixels for Snow, a sparse overlay,
+to 68,505 for Fog, Bloom and Party. Fade is set to 0/0 so the switch is immediate, and
+`drawViewportEdge` is applied alongside each shader as `game_shaders` does, because it changes
+which tiles the map view renders.
+
 ## Corrections to the planning documents
 
 Two documented assumptions were checked against the source and do not hold.
