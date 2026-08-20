@@ -124,6 +124,14 @@ private:
     DrawPool* getCurrentPool() const;
 
     void draw();
+
+    // Swap and clear every pool's pending flags without drawing anything. Needed whenever
+    // a frame is produced by something other than the GL draw path: the map thread blocks
+    // in GraphicalApplication::canDrawMap until the shouldRepaint flags are consumed, so a
+    // frame that skips draw() must still consume them or map production stops for good.
+    // The Vulkan feeder does the same thing for the same reason (VkDrawFeeder::consumeAllPools).
+    void consumeAll();
+
     void init(uint16_t spriteSize);
     void terminate() const;
     void drawObject(DrawPool* pool, const DrawPool::DrawObject& obj);

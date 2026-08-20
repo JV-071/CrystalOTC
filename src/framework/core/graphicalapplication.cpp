@@ -304,7 +304,15 @@ void GraphicalApplication::run()
                 VkDrawFeeder::instance().consumeAllPools();
             }
 #else
-            g_drawPool.draw();
+            // A platform window may deliberately have no GL context - the Cocoa/Metal
+            // window does, exactly as the Windows Vulkan path above. Calling draw() then
+            // dives into null GLEW function pointers (FrameBuffer::bind is the first one
+            // reached). Consume the pool flags instead, or the map thread blocks forever
+            // in canDrawMap waiting for them.
+            if (g_window.hasGLContext())
+                g_drawPool.draw();
+            else
+                g_drawPool.consumeAll();
 #endif
         }
 

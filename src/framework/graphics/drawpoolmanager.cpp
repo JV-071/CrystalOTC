@@ -232,6 +232,21 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     resetSelectedPool();
 }
 
+void DrawPoolManager::consumeAll()
+{
+    for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+        auto* pool = get(static_cast<DrawPoolType>(i));
+        if (!pool)
+            continue;
+
+        SpinLock::Guard guard(pool->m_threadLock);
+        if (pool->m_shouldRepaint.load(std::memory_order_relaxed)) {
+            pool->m_objectsDraw[0].swap(pool->m_objectsDraw[1]);
+            pool->m_shouldRepaint.store(false, std::memory_order_relaxed);
+        }
+    }
+}
+
 void DrawPoolManager::drawObjects(DrawPool* pool) {
     const auto hasFramebuffer = pool->hasFrameBuffer();
 
