@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#pragma once
+
+#include "poolprogram.h"
+
+#include <array>
+
+/*
+ * FrameAssembler - turns the per-pool programs into one frame.
+ *
+ * The pools render independently; only the assembler knows the order they composite in and
+ * what goes between them. It runs on the render thread and owns two things the compiler
+ * cannot: the frame-global shader time, and the interleaving of composition draws with the
+ * pools that draw straight to the backbuffer.
+ *
+ * It is an object rather than a free function because it owns an arena: the composition
+ * quads are its own geometry, belonging to no pool, and they have to outlive the call so the
+ * frame's passes can point at them.
+ *
+ * It also inherits an obligation that has nothing to do with drawing: a frame that is
+ * DECLINED must still consume the pools' repaint flags, or the map thread blocks forever in
+ * canDrawMap waiting for them. DrawPoolManager::consumeAll is that operation.
+ */
+class FrameAssembler
+{
+public:
+    using Programs = std::array<const PoolProgram*, static_cast<size_t>(DrawPoolType::LAST)>;
+
+    // `programs` is indexed by DrawPoolType and may hold nulls for pools that produced
+    // nothing. `frameTime` is the value every material's `time` field receives - it must
+    // honour the process-wide pin (g_shaders.setFixedTime), because pinning the phase is the
+    // only reason an animated shader frame is reproducible at all.
+    void assemble(const Programs& programs, const Size& drawableSize, float frameTime, RenderFrame& out);
+
+    // True when every contributing program compiled completely. A frame built from an
+    // incomplete program describes less than the client asked for and must not be rendered.
+    [[nodiscard]] static bool isComplete(const Programs& programs);
+
+private:
+    // Geometry for the composition quads. Persists across frames so the passes handed out by
+    // the last assemble() stay valid until the next one.
+    VertexArena m_arena;
+
+    // Materials on composition packets need somewhere stable to point their parameters.
+    std::vector<MaterialParams> m_params;
+};

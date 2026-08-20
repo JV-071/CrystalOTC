@@ -508,6 +508,11 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/graphics/texture.cpp
           framework/graphics/texturemanager.cpp
           framework/graphics/shadermanager.cpp
+          # Backend-neutral renderer boundary: compiles the published DrawPool object lists
+          # into explicit passes and packets. Platform-independent by construction.
+          framework/graphics/render/poolcompiler.cpp
+          framework/graphics/render/frameassembler.cpp
+          framework/graphics/render/recordingbackend.cpp
           framework/platform/win32window.cpp
           framework/platform/x11window.cpp
           # Renderer Vulkan: pliki kompiluja sie na kazdej platformie, ale ich TRESC jest
