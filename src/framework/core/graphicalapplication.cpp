@@ -21,6 +21,7 @@
  */
 
 #include "graphicalapplication.h"
+#include <framework/graphics/glutil.h>
 
 #include "asyncdispatcher.h"
 #include "clock.h"

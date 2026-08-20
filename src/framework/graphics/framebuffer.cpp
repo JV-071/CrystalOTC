@@ -21,6 +21,7 @@
  */
 
 #include "framebuffer.h"
+#include "glutil.h"
 
 #include "graphics.h"
 #include "image.h"

@@ -25,6 +25,7 @@
 
 #include <framework/core/application.h>
 #include "browserwindow.h"
+#include <framework/graphics/glutil.h>
 #include <framework/core/eventdispatcher.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/util/crypt.h>

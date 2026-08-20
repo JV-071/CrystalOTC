@@ -23,6 +23,7 @@
 #if !defined WIN32 && !defined ANDROID && !defined __EMSCRIPTEN__ && !defined CRYSTALOTC_COCOA_WINDOW
 
 #include "x11window.h"
+#include <framework/graphics/glutil.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/core/eventdispatcher.h>
 #include <framework/util/stats.h>

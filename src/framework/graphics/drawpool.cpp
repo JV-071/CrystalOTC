@@ -120,8 +120,15 @@ bool DrawPool::updateHash(const DrawMethod& method, const Texture* texture, cons
         if (m_bindedFramebuffers > -1)
             stdext::hash_combine(state.hash, m_lastFramebufferId);
 
-        if (state.blendEquation != BlendEquation::ADD)
-            stdext::hash_combine(state.hash, state.blendEquation);
+        if (state.blendEquation != BlendEquation::ADD) {
+            // Tagged, because the two enums now live in the same small integer range. They used
+            // to carry GL constants (MAX was 0x8008) so their hashes could not collide; plain
+            // enumerators put BlendEquation::MAX and CompositionMode::MULTIPLY both at 1, and
+            // PoolState equality is hash equality - two states differing only in these fields
+            // would batch together and render with the wrong one. Dormant today (nothing sets a
+            // non-ADD equation) but it would be silent when it fires.
+            stdext::hash_combine(state.hash, 0x100u | static_cast<uint32_t>(state.blendEquation));
+        }
 
         if (state.compositionMode != CompositionMode::NORMAL)
             stdext::hash_combine(state.hash, state.compositionMode);

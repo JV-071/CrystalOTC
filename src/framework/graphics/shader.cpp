@@ -21,6 +21,7 @@
  */
 
 #include "shader.h"
+#include "glutil.h"
 
 #include "graphics.h"
 #include "framework/core/eventdispatcher.h"
@@ -28,7 +29,16 @@
 #include "framework/core/resourcemanager.h"
 #include <framework/platform/platformwindow.h>
 
-Shader::Shader(ShaderType shaderType) : m_shaderId(glCreateShader(static_cast<GLenum>(shaderType))), m_shaderType(shaderType)
+namespace
+{
+// ShaderType used to BE its GL constant; the GL numbering lives here now.
+[[nodiscard]] constexpr GLenum glShaderStageOf(const ShaderType type)
+{
+    return type == ShaderType::VERTEX ? GL_VERTEX_SHADER : GL_FRAGMENT_SHADER;
+}
+}
+
+Shader::Shader(ShaderType shaderType) : m_shaderId(glCreateShader(glShaderStageOf(shaderType))), m_shaderType(shaderType)
 {
     // Pure-Vulkan mode: no GL context, glCreateShader legitimately returns 0 (ANGLE
     // validates and no-ops). Inert object - GL never draws in this mode.

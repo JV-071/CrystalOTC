@@ -22,6 +22,7 @@
 
 #include "painter.h"
 
+#include "glutil.h"
 #include "framework/graphics/texture.h"
 #include "framework/graphics/texturemanager.h"
 #include "shader/shadersources.h"
@@ -31,6 +32,30 @@ std::unique_ptr<Painter> g_painter = nullptr;
 
 namespace
 {
+// DrawMode and BlendEquation used to BE their GL constants. They are API-neutral enums now,
+// so the GL numbering lives here - in the only file that hands either of them to GL.
+[[nodiscard]] constexpr GLenum glPrimitiveOf(const DrawMode mode)
+{
+    switch (mode) {
+        case DrawMode::TRIANGLES:      return GL_TRIANGLES;
+        case DrawMode::TRIANGLE_STRIP: return GL_TRIANGLE_STRIP;
+        case DrawMode::NONE:           return GL_NONE;
+    }
+    return GL_TRIANGLES;
+}
+
+[[nodiscard]] constexpr GLenum glBlendEquationOf(const BlendEquation equation)
+{
+    switch (equation) {
+        case BlendEquation::ADD:            return GL_FUNC_ADD;
+        case BlendEquation::MAX:            return GL_MAX;
+        case BlendEquation::MIN:            return GL_MIN;
+        case BlendEquation::SUBTRACT:       return GL_FUNC_SUBTRACT;
+        case BlendEquation::REVER_SUBTRACT: return GL_FUNC_REVERSE_SUBTRACT;
+    }
+    return GL_FUNC_ADD;
+}
+
 [[nodiscard]] std::string joinPainterShaderSources(const std::string_view first, const std::string_view second)
 {
     std::string source;
@@ -117,7 +142,7 @@ void Painter::drawCoords(const CoordsBuffer& coordsBuffer, DrawMode drawMode)
     m_drawProgram->setAttributeArray(PainterShaderProgram::VERTEX_ATTR, coordsBuffer.getVertexArray(), 2);
 
     // draw the element in coords buffers
-    glDrawArrays(static_cast<GLenum>(drawMode), 0, vertexCount);
+    glDrawArrays(glPrimitiveOf(drawMode), 0, vertexCount);
 
     if (!textured)
         PainterShaderProgram::enableAttributeArray(PainterShaderProgram::TEXCOORD_ATTR);
@@ -303,7 +328,7 @@ void Painter::updateGlClipRect() const
     }
 }
 void Painter::updateGlTexture() const { if (m_glTextureId != 0) glBindTexture(GL_TEXTURE_2D, m_glTextureId); }
-void Painter::updateGlBlendEquation() const { glBlendEquation(static_cast<GLenum>(m_blendEquation)); }
+void Painter::updateGlBlendEquation() const { glBlendEquation(glBlendEquationOf(m_blendEquation)); }
 void Painter::updateGlAlphaWriting() const { glColorMask(1, 1, 1, m_alphaWriting); }
 void Painter::updateGlViewport() const
 {

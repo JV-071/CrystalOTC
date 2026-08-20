@@ -21,6 +21,7 @@
  */
 
 #include "texture.h"
+#include "glutil.h"
 
 #include "drawpoolmanager.h"
 #include "graphics.h"

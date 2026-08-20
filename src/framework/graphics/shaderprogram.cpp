@@ -21,6 +21,7 @@
  */
 
 #include "shaderprogram.h"
+#include "glutil.h"
 
 #include "graphics.h"
 #include "shader.h"

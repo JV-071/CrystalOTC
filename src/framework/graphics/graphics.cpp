@@ -21,6 +21,7 @@
  */
 
 #include "graphics.h"
+#include "glutil.h"
 
 #include "fontmanager.h"
 #include "painter.h"

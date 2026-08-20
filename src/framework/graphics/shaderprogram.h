@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "glutil.h"
+
 #include "declarations.h"
 #include <framework/luaengine/luaobject.h>
 

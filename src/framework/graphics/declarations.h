@@ -22,10 +22,12 @@
 
 #pragma once
 
-#include "glutil.h"
 #include <framework/global.h>
 
-enum class CompositionMode
+// These enums are API-neutral: no enumerator carries a graphics-API constant, and this header
+// pulls in no graphics-API header. Each backend maps them to its own values in its own code
+// (the GL mapping lives in painter.cpp and shader.cpp). Renumbering here is safe by construction.
+enum class CompositionMode : uint8_t
 {
     NORMAL,
     MULTIPLY,
@@ -35,20 +37,20 @@ enum class CompositionMode
     LIGHT
 };
 
-enum class DrawMode
+enum class DrawMode : uint8_t
 {
-    NONE = GL_NONE,
-    TRIANGLES = GL_TRIANGLES,
-    TRIANGLE_STRIP = GL_TRIANGLE_STRIP
+    NONE,
+    TRIANGLES,
+    TRIANGLE_STRIP
 };
 
-enum class BlendEquation
+enum class BlendEquation : uint8_t
 {
-    ADD = GL_FUNC_ADD,
-    MAX = GL_MAX,
-    MIN = GL_MIN,
-    SUBTRACT = GL_FUNC_SUBTRACT,
-    REVER_SUBTRACT = GL_FUNC_REVERSE_SUBTRACT,
+    ADD,
+    MAX,
+    MIN,
+    SUBTRACT,
+    REVER_SUBTRACT,
 };
 
 enum class DrawPoolType : uint8_t
@@ -71,10 +73,10 @@ enum DrawOrder : uint8_t
     LAST
 };
 
-enum class ShaderType
+enum class ShaderType : uint8_t
 {
-    VERTEX = GL_VERTEX_SHADER,
-    FRAGMENT = GL_FRAGMENT_SHADER
+    VERTEX,
+    FRAGMENT
 };
 
 class Texture;

@@ -22,6 +22,7 @@
 
 #include "framebuffer.h"
 #include "textureatlas.h"
+#include "glutil.h"
 
 #include "painter.h"
 #include <framework/core/configmanager.h>

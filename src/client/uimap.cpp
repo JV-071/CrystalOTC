@@ -21,6 +21,7 @@
  */
 
 #include "uimap.h"
+#include <framework/graphics/glutil.h>
 
 #include "lightview.h"
 #include "map.h"
