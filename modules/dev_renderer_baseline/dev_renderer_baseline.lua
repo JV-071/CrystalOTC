@@ -784,6 +784,18 @@ local function makeShaderCell(root, x, y, width, height, label, shaderName)
     return image
 end
 
+-- Both shader scenes share one grid so a cell keeps its geometry across the fragment/outfit
+-- split: the fragment cells still occupy rows 0-2 at exactly the coordinates they held when
+-- the outfit row was part of this scene.
+local SHADER_GRID = { x = 48, y = 104, columns = 6, cellWidth = 148, cellHeight = 118, gap = 8 }
+
+local function shaderCellOrigin(index)
+    local column = (index - 1) % SHADER_GRID.columns
+    local row = math.floor((index - 1) / SHADER_GRID.columns)
+    return SHADER_GRID.x + column * (SHADER_GRID.cellWidth + SHADER_GRID.gap),
+        SHADER_GRID.y + row * (SHADER_GRID.cellHeight + SHADER_GRID.gap)
+end
+
 function RendererBaseline.buildShaderMatrixScene()
     local root = beginClientScene(
         "OpenGL shader matrix",
@@ -799,40 +811,59 @@ function RendererBaseline.buildShaderMatrixScene()
     end
     table.insert(cells, { label = "no shader", shader = nil })
 
-    local columns, cellWidth, cellHeight, gap = 6, 148, 118, 8
     for index, cell in ipairs(cells) do
-        local column = (index - 1) % columns
-        local row = math.floor((index - 1) / columns)
-        makeShaderCell(root, 48 + column * (cellWidth + gap), 104 + row * (cellHeight + gap),
-            cellWidth, cellHeight, cell.label, cell.shader)
+        local x, y = shaderCellOrigin(index)
+        makeShaderCell(root, x, y, SHADER_GRID.cellWidth, SHADER_GRID.cellHeight,
+            cell.label, cell.shader)
     end
 
-    -- The outfit shaders in their real route. Outline is the only shader in the registry
-    -- declaring useFramebuffer, and that route is honoured for Creature and ThingType draws,
-    -- so this row is the only automated coverage of a shader applied at an offscreen blit.
-    local outfit = { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 0, mount = 0 }
+    return true
+end
+
+-- The outfit shaders in their real route, split out of shader-matrix so the fragment half can
+-- be CI-gated. These cells render UICreature previews from data/things/*, which is gitignored,
+-- so a runner without game assets draws them empty; gating that would freeze a blank image as
+-- the accepted reference. The fragment cells have no such dependency -- they draw a tracked
+-- image from data/images -- which is the whole reason for the split.
+--
+-- Outline is the only shader in the registry declaring useFramebuffer, and that route is
+-- honoured for Creature and ThingType draws, so this scene is the only automated coverage of
+-- a shader applied at an offscreen blit.
+local OUTFIT_SHADER_OUTFIT = { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 0, mount = 0 }
+
+local function makeOutfitShaderCard(root, index, name)
+    local x, y = shaderCellOrigin(index)
+    local width, height = SHADER_GRID.cellWidth, SHADER_GRID.cellHeight
+    local card = makePanel(root, x, y, width, height, "#0f172aff", "#c084fcff")
+    local preview = place(g_ui.createWidget("UICreature", card), x + 34, y + 4, 80, 80)
+    preview:setOutfit(OUTFIT_SHADER_OUTFIT)
+    preview:setDirection(South)
+    preview:setAutoFit(false)
+
+    local creature = preview:getCreature()
+    if creature then
+        creature:setAnimate(false)
+    end
+
+    if g_shaders.getShader(name) then
+        preview:setShader(name)
+    else
+        g_logger.info("[renderer-baseline] shader unavailable in this environment: " .. name)
+    end
+
+    makeLabel(card, x + 2, y + height - 22, width - 4, 18,
+        name:gsub("^Outfit %- ", ""), "Verdana-8px-outline", "#f0abfcff", AlignCenter)
+    return preview
+end
+
+function RendererBaseline.buildShaderMatrixOutfitsScene()
+    local root = beginClientScene(
+        "OpenGL outfit shader matrix",
+        "Every outfit shader on a creature preview, including the only useFramebuffer route"
+    )
+
     for index, name in ipairs(OUTFIT_SHADERS) do
-        local x = 48 + (index - 1) * (cellWidth + gap)
-        local y = 104 + 3 * (cellHeight + gap)
-        local card = makePanel(root, x, y, cellWidth, cellHeight, "#0f172aff", "#c084fcff")
-        local preview = place(g_ui.createWidget("UICreature", card), x + 34, y + 4, 80, 80)
-        preview:setOutfit(outfit)
-        preview:setDirection(South)
-        preview:setAutoFit(false)
-
-        local creature = preview:getCreature()
-        if creature then
-            creature:setAnimate(false)
-        end
-
-        if g_shaders.getShader(name) then
-            preview:setShader(name)
-        else
-            g_logger.info("[renderer-baseline] shader unavailable in this environment: " .. name)
-        end
-
-        makeLabel(card, x + 2, y + cellHeight - 22, cellWidth - 4, 18,
-            name:gsub("^Outfit %- ", ""), "Verdana-8px-outline", "#f0abfcff", AlignCenter)
+        makeOutfitShaderCard(root, index, name)
     end
 
     return true
@@ -1382,6 +1413,10 @@ function RendererBaseline.onRun()
         end, 2000)
     elseif activeScenario == "shader-matrix" then
         if RendererBaseline.buildShaderMatrixScene() then
+            RendererBaseline.captureScene(activeScenario, 2000)
+        end
+    elseif activeScenario == "shader-matrix-outfits" then
+        if RendererBaseline.buildShaderMatrixOutfitsScene() then
             RendererBaseline.captureScene(activeScenario, 2000)
         end
     elseif activeScenario == "atlas-resources" then

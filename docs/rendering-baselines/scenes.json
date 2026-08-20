@@ -84,10 +84,19 @@
       "id": "shader-matrix",
       "automation": "client",
       "requiresOnlineGame": false,
-      "features": ["all-module-shaders", "fog-multitexture", "snow-multitexture", "outline-framebuffer", "outfit-shaders", "mount-shader", "item-shader", "pinned-shader-time"],
+      "features": ["map-fragment-programs", "fog-multitexture", "snow-multitexture", "mount-shader", "item-shader", "unshaded-control-cell", "pinned-shader-time"],
       "command": "--renderer-baseline=shader-matrix --renderer-baseline-output=shader-matrix.png",
+      "note": "The sixteen fragment cells plus one unshaded control cell, laid out on rows 0-2 of the shared shader grid. Every cell draws data/images/background_crystal1, which is tracked, so this scene renders identically with or without game assets and is CI-gated. The six outfit cells that used to occupy row 3 are now shader-matrix-outfits. One cell renders differently by environment and the gate cannot cover it: forge_result_silhouette is registered by game_exaltationforge's onLoad, which does not come up without game assets. With assets the cell draws the shader's black silhouette; without them the shader is simply unregistered and the cell draws the unshaded image, logged as 'shader unavailable in this environment'. Both are deterministic, so the llvmpipe reference freezes the unshaded form and the gate holds - but that shader itself is only exercised locally, and a local-versus-llvmpipe comparison of this scene will always differ in that one cell."
+    },
+    {
+      "id": "shader-matrix-outfits",
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["outfit-shaders", "outline-framebuffer", "creature-preview-fbo", "pinned-shader-time"],
+      "command": "--renderer-baseline=shader-matrix-outfits --renderer-baseline-output=shader-matrix-outfits.png",
       "ciGate": false,
-      "ciGateReason": "The six outfit cells render UICreature previews from data/things/*, which is gitignored, so a CI runner draws them empty. The sixteen fragment cells would gate cleanly; splitting the outfit row into its own scene would let them. Captured and archived as an artifact only."
+      "ciGateReason": "Renders UICreature previews from data/things/*, which is gitignored, so a CI runner draws them empty; gating it would freeze a blank image as the accepted reference. Split out of shader-matrix on 2026-08-20 precisely so the sixteen fragment cells could be gated without this dependency. Captured and archived as an artifact only.",
+      "note": "Outfit - Outline is the only shader in the registry declaring useFramebuffer, so this scene is the only automated coverage of a shader applied at an offscreen blit. It shares the shader grid with shader-matrix, occupying row 0."
     },
     {
       "id": "shader-matrix-map",
