@@ -66,6 +66,13 @@
       "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png"
     },
     {
+      "id": "graph-lines",
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["uigraph", "gl-line-strip", "line-smoothing", "line-width-1", "line-width-3", "line-width-6"],
+      "command": "--renderer-baseline=graph-lines --renderer-baseline-output=graph-lines.png"
+    },
+    {
       "id": "shader-matrix",
       "automation": "fixture-server",
       "requiresOnlineGame": true,

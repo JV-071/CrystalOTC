@@ -371,6 +371,63 @@ function RendererBaseline.buildCompositionScene()
     return true
 end
 
+function RendererBaseline.buildGraphLineScene()
+    local root = beginClientScene(
+        "OpenGL line-strip geometry",
+        "Fixed UIGraph samples exercise line smoothing, joins, slopes, and the surveyed wide-line states"
+    )
+
+    local graph = place(g_ui.createWidget("UIGraph", root), 78, 138, 864, 392)
+    graph:setBackgroundColor("#0f172aff")
+    graph:setBorderWidth(1)
+    graph:setBorderColor("#475569ff")
+    graph:setPadding(28)
+    graph:setFont("verdana-11px-antialised")
+    graph:setTitle("DETERMINISTIC SAMPLE SERIES")
+    graph:setCapacity(25)
+    graph:setShowLabels(true)
+    graph:setShowInfo(false)
+
+    local series = {
+        {
+            color = "#38bdf8ff",
+            width = 1,
+            values = { 12, 18, 16, 29, 35, 31, 44, 39, 52, 48, 63, 57, 71, 66, 78, 73, 85, 76, 91, 83, 96, 88, 99, 93, 104 }
+        },
+        {
+            color = "#f472b6ff",
+            width = 3,
+            values = { 88, 82, 91, 76, 69, 73, 58, 64, 49, 55, 42, 48, 34, 40, 27, 35, 22, 31, 18, 28, 15, 24, 12, 20, 9 }
+        },
+        {
+            color = "#facc15ff",
+            width = 6,
+            values = { 45, 58, 72, 61, 43, 29, 36, 55, 74, 81, 67, 46, 31, 24, 39, 62, 79, 86, 70, 51, 34, 28, 44, 68, 82 }
+        }
+    }
+
+    for _, sample in ipairs(series) do
+        local index = graph:createGraph()
+        graph:setLineColor(index, sample.color)
+        graph:setLineWidth(index, sample.width)
+        for _, value in ipairs(sample.values) do
+            graph:addValue(index, value)
+        end
+    end
+
+    local legend = {
+        { x = 188, color = "#38bdf8ff", text = "1 px line" },
+        { x = 438, color = "#f472b6ff", text = "3 px line" },
+        { x = 688, color = "#facc15ff", text = "6 px line" }
+    }
+    for _, entry in ipairs(legend) do
+        makePanel(root, entry.x, 558, 42, 5, entry.color)
+        makeLabel(root, entry.x + 52, 546, 150, 28, entry.text, "Verdana Bold-11px-new", entry.color, AlignLeft)
+    end
+
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -559,6 +616,10 @@ function RendererBaseline.onRun()
                 RendererBaseline.captureScene(activeScenario, 750)
             end
         end, 1500)
+    elseif activeScenario == "graph-lines" then
+        if RendererBaseline.buildGraphLineScene() then
+            RendererBaseline.captureScene(activeScenario, 1000)
+        end
     else
         fail("unknown automated scenario '" .. tostring(activeScenario) .. "'")
     end
