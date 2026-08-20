@@ -224,7 +224,7 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     if (pool->hasFrameBuffer()) {
         addAction([pool, dest, src, colorClear] {
             pool->m_framebuffer->prepare(dest, src, colorClear);
-        });
+        }, ActionIdiom::PoolTargetPrepare);
     }
 
     pool->release();

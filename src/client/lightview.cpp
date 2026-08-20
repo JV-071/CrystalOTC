@@ -99,10 +99,22 @@ void LightView::draw(const Rect& dest, const Rect& src)
         SpinLock::Guard guard(m_pool->getThreadLock());
         m_pixels[0].swap(m_pixels[1]);
         updatePixel.store(true, std::memory_order_relaxed);
+
+        // The same upload, stated as data. Declared inside this branch so the compiled frame
+        // uploads exactly in the frames GL uploads in - not every frame.
+        if (m_texture) {
+            g_drawPool.addTextureUpload(TextureHandle{ m_texture->getUniqueId() },
+                                        m_texture->getSize(),
+                                        m_pixels[1].data(), m_pixels[1].size());
+        }
     }
     m_pool->getHashController().reset();
 
-    g_drawPool.addAction([=, this] {
+    // The lambda below is declared as data by addLightOverlay: one multiply-blended quad
+    // sampling the light texture. It has to be declared rather than inferred, because the
+    // lambda's real geometry comes from updateCoords() on the render thread, and a compiler
+    // never runs the lambda.
+    g_drawPool.addLightOverlay(m_texture, dest, src, m_tileSize, [=, this] {
         if (updatePixel.load(std::memory_order_relaxed)) {
             SpinLock::Guard guard(m_pool->getThreadLock());
             m_texture->updatePixels(m_pixels[1].data());

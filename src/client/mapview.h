@@ -208,6 +208,11 @@ private:
 
     void registerEvents();
 
+    // States the map-shader composition as data, alongside the callback that performs it.
+    // Read-only with respect to the shader-switch state machine: the callback still owns
+    // that, so declaring costs the GL path nothing but a few float divisions.
+    void declareCompositionMaterial() const;
+
     uint8_t calcFirstVisibleFloor(bool checkLimitsFloorsView) const;
     uint8_t calcLastVisibleFloor() const;
 

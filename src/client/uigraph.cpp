@@ -52,17 +52,18 @@ void UIGraph::drawSelf(const DrawPoolType drawPane)
         for (auto& graph : m_graphs) {
             if (!graph.visible) continue;
 
-            g_drawPool.addAction([points = graph.points, width = graph.width, color = graph.lineColor] {
-                static std::vector<float> vertices;
-                vertices.resize(points.size() * 2);
-                int i = 0;
-                for (const auto& point : points) {
-                    vertices[i++] = static_cast<float>(point.x);
-                    vertices[i++] = static_cast<float>(point.y);
-                }
-                g_painter->setColor(color);
-                g_painter->drawLine(vertices, points.size(), width);
-            });
+            g_drawPool.addLineStrip(graph.points, graph.width, graph.lineColor,
+                [points = graph.points, width = graph.width, color = graph.lineColor] {
+                    static std::vector<float> vertices;
+                    vertices.resize(points.size() * 2);
+                    int i = 0;
+                    for (const auto& point : points) {
+                        vertices[i++] = static_cast<float>(point.x);
+                        vertices[i++] = static_cast<float>(point.y);
+                    }
+                    g_painter->setColor(color);
+                    g_painter->drawLine(vertices, points.size(), width);
+                });
         }
 
         // then update if needed and draw vertical line if hovered
@@ -72,14 +73,15 @@ void UIGraph::drawSelf(const DrawPoolType drawPane)
 
             if (m_showInfo && isHovered()) {
                 updateGraph(graph, updated);
-                g_drawPool.addAction([line = graph.infoLine, color = graph.infoLineColor] {
-                    g_painter->setColor(color);
-                    const std::vector vertices = {
-                        static_cast<float>(line[0].x), static_cast<float>(line[0].y),
-                        static_cast<float>(line[1].x), static_cast<float>(line[1].y)
-                    };
-                    g_painter->drawLine(vertices, vertices.size() / 2, 1);
-                });
+                g_drawPool.addLineStrip({ graph.infoLine[0], graph.infoLine[1] }, 1, graph.infoLineColor,
+                    [line = graph.infoLine, color = graph.infoLineColor] {
+                        g_painter->setColor(color);
+                        const std::vector vertices = {
+                            static_cast<float>(line[0].x), static_cast<float>(line[0].y),
+                            static_cast<float>(line[1].x), static_cast<float>(line[1].y)
+                        };
+                        g_painter->drawLine(vertices, vertices.size() / 2, 1);
+                    });
             }
         }
 

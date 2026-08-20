@@ -22,6 +22,8 @@
 
 #include "mapview.h"
 
+#include <framework/graphics/render/poolcompiler.h>
+
 #include <framework/graphics/drawpoolmanager.h>
 
 #include "animatedtext.h"
@@ -61,7 +63,49 @@ MapView::~MapView()
 #endif
 }
 
+void MapView::declareCompositionMaterial() const
+{
+    MaterialParams params;
+    params.resolution = { static_cast<float>(m_rectDimension.width()),
+                          static_cast<float>(m_rectDimension.height()) };
+
+    MaterialHandle material;
+    float opacity = 1.f;
+
+    if (m_shader) {
+        const auto& camera = m_posInfo.camera;
+        const auto& center = m_posInfo.srcRect.center();
+        const auto& globalCoord = Point(camera.x - m_drawDimension.width() / 2,
+                                        -(camera.y - m_drawDimension.height() / 2)) * m_tileSize;
+
+        params.mapCenterCoord = { center.x / static_cast<float>(m_rectDimension.width()),
+                                  1.f - center.y / static_cast<float>(m_rectDimension.height()) };
+        params.mapGlobalCoord = { globalCoord.x / static_cast<float>(m_rectDimension.height()),
+                                  globalCoord.y / static_cast<float>(m_rectDimension.height()) };
+        params.mapZoom = m_pool->getScaleFactor();
+
+        Point last = transformPositionTo2D(camera, m_shaderPosition);
+        last.y = -last.y; // reverse vertical axis, as the callback does
+        params.walkOffset = { last.x / static_cast<float>(m_rectDimension.width()),
+                              last.y / static_cast<float>(m_rectDimension.height()) };
+
+        material = PoolCompiler::materialOf(m_shader.get());
+
+        // A read-only sample of the same fade ramp the callback computes. It deliberately does
+        // NOT advance the switch: m_shader/m_nextShader/m_shaderSwitchDone stay the callback's
+        // to mutate, so declaring changes nothing about what GL draws.
+        if (!m_shaderSwitchDone && m_fadeOutTime > 0)
+            opacity = std::max(0.f, 1.f - (m_fadeTimer.timeElapsed() / m_fadeOutTime));
+        else if (m_shaderSwitchDone && m_fadeInTime > 0)
+            opacity = std::min<float>(m_fadeTimer.timeElapsed() / m_fadeInTime, 1.f);
+    }
+
+    g_drawPool.setCompositionMaterial(material, params, opacity);
+}
+
 void MapView::registerEvents() {
+    declareCompositionMaterial();
+
     g_drawPool.addAction([this, camera = m_posInfo.camera, srcRect = m_posInfo.srcRect] {
         m_pool->onBeforeDraw([=, this] {
             float fadeOpacity = 1.f;
@@ -103,7 +147,7 @@ void MapView::registerEvents() {
             g_painter->resetShaderProgram();
             g_painter->resetOpacity();
         });
-    });
+    }, ActionIdiom::MapShaderBind);
 }
 
 void MapView::preLoad() {
