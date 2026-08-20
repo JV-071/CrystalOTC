@@ -32,7 +32,38 @@ The `graph-lines` fixture drives the real `UIGraph` action-lambda path with fixe
 
 The `atlas-resources` fixture loads sixteen unique 522x522 smooth textures, an atlas-eligible 1344x320 sheet, and an APNG frame through the production foreground atlas. Both XQuartz runs grew the linear filter group to three 2048x2048 layers. Releasing and reloading four textures left one reusable inactive size bucket while retaining 41 cached entries. Clearing the texture-manager cache also freezes the displayed APNG after its first upload. The two final captures were pixel-identical.
 
-No XQuartz-versus-llvmpipe image has been compared yet, so no cross-environment pixel difference is accepted. Small rasterization and sampling differences may be accepted only after side-by-side evidence is attached here. XQuartz performance numbers are never compared directly with llvmpipe or native GPU numbers.
+The first XQuartz-versus-llvmpipe comparison was run on 2026-08-20, against the seeded
+reference set. Five of the seven gated scenes agree across the two GL stacks; the two that do
+not are characterised below. XQuartz performance numbers are still never compared directly
+with llvmpipe or native GPU numbers.
+
+| Scene | Differing px | Fraction | Max channel delta | Verdict |
+|---|---|---|---|---|
+| `ui-clipping-opacity` | 0 | 0.0000% | 1 | agree |
+| `text-matrix` | 1 | 0.0002% | 150 | agree |
+| `atlas-resources` | 158 | 0.024% | 78 | agree |
+| `particles-blends` | 168 | 0.026% | 52 | agree |
+| `composition-all` | 490 | 0.075% | 4 | agree |
+| `graph-lines` | 9,967 | **1.52%** | 235 | **differ — line smoothing** |
+| `startup-ui` | 449,332 | **68.4%** | 254 | **differ — missing assets in CI** |
+
+That clipping, opacity, text, atlas packing, particle blending and all six composition
+descriptors agree to within a handful of pixels across two independent GL implementations is
+a strong result: it means those scenes are testing the client's behaviour rather than a
+driver's.
+
+**`graph-lines` — a genuine cross-stack divergence.** llvmpipe antialiases wide lines;
+XQuartz rasterizes them hard-edged. Same geometry, same widths, different interpretation of
+`GL_LINE_SMOOTH` and `glLineWidth`. The difference spans the whole plot area, not an edge
+case. Two consequences: line rendering must be compared same-environment only, and the Metal
+port's line triangulation `[S 6.3, S 9.10]` inherits a wide tolerance envelope, because the
+two GL stacks already disagree with each other by 1.5% on the same source geometry. There is
+no single "correct" GL line rendering to match.
+
+**`startup-ui` — structural, not a rendering difference.** `data/things/*` is gitignored, so
+the CI client has no game assets and its capture carries an asset-missing dialog in front of
+the login window. Locally the assets exist and the dialog does not appear. This is expected
+and is documented next to the reference images; it is not evidence about either rasterizer.
 
 The client must link `libGL`, `libX11`, and `libXext` from the same XQuartz installation. Mixing XQuartz GL with Homebrew X11 links successfully but causes GLX visual selection to fail at runtime. The macOS CMake path now pins all four headers/libraries under `/opt/X11`.
 
