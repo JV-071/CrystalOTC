@@ -82,6 +82,24 @@ local function isolateClientScene()
     sceneRoot:raise()
 end
 
+-- Online scenes capture the whole client, so anything that repaints per frame or
+-- reopens itself would make the image irreproducible. Two things do:
+--   * the FPS/ping HUD row, which client_topmenu draws INSIDE the map panel, so its
+--     changing text lands on top of the very MAP pool the scene exists to exercise;
+--   * the enter-game window, which the driver hides before calling loginWorld, but
+--     which the normal startup flow then re-shows because EnterGame.show() only guards
+--     on g_game.isOnline() and the client is still offline at that moment. Nothing
+--     hides it again once the game starts, so it covers the map centre.
+local function stabilizeOnlineUi()
+    if modules.client_options and modules.client_options.setOption then
+        pcall(modules.client_options.setOption, "showFps", false, true)
+    end
+
+    if EnterGame and EnterGame.hide then
+        EnterGame.hide()
+    end
+end
+
 local function suppressCaptureTooltip()
     local rootWidget = g_ui.getRootWidget()
     local hovered = rootWidget:getHoveredChild()
@@ -556,6 +574,18 @@ function RendererBaseline.captureScene(scene, delay)
 
         captureEvent = scheduleEvent(function()
             suppressCaptureTooltip()
+
+            -- Record the geometry the capture was actually taken at. Baseline provenance
+            -- depends on it, and a drifting map panel is otherwise only visible as a large
+            -- unexplained pixel diff.
+            local mapPanel = modules.game_interface and modules.game_interface.getMapPanel
+                and modules.game_interface.getMapPanel()
+            if mapPanel and not mapPanel:isDestroyed() then
+                local rect = mapPanel:getRect()
+                g_logger.info(string.format("[renderer-baseline] map panel rect=%d,%d %dx%d",
+                    rect.x, rect.y, rect.width, rect.height))
+            end
+
             g_app.doScreenshot(virtualPath)
 
             -- Screenshot encoding is dispatched asynchronously. Poll for the new file, then
@@ -622,6 +652,13 @@ function RendererBaseline.captureMapScreenshot(scene, delay)
 end
 
 function RendererBaseline.loginFixtureServer()
+    -- Size the window before logging in. game_interface.show() computes the map panel
+    -- geometry from the window size at the instant the game starts, and captureScene()
+    -- only resizes once that has already happened, so an online capture raced the
+    -- resize and produced a differently sized map panel from run to run. Offline scenes
+    -- never had the problem because beginClientScene() resizes during onRun.
+    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+
     local account = os.getenv("CRYSTALOTC_BASELINE_ACCOUNT")
     local password = os.getenv("CRYSTALOTC_BASELINE_PASSWORD")
     local character = os.getenv("CRYSTALOTC_BASELINE_CHARACTER")
@@ -664,6 +701,8 @@ function RendererBaseline.onGameStart()
         removeEvent(loginTimeoutEvent)
         loginTimeoutEvent = nil
     end
+
+    stabilizeOnlineUi()
 
     if activeScenario == "map-screenshot" then
         RendererBaseline.captureMapScreenshot(activeScenario, 4000)

@@ -70,6 +70,19 @@ g_app.setName("CrystalOTC");
 g_app.setCompactName("crystalotc");
 g_app.setOrganizationName("Crystal");
 
+-- Renderer baseline captures must be reproducible run to run, and must not disturb the
+-- developer's own client. Persisted state broke both properties: game_interface saves and
+-- restores the console splitter position (modules/game_interface/gameinterface.lua), so a
+-- previous run's saved layout silently resized the map panel in the next capture, and the
+-- minimap cache and per-character UI state accumulate across runs. CI runners start with no
+-- persisted state at all, so a local capture and a CI capture would diverge for reasons that
+-- have nothing to do with the renderer. Capture runs therefore get their own write directory,
+-- reset below before any setting is read.
+local rendererBaselineRun = g_app.getStartupOptions():find("--renderer-baseline=", 1, true) ~= nil
+if rendererBaselineRun then
+    g_app.setCompactName(g_app.getCompactName() .. "-baseline")
+end
+
 -- Accept both Crystal 15.25 and the existing 15.30 client profile. Crystal 15.25 reuses
 -- the checked-in 1530 asset catalog; only the advertised/wire version changes.
 g_gameConfig.setLastSupportedVersion(1530)
@@ -113,6 +126,27 @@ g_resources.addSearchPath(g_resources.getWorkDir() .. 'mods', true)
 
 -- setup directory for saving configurations
 g_resources.setupUserWriteDir(('%s/'):format(g_app.getCompactName()))
+
+-- Reset the capture write directory before g_configs.loadSettings reads anything. Only
+-- names owned by the write directory are touched; none of them exist in the mounted data,
+-- modules, or mods trees, so this cannot reach repository content. Previously captured
+-- images under /render-baselines are deliberately preserved.
+if rendererBaselineRun then
+    local function purge(path)
+        if g_resources.directoryExists(path) then
+            for _, file in ipairs(g_resources.listDirectoryFiles(path, true, false, true)) do
+                g_resources.deleteFile('/' .. file)
+            end
+        elseif g_resources.fileExists(path) then
+            g_resources.deleteFile(path)
+        end
+    end
+
+    for _, path in ipairs({ '/config.otml', '/user_minimap.otmm', '/settings',
+                            '/characterdata', '/controls' }) do
+        purge(path)
+    end
+end
 
 -- search all packages
 g_resources.searchAndAddPackages('/', '.otpkg', true)
