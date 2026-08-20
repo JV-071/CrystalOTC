@@ -756,7 +756,7 @@ This prevents platform-port work from masking pre-existing renderer differences.
 
 Success criterion: a native macOS window can open, process input, resize, and present a clear color.
 
-**Status 2026-08-20:** met except for "process input". The window opens, resizes (tracking backing scale) and presents a clear colour, and `CrystalOTC.app` launches from Finder. Input translation is implemented but was never driven interactively, and there is no macOS CI job to drive it.
+**Status 2026-08-20: met.** The window opens, resizes (tracking backing scale) and presents a clear colour; `CrystalOTC.app` launches from Finder; and input was verified by driving real events at the running window — keyboard translation against the `Fw::Key` table, a `CGEvent` click producing `Fw::MouseLeftButton`, and both quit routes reaching the client for a graceful shutdown. Text input, scroll and modifier synthesis remain unexercised, and there is still no macOS CI job to exercise any of it automatically.
 
 ## Phase 2: Stabilize the renderer boundary
 
