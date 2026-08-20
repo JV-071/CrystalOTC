@@ -220,6 +220,17 @@ end
 local function stabilizeOnlineUi()
     freezeShaderTime()
 
+    -- The hovered-tile crosshair is drawn into the MAP pool wherever the pointer happens to
+    -- be, so it lands in the map framebuffer readback as well as the window capture. That is
+    -- the same class of contamination as the hovered tooltip, but suppressCaptureTooltip does
+    -- not reach it: it is a map texture, not a widget. Disabling the texture is permanent for
+    -- the session, so once at game start is enough.
+    local gameInterface = modules.game_interface
+    local mapPanel = gameInterface and gameInterface.getMapPanel and gameInterface.getMapPanel()
+    if mapPanel and not mapPanel:isDestroyed() then
+        mapPanel:setCrosshairTexture(nil)
+    end
+
     -- Isolate immediately and then again while the server may still be pushing windows.
     -- Hiding a modal at capture time is not enough: it has already been laid out by then,
     -- and the game interface keeps the geometry it settled on, which showed up as a map
@@ -680,6 +691,18 @@ function RendererBaseline.buildAtlasResourceScene()
     return true
 end
 
+-- Everything that must be true of the frame at the instant it is captured. Shared by the
+-- full-window path and the MAP framebuffer readback: the readback samples the MAP pool, so
+-- animation frozen here matters there too even though the UI hardening does not.
+local function prepareForShutter()
+    suppressCaptureTooltip()
+    isolateGameInterface()
+    pinInterfaceLayout()
+    applyLightingSetup()
+    clearOnScreenMessages()
+    freezeMapAnimation()
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -711,12 +734,7 @@ function RendererBaseline.captureScene(scene, delay)
         end
 
         captureEvent = scheduleEvent(function()
-            suppressCaptureTooltip()
-            isolateGameInterface()
-            pinInterfaceLayout()
-            applyLightingSetup()
-            clearOnScreenMessages()
-            freezeMapAnimation()
+            prepareForShutter()
 
             -- Record the geometry the capture was actually taken at. Baseline provenance
             -- depends on it, and a drifting map panel is otherwise only visible as a large
@@ -772,6 +790,13 @@ function RendererBaseline.captureMapScreenshot(scene, delay)
     end
 
     g_logger.info("[renderer-baseline] capturing " .. scene .. " to " .. realPath)
+    -- Only the animation freeze applies to a MAP framebuffer readback. The rest of the
+    -- shutter hardening -- tooltips, interface isolation, the splitter, on-screen messages --
+    -- concerns the FOREGROUND pool, which this readback does not sample, and running the
+    -- interface isolation immediately before doMapScreenshot relayouts the widget tree and
+    -- intermittently leaves it without a map widget to read back from.
+    captureEvent = scheduleEvent(freezeMapAnimation, math.max(delay - 500, 0))
+
     captureEvent = scheduleEvent(function()
         g_app.doMapScreenshot(virtualPath)
 
@@ -858,6 +883,15 @@ function RendererBaseline.prepareLightingScene()
     end
 end
 
+-- map-core and map-screenshot capture the surface fixture platform rather than the live
+-- development world, whose walking NPCs and timed broadcasts left ~0.15% of pixels drifting
+-- between runs. GOD is the correct character here precisely because its group carries
+-- hasfulllight: the server pins world light to 255, the client skips the LIGHT pool, and the
+-- capture becomes immune to the wall-clock day/night cycle that cannot be frozen from Lua.
+function RendererBaseline.prepareMapScene()
+    g_game.talk("!fixture map")
+end
+
 function RendererBaseline.onGameStart()
     if activeScenario ~= "map-core" and activeScenario ~= "map-screenshot"
         and activeScenario ~= "lighting-overlap" then
@@ -872,14 +906,16 @@ function RendererBaseline.onGameStart()
     stabilizeOnlineUi()
 
     if activeScenario == "map-screenshot" then
-        RendererBaseline.captureMapScreenshot(activeScenario, 4000)
+        RendererBaseline.prepareMapScene()
+        RendererBaseline.captureMapScreenshot(activeScenario, 6000)
     elseif activeScenario == "lighting-overlap" then
         -- The teleport is a server round trip, so allow it to land and the light
         -- bitmap to be recomputed before the shutter.
         RendererBaseline.prepareLightingScene()
         RendererBaseline.captureScene(activeScenario, 6000)
     else
-        RendererBaseline.captureScene(activeScenario, 4000)
+        RendererBaseline.prepareMapScene()
+        RendererBaseline.captureScene(activeScenario, 6000)
     end
 end
 
