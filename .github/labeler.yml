@@ -1,6 +1,10 @@
 ---
+# Schema is actions/labeler v5 and later. The v4 form ("- any: [glob]") is not
+# understood by the pinned v7 action and silently labels nothing.
 "Area: Source":
-  - any: ['src/**/*']
+  - changed-files:
+      - any-glob-to-any-file: 'src/**/*'
 
 "Area: Datapack":
-  - any: ['data/**/*']
+  - changed-files:
+      - any-glob-to-any-file: 'data/**/*'
