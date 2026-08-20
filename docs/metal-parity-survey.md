@@ -1,0 +1,282 @@
+# OpenGL Renderer Parity Survey
+
+**Status:** Code survey (pre-implementation-plan inventories)
+**Date:** 2026-08-19
+**Companion:** `docs/macos-rendering-architecture.md`
+**Scope:** Exhaustive inventories of the OpenGL renderer behavior that "Metal with full OpenGL parity" must reproduce: composition/blend state, render targets, action lambdas, shaders, geometry, textures, coordinate conventions, and threading. Every claim carries a `file:line` reference against the repository state on the survey date.
+
+This document answers the three questions the architecture doc left open before an implementation plan could be drafted:
+
+1. What is the exact blend/state table per composition mode?
+2. Where, exhaustively, do framebuffers and opaque GL action lambdas enter the draw stream?
+3. What does the light pass actually do?
+
+It also settles the shader-policy question in combination with the crystalserver survey (section 5.6).
+
+---
+
+## 1. Frame architecture as built
+
+### 1.1 Draw pools
+
+Five pools, drawn every frame in enum order (`DrawPoolManager::draw`, `drawpoolmanager.cpp:101-112`; enum in `declarations.h:54-62`):
+
+| Order | Pool | Own FBO | Refresh cap | CPU atlas | Notes |
+|---|---|---|---|---|---|
+| 1 | `MAP` | yes | none | MAP atlas | FBO has `alphaWriting=false` and blend **disabled** during its screen blit (`drawpool.cpp:33-35`) |
+| 2 | `CREATURE_INFORMATION` | no | 500 fps | FOREGROUND atlas | `m_alwaysGroupDrawings=true` — draws batched by state hash (`drawpool.cpp:44-47`) |
+| 3 | `LIGHT` | no | none | — | not geometry: one action lambda per frame (section 3.4) |
+| 4 | `FOREGROUND_MAP` | no | 500 fps | FOREGROUND atlas | grouped like CREATURE_INFORMATION |
+| 5 | `FOREGROUND` | yes | 10 fps | FOREGROUND atlas | FBO sized `viewport / UI-scale` (`graphicalapplication.cpp:415`); one pre-created temp FBO with smoothing (`drawpool.cpp:40`) |
+
+A pool with an FBO renders its objects into the FBO, then blits the FBO texture to the backbuffer as a `TRIANGLE_STRIP` quad (`drawpoolmanager.cpp:263-278`, `framebuffer.cpp:125-133`). Pools without FBOs draw objects directly to the backbuffer. A pool with an FBO whose content hash did not change skips object execution entirely and only re-blits (`drawpoolmanager.cpp:238-240`) — this caching is a core performance behavior, not an optimization detail.
+
+### 1.2 Threading
+
+- The **map thread** (`g_asyncDispatcher` task, `graphicalapplication.cpp:219`) builds pool object lists: FOREGROUND UI is built here too (`graphicalapplication.cpp:263-265`), and LIGHT + FOREGROUND_MAP are built in **two further parallel async tasks** while MAP builds on the map thread itself (`graphicalapplication.cpp:245-258`).
+- The **main thread** executes `g_drawPool.draw()` and swaps buffers.
+- Handoff: each pool double-buffers its object list; `drawObjects` swaps `m_objectsDraw[0/1]` under a `SpinLock` and consumes the `m_shouldRepaint` atomic flag (`drawpoolmanager.cpp:245-249`). The map thread blocks new map production until the flags are consumed (`canDrawMap`, `graphicalapplication.cpp:177-190`).
+- Only the main thread touches GL. Pool building threads never issue GL calls — but they *do* capture GL-touching lambdas for later main-thread execution.
+
+---
+
+## 2. Composition and blend inventory
+
+### 2.1 The exact blend table (`painter.cpp:269-291`)
+
+| CompositionMode | GL call | Effective formula |
+|---|---|---|
+| `NORMAL` | `glBlendFuncSeparate(SRC_ALPHA, ONE_MINUS_SRC_ALPHA, ONE, ONE)` | rgb: classic src-over; **alpha: additive** (dstA + srcA) |
+| `MULTIPLY` | `glBlendFunc(DST_COLOR, ONE_MINUS_SRC_ALPHA)` | dst·src + dst·(1−srcA) |
+| `ADD` | `glBlendFunc(ONE_MINUS_SRC_COLOR, ONE_MINUS_SRC_COLOR)` | **not classic additive**: (src+dst)·(1−src) |
+| `REPLACE` | `glBlendFunc(ONE, ZERO)` | src |
+| `DESTINATION_BLENDING` | `glBlendFunc(ONE_MINUS_DST_ALPHA, DST_ALPHA)` | src·(1−dstA) + dst·dstA |
+| `LIGHT` | `glBlendFunc(ZERO, SRC_COLOR)` | dst·src |
+
+All six must exist as Metal blend descriptors, but note the actual usage below when prioritizing.
+
+### 2.2 Who uses which mode
+
+| Mode | Users |
+|---|---|
+| `NORMAL` | default everywhere |
+| `MULTIPLY` | outfit color masks (`creature.cpp:443`), paperdoll masks (`paperdoll.cpp:87`), the light-texture overlay (`lightview.cpp:114`), particles (`particletype.cpp:121`) |
+| `ADD` | particles only (`particletype.cpp:123`) |
+| `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` | **no callers found in C++, Lua bindings, or modules.** Defined and implemented, currently dead. |
+
+### 2.3 Blend equation
+
+`BlendEquation` supports ADD/MAX/MIN/SUBTRACT/REVERSE_SUBTRACT (`declarations.h:45-52`), but **no code path anywhere sets a non-ADD equation** — the only caller of `Painter::setBlendEquation` is pool-state execution replaying the (always-ADD) state (`drawpool.cpp:432`). Not exposed to Lua. Metal can support it in the pipeline key but nothing exercises it today.
+
+### 2.4 Alpha writing and blend disable
+
+- `glColorMask(1,1,1,alphaWriting)` (`painter.cpp:305`). Set only by `FrameBuffer::bind` from `m_useAlphaWriting` (`framebuffer.cpp:102`): true for every FBO except the MAP pool FBO (`drawpool.cpp:34`).
+- Blend is disabled outright in three places: the MAP FBO screen blit (`m_disableBlend`, `framebuffer.cpp:127-132`), atlas layer compositing (`textureatlas.cpp` flush), and the UI map-hole punch (`uimap.cpp:86-89`, section 4).
+
+---
+
+## 3. Render-target inventory
+
+Four distinct kinds of render target exist. "Framebuffer-derived textures" is not an edge case — even the GL sprite atlas is FBO-composited.
+
+### 3.1 Pool FBOs (2)
+
+MAP and FOREGROUND, described in section 1.1. Sizing: MAP FBO tracks the map view; FOREGROUND FBO is `viewport / scale` and re-created on resize/scale change (`graphicalapplication.cpp:415`). `FrameBuffer::bind` clears to transparent (or draws a clear-color quad when the clear color is non-alpha) unless `autoClear` is off (`framebuffer.cpp:104-112`).
+
+### 3.2 Temporary (nested) FBOs — all 7 call sites
+
+`DrawPool::bindFrameBuffer/releaseFrameBuffer` (`drawpool.cpp:473-524`) push bind/release **action lambdas** into the object stream; between them, object coordinates are local to the temp FBO. Bind pushes a fresh default painter state; release re-applies the outer state and blits with `FrameBuffer::draw(dest, flipDirection)`. Temp FBOs are pooled per drawpool and nestable (`m_bindedFramebuffers` counter). The `vkFbMarker/vkFbSize/vkFbDest/vkFbFlip/vkFbOpacity` fields on `DrawObject` (`drawpool.h:177-186`) already encode these boundaries declaratively — the RenderFrameCompiler should promote exactly this data to the primary representation.
+
+| Site | Purpose | Flip |
+|---|---|---|
+| `creature.cpp:155-167` | UI creature preview (battle list, outfit window): compose outfit+masks at native size, blit into widget rect | none |
+| `creature.cpp:460-462` | outfit shader with `useFramebuffer` (Outline): render creature into FBO, blit through shader | none |
+| `thingtype.cpp:775-780` (`drawWithFrameBuffer`) | thing rendered via FBO when `g_drawPool.shaderNeedFramebuffer()` (`thingtype.cpp:829`) | none |
+| `uiitem.cpp:53-68` | item widget: draw item at native size, blit centered 1:1 or shrink-to-fit | **h/v flip** via `m_flipDirection` |
+| `uieffect.cpp:49-51` | effect widget, same pattern | none |
+| `uimissile.cpp:50-52` | missile widget, same pattern | none |
+| `uispellpreview.cpp:136-138` | spell preview widget | none |
+
+All seven are the same idiom: *render small scene at native resolution, blit scaled/flipped into a destination rect*. In the explicit frame model each becomes a short offscreen pass plus one textured draw sampling it.
+
+### 3.3 Texture-atlas layer FBOs
+
+The GL CPU-side atlas (`textureatlas.cpp`) allocates one FBO per 1–N atlas layers per filter group (nearest/linear). New textures are composited into a layer by *GPU draw* during `flush()` on the main thread: bind layer FBO, `glDisable(GL_BLEND)`, `clearRect`, draw the source texture as a strip — with an oversized padding draw first for linear-filtered entries (`SMOOTH_PADDING`, src rect extends beyond the texture: `{-pad,-pad,w+2p,h+2p}`, relying on clamp/repeat sampling). Draws then sample the layer FBO's texture with translated src rects (`drawpool.cpp:63-72`). Atlas flush runs after each pool's objects (`drawpoolmanager.cpp:259-260`).
+
+### 3.4 The light pass — CPU pixels, not GPU geometry
+
+**The architecture doc overstates this pass.** `LightView` (`lightview.cpp`) does not draw light geometry into a LightMap FBO. It:
+
+1. accumulates light sources per frame on the map thread (`addLightSource`, dedup by position/color hash);
+2. computes the light bitmap **on the CPU** (`updatePixels`) into a pixel buffer of one RGBA texel per visible tile (double-buffered, swapped under the pool spinlock);
+3. enqueues one action lambda (`lightview.cpp:105-119`) that uploads the pixels (`Texture::updatePixels` → `glTexSubImage2D`) and draws a single textured quad over the map destination with `CompositionMode::MULTIPLY`, linear filtering providing the smoothing (`m_texture->setSmooth(true)`, texture sized `mapSize` in tiles, drawn stretched with fractional src coords).
+
+Metal parity for lighting is therefore: **one dynamic RGBA8 texture upload + one multiply-blended quad per frame.** The LIGHT pool's other machinery (hash controller with `agroup`, scale factor) feeds the CPU computation, not the GPU.
+
+### 3.5 Readback sites (3)
+
+| Site | Reads | Notes |
+|---|---|---|
+| `FrameBuffer::extractTexture` (`framebuffer.cpp:174-187`) | any FBO → `glReadPixels` → new `Texture` with `upsideDown` flag | this is the "texture with no source pixels" case the Vk feeder cannot handle |
+| `FrameBuffer::doScreenshot` (`framebuffer.cpp:189-221`) | map FBO region → PNG, `image.flipVertically()` | called from `client.cpp:167` with a 3-sprite margin; note the suspicious `glReadPixels(x/3, y/1.5, ...)` offsets — pre-existing oddity, do not "fix" silently during the port |
+| `GraphicalApplication::doScreenshot` (`graphicalapplication.cpp:440-451`) | default framebuffer → PNG | Lua-exposed (`g_app.doScreenshot`) |
+
+---
+
+## 4. Action-lambda inventory (complete)
+
+Every `addAction` site outside the drawpool internals, i.e. every opaque GL lambda the explicit frame model must replace:
+
+| Site | What the lambda does | Explicit-model replacement |
+|---|---|---|
+| `drawpool.cpp:483` (bindFrameBuffer) | resize+bind temp FBO, reset painter state | begin-offscreen-pass |
+| `drawpool.cpp:508` (releaseFrameBuffer) | release FBO, re-apply outer state, blit with flip | end-pass + textured draw |
+| `drawpoolmanager.cpp:225` (preDraw) | `m_framebuffer->prepare(dest, src, colorClear)` — set pool FBO blit quad and clear color | pass metadata (already mirrored in `m_vkPendingFbDest/Src`) |
+| `mapview.cpp:65` (registerEvents) | installs `m_pool->onBeforeDraw`: bind the active **map shader** and set its uniforms (center/global coord, zoom, walk offset, fade opacity) right before the MAP FBO→screen blit | material + parameter block on the map-composition draw |
+| `uimap.cpp:86-89` (drawSelf) | `glDisable(GL_BLEND)`, draw `Color::alpha` filled rect over the game-view rect (punches a transparent hole through the FOREGROUND FBO so the map shows through), `glEnable(GL_BLEND)`; rect also registered via `setVkMapHole` | REPLACE-style draw with blend off; the explicit rect already exists (`m_vkMapHole`, `drawpool.h:387-388`) |
+| `uigraph.cpp:55,75` | `g_painter->drawLine(...)` with width + color for skill graphs | line-strip geometry (section 6.3) |
+| `lightview.cpp:105` | upload light pixels, draw multiply quad (section 3.4) | dynamic-texture update + draw packet |
+
+That is the entire list. The "GL lambdas" problem is seven idioms, not an unbounded surface.
+
+`onBeforeDraw`/`onAfterDraw` hooks exist on every pool (`drawpool.h:112-113`); the only registrations found are MapView's map-shader hook above and its foreground counterpart (`uimap.cpp:75` area).
+
+---
+
+## 5. Shader inventory
+
+### 5.1 Built-in programs (4)
+
+Created in `Painter::Painter` (`painter.cpp:69-72`) from `shader/shadersources.h`:
+
+| Program | Vertex | Fragment | Metal analog |
+|---|---|---|---|
+| textured | pos+texcoord, `u_TextureMatrix` | `tex(Tex0) * u_Color`, `alpha *= u_Opacity` | core sprite pipeline |
+| solid color | pos only | `u_Color` | untextured pipeline |
+| replace color | pos+texcoord | `a > 0.01 ? u_Color : 0` | mask/tint pipeline (marked/highlighted creatures) |
+| line | pos only | `u_Color` | graph lines |
+
+The vertex stage is **always** `projection × transform × (x, y, 1)`; the fragment contract is **always** `calculatePixel()` with alpha multiplied by `u_Opacity` afterward (`shadersources.h:50-57`). Custom painter shaders replace only `calculatePixel` — they are fragment-only against a fixed vertex stage and fixed uniform ABI.
+
+### 5.2 The uniform ABI
+
+Framework indices (`paintershaderprogram.h:30-45`): projection=0, textureMatrix=1, color=2, opacity=3, time=4, tex0–3=5–8, resolution=9, transform=10.
+Client extension (`framework/graphics/shadermanager.h:31-43`): itemId=10, outfitId=11, mountId=12, shaderId=13, mapZoom=14, walkOffset=15, mapCenterCoord=16, mapGlobalCoord=17, textOffset=18, textCenter=19.
+
+**Hazard:** `ITEM_ID_UNIFORM = 10` collides with `TRANSFORM_MATRIX_UNIFORM = 10`. `Painter::drawCoords` writes the transform matrix through index 10 on every draw, so an item shader that binds `u_ItemId` at slot 10 has its uniform location aliased. Whatever the current visual outcome is, it is part of "current behavior" — investigate before freezing the parity contract, and do not let the Metal ABI inherit the collision.
+
+### 5.3 Module shader inventory (`modules/game_shaders/shaders.lua`)
+
+All registered from `.frag` files via `createFragmentShader`; none use `createFragmentShaderFromCode`.
+
+- **Map (13):** Fog (+`tex1` clouds), Rain, Snow (+`tex1` snow), Gray Scale, Bloom, Sepia, Pulse, Old Tv, Party, Radial Blur, Zomg, Heat, Noise
+- **Outfit (6):** Rainbow, Ghost, Jelly, Fragmented, cyclopedia-black, **Outline (`useFramebuffer = true` — the only one)**
+- **Item (1):** Hover - Desaturate
+- **Mount (1):** Rainbow
+
+Plus C++-side registrations elsewhere (e.g. exaltation forge, attached effects) that reuse the same files/registry. Multi-texture (`addMultiTexture` → `u_Tex1..3`) is used by exactly two shaders (Fog, Snow).
+
+### 5.4 Where painter shaders apply
+
+- **Map shaders:** bound at MAP-FBO→screen blit time via `onBeforeDraw` (`mapview.cpp:65-96`), with map-specific uniforms and shader-fade (opacity ramp on switch). They are full-screen post-effects over the composed map texture.
+- **Outfit/creature shaders:** per-draw pool state (`setShaderProgram(..., onlyOnce=true)`, `creature.cpp:436-437`); if the shader declares `useFramebuffer`, the creature is first rendered into a temp FBO and the shader applies at the blit (`creature.cpp:454-465`).
+- **Item/thing shaders:** same two-route pattern via `shaderNeedFramebuffer()` (`thingtype.cpp:829`, `drawpoolmanager.cpp:99`).
+- Shader presence keys the pool refresh clock (`m_shaderRefreshDelay`) and the state hash (`drawpool.cpp:135-136`).
+
+### 5.5 Runtime-code path
+
+`createFragmentShaderFromCode` is Lua-exposed (`luafunctions.cpp:505`) but unused by shipped modules. The crystalserver protocol (15.25) carries shader **names/ids only** (`attachedeffects.xml`; `protocolgame.cpp` sends `shader->name`) — no GLSL crosses the wire.
+
+### 5.6 Consequence for the Metal shader policy
+
+The full supported set is: 4 built-ins + ~21 module fragments + the fixed vertex stage. All against one fixed ABI. This is compatible with either hand-written MSL or a build-time GLSL→SPIR-V→MSL step; a runtime translator is only needed if `createFragmentShaderFromCode` must keep working for out-of-repo Lua.
+
+---
+
+## 6. Geometry and draw modes
+
+### 6.1 Vertex data
+
+`CoordsBuffer` holds **two separate client-side float2 arrays** (positions, texcoords) — no interleaving, no VBOs anywhere in the GL path; `glDrawArrays` sources CPU memory each draw (`painter.cpp:110-118`, `coordsbuffer.h`). The Metal backend therefore owes a per-frame transient vertex allocator; there is no existing buffer-object lifetime to mirror.
+
+### 6.2 Draw methods
+
+`RECT` (2 triangles), `TRIANGLE`, `REPEATED_RECT` (tiling), `BOUNDING_RECT` (frame outline as thin rects), `UPSIDEDOWN_RECT` (declared; **no callers found** — likely vestigial). Pool draws execute as `DrawMode::TRIANGLES` (`drawpoolmanager.cpp:120`); FBO blits and atlas composits use `TRIANGLE_STRIP` quads.
+
+### 6.3 Lines
+
+`Painter::drawLine` (`painter.cpp:124-145`): `GL_LINE_STRIP` with `glLineWidth(width)` and `GL_LINE_SMOOTH`. Used only by `UIGraph` (`uigraph.cpp:55,75`). Metal has no wide or smooth lines — the port must triangulate (screen-space quad strip per segment). Visual tolerance here can be generous; it is analytics graphs, not game art.
+
+### 6.4 Batching
+
+Consecutive objects with identical state hashes merge coord buffers (`drawpool.cpp:83-95`); grouped pools coalesce by state hash across the whole list. The state hash covers blend/composition/opacity/clip/shader/transform/color/texture (`drawpool.cpp:115-142`). This CPU-side batching is backend-neutral and should survive unchanged.
+
+---
+
+## 7. Texture inventory
+
+- **Format:** everything is RGBA8/`GL_UNSIGNED_BYTE` (`texture.cpp:383-405`); 1/3/4-channel images normalize on upload. No sRGB formats, no compressed textures, no depth/stencil anywhere.
+- **Updates:** `glTexSubImage2D` after first allocation (`texture.cpp:185-198`) — LightView refreshes its texture per frame through this path; the satellite map and animated textures also stream.
+- **Sampling:** smooth ⇒ LINEAR (+`LINEAR_MIPMAP_LINEAR` with mips), else NEAREST (+`NEAREST_MIPMAP_NEAREST`); wrap is REPEAT or CLAMP_TO_EDGE per-texture (`texture.cpp:336-355`). Four sampler states cover the whole client.
+- **Per-texture matrix:** textures own a transform-matrix id in a global registry (`g_textures.getMatrixById`, `painter.cpp:225`) mapping pixel src coords to normalized coords — this is the `u_TextureMatrix` the fixed vertex stage consumes.
+- **Upside-down flag:** FBO-backed textures set `setUpsideDown(true)` (`framebuffer.cpp:68`, `framebuffer.cpp:184`), which flips the texture matrix. This is the central GL-vs-render-target orientation mechanism the Metal backend must map onto its own texture-origin convention.
+
+---
+
+## 8. Coordinate conventions
+
+- **Projection:** top-left-origin pixel space → GL NDC via the documented matrix (`painter.cpp:249-267`): `[2/w, 0, 0; 0, -2/h, 0; -1, 1, 1]`.
+- **Scissor:** GL scissor is bottom-left origin; the flip is `glScissor(left, resH - bottom - 1, w, h)` (`painter.cpp:297`). Metal's `setScissorRect` is top-left origin — the flip **disappears** rather than needing translation, and must be clamped to the render-target bounds (Metal validates; GL forgave).
+- **FBO blits:** may be horizontally/vertically flipped via explicit flipped quads (`framebuffer.cpp:159-166`), used by `uiitem.cpp:68` (`m_flipDirection`).
+- **Screenshots:** CPU `flipVertically()` after readback (`framebuffer.cpp:214`).
+- Proposal for the explicit frame model: define all logical render targets as top-left origin; resolve every flip in the frame compiler; forbid orientation knowledge in shaders.
+
+---
+
+## 9. Quirks and hazards to preserve or resolve deliberately
+
+1. **`ADD` composition is not additive** — `(1−src, 1−src)` weights. Particles depend on it. Copy the formula, not the name.
+2. **`NORMAL` accumulates alpha additively** (`ONE, ONE` alpha factors) — matters inside FBOs later sampled with their alpha.
+3. **MAP FBO blits with blend disabled and writes no alpha** — map pixels replace, never blend, at composition.
+4. Uniform index 10 collision (section 5.2).
+5. `glReadPixels(x/3, y/1.5)` in map screenshot (section 3.5) — looks like a bug kept for output compatibility; decide, don't inherit blindly.
+6. Atlas smooth-padding draw samples outside the source texture bounds, relying on clamp behavior (section 3.3).
+7. FOREGROUND FBO renders at `viewport/scale` and stretches — UI scale factor is implemented by FBO sizing, not by transform.
+8. Pool FBO skip-if-unchanged (hash) is load-bearing for performance; the explicit model needs an equivalent "reuse last target contents" pass mode.
+9. `onlyOnce` state overrides restore the *previous* state, not defaults (`drawpool.cpp:289-311`) — compiler must replicate exact scoping.
+10. Line rendering needs triangulation on Metal (section 6.3).
+11. `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` composition modes and non-ADD blend equations are currently dead code — decide whether parity includes them (recommendation: implement the table entries anyway; they are one blend descriptor each).
+
+---
+
+## 10. What the pipeline-state space actually is
+
+Observed live combinations, for the Metal pipeline cache key:
+
+- Fragment function: textured | solid | replace-color | line | one of ~21 module fragments (fixed vertex stage throughout)
+- Blend: NORMAL | MULTIPLY | ADD (+3 dead modes if kept)
+- Alpha write: on | off (off only for MAP FBO passes)
+- Color format: single RGBA8/BGRA8 everywhere
+- Blend disabled: MAP blit, atlas compositing, hole punch
+
+That is on the order of **25–30 live pipeline states** — comfortably enumerable, no runtime pipeline explosion.
+
+Frame pass graph as built (superset frame):
+
+```
+[map thread] build MAP | LIGHT ∥ FOREGROUND_MAP ∥ FOREGROUND-UI object lists
+[main thread]
+  Pass A*: temp-FBO passes nested in MAP objects (creature previews, shader-FBO things)
+  Pass B : MAP objects -> MAP FBO                     (skipped if hash unchanged)
+  Pass C : MAP FBO -> backbuffer  [map shader, blend off, no alpha write]
+  Pass D : CREATURE_INFORMATION -> backbuffer
+  Pass E : light texture upload + multiply quad -> backbuffer
+  Pass F : FOREGROUND_MAP -> backbuffer
+  Pass A*: temp-FBO passes nested in FOREGROUND objects (item/effect/missile widgets)
+  Pass G : FOREGROUND -> FOREGROUND FBO               (10 fps + hash gated; hole punched with blend off)
+  Pass H : FOREGROUND FBO -> backbuffer
+  (atlas-layer compositing passes interleave after each pool's objects)
+  present
+```
+
+Every pass boundary above is already explicit in code (pool structure, `vkFbMarker`s, `prepare` rects) except the atlas flush, which is self-contained. This is the pass list the `RenderFrameCompiler` must emit.
