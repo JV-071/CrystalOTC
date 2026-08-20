@@ -10,7 +10,7 @@ This directory defines the Phase 0 visual reference process used while the OpenG
 - A channel difference of 2 is tolerated by default. At most 0.1% of pixels may exceed that tolerance. Missing passes, wrong dimensions, clipping errors, alpha errors, and coordinate shifts always fail review regardless of the aggregate percentage.
 - PNGs and metadata are CI artifacts. They are not committed until a scene is stable and its required game assets can be distributed reproducibly.
 
-The complete required coverage and automation status live in [scenes.json](scenes.json). `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`, and the fixture-backed `map-core` capture are automated now. Entries marked `fixture-server`, `client-script`, `native-fixture`, or `desktop-driver` are the remaining Phase 0 fixture work, not optional coverage.
+The complete required coverage and automation status live in [scenes.json](scenes.json). `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`, `outfit-masks`, and the fixture-backed `map-core` capture are automated now. Entries marked `fixture-server`, `client-script`, `native-fixture`, or `desktop-driver` are the remaining Phase 0 fixture work, not optional coverage.
 
 ## macOS XQuartz bring-up
 
@@ -40,7 +40,7 @@ The client logs the real output path. By default it is under the CrystalOTC user
 The deterministic offline UI fixtures use the same command shape and require no server:
 
 ```sh
-for scene in ui-clipping-opacity text-matrix particles-blends; do
+for scene in ui-clipping-opacity text-matrix particles-blends outfit-masks; do
   DISPLAY="$DISPLAY" build/macos-release/bin/otclient \
     --renderer-baseline="$scene" \
     --renderer-baseline-output="$scene.png"

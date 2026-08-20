@@ -227,6 +227,44 @@ function RendererBaseline.buildParticlesBlendScene()
     return true
 end
 
+local function makeOutfitCard(root, x, title, outfit, description, shader, previewSize)
+    makeLabel(root, x + 8, 118, 160, 24, title, "Verdana Bold-11px-new", "#f0abfcff", AlignCenter)
+    local card = makePanel(root, x, 148, 174, 390, "#0f172aff", "#c084fcff")
+    makePanel(card, x + 12, 174, 150, 150, "#334155ff")
+    previewSize = previewSize or 150
+    local previewInset = math.floor((150 - previewSize) / 2)
+    local preview = place(g_ui.createWidget("UICreature", card), x + 12 + previewInset, 174 + previewInset, previewSize, previewSize)
+    preview:setOutfit(outfit)
+    preview:setDirection(South)
+    preview:setAutoFit(false)
+    local creature = preview:getCreature()
+    if creature then
+        creature:setAnimate(false)
+    end
+    if shader then
+        preview:setShader(shader)
+    end
+    makeLabel(card, x + 14, 344, 146, 72, description, "verdana-11px-antialised", "#e2e8f0ff", AlignTopCenter):setTextWrap(true)
+    return preview
+end
+
+function RendererBaseline.buildOutfitMaskScene()
+    local root = beginClientScene(
+        "OpenGL outfit masks and preview framebuffers",
+        "Fixed creature previews cover recolor layers, addon patterns, mounts, and the framebuffer-backed outline shader"
+    )
+
+    local coloredOutfit = { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 0, mount = 0 }
+    makeOutfitCard(root, 48, "BASE", coloredOutfit, "Four independent mask colors\nMULTIPLY composition")
+    makeOutfitCard(root, 232, "ADDONS", { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 3, mount = 0 }, "Both addon pattern layers\ninside the preview FBO")
+    makeOutfitCard(root, 416, "MOUNT", { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 0, mount = 368 }, "Mounted z-pattern with\noutfit color masks")
+    makeOutfitCard(root, 600, "OUTLINE", coloredOutfit, "Nested framebuffer path\nplus animated fragment shader", "Outfit - Outline", 80)
+    makeOutfitCard(root, 784, "ALT COLORS", { type = 128, head = 114, body = 80, legs = 40, feet = 9, addons = 1, mount = 0 }, "Reordered mask palette\nwith addon one")
+
+    makeLabel(root, 48, 558, 910, 32, "Creature animation is frozen; only the outline shader's surveyed time-based brightness remains live.", nil, "#94a3b8ff", AlignCenter)
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -353,6 +391,10 @@ function RendererBaseline.onRun()
             -- The foreground pool is retained and refresh-capped. Give the one-shot
             -- particle systems enough time to reach a stable cached frame.
             RendererBaseline.captureScene(activeScenario, 2500)
+        end
+    elseif activeScenario == "outfit-masks" then
+        if RendererBaseline.buildOutfitMaskScene() then
+            RendererBaseline.captureScene(activeScenario, 1500)
         end
     else
         fail("unknown automated scenario '" .. tostring(activeScenario) .. "'")

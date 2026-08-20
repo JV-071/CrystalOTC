@@ -39,9 +39,10 @@
     },
     {
       "id": "outfit-masks",
-      "automation": "fixture-server",
-      "requiresOnlineGame": true,
-      "features": ["outfit-mask-colors", "mount", "addons", "animation", "multiply"]
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["outfit-mask-colors", "mount", "addons", "multiply", "creature-preview-fbo", "outline-framebuffer", "nested-fbo", "time-shader"],
+      "command": "--renderer-baseline=outfit-masks --renderer-baseline-output=outfit-masks.png"
     },
     {
       "id": "particles-blends",
