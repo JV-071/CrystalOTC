@@ -878,7 +878,10 @@ void CocoaWindow::onWindowFocusChanged(const bool focused)
 {
     m_focused = focused;
     // Matches X11Window, which releases on both FocusIn and FocusOut: a key held while
-    // focus moves would otherwise stay logically down forever.
+    // focus moves would otherwise stay logically down forever. releaseAllKeys() also zeroes
+    // keyboardModifiers, so the cached mask has to follow it or the next flagsChanged:
+    // would see no transition and never re-apply a modifier still physically held.
+    m_modifierFlags = 0;
     releaseAllKeys();
 }
 
@@ -919,19 +922,30 @@ void CocoaWindow::handleFlagsChanged(const unsigned long modifierFlags)
     // Cocoa reports modifiers as a state mask rather than as key events, so the transitions
     // have to be synthesised. Note PlatformWindow maps Fw::KeyMeta (Command) onto
     // Fw::KeyboardAltModifier on __APPLE__, and Fw::KeyAlt (Option) onto nothing.
-    const auto sync = [this](const bool down, const Fw::Key key) {
-        if (down == isKeyPressed(key))
+    //
+    // The previous mask is the only usable prior state: processKeyDown and processKeyUp
+    // return early for modifier keys *before* touching m_keyInfo, so isKeyPressed() reads
+    // false for them forever. Comparing against it made every release look like "no
+    // change", so modifiers latched on and were never cleared.
+    const auto sync = [this](const unsigned long was, const unsigned long now,
+                             const unsigned long mask, const Fw::Key key) {
+        const bool wasDown = (was & mask) != 0;
+        const bool isDown = (now & mask) != 0;
+        if (wasDown == isDown)
             return;
-        if (down)
+        if (isDown)
             processKeyDown(key);
         else
             processKeyUp(key);
     };
 
-    sync((modifierFlags & NSEventModifierFlagControl) != 0, Fw::KeyCtrl);
-    sync((modifierFlags & NSEventModifierFlagShift) != 0, Fw::KeyShift);
-    sync((modifierFlags & NSEventModifierFlagCommand) != 0, Fw::KeyMeta);
-    sync((modifierFlags & NSEventModifierFlagOption) != 0, Fw::KeyAlt);
+    const unsigned long previous = m_modifierFlags;
+    m_modifierFlags = modifierFlags;
+
+    sync(previous, modifierFlags, NSEventModifierFlagControl, Fw::KeyCtrl);
+    sync(previous, modifierFlags, NSEventModifierFlagShift, Fw::KeyShift);
+    sync(previous, modifierFlags, NSEventModifierFlagCommand, Fw::KeyMeta);
+    sync(previous, modifierFlags, NSEventModifierFlagOption, Fw::KeyAlt);
 }
 
 void CocoaWindow::handleTextInput(const std::string& utf8Text)

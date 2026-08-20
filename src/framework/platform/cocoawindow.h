@@ -139,6 +139,12 @@ private:
     // g_app.setHUDScale; this is what the drawable is actually sized from.
     float m_backingScale{ 1.f };
 
+    // Previous NSEvent modifier mask. PlatformWindow deliberately does not record modifier
+    // keys in m_keyInfo - processKeyDown/processKeyUp return early for Ctrl/Shift/Meta/Alt
+    // before setting the pressed state - so isKeyPressed() is always false for them and
+    // cannot be used to detect a transition. This is the only usable previous state.
+    unsigned long m_modifierFlags{ 0 };
+
     Size m_pendingSize;
     bool m_pendingResize{ false };
     bool m_closeRequested{ false };
