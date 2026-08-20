@@ -169,10 +169,19 @@ readback path now gets only the animation freeze, which is all that applies to i
 
 ## shader-matrix
 
-Every shipped fragment program over one identical textured cell, plus a no-shader control and
-a row applying the six outfit shaders through their real creature route. **0 differing pixels**
-between consecutive runs -- only possible because `u_Time` is now pinnable; nine of the shaders
-animate and thirteen animated cells could never have fit the 656-pixel budget.
+Every shipped fragment program over one identical textured cell, plus a no-shader control:
+sixteen fragment cells and one control. **0 differing pixels** between consecutive runs -- only
+possible because `u_Time` is now pinnable; nine of the shaders animate and, before the split,
+thirteen animated cells could never have fit the 656-pixel budget.
+
+**Updated 2026-08-20 (`cb6fe6a`):** ~~a row applying the six outfit shaders through their real
+creature route~~ moved out to `shader-matrix-outfits`, so the fragment half no longer depends on
+gitignored `data/things/*` and could be CI-gated -- it now has a checked-in reference. Both
+halves share one grid (`SHADER_GRID`) and the fragment cells kept their exact coordinates, so
+the split is verifiable against the pre-split captures; it measures 0 differing pixels in the
+`y < 482` band against three of them. `shader-matrix-outfits` also measures **0 differing
+pixels** over 656,880 across consecutive runs, and carries the only automated coverage of a
+`useFramebuffer` shader (Outline) applied at an offscreen blit.
 
 Two constraints shaped it. The cells must be **textured**: `Painter::drawCoords` binds the
 extra multi-texture units only inside its textured branch and otherwise leaves the texcoord

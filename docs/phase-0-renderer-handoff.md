@@ -42,7 +42,7 @@ Against the exit gate:
 
 - [x] The client runs on macOS via XQuartz.
 - [x] A checked-in scene list (`scenes.json`, machine-readable, single source of truth).
-- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`). (8 gated post-handoff; `shader-matrix` awaits its first reference.)
+- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`). (**Updated 2026-08-20:** 8 gated post-handoff, and all 8 have a committed reference — `shader-matrix`'s was seeded from run `32395555810` in `f037e42`.)
 - [x] A known-deviations note, including the XQuartz-versus-llvmpipe comparison with evidence.
 
 ### Scenes
@@ -61,7 +61,7 @@ Repeatability is two or more consecutive captures compared with
 | `atlas-resources` | [x] | offline | gated | 0 px |
 | `outfit-masks` | [x] | offline | captured only | 0 px (was 520 before pinned `u_Time`) |
 | `temporary-framebuffers` | [x] | offline | captured only | 0 px (was 449 before pinned `u_Time`) |
-| `shader-matrix` | [x] | offline | gated (post-handoff; reference pending) | 0 px |
+| `shader-matrix` | [x] | offline | gated (post-handoff) | 0 px |
 | `shader-matrix-outfits` | [x] | offline | captured only (post-handoff) | 0 px |
 | `windowing` | [x] | offline | not capturable | 0 px |
 | `lighting-overlap` | [x] | online | — | 161 px (0.024%) |
@@ -141,7 +141,8 @@ floor and a hole cut in a z=7 platform would expose nothing.
   the regression class a Metal backend introduces. Failures now carry distinct exit codes.
 - The workflow had never executed. Four blockers would have hard-failed its first run, and a
   fifth (alsa's autotools requirement) was only visible once it did run.
-- `outfit-masks` and `temporary-framebuffers` are captured but **not gated**: `data/things/*`
+- `outfit-masks`, `temporary-framebuffers` and - post-handoff - `shader-matrix-outfits` are
+  captured but **not gated**: `data/things/*`
   is gitignored, so a CI runner renders them empty and gating would freeze a blank reference.
 
 ## Automated scenes
@@ -158,7 +159,7 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 
 ## Remaining Phase 0 work
 
-None. Every scene in `scenes.json` has a command, all seven gated scenes had a reference at this checkpoint (eight are gated post-handoff; `shader-matrix` is pending its first), and
+None. Every scene in `scenes.json` has a command, all seven gated scenes had a reference at this checkpoint (eight are gated post-handoff, and all eight now have one - `shader-matrix`'s was seeded from run `32395555810` in `f037e42`), and
 the workflow gates them green: run `32381800862` compared six at exactly 0 differing pixels
 and `atlas-resources` at 158, inside its tolerance.
 
@@ -166,8 +167,9 @@ The exit gate is met. What follows is deferred work that does not block it.
 
 ## Deferred follow-ups
 
-Real issues found during Phase 0 that are deliberately not being fixed here. None block the
-exit gate.
+Real issues found during Phase 0 that were deliberately not fixed in the phase itself. None
+block the exit gate. Three were resolved in the post-handoff cleanup below and are struck
+through; four remain deferred.
 
 **Node 20 deprecation in `build-windows.yml`.** Its actions (`checkout`, `cache`,
 `upload-artifact`, `download-artifact`) target the deprecated Node 20 runtime. GitHub
@@ -213,8 +215,9 @@ does not exist.
 
 ## Post-handoff cleanup (2026-08-20)
 
-Work done after checkpoint `d56850a`, before Phase 1 started. Four of the deferred follow-ups
-above; the rest stay deferred with their reasoning unchanged.
+Work done after checkpoint `d56850a`, before Phase 1 started. Three of the deferred follow-ups
+above, plus the fixture-server pin, which was never on that list; the rest stay deferred with
+their reasoning unchanged.
 
 **`shader-matrix` split, and the fragment half gated.** The scene's six outfit cells moved to a
 new `shader-matrix-outfits`; the sixteen fragment cells plus one unshaded control cell stayed
@@ -225,9 +228,13 @@ fragment cells kept their exact coordinates: the `y < 482` band of a post-split 
 **0 differing pixels** against three separate pre-split captures. Both scenes measure 0 px
 across consecutive runs.
 
-Its reference is not seeded yet. A gated scene with no reference is a GitHub *notice*, not a
+~~Its reference is not seeded yet. A gated scene with no reference is a GitHub *notice*, not a
 failure, so the workflow stays green and reports `UNGATED-pending-reference` until the PNG from
-the next green run is committed under `references/opengl-llvmpipe/`.
+the next green run is committed under `references/opengl-llvmpipe/`.~~ **Seeded 2026-08-20
+(`f037e42`)** from run `32395555810`, the first run after the split: it compared the other seven
+gated scenes at PASS - six at 0 differing pixels, `atlas-resources` at its documented 158 - and
+reported this one as `UNGATED-pending-reference`, exactly as designed. All eight gated scenes now
+have a committed reference, and `ENVIRONMENT.txt` fingerprints that run.
 
 **The fixture-server dependency is pinned and machine-checked.** The four online scenes were
 uncapturable without `crystalserver` scripts that exist only on a personal fork, and nothing in
@@ -246,7 +253,7 @@ this repository recorded that beyond prose. Now:
   identical across four genuinely different causes. It now names all four, leading with the
   likeliest: the server was not restarted after the scripts were installed.
 
-**`tests-lua.yml` is a real gate.** It syntax-checks all 262 tracked `.lua` files with LuaJIT -
+**`tests-lua.yml` is a real gate.** It syntax-checks every tracked `.lua` file with LuaJIT -
 the parser the client embeds, rather than PUC `lua5.1` - and fails if the sweep ever checks
 zero files, which is the exact way it was previously vacuous. Writing it surfaced three
 invalid escape sequences (`\*` and `\%`, neither a Lua escape) in
@@ -314,8 +321,11 @@ duplicate-library linker warnings.
 
 ## Commit ledger
 
-Oldest first. Note that the sixteen previously subject-only messages were rewritten with
-full bodies; every hash below is therefore new since the previous handoff.
+Oldest first, regenerated from `git log --format='%h %s' --reverse 8194e58~1..HEAD` at
+`f037e42` rather than appended to by hand. Everything after `d56850a` is post-handoff work:
+the documentation-correction pass, the audit skill, and the cleanup batch. Note that the
+sixteen originally subject-only messages were rewritten with full bodies, so every hash
+below is new since the previous handoff.
 
 ```text
 8194e58 fix(macos): bring up the XQuartz OpenGL client
@@ -368,6 +378,15 @@ aa58b68 docs(renderer): add a Phase 0 completion checklist
 4976522 ci(renderer): correct the derived capture directory
 09eb5d9 ci(renderer): reseed the startup-ui reference
 d56850a docs(renderer): close out Phase 0
+05d645f docs(renderer): correct stale claims left by Phase 0
+ebf63c6 docs(skills): add a phase documentation audit skill
+c71eda4 fix(tools): correct three invalid escape sequences in the binding generator
+70b25a5 ci(lua): syntax-check every tracked Lua file with LuaJIT
+c9bcd99 ci(labeler): pin actions/labeler and migrate the config to the v5 schema
+cb6fe6a test(renderer): split the outfit cells out of the shader matrix
+b621ef5 test(renderer): pin the fixture-server dependency and check it
+4ed061f docs(renderer): record the post-handoff cleanup batch
+f037e42 ci(renderer): seed the shader-matrix llvmpipe reference
 ```
 
 ## Repository hygiene at handoff
@@ -396,6 +415,7 @@ Deliberately not in this repository:
 - **Sprite and appearance data.** `data/things/*` is gitignored, which is why `outfit-masks`,
   `temporary-framebuffers` and `shader-matrix-outfits` are captured but never gated
   (`shader-matrix` itself became gateable post-handoff by splitting the outfit cells out).
-- **References for the ungated scenes.** Only the seven gated PNGs are checked in, under
+- **References for the ungated scenes.** Only the gated PNGs are checked in - seven at this
+  checkpoint, eight since `f037e42` seeded `shader-matrix` - under
   `docs/rendering-baselines/references/opengl-llvmpipe/`, next to the `ENVIRONMENT.txt`
   fingerprint of the run that produced them.

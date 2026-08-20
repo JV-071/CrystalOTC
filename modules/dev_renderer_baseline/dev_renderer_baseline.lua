@@ -731,14 +731,17 @@ local function prepareForShutter()
 end
 
 -- Every fragment program the client ships, exercised against one identical textured cell so
--- any difference between cells is the shader and nothing else.
+-- any difference between cells is the shader and nothing else. The six outfit shaders are not
+-- here: they need a creature preview, which needs data/things/*, so they live in
+-- buildShaderMatrixOutfitsScene and this scene can be CI-gated without them.
 --
 -- Map shaders cannot be exercised in their real route offline: Client::canDraw(MAP) is
 -- literally g_game.isOnline(), so a UIMap with no connection produces no MAP-pool content and
 -- the map-composition bind at mapview.cpp is unreachable. Their fragment programs are still
 -- reachable, because a plain UIWidget can carry any registered shader -- production code
 -- already does this, the bestiary puts a map shader on a text input. So this scene covers
--- every .frag; a later online scene has to cover the map-composition route itself.
+-- every fragment program reachable without game assets; shader-matrix-outfits covers the
+-- outfit route, and a later online scene has to cover the map-composition route itself.
 --
 -- The cells must be textured. Painter::drawCoords only binds the extra multi-texture units
 -- inside its textured branch, and an untextured draw leaves the texcoord attribute disabled

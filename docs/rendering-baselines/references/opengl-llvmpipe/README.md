@@ -1,6 +1,6 @@
 # Canonical llvmpipe references
 
-Seeded from two green runs of `Renderer baseline - Linux llvmpipe`. Six of the
+Seeded from three green runs of `Renderer baseline - Linux llvmpipe`. Six of the
 references come from run `32369322871` (commit `0045e145`) and have not been
 touched since: `atlas-resources`, `composition-all`, `graph-lines`,
 `particles-blends`, `text-matrix` and `ui-clipping-opacity`.
