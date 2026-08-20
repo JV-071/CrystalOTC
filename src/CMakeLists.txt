@@ -14,6 +14,22 @@ option(TOGGLE_DIRECTX "Use DX9 support" OFF)
 option(ENABLE_DISCORD_RPC "Use Discord Rich Presence" OFF)
 option(TOGGLE_BIN_FOLDER "Use build/bin folder for generate compilation files" OFF)
 option(TOGGLE_COCOA_WINDOW "macOS: use the native Cocoa/Metal window instead of XQuartz/X11" OFF)
+
+# The bundle's Info.plist publishes LSMinimumSystemVersion from CMAKE_OSX_DEPLOYMENT_TARGET.
+# Left unset that expands to an empty string - a plist that still lints but declares no
+# minimum at all - so give it the value Decision 6 in docs/metal-implementation-plan.md
+# assumes. Must be set before the target is created, or the compile and link flags do not
+# pick it up and the plist would claim a minimum the binary was not built against.
+#
+# Deliberately scoped to the Cocoa build: this changes codegen for every target, and the
+# XQuartz build is the vehicle the renderer baselines are captured with. Decision 6 is
+# still marked "confirm"; revisit in Phase 7 alongside the universal-build question.
+if(APPLE AND TOGGLE_COCOA_WINDOW AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+  # FORCE is required: CMake pre-creates this as an empty cache entry on Apple, so a plain
+  # cache set is a silent no-op. The guard above means an explicit -D still wins.
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version for the app bundle" FORCE)
+  message(STATUS "macOS deployment target defaulted to ${CMAKE_OSX_DEPLOYMENT_TARGET}")
+endif()
 option(DEBUG_LOG "Enable Debug Log" OFF)
 option(ASAN_ENABLED "Build this target with AddressSanitizer" OFF)
 option(BUILD_STATIC_LIBRARY "Build using static libraries" OFF)
