@@ -211,9 +211,12 @@ jobs:
 
           # init.lua appends "-baseline" to the compact name for --renderer-baseline runs,
           # and ResourceManager::setupUserWriteDir prefixes a dot on non-Windows, so the
-          # write directory is deterministic. The find fallback stays until a green Linux
-          # run has actually confirmed this path.
-          write_dir="${XDG_DATA_HOME:-$HOME/.local/share}/Crystal/crystalotc-baseline/.crystalotc-baseline/render-baselines"
+          # write directory is deterministic. Confirmed against run 32372561918, which
+          # printed /github/home/.local/share/crystalotc-baseline/.crystalotc-baseline/...
+          # Note there is NO organization-name component: PhysFS's pref dir uses the
+          # application name alone here, on Linux and macOS alike. Guessing otherwise sent
+          # every scene down the find fallback below, one warning apiece.
+          write_dir="${XDG_DATA_HOME:-$HOME/.local/share}/crystalotc-baseline/.crystalotc-baseline/render-baselines"
 
           failed=0
           for scene in "${scenes[@]}"; do
