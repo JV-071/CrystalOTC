@@ -15,8 +15,10 @@
       "id": "map-core",
       "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["floors", "tiles", "creatures", "missiles", "effects", "camera-movement", "map-fbo"],
-      "command": "--renderer-baseline=map-core --renderer-baseline-output=map-core.png"
+      "features": ["floors", "tiles", "creatures", "camera-movement", "map-fbo", "map-hole"],
+      "command": "--renderer-baseline=map-core --renderer-baseline-output=map-core.png",
+      "maxDifferentFraction": 0.002,
+      "toleranceReason": "The scene deliberately includes creatures, and a creature on a live server cannot be perfectly frozen from the client: setAnimate stops a thing advancing but leaves it on whatever phase it already held. Consecutive runs measure 16 to 765 differing pixels, roughly one 32x32 sprite, so the limit is raised from the 0.001 default to cover one creature. Anything larger is a real change."
     },
     {
       "id": "lighting-overlap",

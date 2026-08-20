@@ -1225,8 +1225,6 @@ function RendererBaseline.prepareLightingScene()
     lightingSceneActive = true
     applyLightingSetup()
 
-    g_game.talk("!fixture lighting")
-
     -- setMinimumAmbientLight only takes effect on the next rendered frame, and
     -- client_options applies its own stored ambient default during game start, which can
     -- land after this call. Re-apply on a schedule that finishes well before the shutter
@@ -1241,8 +1239,54 @@ end
 -- between runs. GOD is the correct character here precisely because its group carries
 -- hasfulllight: the server pins world light to 255, the client skips the LIGHT pool, and the
 -- capture becomes immune to the wall-clock day/night cycle that cannot be frozen from Lua.
-function RendererBaseline.prepareMapScene()
-    g_game.talk("!fixture map")
+-- Where the server's startup fixture puts each platform. The client waits until the player
+-- has actually arrived rather than assuming the teleport landed: the talkaction is fired at
+-- game start and can be swallowed outright -- Game::playerSaySpell returns early while the
+-- player is walk-exhausted, and the player may not be fully placed when the first one goes
+-- out. Trusting a fixed delay produced captures whose camera sat somewhere else entirely,
+-- differing from the previous run across 38% of the frame.
+local FIXTURE_ANCHORS = {
+    map = { x = 34400, y = 34100, z = 6 },
+    lighting = { x = 34500, y = 34201, z = 8 }
+}
+
+local function waitForFixturePosition(key, onReady, attempts)
+    attempts = (attempts or 0) + 1
+
+    local anchor = FIXTURE_ANCHORS[key]
+    local player = g_game.getLocalPlayer()
+    local position = player and player:getPosition()
+
+    if position and position.x == anchor.x and position.y == anchor.y and position.z == anchor.z then
+        g_logger.info(string.format("[renderer-baseline] on fixture '%s' at %d,%d,%d after %d checks",
+            key, position.x, position.y, position.z, attempts))
+        -- Arrived. Let the map stream, then freeze animation with time to spare. Freezing
+        -- inside the shutter tick is too late: setAnimate stops a thing advancing from the
+        -- following frame, so the frame being captured still shows whatever phase it was
+        -- already on -- which left the fixture's idling creatures drifting between runs.
+        setupEvent = scheduleEvent(function()
+            freezeMapAnimation()
+            setupEvent = scheduleEvent(function()
+                freezeMapAnimation()
+                onReady()
+            end, 1200)
+        end, 1300)
+        return
+    end
+
+    if attempts >= 60 then
+        fail(string.format("never reached fixture '%s' at %d,%d,%d", key, anchor.x, anchor.y, anchor.z))
+        return
+    end
+
+    -- Re-send periodically rather than once, so a swallowed talkaction self-heals.
+    if attempts % 8 == 1 then
+        g_game.talk("!fixture " .. key)
+    end
+
+    setupEvent = scheduleEvent(function()
+        waitForFixturePosition(key, onReady, attempts)
+    end, 250)
 end
 
 function RendererBaseline.onGameStart()
@@ -1259,19 +1303,22 @@ function RendererBaseline.onGameStart()
     stabilizeOnlineUi()
 
     if activeScenario == "map-screenshot" then
-        RendererBaseline.prepareMapScene()
-        RendererBaseline.captureMapScreenshot(activeScenario, 6000)
+        waitForFixturePosition("map", function()
+            RendererBaseline.captureMapScreenshot(activeScenario, 500)
+        end)
     elseif activeScenario == "shader-matrix-map" then
-        RendererBaseline.prepareMapScene()
-        setupEvent = scheduleEvent(RendererBaseline.runMapShaderScene, 6000)
+        waitForFixturePosition("map", RendererBaseline.runMapShaderScene)
     elseif activeScenario == "lighting-overlap" then
         -- The teleport is a server round trip, so allow it to land and the light
         -- bitmap to be recomputed before the shutter.
         RendererBaseline.prepareLightingScene()
-        RendererBaseline.captureScene(activeScenario, 6000)
+        waitForFixturePosition("lighting", function()
+            RendererBaseline.captureScene(activeScenario, 1500)
+        end)
     else
-        RendererBaseline.prepareMapScene()
-        RendererBaseline.captureScene(activeScenario, 6000)
+        waitForFixturePosition("map", function()
+            RendererBaseline.captureScene(activeScenario, 500)
+        end)
     end
 end
 
