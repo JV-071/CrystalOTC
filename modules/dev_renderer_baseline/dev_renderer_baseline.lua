@@ -703,6 +703,110 @@ local function prepareForShutter()
     freezeMapAnimation()
 end
 
+-- Every fragment program the client ships, exercised against one identical textured cell so
+-- any difference between cells is the shader and nothing else.
+--
+-- Map shaders cannot be exercised in their real route offline: Client::canDraw(MAP) is
+-- literally g_game.isOnline(), so a UIMap with no connection produces no MAP-pool content and
+-- the map-composition bind at mapview.cpp is unreachable. Their fragment programs are still
+-- reachable, because a plain UIWidget can carry any registered shader -- production code
+-- already does this, the bestiary puts a map shader on a text input. So this scene covers
+-- every .frag; a later online scene has to cover the map-composition route itself.
+--
+-- The cells must be textured. Painter::drawCoords only binds the extra multi-texture units
+-- inside its textured branch, and an untextured draw leaves the texcoord attribute disabled
+-- and v_TexCoord undefined, so a solid-colour cell would not exercise Fog or Snow at all.
+-- A large, fully opaque image. A mostly-transparent one left half the cells reading as
+-- black, and being too large for the atlas keeps it out of atlas packing, so the
+-- offset-sampling shaders (bloom, radial blur, zomg, pulse, heat, noise) cannot pick up
+-- whatever happens to be packed next to it.
+local SHADER_CELL_IMAGE = "/images/background_crystal1"
+
+local MAP_FRAGMENT_SHADERS = {
+    "Map - Fog", "Map - Rain", "Map - Snow", "Map - Gray Scale", "Map - Bloom",
+    "Map - Sepia", "Map - Pulse", "Map - Old Tv", "Map - Party", "Map - Radial Blur",
+    "Map - Zomg", "Map - Heat", "Map - Noise"
+}
+
+local OTHER_FRAGMENT_SHADERS = { "Hover - Desaturate", "Mount - Rainbow", "forge_result_silhouette" }
+
+local OUTFIT_SHADERS = {
+    "Outfit - Rainbow", "Outfit - Ghost", "Outfit - Jelly",
+    "Outfit - Fragmented", "Outfit - cyclopedia-black", "Outfit - Outline"
+}
+
+local function makeShaderCell(root, x, y, width, height, label, shaderName)
+    local cell = makePanel(root, x, y, width, height, "#0f172aff", "#334155ff")
+    local image = place(g_ui.createWidget("UIWidget", cell), x + 6, y + 6, width - 12, height - 26)
+    image:setImageSource(SHADER_CELL_IMAGE)
+
+    if shaderName then
+        if g_shaders.getShader(shaderName) then
+            image:setShader(shaderName)
+        else
+            g_logger.error("[renderer-baseline] shader not registered: " .. shaderName)
+        end
+    end
+
+    makeLabel(cell, x + 2, y + height - 20, width - 4, 18, label,
+        "Verdana-8px-outline", "#e2e8f0ff", AlignCenter)
+    return image
+end
+
+function RendererBaseline.buildShaderMatrixScene()
+    local root = beginClientScene(
+        "OpenGL shader matrix",
+        "Every shipped fragment program over one identical textured cell, with u_Time pinned"
+    )
+
+    local cells = {}
+    for _, name in ipairs(MAP_FRAGMENT_SHADERS) do
+        table.insert(cells, { label = name:gsub("^Map %- ", ""), shader = name })
+    end
+    for _, name in ipairs(OTHER_FRAGMENT_SHADERS) do
+        table.insert(cells, { label = name:gsub("^Mount %- ", "Mount "):gsub("^Hover %- ", ""), shader = name })
+    end
+    table.insert(cells, { label = "no shader", shader = nil })
+
+    local columns, cellWidth, cellHeight, gap = 6, 148, 118, 8
+    for index, cell in ipairs(cells) do
+        local column = (index - 1) % columns
+        local row = math.floor((index - 1) / columns)
+        makeShaderCell(root, 48 + column * (cellWidth + gap), 104 + row * (cellHeight + gap),
+            cellWidth, cellHeight, cell.label, cell.shader)
+    end
+
+    -- The outfit shaders in their real route. Outline is the only shader in the registry
+    -- declaring useFramebuffer, and that route is honoured for Creature and ThingType draws,
+    -- so this row is the only automated coverage of a shader applied at an offscreen blit.
+    local outfit = { type = 128, head = 9, body = 40, legs = 80, feet = 114, addons = 0, mount = 0 }
+    for index, name in ipairs(OUTFIT_SHADERS) do
+        local x = 48 + (index - 1) * (cellWidth + gap)
+        local y = 104 + 3 * (cellHeight + gap)
+        local card = makePanel(root, x, y, cellWidth, cellHeight, "#0f172aff", "#c084fcff")
+        local preview = place(g_ui.createWidget("UICreature", card), x + 34, y + 4, 80, 80)
+        preview:setOutfit(outfit)
+        preview:setDirection(South)
+        preview:setAutoFit(false)
+
+        local creature = preview:getCreature()
+        if creature then
+            creature:setAnimate(false)
+        end
+
+        if g_shaders.getShader(name) then
+            preview:setShader(name)
+        else
+            g_logger.error("[renderer-baseline] shader not registered: " .. name)
+        end
+
+        makeLabel(card, x + 2, y + cellHeight - 22, cellWidth - 4, 18,
+            name:gsub("^Outfit %- ", ""), "Verdana-8px-outline", "#f0abfcff", AlignCenter)
+    end
+
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -965,6 +1069,10 @@ function RendererBaseline.onRun()
     elseif activeScenario == "graph-lines" then
         if RendererBaseline.buildGraphLineScene() then
             RendererBaseline.captureScene(activeScenario, 1000)
+        end
+    elseif activeScenario == "shader-matrix" then
+        if RendererBaseline.buildShaderMatrixScene() then
+            RendererBaseline.captureScene(activeScenario, 2000)
         end
     elseif activeScenario == "atlas-resources" then
         if RendererBaseline.buildAtlasResourceScene() then

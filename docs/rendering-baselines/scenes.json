@@ -80,9 +80,19 @@
     },
     {
       "id": "shader-matrix",
-      "automation": "fixture-server",
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["all-module-shaders", "fog-multitexture", "snow-multitexture", "outline-framebuffer", "outfit-shaders", "mount-shader", "item-shader", "pinned-shader-time"],
+      "command": "--renderer-baseline=shader-matrix --renderer-baseline-output=shader-matrix.png",
+      "ciGate": false,
+      "ciGateReason": "The six outfit cells render UICreature previews from data/things/*, which is gitignored, so a CI runner draws them empty. The sixteen fragment cells would gate cleanly; splitting the outfit row into its own scene would let them. Captured and archived as an artifact only."
+    },
+    {
+      "id": "shader-matrix-map",
+      "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["all-module-shaders", "fog-multitexture", "snow-multitexture", "outline-framebuffer"]
+      "features": ["map-composition-shader", "map-shader-uniforms", "shader-fade"],
+      "note": "Not implemented. shader-matrix covers every fragment program, but not the map-composition route: map shaders bind at the MAP framebuffer to screen blit via the pool's onBeforeDraw hook, and Client::canDraw(MAP) is g_game.isOnline(), so a UIMap with no connection produces no MAP-pool content at all. Covering the bind site, its four map uniforms and the shader-fade needs a live map."
     },
     {
       "id": "atlas-resources",
