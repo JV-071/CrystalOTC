@@ -269,6 +269,14 @@ silently dropped while the client still flips its own state bits, making `isFull
 false-positive assertion headlessly. The Xvfb screen is also exactly the capture size, so any
 windowing step that grows the window past 1020x644 would exceed the root window there.
 
+## atlas-resources has a small bounded variance in CI
+
+The scene loads an APNG frame, and which frame is displayed depends on timing. Consecutive CI
+runs compared it at 0 and then at 158 differing pixels, confined to a 23x12 region -- the APNG
+sprite itself. It sits well inside the 0.1% default tolerance and needs no per-scene override,
+but a future failure there should be checked against this region before being treated as a
+rendering regression.
+
 ## CI gating
 
 Two scenes are captured and archived but deliberately **not** gated against a reference:

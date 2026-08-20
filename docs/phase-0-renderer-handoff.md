@@ -40,7 +40,7 @@ Against the exit gate:
 
 - [x] The client runs on macOS via XQuartz.
 - [x] A checked-in scene list (`scenes.json`, machine-readable, single source of truth).
-- [~] A CI-generated reference-image set — **6 of 7 seeded**; `startup-ui` awaits a green run.
+- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`).
 - [x] A known-deviations note, including the XQuartz-versus-llvmpipe comparison with evidence.
 
 ### Scenes
@@ -50,7 +50,7 @@ Repeatability is two or more consecutive captures compared with
 
 | Scene | Impl | Where | CI | Repeatability |
 |---|---|---|---|---|
-| `startup-ui` | [x] | offline | gated, **ref pending** | 0 px |
+| `startup-ui` | [x] | offline | gated | 0 px |
 | `ui-clipping-opacity` | [x] | offline | gated | 0 px |
 | `text-matrix` | [x] | offline | gated | 0 px |
 | `particles-blends` | [x] | offline | gated | within tolerance, max delta 1 |
@@ -151,21 +151,11 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 
 ## Remaining Phase 0 work
 
-Every scene in `scenes.json` now has a command; none are unimplemented. One item is left, and
-it is blocked rather than pending:
+None. Every scene in `scenes.json` has a command, all seven gated scenes have a reference, and
+the workflow gates them green: run `32381800862` compared six at exactly 0 differing pixels
+and `atlas-resources` at 158, inside its tolerance.
 
-1. **Reseed the `startup-ui` reference.** It is the only gated scene without a reference. The
-   original was captured before the login background was pinned, so it could never match
-   again and was deliberately removed; `startup-ui` logs `UNGATED-pending-reference` until it
-   is replaced. A reference must come from llvmpipe, so only a green run of the workflow can
-   produce one: take `startup-ui.png` from that run's artifact and commit it to
-   `docs/rendering-baselines/references/opengl-llvmpipe/`.
-
-~~2. Push the crystalserver fixture commit.~~ **Done** — `f47f6e41` is on
-   `aacruzgon/crystalserver`, branch `local/testing`. Note that repository names its remotes
-   the opposite way round from this one: `origin` is upstream (`zimbadev/crystalserver`) and
-   the fork is `fork` (`aacruzgon/crystalserver`). Pushing to `origin` there has been disabled
-   locally to prevent the mistake.
+The exit gate is met. What follows is deferred work that does not block it.
 
 ## Deferred follow-ups
 
