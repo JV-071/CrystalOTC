@@ -27,15 +27,15 @@ Five pools, drawn every frame in enum order (`DrawPoolManager::draw`, `drawpoolm
 | 2 | `CREATURE_INFORMATION` | no | 500 fps | FOREGROUND atlas | `m_alwaysGroupDrawings=true` — draws batched by state hash (`drawpool.cpp:44-47`) |
 | 3 | `LIGHT` | no | none | — | not geometry: at most one action lambda per frame (section 3.4); the pool is skipped entirely unless `Client::canDraw(LIGHT)` (`client.cpp:135-136`) and `MapView::isDrawingLights()` (`mapview.cpp:976`) both hold — online, lights enabled, and world-light intensity < 250 (`lightview.h:44`) |
 | 4 | `FOREGROUND_MAP` | no | 500 fps | FOREGROUND atlas | grouped like CREATURE_INFORMATION |
-| 5 | `FOREGROUND` | yes | 10 fps | FOREGROUND atlas | FBO sized `viewport / UI-scale` (`graphicalapplication.cpp:415`); one pre-created temp FBO with smoothing (`drawpool.cpp:40`) |
+| 5 | `FOREGROUND` | yes | 10 fps | FOREGROUND atlas | FBO sized `viewport / UI-scale` (`graphicalapplication.cpp:423`); one pre-created temp FBO with smoothing (`drawpool.cpp:40`) |
 
-A pool with an FBO renders its objects into the FBO, then blits the FBO texture to the backbuffer as a `TRIANGLE_STRIP` quad (`drawpoolmanager.cpp:263-278`, `framebuffer.cpp:125-133`). Pools without FBOs draw objects directly to the backbuffer. A pool with an FBO whose content hash did not change skips object execution entirely and only re-blits (`drawpoolmanager.cpp:238-240`) — this caching is a core performance behavior, not an optimization detail.
+A pool with an FBO renders its objects into the FBO, then blits the FBO texture to the backbuffer as a `TRIANGLE_STRIP` quad (`drawpoolmanager.cpp:278-293`, `framebuffer.cpp:125-133`). Pools without FBOs draw objects directly to the backbuffer. A pool with an FBO whose content hash did not change skips object execution entirely and only re-blits (`drawpoolmanager.cpp:253-255`) — this caching is a core performance behavior, not an optimization detail.
 
 ### 1.2 Threading
 
 - The **map thread** (`g_asyncDispatcher` task, `graphicalapplication.cpp:219`) builds pool object lists: FOREGROUND UI is built here too (`graphicalapplication.cpp:263-265`), and LIGHT + FOREGROUND_MAP are built in **two further parallel async tasks** while MAP builds on the map thread itself (`graphicalapplication.cpp:245-258`).
-- The **main thread** executes `g_drawPool.draw()` and swaps buffers.
-- Handoff: each pool double-buffers its object list; `drawObjects` swaps `m_objectsDraw[0/1]` under a `SpinLock` and consumes the `m_shouldRepaint` atomic flag (`drawpoolmanager.cpp:245-249`). The map thread blocks new map production until the flags are consumed (`canDrawMap`, `graphicalapplication.cpp:177-190`).
+- The **main thread** executes `g_drawPool.draw()` and swaps buffers. **Updated 2026-08-20 (Phase 1):** the draw is now conditional on both platform branches. On Windows the Vulkan feeder may take the frame instead; elsewhere `g_drawPool.draw()` runs only when `g_window.hasGLContext()`, and a window without one — the Cocoa/Metal window — gets `g_drawPool.consumeAll()` instead (`graphicalapplication.cpp:312-315`). `g_window.swapBuffers()` still runs every frame (`graphicalapplication.cpp:342`).
+- Handoff: each pool double-buffers its object list; `drawObjects` swaps `m_objectsDraw[0/1]` under a `SpinLock` and consumes the `m_shouldRepaint` atomic flag (`drawpoolmanager.cpp:260-264`). **Updated 2026-08-20 (Phase 1):** `drawObjects` is no longer the only consumer — `DrawPoolManager::consumeAll` (`drawpoolmanager.cpp:235-248`) performs the same swap-and-clear without drawing, for frames produced by something other than the GL path, and `VkDrawFeeder::consumeAllPools` is its Vulkan sibling. **Any** future backend that declines a frame owes this consumption. The map thread blocks new map production until the flags are consumed (`canDrawMap`, `graphicalapplication.cpp:177-190`).
 - Only the main thread touches GL. Pool building threads never issue GL calls — but they *do* capture GL-touching lambdas for later main-thread execution.
 
 ---
@@ -81,7 +81,7 @@ Four distinct kinds of render target exist. "Framebuffer-derived textures" is no
 
 ### 3.1 Pool FBOs (2)
 
-MAP and FOREGROUND, described in section 1.1. Sizing: MAP FBO tracks the map view; FOREGROUND FBO is `viewport / scale` and re-created on resize/scale change (`graphicalapplication.cpp:415`). `FrameBuffer::bind` clears to transparent (or draws a clear-color quad when the clear color is non-alpha) unless `autoClear` is off (`framebuffer.cpp:104-112`).
+MAP and FOREGROUND, described in section 1.1. Sizing: MAP FBO tracks the map view; FOREGROUND FBO is `viewport / scale` and re-created on resize/scale change (`graphicalapplication.cpp:423`). `FrameBuffer::bind` clears to transparent (or draws a clear-color quad when the clear color is non-alpha) unless `autoClear` is off (`framebuffer.cpp:104-112`).
 
 ### 3.2 Temporary (nested) FBOs — all 7 call sites
 
@@ -101,7 +101,7 @@ All seven are the same idiom: *render small scene at native resolution, blit sca
 
 ### 3.3 Texture-atlas layer FBOs
 
-The GL CPU-side atlas (`textureatlas.cpp`) allocates one FBO per 1–N atlas layers per filter group (nearest/linear). New textures are composited into a layer by *GPU draw* during `flush()` on the main thread: bind layer FBO, `glDisable(GL_BLEND)`, `clearRect`, draw the source texture as a strip — with an oversized padding draw first for linear-filtered entries (`SMOOTH_PADDING`, src rect extends beyond the texture: `{-pad,-pad,w+2p,h+2p}`, relying on clamp/repeat sampling). Draws then sample the layer FBO's texture with translated src rects (`drawpool.cpp:63-72`). Atlas flush runs after each pool's objects (`drawpoolmanager.cpp:259-260`).
+The GL CPU-side atlas (`textureatlas.cpp`) allocates one FBO per 1–N atlas layers per filter group (nearest/linear). New textures are composited into a layer by *GPU draw* during `flush()` on the main thread: bind layer FBO, `glDisable(GL_BLEND)`, `clearRect`, draw the source texture as a strip — with an oversized padding draw first for linear-filtered entries (`SMOOTH_PADDING`, src rect extends beyond the texture: `{-pad,-pad,w+2p,h+2p}`, relying on clamp/repeat sampling). Draws then sample the layer FBO's texture with translated src rects (`drawpool.cpp:63-72`). Atlas flush runs after each pool's objects (`drawpoolmanager.cpp:274-275`).
 
 ### 3.4 The light pass — CPU pixels, not GPU geometry
 
@@ -119,7 +119,7 @@ Metal parity for lighting is therefore: **at most one dynamic RGBA8 texture uplo
 |---|---|---|
 | `FrameBuffer::extractTexture` (`framebuffer.cpp:174-187`) | any FBO → `glReadPixels` → new `Texture` with `upsideDown` flag | this is the "texture with no source pixels" case the Vk feeder cannot handle |
 | `FrameBuffer::doScreenshot` (`framebuffer.cpp:189-221`) | map FBO region → PNG, `image.flipVertically()` | called from `client.cpp:167` with a 3-sprite margin. **Resolved 2026-08-20:** the `glReadPixels(x/3, y/1.5, ...)` offsets are *intentional framing*, not an oddity. The MAP FBO carries a three-tile margin — one logical tile left/top, two right/bottom — so at 32 px sprites the correct offsets are x=32 and y=64, and the `/3` and `/1.5` divisors produce exactly those. Verified: the capture measures 480x352 for a 15x11 viewport. Preserve the crop. |
-| `GraphicalApplication::doScreenshot` (`graphicalapplication.cpp:440-451`) | default framebuffer → PNG | Lua-exposed (`g_app.doScreenshot`) |
+| `GraphicalApplication::doScreenshot` (`graphicalapplication.cpp:448-459`) | default framebuffer → PNG | Lua-exposed (`g_app.doScreenshot`) |
 
 ---
 

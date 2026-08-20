@@ -19,7 +19,7 @@ No implementation decision is made merely by this document. It is a technical re
 
 ## Executive summary
 
-CrystalOTC can run natively on macOS, but adding a macOS CMake preset is not sufficient. The repository currently lacks a native macOS window and input layer, and the Vulkan renderer is compiled only on Windows.
+CrystalOTC can run natively on macOS, but adding a macOS CMake preset is not sufficient. ~~The repository currently lacks a native macOS window and input layer~~, and the Vulkan renderer is compiled only on Windows. **Corrected 2026-08-20 (Phase 1):** a native macOS window and input layer now exists (`src/framework/platform/cocoawindow.h`/`.mm`), opt-in behind `TOGGLE_COCOA_WINDOW`, default OFF. The Vulkan half is unchanged.
 
 There are four viable paths:
 
@@ -47,22 +47,25 @@ This is useful scaffolding, but it does not provide a native macOS platform impl
 `PlatformWindow` selects implementations as follows:
 
 ```text
-Windows      -> WIN32Window
-Android      -> AndroidWindow
-WebAssembly  -> BrowserWindow
-Everything else, including macOS -> X11Window
+Windows                                    -> WIN32Window
+Android                                    -> AndroidWindow
+WebAssembly                                -> BrowserWindow
+macOS with TOGGLE_COCOA_WINDOW=ON          -> CocoaWindow
+Everything else, macOS included by default -> X11Window
 ```
 
-The selection is in `src/framework/platform/platformwindow.cpp`.
+The selection is in `src/framework/platform/platformwindow.cpp`. **Updated 2026-08-20 (Phase 1):** the Cocoa branch exists, but `TOGGLE_COCOA_WINDOW` defaults **OFF** (`src/CMakeLists.txt:16`), so an unmodified `macos-release` preset still builds the X11 window. XQuartz remains the Phase 0 baseline reference vehicle.
 
-The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit.
+The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit. **Updated 2026-08-20 (Phase 1):** the `find_package(X11 REQUIRED)` guard now also excludes `APPLE AND TOGGLE_COCOA_WINDOW` (`src/CMakeLists.txt:222-224`), and `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:987-1002`). X11 is nonetheless **not fully unlinked**: the shared `${OPENGL_LIBRARIES}` link (`src/CMakeLists.txt:955`) still resolves to `/opt/X11` libGL and Homebrew libX11 through `cmake/FindOpenGL.cmake:129-134`. Cutting that is outstanding Phase 1 work.
 
-Consequences include:
+Consequences of the default (XQuartz) configuration include:
 
 - XQuartz is required to create and display the window.
 - Input, clipboard, cursor, fullscreen, and window behavior are X11 behavior rather than native macOS behavior.
 - Retina scaling and macOS application lifecycle integration are not handled natively.
 - The output is a command-line executable, not a self-contained `.app` bundle.
+
+**Updated 2026-08-20 (Phase 1):** all four are now conditional. With `TOGGLE_COCOA_WINDOW=ON` the window, input, clipboard, cursors, fullscreen, Retina backing scale and application lifecycle are native AppKit (`src/framework/platform/cocoawindow.mm`), and the target builds `CrystalOTC.app` (`src/CMakeLists.txt:1059`). Bundle *completeness* — real asset copies, embedded dylibs, signing — remains Phase 7; the developer build symlinks its resources (`src/CMakeLists.txt:1080`).
 
 ### Vulkan is explicitly Windows-only
 
@@ -245,6 +248,8 @@ A `CocoaWindow`, implemented in Objective-C++, must provide the existing `Platfo
 - coordinate application activation and termination.
 
 This work is common to MoltenVK, ANGLE, and direct Metal.
+
+**Delivered 2026-08-20 (Phase 1), with two contract details this list did not state.** Every bullet above is satisfied by `src/framework/platform/cocoawindow.mm`. But: (a) `m_size` is in **backing pixels** and `m_displayDensity` is the **backing scale factor**, not points and a separate scale — forced by `GraphicalApplication::resize`, which feeds `m_size` to `g_graphics` while laying the UI out at `m_size / m_displayDensity`; `AndroidWindow` already used this convention. Note `g_app.setHUDScale` writes that same variable, so device pixel ratio and user HUD scale are conflated framework-wide. (b) The window **presents its own frames**: `CocoaWindow::swapBuffers` performs acquire/clear/present and the window reports `hasGLContext() == false`, so no `CAMetalLayer` is exposed outside `cocoawindow.mm`.
 
 ### Metal device and frame lifecycle
 
@@ -743,13 +748,15 @@ This prevents platform-port work from masking pre-existing renderer differences.
 
 ## Phase 1: Native macOS platform layer
 
-- Add `CocoaWindow` in Objective-C++.
-- Create a native `.app` target.
-- Implement input, clipboard, cursors, Retina scaling, resize, fullscreen, focus, and lifecycle behavior.
-- Expose a `CAMetalLayer` and drawable size.
-- Remove the unconditional macOS dependency on X11.
+- ~~Add `CocoaWindow` in Objective-C++.~~ **Done 2026-08-20:** `src/framework/platform/cocoawindow.{h,mm}`.
+- ~~Create a native `.app` target.~~ **Done 2026-08-20:** `CrystalOTC.app` (`src/CMakeLists.txt:1059`), with resources symlinked rather than staged — a bundle that runs, not one that ships.
+- ~~Implement input, clipboard, cursors, Retina scaling, resize, fullscreen, focus, and lifecycle behavior.~~ **Done 2026-08-20**, though input is written rather than verified — see the success criterion below.
+- ~~Expose a `CAMetalLayer` and drawable size.~~ **Done differently 2026-08-20:** drawable size is exposed (`CocoaWindow::getDrawableSize`), but the layer is **not** — it stays private inside `CocoaWindowImpl`, because the window presents its own frames. Phase 4 has to decide whether the backend takes the drawable from the window or the window keeps presenting.
+- ~~Remove the unconditional macOS dependency on X11.~~ **Partially done 2026-08-20:** platform selection and `find_package(X11)` now exclude the Cocoa build (`src/CMakeLists.txt:222-224`), but the binary still links `/opt/X11` libGL and Homebrew libX11 through `${OPENGL_LIBRARIES}` (`src/CMakeLists.txt:955`, `cmake/FindOpenGL.cmake:129-134`). Full unlinking is outstanding.
 
 Success criterion: a native macOS window can open, process input, resize, and present a clear color.
+
+**Status 2026-08-20:** met except for "process input". The window opens, resizes (tracking backing scale) and presents a clear colour, and `CrystalOTC.app` launches from Finder. Input translation is implemented but was never driven interactively, and there is no macOS CI job to drive it.
 
 ## Phase 2: Stabilize the renderer boundary
 
@@ -895,6 +902,10 @@ If full visual parity is mandatory in the first macOS release, substitute ANGLE 
 - `src/framework/platform/platformwindow.cpp`
 - `src/framework/platform/win32window.*`
 - `src/framework/platform/x11window.*`
+- `src/framework/platform/cocoawindow.*`
+- `src/framework/core/resourcemanager.cpp`
+- `cmake/macos/Info.plist.in`
+- `cmake/FindOpenGL.cmake`
 - `src/framework/graphics/declarations.h`
 - `src/framework/graphics/painter.*`
 - `src/framework/graphics/texture.*`
@@ -1047,4 +1058,4 @@ All embedded libraries, including MoltenVK or ANGLE, must be placed at stable bu
 - [XQuartz](https://www.xquartz.org/) — maintained X11 server for macOS and the dependency required by the existing `X11Window` route.
 - [XQuartz releases](https://www.xquartz.org/releases/) — current installers and supported system information.
 
-XQuartz is not the target native macOS architecture, but it is no longer optional: it is the required local OpenGL reference vehicle for the Metal migration, and a hard requirement of the macOS CMake path (`src/CMakeLists.txt:176-191`).
+XQuartz is not the target native macOS architecture, but it is no longer optional: it is the required local OpenGL reference vehicle for the Metal migration, and a hard requirement of the default macOS CMake path (`src/CMakeLists.txt:209-219`).

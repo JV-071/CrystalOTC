@@ -61,7 +61,7 @@ Two states, and the coexistence rule between them:
 
 The `DrawObject` publish mechanism can only be removed after **both** the GL/Metal backends and the Vulkan path have moved off it; until then it is the compatibility keel of the migration.
 
-Two-stage compilation (PoolCompiler on producer threads, FrameAssembler on the render thread) mirrors today's split exactly: object lists are built on the map thread and executed on the main thread `[S 1.2]`. Compiling at `release()` time keeps the render thread's per-frame work at "assemble and encode," and the PoolProgram double-buffer replaces the current `m_objectsDraw[0/1]` swap one-for-one — same lock, same `shouldRepaint` protocol, no new synchronization.
+Two-stage compilation (PoolCompiler on producer threads, FrameAssembler on the render thread) mirrors today's split exactly: object lists are built on the map thread and executed on the main thread `[S 1.2]`. Compiling at `release()` time keeps the render thread's per-frame work at "assemble and encode," and the PoolProgram double-buffer replaces the current `m_objectsDraw[0/1]` swap one-for-one — same lock, same `shouldRepaint` protocol, no new synchronization. **Added 2026-08-20 (Phase 1):** the FrameAssembler inherits one further obligation — a frame it declines to render must still swap and clear the pool flags, or the map thread blocks permanently in `canDrawMap` (`graphicalapplication.cpp:177-190`). `DrawPoolManager::consumeAll` (`drawpoolmanager.cpp:235-248`) is that operation in backend-neutral form; `VkDrawFeeder::consumeAllPools` is its Vulkan predecessor.
 
 ## 2. Resource model
 
@@ -289,7 +289,13 @@ public:
 };
 ```
 
-`NativeSurface` follows the companion doc's platform contract (`CocoaMetalLayer` case for macOS). Implementations, in migration order:
+`NativeSurface` follows the companion doc's platform contract (`CocoaMetalLayer` case for macOS).
+
+**Status 2026-08-20 (Phase 1): not implemented as specified.** `CocoaWindow` keeps its `CAMetalLayer` private inside an opaque `CocoaWindowImpl` and adds only `getDrawableSize()`; it does not override `PlatformWindow::getNativeWindowHandle()`, which still defaults to `nullptr`. There is currently no route by which any backend could obtain the layer. Phase 4 must either add the `NativeSurface` accessor this section assumes, or adopt the alternative in the next note.
+
+**Open as of 2026-08-20 (Phase 1): presentation ownership.** Phase 1 put acquire/clear/present inside the *window* — `CocoaWindow::swapBuffers` (driven by the unconditional `g_window.swapBuffers()` at `graphicalapplication.cpp:342`) — so `render()`'s "present" clause and `swapBuffers()` now overlap. Phase 4 has to pick one: the backend takes the drawable from the window, which needs the accessor above, or the window keeps presenting and `render()` ends at "encode, submit". This is a decision to make deliberately, not a defect — recorded so Phase 4 does not discover it late.
+
+Implementations, in migration order:
 
 - **GLBackend** — the migration target for the existing painter; must be pixel-identical to today's output (Phase 3 gate in the companion doc).
 - **MetalBackend** — per the companion doc's device/frame lifecycle section; pipeline cache keyed by §4; 2-3 frames in flight; vertex arenas in per-frame ring buffers; labels on everything.
@@ -338,3 +344,4 @@ Backend selection is explicit config (`graphics.renderBackend`), which already e
 2. ~~Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site?~~ **Answered from source 2026-08-20:** the question's premise was wrong — no single call site consumes it. Temp targets are pooled by *nesting depth*, not by site or size: `bindFrameBuffer` and `releaseFrameBuffer` key on `frameIndex = m_bindedFramebuffers` (`drawpool.cpp:483`, `:508`) and `getTemporaryFrameBuffer(index)` indexes a per-pool vector (`drawpool.cpp:526-534`), with the counter starting at -1 (`drawpool.h:326`). The pre-created buffer is therefore depth 0 for *whichever* FOREGROUND site issues the outermost bind (uiitem, uieffect, uimissile, uispellpreview, creature preview), and it is LINEAR only because `FrameBuffer::m_smooth` defaults to true (`framebuffer.h:86`, applied on resize at `framebuffer.cpp:67`) while every lazily created buffer is explicitly `setSmooth(false)` (`drawpool.cpp:532`). So `smooth` must be a per-target descriptor bit — it cannot be inferred from the site. The same default also makes both retained pool targets LINEAR (`setFramebuffer`, `drawpool.cpp:447-451`).
 3. Golden-frame format for the RecordingBackend: full packet dump vs. hash-tree? (Affects CI diff ergonomics only.)
 4. ~~Whether the `x/3, y/1.5` screenshot offsets are a bug to fix or behavior to keep.~~ **Resolved 2026-08-20:** intentional framing (`[S 3.5]`). The crop is preserved deliberately; the readback API expresses it as explicit top-left parameters.
+5. **Settled from source 2026-08-20 (Phase 1), recorded here because §3 and §9 depend on it:** the platform layer reports `m_size` in **backing pixels** and `m_displayDensity` as the **backing scale factor**, following the `AndroidWindow` precedent. This is forced by `GraphicalApplication::resize`, which feeds `m_size` to `g_graphics` (and thence `glViewport`/`Painter::setResolution`) while laying the UI out at `m_size / m_displayDensity`. `RenderFrame::drawableSize` and `IRenderBackend::resize` are therefore already in the right unit. **Caveat the design must not inherit silently:** `g_app.setHUDScale` writes the *same* variable, so device pixel ratio and user HUD scale are conflated; separating them is a framework change, not a backend one.
