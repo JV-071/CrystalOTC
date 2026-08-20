@@ -2,6 +2,12 @@ name: Renderer baseline - Linux llvmpipe
 
 on:
   workflow_dispatch:
+    inputs:
+      refresh_references:
+        description: "Skip the reference comparison so this run can re-seed docs/rendering-baselines/references/opengl-llvmpipe"
+        type: boolean
+        required: false
+        default: false
   push:
     branches: [main]
     paths:
@@ -14,6 +20,7 @@ on:
       - "init.lua"
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
+      - "tools/renderer_scenes.py"
       - "vcpkg.json"
       - "CMakePresets.json"
       - "CMakeLists.txt"
@@ -30,6 +37,7 @@ on:
       - "init.lua"
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
+      - "tools/renderer_scenes.py"
       - "vcpkg.json"
       - "CMakePresets.json"
       - "CMakeLists.txt"
@@ -39,75 +47,314 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: crystalotc-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 2
   VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_MAXSIZE: 2G
+  ARTIFACT_DIR: ${{ github.workspace }}/artifacts/render-baselines
+  REFERENCE_DIR: docs/rendering-baselines/references/opengl-llvmpipe
+  # Keep in sync with jobs.client-scenes.container.image below - the `container`
+  # key cannot read the `env` context, so the digest is written twice on purpose.
+  BASELINE_CONTAINER_IMAGE: "ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517"
+  BASELINE_CONTAINER_SOURCE_TAG: "docker.io/library/ubuntu:24.04"
 
 jobs:
   client-scenes:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # llvmpipe rasterization is the reference implementation for every checked-in PNG,
+    # so the Mesa/LLVM pair has to be frozen. The hosted ubuntu-24.04 image is rebuilt
+    # roughly weekly and a Mesa bump would silently invalidate every reference image.
+    # Digest resolved with:
+    #   docker buildx imagetools inspect ubuntu:24.04
+    #   (cross-checked against the registry Docker-Content-Digest header)
+    container:
+      image: ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+    # build-windows.yml has a ~60.5 min median WITH a warm vcpkg cache and sccache.
+    # This job builds the same tree plus unit tests, with IPO/LTO left ON, at
+    # --parallel 2, and its caches are cold on the first run of every new key.
+    timeout-minutes: 180
 
     steps:
+      # Runs before checkout on purpose: the bare ubuntu image has no git, curl, tar,
+      # zip/unzip or CA bundle, which actions/checkout and lukka/run-vcpkg both need.
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential ca-certificates ccache cmake curl file git ninja-build \
+            pkg-config tar unzip zip \
+            libasound2-dev \
+            libgl1-mesa-dev libglew-dev libglu1-mesa-dev \
+            libx11-dev libxext-dev \
+            libgl1-mesa-dri mesa-utils \
+            python3 python3-pil \
+            xauth xvfb
+          rm -rf /var/lib/apt/lists/*
+          # The job runs as root over a workspace actions/checkout owns.
+          git config --global --add safe.directory '*'
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install GLX software-rendering prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            libgl1-mesa-dri libx11-dev mesa-utils ninja-build python3-pil \
-            xauth xvfb
+      - name: Validate renderer scene manifest
+        shell: bash
+        run: python3 tools/renderer_scenes.py validate
 
       - name: Read pinned vcpkg baseline
         id: vcpkg
         shell: bash
         run: echo "commit=$(python3 -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')" >> "$GITHUB_OUTPUT"
 
+      # vcpkg aborts at startup when VCPKG_DEFAULT_BINARY_CACHE names a directory that
+      # does not exist, and nothing else in this job creates it.
+      - name: Create cache directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR" "$ARTIFACT_DIR"
+
+      - name: Cache vcpkg binaries and downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-linux-release-
+
+      - name: Cache compiler cache (ccache)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.cache/ccache
+          key: ccache-linux-release-${{ github.sha }}
+          restore-keys: |
+            ccache-linux-release-
+
       - name: Install pinned vcpkg
         uses: lukka/run-vcpkg@a400452f634fe49e9f18d388aeb1809dcc642136
         with:
           vcpkgGitCommitId: ${{ steps.vcpkg.outputs.commit }}
 
+      # The linux-release preset already sets OPTIONS_ENABLE_CCACHE=ON; it is repeated
+      # here so the workflow, the preset and the cache step agree in one visible place.
       - name: Configure
-        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=OFF
+        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=ON
 
       - name: Build
         run: cmake --build --preset linux-release --parallel 2
 
-      - name: Capture offline client scenes with llvmpipe
+      - name: Report compiler cache statistics
+        if: always()
         shell: bash
-        run: |
-          mkdir -p artifacts/render-baselines
-          xvfb-run -a -s "-screen 0 1020x644x24" sh -c '
-            LIBGL_ALWAYS_SOFTWARE=1 glxinfo -B > artifacts/render-baselines/glxinfo.txt
-            for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines atlas-resources; do
-              LIBGL_ALWAYS_SOFTWARE=1 timeout 30s build/linux-release/bin/otclient \
-                --renderer-baseline="$scene" \
-                --renderer-baseline-output="$scene.png" \
-                > "artifacts/render-baselines/client-$scene.log" 2>&1
-            done
-          '
-          for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines atlas-resources; do
-            capture=$(find "$HOME" -path "*/render-baselines/$scene.png" -print -quit)
-            test -n "$capture"
-            cp "$capture" "artifacts/render-baselines/$scene.png"
-            file "artifacts/render-baselines/$scene.png"
-          done
+        run: ccache --show-stats || true
 
-      - name: Record capture metadata
+      - name: Record environment fingerprint
         shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_DIR"
+          xvfb-run -a -s "-screen 0 1020x644x24" \
+            env LIBGL_ALWAYS_SOFTWARE=1 glxinfo -B > "$ARTIFACT_DIR/glxinfo.txt"
+
           {
             echo "commit=${GITHUB_SHA}"
             echo "backend=opengl-llvmpipe"
-            echo "viewport=1020x644"
-            echo "runner=ubuntu-24.04"
-          } > artifacts/render-baselines/metadata.txt
+            echo "window=1020x644"
+            echo "runner_label=ubuntu-24.04"
+            echo "runner_image=${ImageOS:-unknown}/${ImageVersion:-unknown}"
+            echo "container_image=${BASELINE_CONTAINER_IMAGE}"
+            echo "container_source_tag=${BASELINE_CONTAINER_SOURCE_TAG}"
+            echo "libgl_always_software=1"
+            grep -E '^(OpenGL vendor string|OpenGL renderer string|OpenGL version string|OpenGL core profile version string)' \
+              "$ARTIFACT_DIR/glxinfo.txt" | sed 's/^/glx_/'
+            dpkg-query -W -f='pkg_${binary:Package}=${Version}\n' \
+              libgl1-mesa-dri libglew-dev libgl1-mesa-dev libx11-dev libasound2-dev mesa-utils xvfb \
+              2>/dev/null || true
+            python3 -c 'import PIL; print("pkg_pillow=" + PIL.__version__)'
+            cmake --version | head -1 | sed 's/^/tool_/'
+          } > "$ARTIFACT_DIR/metadata.txt"
 
+          echo "--- environment fingerprint ---"
+          cat "$ARTIFACT_DIR/metadata.txt"
+
+      - name: Capture offline client scenes with llvmpipe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_DIR"
+
+          # Single source of truth for the scene list: the manifest.
+          python3 tools/renderer_scenes.py ids --offline > "$RUNNER_TEMP/offline-scenes.txt"
+          mapfile -t scenes < "$RUNNER_TEMP/offline-scenes.txt"
+          if [ "${#scenes[@]}" -eq 0 ]; then
+            echo "::error title=Renderer baseline::renderer_scenes.py ids --offline returned no scenes"
+            exit 1
+          fi
+          printf 'offline scenes: %s\n' "${scenes[*]}"
+
+          # init.lua appends "-baseline" to the compact name for --renderer-baseline runs,
+          # and ResourceManager::setupUserWriteDir prefixes a dot on non-Windows, so the
+          # write directory is deterministic. The find fallback stays until a green Linux
+          # run has actually confirmed this path.
+          write_dir="${XDG_DATA_HOME:-$HOME/.local/share}/Crystal/crystalotc-baseline/.crystalotc-baseline/render-baselines"
+
+          failed=0
+          for scene in "${scenes[@]}"; do
+            log="$ARTIFACT_DIR/client-$scene.log"
+
+            # Use the manifest's own argv so the flags are never re-derived here.
+            read -r -a client_args <<< "$(python3 tools/renderer_scenes.py field "$scene" command)"
+            if [ "${#client_args[@]}" -eq 0 ]; then
+              echo "::error title=Renderer baseline::scene $scene has an empty command in the manifest"
+              failed=1
+              continue
+            fi
+
+            rm -f "$write_dir/$scene.png"
+
+            status=0
+            xvfb-run -a -s "-screen 0 1020x644x24" \
+              env LIBGL_ALWAYS_SOFTWARE=1 timeout 120s \
+                build/linux-release/bin/otclient "${client_args[@]}" \
+                > "$log" 2>&1 || status=$?
+
+            # The client exits 0 even when a scene fails, so the log is the contract.
+            if [ "$status" -ne 0 ]; then
+              echo "::error title=Renderer baseline capture::$scene: client exited with status $status"
+              tail -n 40 "$log" || true
+              failed=1
+              continue
+            fi
+            if grep -q '^ERROR: \[renderer-baseline\]' "$log"; then
+              echo "::error title=Renderer baseline capture::$scene: client reported a baseline error"
+              grep -n '^ERROR: \[renderer-baseline\]' "$log" || true
+              failed=1
+              continue
+            fi
+            if ! grep -qF '[renderer-baseline] capture complete:' "$log"; then
+              echo "::error title=Renderer baseline capture::$scene: no '[renderer-baseline] capture complete:' line in the log"
+              tail -n 40 "$log" || true
+              failed=1
+              continue
+            fi
+
+            # Prefer the exact path the client printed, then the deterministic path,
+            # then a last-resort search.
+            capture="$(sed -n 's/^\[renderer-baseline\] capture complete: //p' "$log" | tail -n 1)"
+            if [ -z "$capture" ] || [ ! -f "$capture" ]; then
+              capture="$write_dir/$scene.png"
+            fi
+            if [ ! -f "$capture" ]; then
+              echo "::warning title=Renderer baseline capture::$scene: falling back to a filesystem search for the capture"
+              capture="$(find "$HOME" -path "*/render-baselines/$scene.png" -print -quit 2>/dev/null || true)"
+            fi
+            if [ -z "$capture" ] || [ ! -f "$capture" ]; then
+              echo "::error title=Renderer baseline capture::$scene: capture PNG not found (expected $write_dir/$scene.png)"
+              failed=1
+              continue
+            fi
+
+            cp "$capture" "$ARTIFACT_DIR/$scene.png"
+            file "$ARTIFACT_DIR/$scene.png"
+
+            # Soft check only: the manifest's captureSize formatting is not part of the
+            # gate, but a size surprise is the first thing a reviewer wants to know.
+            expected="$(python3 tools/renderer_scenes.py field "$scene" captureSize || true)"
+            actual="$(python3 -c 'import sys;from PIL import Image;i=Image.open(sys.argv[1]);print(i.width, i.height)' "$ARTIFACT_DIR/$scene.png")"
+            echo "$scene expected_capture_size=[$expected] actual_capture_size=[$actual]" >> "$ARTIFACT_DIR/capture-sizes.txt"
+            normalized="$(printf '%s' "$expected" | tr -cs '0-9' ' ' | tr -s ' ' | sed 's/^ //;s/ $//')"
+            if [ -n "$normalized" ] && [ "$normalized" != "$actual" ]; then
+              echo "::warning title=Renderer baseline capture::$scene: captured ${actual// /x} but the manifest declares ${normalized// /x}"
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo "::error title=Renderer baseline::one or more offline scenes failed to capture"
+            exit 1
+          fi
+
+      - name: Compare captures against checked-in references
+        shell: bash
+        env:
+          REFRESH_REFERENCES: ${{ inputs.refresh_references || false }}
+        run: |
+          set -euo pipefail
+
+          if [ "$REFRESH_REFERENCES" = "true" ]; then
+            echo "refresh_references=true - skipping the comparison so this run can re-seed $REFERENCE_DIR"
+            echo "gate=skipped-refresh-references" >> "$ARTIFACT_DIR/metadata.txt"
+            exit 0
+          fi
+
+          python3 tools/renderer_scenes.py ids --gated > "$RUNNER_TEMP/gated-scenes.txt"
+          mapfile -t gated < "$RUNNER_TEMP/gated-scenes.txt"
+          printf 'gated scenes: %s\n' "${gated[*]:-<none>}"
+
+          report="$ARTIFACT_DIR/comparison.txt"
+          : > "$report"
+          failed=0
+
+          for scene in "${gated[@]}"; do
+            reference="$REFERENCE_DIR/$scene.png"
+            candidate="$ARTIFACT_DIR/$scene.png"
+
+            if [ ! -f "$candidate" ]; then
+              echo "::error title=Renderer baseline gate::$scene: no capture to compare"
+              echo "$scene MISSING-CAPTURE" >> "$report"
+              failed=1
+              continue
+            fi
+
+            # References are seeded from the first green run, so a missing one is
+            # expected and must never fail the job.
+            if [ ! -f "$reference" ]; then
+              echo "::notice title=Renderer baseline gate::$scene: UNGATED-pending-reference ($reference does not exist yet)"
+              echo "$scene UNGATED-pending-reference $reference" >> "$report"
+              continue
+            fi
+
+            channel_tolerance="$(python3 tools/renderer_scenes.py field "$scene" channelTolerance)"
+            max_fraction="$(python3 tools/renderer_scenes.py field "$scene" maxDifferentFraction)"
+
+            status=0
+            output="$(python3 tools/compare_renderer_images.py \
+              "$reference" "$candidate" \
+              --channel-tolerance "$channel_tolerance" \
+              --max-different-fraction "$max_fraction" \
+              --diff "$ARTIFACT_DIR/diff-$scene.png" 2>&1)" || status=$?
+
+            echo "$scene tolerance=$channel_tolerance max_different_fraction=$max_fraction $output" >> "$report"
+            if [ "$status" -eq 0 ]; then
+              echo "$scene: PASS ($output)"
+            else
+              echo "::error title=Renderer baseline gate::$scene: FAIL ($output) - see diff-$scene.png in the artifact"
+              failed=1
+            fi
+          done
+
+          echo "--- comparison report ---"
+          cat "$report"
+
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+
+      # Runs even when the build, capture or gate step failed: the PNGs, logs, diffs and
+      # glxinfo output are exactly what a reviewer needs to triage that failure.
       - name: Upload canonical baseline candidate
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: renderer-baseline-opengl-llvmpipe-${{ github.sha }}
           path: artifacts/render-baselines
-          if-no-files-found: error
+          if-no-files-found: warn
