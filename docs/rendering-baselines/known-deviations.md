@@ -38,6 +38,89 @@ The client must link `libGL`, `libX11`, and `libXext` from the same XQuartz inst
 
 The current checkout has no `config.ini` and omits the production soundbank, so the reference launch logs those two non-fatal missing-file errors. Neither affected the startup render; canonical scene metadata must retain them until deterministic fixtures provide those resources.
 
+## Capture determinism controls
+
+Baseline runs are no longer ordinary client runs. Three controls were added after
+consecutive `map-core` captures were measured differing in 62% of their pixels.
+
+**Isolated write directory.** A run with `--renderer-baseline=` appends `-baseline` to the
+application's compact name and resets that directory before any setting is read. Previously
+a capture both inherited and overwrote the developer's real client state: `game_interface`
+persists the console splitter position and restores it at the next login, and the minimap
+cache and per-character UI state accumulate. A CI runner starts with none of it, so a local
+capture and a CI capture could never have agreed.
+
+**Window sized before login.** `game_interface.show()` derives the map panel geometry from
+the window size at the instant the game starts. Online scenes previously resized only after
+that had happened, so the panel came out a different size from run to run. Offline scenes
+never had the problem because `beginClientScene()` resizes during `onRun`. Every capture now
+logs the map panel rect it was taken at.
+
+**Pinned shader time.** `u_Time` is wall-clock derived. Nine of the twenty-one shipped
+shaders animate, and `g_shaders.setFixedTime` now pins the phase to 2.0 s for captures.
+This is measurable: `outfit-masks` and `temporary-framebuffers` previously drifted by 520
+and 449 pixels per run against a 656-pixel budget, purely from the Outline pulse. Both are
+now **0 differing pixels**.
+
+## map-core
+
+Five consecutive captures against the live development world measured 0, 3, 752, 749 and 0
+differing pixels once the controls above were in place, down from 62%. The residual is live
+world content -- a walking NPC and a timed server broadcast -- and is why the scene needs the
+server-authored fixture platform rather than the live world. It is not yet pointed at that
+platform, so it is still diagnostic, not canonical.
+
+Two contaminants were removed outright: the FPS/ping HUD, which `client_topmenu` draws
+*inside* the map panel so its per-frame text lands on the MAP pool the scene exists to
+exercise, and the enter-game window, which the driver hides before `loginWorld` but which
+the normal startup flow re-shows because `EnterGame.show()` only guards on
+`g_game.isOnline()`.
+
+## lighting-overlap
+
+Implemented and repeatable: two consecutive captures differ by **15 of 656,880 pixels
+(0.0023%)**.
+
+The two earlier attempts recorded in the handoff failed for a reason no client-side change
+could have fixed. The baseline character `GOD` belongs to a group carrying `hasfulllight`,
+so the server reports world light 255/215, and `LightView` sets `m_isDark = intensity < 250`
+-- the entire LIGHT pool is skipped. The scene therefore logs in as a **group-1 character on
+the same account** and stands on the server-authored **underground** platform, where
+`MapView::updateLight` substitutes `Light{0,215}` for the server's world light. That also
+removes the day/night cycle, which cannot be frozen at all: this build has no Lua world-light
+setter and seeds `lightHour` from the wall clock.
+
+Three stock torches supply pure red (colour 180), green (67) and cyan (35) light at equal
+brightness, overlapping pairwise and at the centre, so the per-channel `max()` in the light
+bitmap is directly visible.
+
+Two deviations are frozen as observed:
+
+- **Ambient is the client default, not zero.** The driver requests a zero ambient floor, but
+  `client_options` applies its own 25% default during game start and wins, so unlit ground
+  settles at a mid grey rather than black. It is stable, so it is accepted; do not read the
+  unlit tiles as a zero-ambient reference.
+- **`day-night` is not exercised** and has been removed from the scene's declared features.
+  The ambient axis here comes from the client, not from a server-driven world light.
+
+The console splitter had to be pinned explicitly. Across consecutive runs of this scene the
+map panel settled at three different heights (308, 370 and 461 px) and waiting longer did not
+converge. Separately, the outfit-customisation window the server pushes at login not only
+covered the map but had already altered the layout by the time it was hidden, so the game
+interface is isolated early and repeatedly rather than only at the shutter.
+
+## CI gating
+
+Two scenes are captured and archived but deliberately **not** gated against a reference:
+`outfit-masks` and `temporary-framebuffers`. `data/things/*` is gitignored, so a CI runner
+has no game assets and both render empty previews there; gating them would freeze a blank
+image as the accepted reference. The manifest records this in `ciGate`/`ciGateReason`.
+
+Reference images are compared against a **digest-pinned** `ubuntu:24.04` container. llvmpipe
+rasterization is the reference implementation for every checked-in PNG and the hosted runner
+image is rebuilt roughly weekly, so bumping that digest must be treated as a deliberate
+reference-refresh event, not a routine dependency update.
+
 ## Open questions
 
 - XQuartz 2.8.6 requests a logout after installation so launchd can export `DISPLAY`. A same-session manual launch can still use `DISPLAY=:0`, but the documented post-logout flow remains the reproducible setup.

@@ -1,170 +1,216 @@
 # Phase 0 renderer handoff
 
-**Checkpoint:** `5e51ec3` on `main`
+**Checkpoint:** `0045e14` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
 
-**Date:** 2026-08-19
+**Date:** 2026-08-20
 
 **Scope:** Phase 0 — GL bring-up on macOS, baselines, and test scenes
 
 ## Current state
 
-The OpenGL client builds and runs on Apple Silicon through XQuartz. The repository now has a deterministic capture driver, an image comparator, a documented scene manifest, and a Linux llvmpipe workflow that archives the offline reference matrix. Local captures use XQuartz for development; Linux llvmpipe remains the intended canonical renderer.
+The OpenGL client builds and runs on Apple Silicon through XQuartz. The repository has a
+deterministic capture driver, an image comparator, a manifest that is now the single source
+of truth for the scene list, and a Linux llvmpipe workflow with a real comparison gate.
 
-The local Crystal server at `/Users/alancruz/Github/Tibia/crystalserver` is usable for online captures. It speaks protocol 15.25 on `127.0.0.1:7182`, while its login service is on port 8080. Commit `3e7c3ad` adds a distinct 15.25 profile that reuses the checked-in 15.30 asset catalog. It does not remove 15.30 support or change the existing 15.30 packet readers.
+Eleven of the fourteen declared scenes are automated. `lighting-overlap` — the scene the
+previous handoff recorded as having failed twice — is implemented and repeatable, driven by
+server-authored world state. `shader-matrix` and `windowing` remain unimplemented.
 
 At this checkpoint:
 
 - `ctest --test-dir build/macos-release --output-on-failure` passes all 22 tests.
-- `luac -p modules/dev_renderer_baseline/dev_renderer_baseline.lua` passes.
-- The offline XQuartz fixtures listed below were captured repeatedly and visually inspected.
-- `map-core` and `map-screenshot` log into the running server successfully, but the current development world is animated and is not a deterministic canonical fixture.
-- No unverified lighting implementation remains in the worktree.
+- `luac -p` passes on `init.lua` and the capture driver.
+- `python3 tools/renderer_scenes.py validate` exits 0.
+- Every offline scene listed below was captured repeatedly and compared.
+- The llvmpipe workflow has run on GitHub. Its first run failed; the failure and all four
+  warnings were diagnosed from the logs and fixed. It has **not yet completed a green run**.
 
-## Completed work
+## What changed since the previous handoff
 
-### macOS OpenGL bring-up
+### Capture determinism
 
-- Fixed macOS/XQuartz compilation, linking, and GLX context creation.
-- Pinned Apple builds to XQuartz headers and `libGL`, `libX11`, and `libXext` under `/opt/X11`; mixing Homebrew X11 with XQuartz GL causes runtime visual-selection failure.
-- Verified XQuartz 2.8.6 on an Apple M3 Pro: OpenGL 2.1 (`2.1 Metal - 90.5`) and GLSL 1.20.
+Two consecutive `map-core` captures were measured differing in **62% of their pixels**, so
+no online scene could have served as a baseline. Four independent causes were found and
+fixed; see `docs/rendering-baselines/known-deviations.md` for the measurements.
 
-### Capture infrastructure
+- Capture runs now use their own write directory, reset before any setting is read. A
+  capture previously inherited *and overwrote* the developer's real client configuration.
+- The window is sized before login, because `game_interface.show()` derives the map panel
+  geometry from the window size at game start.
+- The FPS/ping HUD (drawn inside the map panel) and the re-opening enter-game window are
+  neutralised after game start.
+- `g_shaders.setFixedTime` pins `u_Time`. This also removed the last drift from two existing
+  scenes: `outfit-masks` and `temporary-framebuffers` went from 520 and 449 differing pixels
+  to **0**.
 
-- `modules/dev_renderer_baseline` drives named captures and exits automatically.
-- `docs/rendering-baselines/scenes.json` is the coverage/status source of truth.
-- `tools/compare_renderer_images.py` applies the documented per-channel and pixel-fraction tolerance.
-- `.github/workflows/render-baseline-linux.yml` builds on Ubuntu 24.04, captures offline scenes under Xvfb/llvmpipe, records metadata, and uploads artifacts.
-- Hovered normal and special tooltips are cleared immediately before full-window capture so mouse position cannot contaminate a baseline (`5e51ec3`).
+### The lighting question, resolved
 
-### Automated offline scenes
+The previous handoff correctly said not to repeat the client-side approach but did not know
+why it failed. The cause is now established from source:
 
-These are included in the Linux llvmpipe workflow and have local XQuartz coverage:
+`ProtocolGame` forces world light and every creature light to 255/215 for any player whose
+group carries `hasfulllight` (groups 4, 5, 6, 7). `LightView` sets `m_isDark = intensity <
+250`, so with such a character **the entire LIGHT pool is skipped**. The baseline character
+`GOD` is group 6. No client-side change could ever have made lights appear for it.
 
-- `startup-ui`
-- `ui-clipping-opacity`
-- `text-matrix`
-- `particles-blends`
-- `outfit-masks`
-- `temporary-framebuffers`
-- `composition-all`
-- `graph-lines`
-- `atlas-resources`
+The scene therefore uses a **group-1 character on the same account** and an **underground**
+platform, where `MapView::updateLight` substitutes `Light{0,215}` for the server's world
+light — which also removes the day/night cycle, since this build has no Lua world-light
+setter and seeds `lightHour` from the wall clock.
 
-See `docs/rendering-baselines/known-deviations.md` for the observed OpenGL behavior and repeatability of each scene. In particular, `composition-all` freezes a surprising retained-destination artifact in the legacy ADD path; preserve it until the renderer migration makes any intentional behavior change explicit.
+Item light is read from `appearances.dat` by both server and client and never travels on the
+wire, so placing the item server-side is sufficient. Three stock torches give pure red,
+green and cyan at equal brightness.
 
-### Automated online diagnostics
+### Server fixtures
 
-- `map-core` captures the full client after login.
-- `map-screenshot` captures the MAP framebuffer readback.
-- The unusual `glReadPixels(x / 3, y / 1.5)` behavior was resolved as intentional framing. The MAP framebuffer has a three-tile margin: one logical tile on left/top and two on right/bottom. With 32 px sprites, the correct GL offsets are x=32 and y=64, producing the expected 480x352 image for a 15x11 viewport. Preserve that crop when converting readback to explicit top-left coordinates.
+`crystalserver` gained `data-global/scripts/custom/renderer_fixtures/` (commit `f47f6e41`,
+branch `local/testing`, **not pushed**): a startup GlobalEvent that builds two platforms at
+coordinates the shipped map never touches, and a `!fixture` talkaction usable by a group-1
+character. No shipped file and no `.otbm` was edited; the map is never written back.
+
+The surface platform is at z=6, not z=7, because `calcLastVisibleFloor` clamps to the sea
+floor and a hole cut in a z=7 platform would expose nothing.
+
+### Tooling and CI
+
+- `tools/renderer_scenes.py` makes `scenes.json` the single source of truth. The scene list
+  had been duplicated three times in different orders.
+- The comparator's diff image dropped the alpha delta, so an alpha-only regression failed the
+  gate while producing an all-black diff. Latent today (all captures are opaque) but exactly
+  the regression class a Metal backend introduces. Failures now carry distinct exit codes.
+- The workflow had never executed. Four blockers would have hard-failed its first run, and a
+  fifth (alsa's autotools requirement) was only visible once it did run.
+- `outfit-masks` and `temporary-framebuffers` are captured but **not gated**: `data/things/*`
+  is gitignored, so a CI runner renders them empty and gating would freeze a blank reference.
+
+## Automated scenes
+
+Offline, gated in CI: `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`,
+`composition-all`, `graph-lines`, `atlas-resources`.
+
+Offline, captured but not gated: `outfit-masks`, `temporary-framebuffers`.
+
+Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-overlap`.
 
 ## Remaining Phase 0 work
 
-Do these before declaring the Phase 0 exit gate complete:
-
-1. Build a controlled fixture-server state for `map-core` so floors, creatures, missiles, effects, camera movement, the map FBO, and map-hole behavior are repeatable. The current live development world is diagnostic only.
-2. Implement `lighting-overlap` with server-authored day/night and overlapping colored light sources. It must visibly prove the CPU light bitmap, dynamic texture upload, and MULTIPLY overlay.
-3. Implement `shader-matrix`, covering all shipped map/outfit/item shaders, framebuffer-backed Outline, and Fog/Snow multi-texture bindings.
-4. Add the `windowing` desktop driver for resize, display density, fullscreen, focus, and moving between displays.
-5. Record at least 60 seconds of release-build frame-time and memory samples. Compare XQuartz only against XQuartz; it is not representative of native GPU performance.
-6. Run and review the Linux llvmpipe workflow, retain its PNG/log/metadata artifact set, and perform the first XQuartz-versus-llvmpipe comparison. Record any evidence-backed differences in `known-deviations.md`.
-7. Confirm every feature in `scenes.json` is visibly exercised, then update the manifest/README automation labels and the one-page deviations note. Phase 0 exits only when the checked-in scene list, CI-generated reference set, and deviations note are complete.
-
-## Lighting investigation: do not repeat this approach
-
-A client-only `lighting-overlap` prototype was tested and then removed because it did not exercise the renderer as claimed:
-
-- An initial approach attached client-created light effects to map positions/tiles.
-- A second approach added client-created `Creature` instances and exposed `Map::setLight` plus `Creature::setLight` to Lua.
-- The probe creatures were visible, `UIMap::isDrawingLights()` was true, minimum ambient light was zero, and a red-only intensity-15 diagnostic was used.
-- The resulting screenshot showed no colored illumination. Earlier effect-probe and no-probe captures were also visually identical in the map lighting.
-
-The likely issue is that mutating client-created things this way does not feed the same cached/protocol-driven light state used by the production map draw. Do not restore the removed Lua bindings merely to make the script run. Prefer deterministic server-spawned items/effects/creatures with known light attributes, then verify the RGB overlap in the captured pixels before marking the scene automated.
-
-The last red-only diagnostic image was written outside the repository at:
-
-`~/Library/Application Support/crystalotc/.crystalotc/render-baselines/lighting-overlap-xquartz.png`
-
-It is diagnostic evidence only and must not be accepted as a baseline.
+1. **Point `map-core` and `map-screenshot` at the fixture platform** (`!fixture map`, as GOD).
+   They still capture the live development world, which leaves ~0.15% residual drift from a
+   walking NPC and timed server broadcasts. The platform exists and is ready.
+2. **Implement `shader-matrix`.** The design is settled: a UIMap offline produces no MAP-pool
+   content at all (`canDraw(MAP)` is literally `g_game.isOnline()`), so the map-*composition*
+   route needs a live map — but map fragment programs can be applied to image widgets
+   offline, and a shaded cell must draw a real texture or multi-texture never binds. With
+   `u_Time` now pinnable the scene can be gated, which was impossible before.
+3. **Add the `windowing` driver.** Needs multi-capture support; the driver currently takes one
+   screenshot and exits.
+4. **Record 60 seconds of release-build frame-time and memory.**
+5. **Get the llvmpipe workflow green**, then seed references with
+   `workflow_dispatch(refresh_references=true)` and commit them. Until references exist every
+   gated scene logs `UNGATED-pending-reference` and the gate is a no-op.
+6. **First XQuartz-versus-llvmpipe comparison**, recorded with evidence.
+7. **Push the crystalserver fixture commit** once the client side is confirmed.
 
 ## Reproduction commands
 
-Configure, build, and test:
-
 ```sh
 cmake --preset macos-release -DTOGGLE_BIN_FOLDER=ON
-cmake --build --preset macos-release --parallel 2
+cmake --build --preset macos-release --parallel 8
 ctest --test-dir build/macos-release --output-on-failure
 ```
 
-The existing local build used a vcpkg checkout pinned to `vcpkg.json`; if needed, set `VCPKG_ROOT` and `VCPKG_DEFAULT_BINARY_CACHE` before configuring.
-
-Capture an offline scene through XQuartz:
+Offline scene:
 
 ```sh
 DISPLAY=:0 build/macos-release/bin/otclient \
-  --renderer-baseline=graph-lines \
-  --renderer-baseline-output=graph-lines-xquartz.png
+  --renderer-baseline=graph-lines --renderer-baseline-output=graph-lines.png
 ```
 
-Capture the live server map with the existing disposable development account:
+Online scenes. Note the character differs by scene — this is load-bearing, not incidental:
 
 ```sh
-DISPLAY=:0 \
-CRYSTALOTC_BASELINE_ACCOUNT=@god \
-CRYSTALOTC_BASELINE_PASSWORD=god \
+# map-core / map-screenshot: GOD (group 6). Its hasfulllight flag pins world light to 255,
+# which disables the LIGHT pool and makes the surface immune to the day/night cycle.
+DISPLAY=:0 CRYSTALOTC_BASELINE_ACCOUNT=@god CRYSTALOTC_BASELINE_PASSWORD=god \
 CRYSTALOTC_BASELINE_CHARACTER=GOD \
-build/macos-release/bin/otclient \
-  --renderer-baseline=map-core \
-  --renderer-baseline-output=map-core-xquartz.png
+build/macos-release/bin/otclient --renderer-baseline=map-core --renderer-baseline-output=map-core.png
+
+# lighting-overlap: a group-1 character, or the LIGHT pool is skipped entirely.
+DISPLAY=:0 CRYSTALOTC_BASELINE_ACCOUNT=@god CRYSTALOTC_BASELINE_PASSWORD=god \
+CRYSTALOTC_BASELINE_CHARACTER="Sorcerer Sample" \
+build/macos-release/bin/otclient --renderer-baseline=lighting-overlap --renderer-baseline-output=lighting-overlap.png
 ```
 
-Use `map-screenshot` in place of `map-core` for MAP readback. The online driver defaults to host `127.0.0.1`, game port 7182, and protocol 15.25; environment overrides are documented in `docs/rendering-baselines/README.md`.
+Captures land in the isolated baseline write directory, not the normal client one:
+`~/Library/Application Support/crystalotc-baseline/.crystalotc-baseline/render-baselines/`.
 
-Compare two same-environment captures:
+Scene list and comparison:
 
 ```sh
-python3 tools/compare_renderer_images.py reference.png candidate.png \
-  --diff artifacts/render-baselines/diff.png
+python3 tools/renderer_scenes.py ids --offline
+python3 tools/renderer_scenes.py ids --gated
+python3 tools/compare_renderer_images.py reference.png candidate.png --diff diff.png
 ```
 
-Expected non-fatal local logs include missing `config.ini`, a missing production soundbank, and duplicate-library linker warnings.
+The server must be running for online scenes:
+
+```sh
+cd /Users/alancruz/Github/Tibia/crystalserver && ./build/macos-release/bin/crystalserver
+```
+
+Expected non-fatal local logs: missing `config.ini`, missing production soundbank, and
+duplicate-library linker warnings.
 
 ## Commit ledger
 
-The Phase 0 work is split into reviewable commits, oldest first:
+Oldest first. Note that the sixteen previously subject-only messages were rewritten with
+full bodies; every hash below is therefore new since the previous handoff.
 
 ```text
-074ef5a fix(macos): bring up the XQuartz OpenGL client
-ada8bc0 test(renderer): add deterministic baseline capture
-55355fc ci(renderer): archive llvmpipe startup baselines
-3e7c3ad fix(login): support the local 15.25 crystal server
-d8fe826 test(renderer): capture the live map fixture
-0df4c94 test(renderer): add deterministic UI fixtures
-24e6cf7 ci(renderer): capture deterministic UI matrix
-a3c34e4 test(renderer): add particle blend fixture
-257687c ci(renderer): capture particle blend baseline
-6c97e6e test(renderer): add deterministic outfit fixture
-fa495d7 ci(renderer): capture outfit mask baseline
-00bf705 test(renderer): cover temporary framebuffer paths
-c81de3e ci(renderer): capture temporary framebuffer baseline
-f94e028 test(renderer): cover all composition modes
-601d005 ci(renderer): capture composition baseline
-3971be8 test(renderer): automate map readback baseline
-3522528 test(renderer): add deterministic graph fixture
-8982eb2 ci(renderer): capture graph baseline
-6aa461e test(renderer): cover atlas resource lifecycle
-1a15470 ci(renderer): capture atlas baseline
-5e51ec3 test(renderer): suppress capture tooltips
+8194e58 fix(macos): bring up the XQuartz OpenGL client
+1993a61 test(renderer): add deterministic baseline capture
+bab2daf ci(renderer): archive llvmpipe startup baselines
+47ad6ee fix(login): support the local 15.25 crystal server
+af37763 test(renderer): capture the live map fixture
+01e295e test(renderer): add deterministic UI fixtures
+51cbff4 ci(renderer): capture deterministic UI matrix
+bd66a9b test(renderer): add particle blend fixture
+700a0f9 ci(renderer): capture particle blend baseline
+bb8e117 test(renderer): add deterministic outfit fixture
+f394a10 ci(renderer): capture outfit mask baseline
+a60fd9b test(renderer): cover temporary framebuffer paths
+c31e77f ci(renderer): capture temporary framebuffer baseline
+c837b5a test(renderer): cover all composition modes
+2381dbc ci(renderer): capture composition baseline
+f99e738 test(renderer): automate map readback baseline
+b751b93 test(renderer): add deterministic graph fixture
+e759e87 ci(renderer): capture graph baseline
+eb66c2b test(renderer): cover atlas resource lifecycle
+c5b510b ci(renderer): capture atlas baseline
+5f9ad3e test(renderer): suppress capture tooltips
+bf9c28d docs(renderer): hand off phase zero progress
+32cde60 refactor(login): collapse the duplicated devserver branch
+d8f3f7a fix(renderer): make online baseline captures reproducible
+d0cebb6 feat(graphics): allow pinning shader time for reproducible captures
+497dc70 fix(renderer): make the baseline comparator and manifest gate-ready
+942fe68 ci(renderer): make the llvmpipe baseline job runnable and gated
+3b49ea5 test(renderer): implement the lighting-overlap scene
+0045e14 ci(renderer): fix the first llvmpipe run's failures and warnings
 ```
 
 ## Repository hygiene at handoff
 
-The following design documents were already untracked during this work and were intentionally neither edited nor staged by the implementation commits:
+These design documents remain untracked and were deliberately neither edited nor staged:
 
 - `docs/macos-rendering-architecture.md`
 - `docs/metal-implementation-plan.md`
 - `docs/metal-parity-survey.md`
 - `docs/renderer-architecture-design.md`
 
-They are essential context for the next agent, but their ownership/commit disposition should be decided separately.
+Their commit disposition is still an open decision. Note that
+`docs/renderer-architecture-design.md` §7 and §12.4 should be amended: the
+`glReadPixels(x/3, y/1.5)` offsets are confirmed **intentional framing**, not a bug, so the
+crop is preserved deliberately rather than "not reproduced at the boundary".
+
+The `crystalserver` fixture commit `f47f6e41` is unpushed on branch `local/testing`.
