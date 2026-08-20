@@ -1,8 +1,12 @@
 # Canonical llvmpipe references
 
-Seeded from the first green run of `Renderer baseline - Linux llvmpipe`
-(run `32369322871`, commit `0045e145`). `ENVIRONMENT.txt` is that run's
+Seeded from a green run of `Renderer baseline - Linux llvmpipe`
+(run `32378720716`, commit `4976522`). `ENVIRONMENT.txt` is that run's
 fingerprint; check it first when a comparison fails unexpectedly.
+
+`startup-ui` was reseeded from that run. Its first reference came from an earlier
+run and could never match again: the login background is chosen at random from
+six images on every startup, and pinning it changed what the scene renders.
 
 Only the scenes `tools/renderer_scenes.py ids --gated` reports are stored here.
 `outfit-masks` and `temporary-framebuffers` are captured by CI but deliberately

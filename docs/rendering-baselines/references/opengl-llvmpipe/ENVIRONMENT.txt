@@ -1,4 +1,4 @@
-commit=0045e1450fd8524769525f9b7e139cf81cbf1d30
+commit=49765224fbd2a9fc6a8eac943f5bface335c9ea4
 backend=opengl-llvmpipe
 window=1020x644
 runner_label=ubuntu-24.04
