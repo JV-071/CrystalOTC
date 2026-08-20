@@ -95,25 +95,63 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 
 ## Remaining Phase 0 work
 
-1. **Add the `windowing` driver.** It is the last offline scene with no command. Note that
-   `focus` is not observable in any captured image (`hasFocus()` has zero consumers), and CI's
-   Xvfb has no window manager, so `setFullscreen`/`maximize` are silently dropped while the
-   client still flips its state bits — those are logged-state assertions, not image ones.
-2. **Implement `shader-matrix-map`.** `shader-matrix` now covers every shipped fragment
-   program offline, but not the map-*composition* route: map shaders bind at the MAP
-   framebuffer to screen blit and `canDraw(MAP)` is literally `g_game.isOnline()`, so that
-   bind site, its four map uniforms and the shader fade still need a live map.
-3. **Support multi-capture in the driver.** `captureScene` is hard-wired to one screenshot
-   followed by exit, which `windowing` needs factored apart.
-4. ~~Record 60 seconds of release-build frame-time and memory.~~ **Deferred to Phase 3.**
-   `AUTO_STAT` is compiled out of every build this repository produces, and the client caps
-   itself at 60 FPS by default, so a Phase 0 figure would measure the cap rather than the
-   renderer — and there is nothing to compare it against until a second path exists.
-5. **Get the llvmpipe workflow green**, then seed references with
-   `workflow_dispatch(refresh_references=true)` and commit them. Until references exist every
-   gated scene logs `UNGATED-pending-reference` and the gate is a no-op.
-6. **First XQuartz-versus-llvmpipe comparison**, recorded with evidence.
-7. **Push the crystalserver fixture commit** once the client side is confirmed.
+Every scene in `scenes.json` now has a command; none are unimplemented. One item is left, and
+it is blocked rather than pending:
+
+1. **Reseed the `startup-ui` reference.** It is the only gated scene without a reference. The
+   original was captured before the login background was pinned, so it could never match
+   again and was deliberately removed; `startup-ui` logs `UNGATED-pending-reference` until it
+   is replaced. A reference must come from llvmpipe, so only a green run of the workflow can
+   produce one: take `startup-ui.png` from that run's artifact and commit it to
+   `docs/rendering-baselines/references/opengl-llvmpipe/`.
+
+2. **Push the crystalserver fixture commit** (`f47f6e41` on branch `local/testing`) once the
+   client side is considered settled. Note that repository's remotes are named the opposite
+   way round from this one: `origin` is upstream (`zimbadev/crystalserver`) and the fork is
+   `fork` (`aacruzgon/crystalserver`). Pushing to `origin` there has been disabled locally to
+   prevent the mistake.
+
+## Deferred follow-ups
+
+Real issues found during Phase 0 that are deliberately not being fixed here. None block the
+exit gate.
+
+**Node 20 deprecation in `build-windows.yml`.** Its actions (`checkout`, `cache`,
+`upload-artifact`, `download-artifact`) target the deprecated Node 20 runtime. GitHub
+currently force-runs them on Node 24 with a warning, so it is cosmetic until it is not. The
+bump was prepared and then deliberately reverted: it includes `actions/cache`, and changing
+that risks invalidating the warm vcpkg cache on a build whose median is around 60 minutes.
+It deserves its own commit and a cold build to verify, not a ride-along on an unrelated fix.
+The renderer-baseline workflow is already off Node 20, where there was no cache to lose.
+
+**`tests-lua.yml` tests nothing.** It installs LuaJIT, checks out the code, and ends. It runs
+on every push and pull request with no path filter and always reports green, so it reads as a
+passing check while asserting nothing. It also uses `actions/checkout@main`, an unpinned
+floating ref.
+
+**`actions/labeler@main` is unpinned** in `pr-labeler.yml`, and `.github/labeler.yml` still
+uses v4 syntax, so a labeler major release can break it with no change in this repository.
+
+**The container digest does not freeze Mesa.** The baseline job pins `ubuntu:24.04` by digest,
+which freezes the base image, but Mesa is installed by `apt` at job time from the Ubuntu
+archive, so a point release can shift llvmpipe rasterization without the digest moving. The
+exact package versions are recorded in the reference set's `ENVIRONMENT.txt` so a drift is
+diagnosable in one look. Fully pinning apt versions would break the job whenever Ubuntu
+rotates a superseded version out of the archive.
+
+**`XZ_SANDBOX` unused-variable warning** is emitted by the `liblzma` port at the pinned vcpkg
+baseline, not by this repository. Silencing it means patching a port or moving the baseline.
+
+**`shader-matrix` cannot be CI-gated as one scene.** Its sixteen fragment cells would gate
+cleanly, but its six outfit cells render creature previews from `data/things/*`, which is
+gitignored, so a CI runner draws them empty. Splitting the outfit row into its own scene would
+let the fragment half be gated. The same reasoning applies to `outfit-masks` and
+`temporary-framebuffers`, which are gated off for exactly this reason.
+
+**`map-screenshot` carries a 62-pixel residual** from one animated decoration.
+`Thing:setAnimate(false)` stops a sprite advancing but leaves it on whatever phase it already
+held, and that phase differs per run. Freezing at a *known* phase would need a binding that
+does not exist.
 
 ## Reproduction commands
 
