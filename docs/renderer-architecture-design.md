@@ -56,7 +56,7 @@ The current Vulkan code is **not** a backend in the sense above. It is a paralle
 
 Two states, and the coexistence rule between them:
 
-- **Today (unchanged during migration):** DrawPool keeps publishing `DrawObject` lists exactly as now; the PoolCompiler is *additive*, consuming the same published lists. The feeder therefore keeps working on Windows untouched while GL and Metal move to the new boundary. Nothing in this design breaks the shipped Vulkan path.
+- **Today (unchanged during migration):** DrawPool keeps publishing `DrawObject` lists exactly as now; the PoolCompiler is *additive*, consuming the same published lists. The feeder therefore keeps working on Windows untouched while GL and Metal move to the new boundary. Nothing in this design breaks the shipped Vulkan path. **Recorded 2026-08-20 (Phase 1):** the converse held too, and did not. The shipped Vulkan path's GL-less route was not actually GL-free — `Painter::updateGlViewport` and `Texture::create` reached `glViewport`/`glGenTextures` with no current context and were fixed in shared code (`67f9b38`). Shared-code fixes made for a new GL-less backend land on the Vulkan path as well; the coexistence rule is not symmetric with "no shared-code changes".
 - **Target:** a `VulkanBackend` implements `IRenderBackend` and consumes `RenderFrame` like every other backend, closing the feeder's feature gaps for free (light, shaders, transient targets all arrive as ordinary passes/packets). The existing `vkcontext` (device/swapchain/frame lifecycle), `vkatlas`, and `vkbatch` are reused as that backend's internals; only the feeder's translation role disappears, replaced by the PoolCompiler. At that point `VkDrawFeeder` and the `m_vk*` side-channels on DrawPool/DrawObject retire (they were promoted into PoolCompiler input in the meantime — §10).
 
 The `DrawObject` publish mechanism can only be removed after **both** the GL/Metal backends and the Vulkan path have moved off it; until then it is the compatibility keel of the migration.
@@ -77,7 +77,7 @@ Handles are allocated by a render-thread `ResourceRegistry` and mapped to native
 
 | Class | Today | Target |
 |---|---|---|
-| `Texture` | owns GL texture id, uploads via `glTexImage2D` `[S 7]` | owns a `TextureHandle` + CPU-side descriptor (size, smooth, repeat, mipmaps, upside-down); uploads become `TextureUpdate` commands queued to the registry |
+| `Texture` | owns GL texture id, uploads via `glTexImage2D` `[S 7]`. **Updated 2026-08-20 (Phase 1):** no longer unconditional — `Texture::create` returns early without a GL context and deliberately retains `m_image`, so the CPU pixels already survive for a non-GL backend to upload. A down-payment on the target column, not a change to it | owns a `TextureHandle` + CPU-side descriptor (size, smooth, repeat, mipmaps, upside-down); uploads become `TextureUpdate` commands queued to the registry |
 | `FrameBuffer` | owns GL FBO + texture `[S 3]` | replaced by `RenderTargetHandle` + retained `TextureHandle`; the class survives only as a thin shim during migration |
 | `PainterShaderProgram` | compiles GLSL, uploads uniforms, and owns a process-wide `u_Time` override (`setFixedTime`/`clearFixedTime`, `paintershaderprogram.h:73-75`) that every renderer baseline depends on | becomes a `MaterialHandle` + parameter block description (section 5); GLSL compilation moves into GLBackend, and the time override becomes a FrameAssembler-supplied frame-global (§5.2) |
 | `CoordsBuffer` | client-side float arrays `[S 6.1]` | unchanged as producer scratch; PoolCompiler copies into the PoolProgram's vertex arena |
@@ -252,7 +252,7 @@ Atlas maintenance `[S 3.3]` compiles to explicit passes too: per dirty layer, on
 
 Single rule: **every logical surface is top-left origin, y-down, in pixels.** Consequences, resolving the survey's orientation inventory `[S 8]`:
 
-- The projection matrix (`painter.cpp:249-267`) moves into the backends. GL keeps the y-flipping matrix for the backbuffer and uses a *non-flipping* variant for FBO passes, absorbing today's `upsideDown` texture-matrix mechanism; Metal uses one convention everywhere.
+- The projection matrix (`painter.cpp:251-269`) moves into the backends. GL keeps the y-flipping matrix for the backbuffer and uses a *non-flipping* variant for FBO passes, absorbing today's `upsideDown` texture-matrix mechanism; Metal uses one convention everywhere.
 - `Texture::setUpsideDown` and flipped-blit quads (`addHorizontally/VerticallyFlippedQuad`) leave shared code; the compiler emits pre-flipped UVs where `vkFbFlip` demands it, and only the GL backend knows render-target textures are stored bottom-up.
 - Scissor rects arrive in packets top-left and **pre-clamped to the target** (Metal validates; GL forgave `[S 8]`). The GL backend applies its own y-flip formula internally.
 - Readback results are delivered top-left-origin; the backend flips, not the caller. The `x/3, y/1.5` screenshot offsets `[S 9.5]` are **intentional framing, not an oddity** (resolved 2026-08-20): they select the visible region inside the MAP FBO's three-tile margin, yielding x=32 and y=64 at 32 px sprites. The boundary reproduces that crop, expressed as explicit top-left readback parameters rather than as divisors in `client.cpp`.

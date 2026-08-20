@@ -36,13 +36,13 @@ A pool with an FBO renders its objects into the FBO, then blits the FBO texture 
 - The **map thread** (`g_asyncDispatcher` task, `graphicalapplication.cpp:219`) builds pool object lists: FOREGROUND UI is built here too (`graphicalapplication.cpp:263-265`), and LIGHT + FOREGROUND_MAP are built in **two further parallel async tasks** while MAP builds on the map thread itself (`graphicalapplication.cpp:245-258`).
 - The **main thread** executes `g_drawPool.draw()` and swaps buffers. **Updated 2026-08-20 (Phase 1):** the draw is now conditional on both platform branches. On Windows the Vulkan feeder may take the frame instead; elsewhere `g_drawPool.draw()` runs only when `g_window.hasGLContext()`, and a window without one — the Cocoa/Metal window — gets `g_drawPool.consumeAll()` instead (`graphicalapplication.cpp:312-315`). `g_window.swapBuffers()` still runs every frame (`graphicalapplication.cpp:342`).
 - Handoff: each pool double-buffers its object list; `drawObjects` swaps `m_objectsDraw[0/1]` under a `SpinLock` and consumes the `m_shouldRepaint` atomic flag (`drawpoolmanager.cpp:260-264`). **Updated 2026-08-20 (Phase 1):** `drawObjects` is no longer the only consumer — `DrawPoolManager::consumeAll` (`drawpoolmanager.cpp:235-248`) performs the same swap-and-clear without drawing, for frames produced by something other than the GL path, and `VkDrawFeeder::consumeAllPools` is its Vulkan sibling. **Any** future backend that declines a frame owes this consumption. The map thread blocks new map production until the flags are consumed (`canDrawMap`, `graphicalapplication.cpp:177-190`).
-- Only the main thread touches GL. Pool building threads never issue GL calls — but they *do* capture GL-touching lambdas for later main-thread execution.
+- Only the main thread touches GL. Pool building threads never issue GL calls — but they *do* capture GL-touching lambdas for later main-thread execution. **Added 2026-08-20 (Phase 1):** two GL entry points sit *outside* the render loop and are therefore not covered by that gate — `Painter::updateGlViewport`, reached from `setResolution`, which the constructor calls before its own `hasGLContext()` guard; and `Texture::create`, reached by font loading at module startup. Both now carry their own `hasGLContext()` early return, and `Texture::create` deliberately keeps `m_image` rather than clearing it, because those pixels are what a non-GL backend uploads later. This was latent, not new: XQuartz's libGL returns harmlessly with no current context while Apple's OpenGL.framework segfaults, and the shipped Windows Vulkan path had been relying on the same luck. A backend that renders without a GL context inherits this obligation for any *future* out-of-loop GL entry point.
 
 ---
 
 ## 2. Composition and blend inventory
 
-### 2.1 The exact blend table (`painter.cpp:269-291`)
+### 2.1 The exact blend table (`painter.cpp:271-293`)
 
 | CompositionMode | GL call | Effective formula |
 |---|---|---|
@@ -70,7 +70,7 @@ All six must exist as Metal blend descriptors, but note the actual usage below w
 
 ### 2.4 Alpha writing and blend disable
 
-- `glColorMask(1,1,1,alphaWriting)` (`painter.cpp:305`). Set only by `FrameBuffer::bind` from `m_useAlphaWriting` (`framebuffer.cpp:102`): true for every FBO except the MAP pool FBO (`drawpool.cpp:34`).
+- `glColorMask(1,1,1,alphaWriting)` (`painter.cpp:307`). Set only by `FrameBuffer::bind` from `m_useAlphaWriting` (`framebuffer.cpp:102`): true for every FBO except the MAP pool FBO (`drawpool.cpp:34`).
 - Blend is disabled outright in three places: the MAP FBO screen blit (`m_disableBlend`, `framebuffer.cpp:127-132`), atlas layer compositing (`textureatlas.cpp` flush), and the UI map-hole punch (`uimap.cpp:86-89`, section 4).
 
 ---
@@ -147,7 +147,7 @@ That is the entire list. The "GL lambdas" problem is seven idioms, not an unboun
 
 ### 5.1 Built-in programs (4)
 
-Created in `Painter::Painter` (`painter.cpp:69-72`) from `shader/shadersources.h`:
+Created in `Painter::Painter` (`painter.cpp:71-74`) from `shader/shadersources.h`:
 
 | Program | Vertex | Fragment | Metal analog |
 |---|---|---|---|
@@ -197,7 +197,7 @@ The full supported set is: 4 built-ins + 27 registered module programs compiled 
 
 ### 6.1 Vertex data
 
-`CoordsBuffer` holds **two separate client-side float2 arrays** (positions, texcoords) — no interleaving, no VBOs anywhere in the GL path; `glDrawArrays` sources CPU memory each draw (`painter.cpp:110-118`, `coordsbuffer.h`). The Metal backend therefore owes a per-frame transient vertex allocator; there is no existing buffer-object lifetime to mirror.
+`CoordsBuffer` holds **two separate client-side float2 arrays** (positions, texcoords) — no interleaving, no VBOs anywhere in the GL path; `glDrawArrays` sources CPU memory each draw (`painter.cpp:112-120`, `coordsbuffer.h`). The Metal backend therefore owes a per-frame transient vertex allocator; there is no existing buffer-object lifetime to mirror.
 
 ### 6.2 Draw methods
 
@@ -205,7 +205,7 @@ The full supported set is: 4 built-ins + 27 registered module programs compiled 
 
 ### 6.3 Lines
 
-`Painter::drawLine` (`painter.cpp:124-145`): `GL_LINE_STRIP` with `glLineWidth(width)` and `GL_LINE_SMOOTH`. Used only by `UIGraph` (`uigraph.cpp:55,75`). Metal has no wide or smooth lines — the port must triangulate (screen-space quad strip per segment). Visual tolerance here can be generous; it is analytics graphs, not game art — and **measurably has to be**: XQuartz and llvmpipe already disagree by 1.52% of the frame on identical `graph-lines` geometry (quirk 10; `docs/rendering-baselines/known-deviations.md`).
+`Painter::drawLine` (`painter.cpp:126-147`): `GL_LINE_STRIP` with `glLineWidth(width)` and `GL_LINE_SMOOTH`. Used only by `UIGraph` (`uigraph.cpp:55,75`). Metal has no wide or smooth lines — the port must triangulate (screen-space quad strip per segment). Visual tolerance here can be generous; it is analytics graphs, not game art — and **measurably has to be**: XQuartz and llvmpipe already disagree by 1.52% of the frame on identical `graph-lines` geometry (quirk 10; `docs/rendering-baselines/known-deviations.md`).
 
 ### 6.4 Batching
 
@@ -215,18 +215,18 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 
 ## 7. Texture inventory
 
-- **Format:** everything is RGBA8/`GL_UNSIGNED_BYTE` (`texture.cpp:383-405`); 1/3/4-channel images normalize on upload. No sRGB formats, no compressed textures, no depth/stencil anywhere.
-- **Updates:** `glTexSubImage2D` after first allocation (`texture.cpp:185-198`) — LightView re-uploads through this path only when its light hash changed (`lightview.cpp:94-110`), and not at all in frames where the LIGHT pool is skipped (section 3.4); the satellite map and animated textures also stream.
-- **Sampling:** smooth ⇒ LINEAR (+`LINEAR_MIPMAP_LINEAR` with mips), else NEAREST (+`NEAREST_MIPMAP_NEAREST`); wrap is REPEAT or CLAMP_TO_EDGE per-texture (`texture.cpp:336-355`). Four sampler states cover the whole client.
-- **Per-texture matrix:** textures own a transform-matrix id in a global registry (`g_textures.getMatrixById`, `painter.cpp:225`) mapping pixel src coords to normalized coords — this is the `u_TextureMatrix` the fixed vertex stage consumes.
+- **Format:** everything is RGBA8/`GL_UNSIGNED_BYTE` (`texture.cpp:391-413`); 1/3/4-channel images normalize on upload. No sRGB formats, no compressed textures, no depth/stencil anywhere.
+- **Updates:** `glTexSubImage2D` after first allocation (`texture.cpp:193-206`) — LightView re-uploads through this path only when its light hash changed (`lightview.cpp:94-110`), and not at all in frames where the LIGHT pool is skipped (section 3.4); the satellite map and animated textures also stream.
+- **Sampling:** smooth ⇒ LINEAR (+`LINEAR_MIPMAP_LINEAR` with mips), else NEAREST (+`NEAREST_MIPMAP_NEAREST`); wrap is REPEAT or CLAMP_TO_EDGE per-texture (`texture.cpp:344-363`). Four sampler states cover the whole client.
+- **Per-texture matrix:** textures own a transform-matrix id in a global registry (`g_textures.getMatrixById`, `painter.cpp:227`) mapping pixel src coords to normalized coords — this is the `u_TextureMatrix` the fixed vertex stage consumes.
 - **Upside-down flag:** FBO-backed textures set `setUpsideDown(true)` (`framebuffer.cpp:68`, `framebuffer.cpp:184`), which flips the texture matrix. This is the central GL-vs-render-target orientation mechanism the Metal backend must map onto its own texture-origin convention.
 
 ---
 
 ## 8. Coordinate conventions
 
-- **Projection:** top-left-origin pixel space → GL NDC via the documented matrix (`painter.cpp:249-267`): `[2/w, 0, 0; 0, -2/h, 0; -1, 1, 1]`.
-- **Scissor:** GL scissor is bottom-left origin; the flip is `glScissor(left, resH - bottom - 1, w, h)` (`painter.cpp:297`). Metal's `setScissorRect` is top-left origin — the flip **disappears** rather than needing translation, and must be clamped to the render-target bounds (Metal validates; GL forgave).
+- **Projection:** top-left-origin pixel space → GL NDC via the documented matrix (`painter.cpp:251-269`): `[2/w, 0, 0; 0, -2/h, 0; -1, 1, 1]`.
+- **Scissor:** GL scissor is bottom-left origin; the flip is `glScissor(left, resH - bottom - 1, w, h)` (`painter.cpp:299`). Metal's `setScissorRect` is top-left origin — the flip **disappears** rather than needing translation, and must be clamped to the render-target bounds (Metal validates; GL forgave).
 - **FBO blits:** may be horizontally/vertically flipped via explicit flipped quads (`framebuffer.cpp:159-166`), used by `uiitem.cpp:68` (`m_flipDirection`).
 - **Screenshots:** CPU `flipVertically()` after readback (`framebuffer.cpp:214`).
 - Proposal for the explicit frame model: define all logical render targets as top-left origin; resolve every flip in the frame compiler; forbid orientation knowledge in shaders.
@@ -245,7 +245,7 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 8. Pool FBO skip-if-unchanged (hash) is load-bearing for performance; the explicit model needs an equivalent "reuse last target contents" pass mode.
 9. `onlyOnce` state overrides restore the *previous* state, not defaults (`DrawPool::resetOnlyOnceParameters`, defined inline at `drawpool.h:289-311`; the setters that record the previous value start at `drawpool.cpp:198`) — compiler must replicate exact scoping.
 10. Line rendering needs triangulation on Metal (section 6.3). **Quantified 2026-08-20:** XQuartz and llvmpipe already differ by 9,967 px — 1.52% of the frame, max channel delta 235 — on identical `graph-lines` geometry, because llvmpipe antialiases wide lines and XQuartz rasterizes them hard-edged. There is therefore no single correct GL line rendering for a triangulated Metal path to match: line scenes may only be compared same-environment, and the triangulated path inherits that tolerance envelope (`docs/rendering-baselines/known-deviations.md`).
-11. `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` composition modes and non-ADD blend equations are currently dead code — decide whether parity includes them (recommendation: implement the table entries anyway; they are one blend descriptor each). **Updated 2026-08-20 — half settled, half still open.** The three composition modes are no longer dead and the decision is closed: the CI-gated `composition-all` baseline (`uicompositionfixture.cpp`) exercises all six against a checked-in llvmpipe reference, so parity *does* include them and a backend missing a descriptor fails an existing gate. Non-ADD blend equations are still genuinely dead — the only caller of `Painter::setBlendEquation` (`painter.cpp:192`) is the pool-state replay at `drawpool.cpp:432`, and `DrawPool::setBlendEquation` (`drawpool.cpp:208`) / `DrawPoolManager::setBlendEquation` (`drawpoolmanager.h:66`) have no callers in `src/`, `modules/` or `mods/` — so that half remains a decision, recommendation unchanged.
+11. `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` composition modes and non-ADD blend equations are currently dead code — decide whether parity includes them (recommendation: implement the table entries anyway; they are one blend descriptor each). **Updated 2026-08-20 — half settled, half still open.** The three composition modes are no longer dead and the decision is closed: the CI-gated `composition-all` baseline (`uicompositionfixture.cpp`) exercises all six against a checked-in llvmpipe reference, so parity *does* include them and a backend missing a descriptor fails an existing gate. Non-ADD blend equations are still genuinely dead — the only caller of `Painter::setBlendEquation` (`painter.cpp:194`) is the pool-state replay at `drawpool.cpp:432`, and `DrawPool::setBlendEquation` (`drawpool.cpp:208`) / `DrawPoolManager::setBlendEquation` (`drawpoolmanager.h:66`) have no callers in `src/`, `modules/` or `mods/` — so that half remains a decision, recommendation unchanged.
 
 ---
 

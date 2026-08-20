@@ -56,7 +56,7 @@ Everything else, macOS included by default -> X11Window
 
 The selection is in `src/framework/platform/platformwindow.cpp`. **Updated 2026-08-20 (Phase 1):** the Cocoa branch exists, but `TOGGLE_COCOA_WINDOW` defaults **OFF** (`src/CMakeLists.txt:16`), so an unmodified `macos-release` preset still builds the X11 window. XQuartz remains the Phase 0 baseline reference vehicle.
 
-The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit. **Updated 2026-08-20 (Phase 1):** the `find_package(X11 REQUIRED)` guard now also excludes `APPLE AND TOGGLE_COCOA_WINDOW` (`src/CMakeLists.txt:222-224`), and `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:987-1002`). X11 is nonetheless **not fully unlinked**: the shared `${OPENGL_LIBRARIES}` link (`src/CMakeLists.txt:955`) still resolves to `/opt/X11` libGL and Homebrew libX11 through `cmake/FindOpenGL.cmake:129-134`. Cutting that is outstanding Phase 1 work.
+The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit. **Updated 2026-08-20 (Phase 1):** the `find_package(X11 REQUIRED)` guard now also excludes `APPLE AND TOGGLE_COCOA_WINDOW` (`src/CMakeLists.txt:222-224`), and `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1006-1021`). ~~X11 is nonetheless **not fully unlinked**: the shared `${OPENGL_LIBRARIES}` link still resolves to `/opt/X11` libGL and Homebrew libX11. Cutting that is outstanding Phase 1 work.~~ **Corrected 2026-08-20 (Phase 1):** X11 is now fully unlinked. The Cocoa branch skips `find_package(OpenGL)` altogether and points `OPENGL_LIBRARIES` at Apple's OpenGL.framework (`src/CMakeLists.txt:297-316`), because the vendored `cmake/FindOpenGL.cmake` defaults `OPENGL_USE_APPLE_X11` to ON (`:54`) and folds FindX11's libraries into `OPENGL_LIBRARIES` (`:129-134`). Setting `OPENGL_USE_APPLE_X11=OFF` is **not** the fix: that branch emits `-framework AGL`, and AGL was removed from the macOS SDK. GL symbols must still resolve because the GL call sites are compiled even though nothing on this path calls GL; GLU is dropped entirely (zero `glu*` references). `otool -L` shows OpenGL.framework, AppKit, Metal and QuartzCore with no `/opt/X11` and no Homebrew paths, and `.github/workflows/build-macos.yml` now guards the regression.
 
 Consequences of the default (XQuartz) configuration include:
 
@@ -65,7 +65,7 @@ Consequences of the default (XQuartz) configuration include:
 - Retina scaling and macOS application lifecycle integration are not handled natively.
 - The output is a command-line executable, not a self-contained `.app` bundle.
 
-**Updated 2026-08-20 (Phase 1):** all four are now conditional. With `TOGGLE_COCOA_WINDOW=ON` the window, input, clipboard, cursors, fullscreen, Retina backing scale and application lifecycle are native AppKit (`src/framework/platform/cocoawindow.mm`), and the target builds `CrystalOTC.app` (`src/CMakeLists.txt:1059`). Bundle *completeness* — real asset copies, embedded dylibs, signing — remains Phase 7; the developer build symlinks its resources (`src/CMakeLists.txt:1080`).
+**Updated 2026-08-20 (Phase 1):** all four are now conditional. With `TOGGLE_COCOA_WINDOW=ON` the window, input, clipboard, cursors, fullscreen, Retina backing scale and application lifecycle are native AppKit (`src/framework/platform/cocoawindow.mm`), and the target builds `CrystalOTC.app` (`src/CMakeLists.txt:1078`). Bundle *completeness* — real asset copies, embedded dylibs, signing — remains Phase 7; the developer build symlinks its resources (`src/CMakeLists.txt:1099`).
 
 ### Vulkan is explicitly Windows-only
 
@@ -135,7 +135,7 @@ This retains `X11Window` and the existing OpenGL renderer.
 
 ### Required work
 
-**Status 2026-08-20:** all but the macOS build job are complete — see `docs/metal-implementation-plan.md` Phase 0 and `docs/rendering-baselines/known-deviations.md`.
+**Status 2026-08-20:** ~~all but the macOS build job are complete~~ **updated 2026-08-20 (Phase 1):** every item is complete except a build job for *this* configuration — `.github/workflows/build-macos.yml` covers macOS in CI but builds the Cocoa configuration on purpose, since XQuartz is a `.dmg` install a hosted runner cannot provide, so the XQuartz path remains a local-only build — see `docs/metal-implementation-plan.md` Phase 0 and `docs/rendering-baselines/known-deviations.md`.
 
 - Install and document XQuartz.
 - Resolve the existing macOS/vcpkg dependencies.
@@ -749,14 +749,14 @@ This prevents platform-port work from masking pre-existing renderer differences.
 ## Phase 1: Native macOS platform layer
 
 - ~~Add `CocoaWindow` in Objective-C++.~~ **Done 2026-08-20:** `src/framework/platform/cocoawindow.{h,mm}`.
-- ~~Create a native `.app` target.~~ **Done 2026-08-20:** `CrystalOTC.app` (`src/CMakeLists.txt:1059`), with resources symlinked rather than staged — a bundle that runs, not one that ships.
+- ~~Create a native `.app` target.~~ **Done 2026-08-20:** `CrystalOTC.app` (`src/CMakeLists.txt:1078`), with resources symlinked rather than staged — a bundle that runs, not one that ships.
 - ~~Implement input, clipboard, cursors, Retina scaling, resize, fullscreen, focus, and lifecycle behavior.~~ **Done 2026-08-20**, though input is written rather than verified — see the success criterion below.
 - ~~Expose a `CAMetalLayer` and drawable size.~~ **Done differently 2026-08-20:** drawable size is exposed (`CocoaWindow::getDrawableSize`), but the layer is **not** — it stays private inside `CocoaWindowImpl`, because the window presents its own frames. Phase 4 has to decide whether the backend takes the drawable from the window or the window keeps presenting.
-- ~~Remove the unconditional macOS dependency on X11.~~ **Partially done 2026-08-20:** platform selection and `find_package(X11)` now exclude the Cocoa build (`src/CMakeLists.txt:222-224`), but the binary still links `/opt/X11` libGL and Homebrew libX11 through `${OPENGL_LIBRARIES}` (`src/CMakeLists.txt:955`, `cmake/FindOpenGL.cmake:129-134`). Full unlinking is outstanding.
+- ~~Remove the unconditional macOS dependency on X11.~~ **Done 2026-08-20:** platform selection and `find_package(X11)` exclude the Cocoa build (`src/CMakeLists.txt:222-224`), `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1006-1021`), and the Cocoa branch no longer pulls X11 in through `${OPENGL_LIBRARIES}`: it bypasses `find_package(OpenGL)` and links Apple's OpenGL.framework (`src/CMakeLists.txt:297-316`). `otool -L` shows no `/opt/X11` and no Homebrew paths; CI asserts it. The default (non-Cocoa) macOS build still links XQuartz by design.
 
 Success criterion: a native macOS window can open, process input, resize, and present a clear color.
 
-**Status 2026-08-20: met.** The window opens, resizes (tracking backing scale) and presents a clear colour; `CrystalOTC.app` launches from Finder; and input was verified by driving real events at the running window — keyboard translation against the `Fw::Key` table, a `CGEvent` click producing `Fw::MouseLeftButton`, and both quit routes reaching the client for a graceful shutdown. Text input, scroll and modifier synthesis remain unexercised, and there is still no macOS CI job to exercise any of it automatically.
+**Status 2026-08-20: met.** The window opens, resizes (tracking backing scale) and presents a clear colour; `CrystalOTC.app` launches from Finder; and input was verified by driving real events at the running window — keyboard translation against the `Fw::Key` table, a `CGEvent` click producing `Fw::MouseLeftButton`, and both quit routes reaching the client for a graceful shutdown. Text input, scroll and modifier synthesis remain unexercised. ~~and there is still no macOS CI job to exercise any of it automatically.~~ **Corrected 2026-08-20 (Phase 1):** a macOS CI job now exists — `.github/workflows/build-macos.yml`, run `32411659041` on `macos-15`, 17/17 steps green. It builds the Cocoa configuration, runs `ctest`, lints the bundle `Info.plist` (including `NSHighResolutionCapable`, load-bearing for the pixels-vs-points contract), asserts the binary links no X11, and smoke-launches the client until it logs `OpenGL initialization skipped`. It cannot exercise input: a hosted runner has no window server, so keyboard, mouse, text input and scroll remain hand-verified only.
 
 ## Phase 2: Stabilize the renderer boundary
 
@@ -905,6 +905,7 @@ If full visual parity is mandatory in the first macOS release, substitute ANGLE 
 - `src/framework/platform/cocoawindow.*`
 - `src/framework/core/resourcemanager.cpp`
 - `cmake/macos/Info.plist.in`
+- `.github/workflows/build-macos.yml`
 - `cmake/FindOpenGL.cmake`
 - `src/framework/graphics/declarations.h`
 - `src/framework/graphics/painter.*`
