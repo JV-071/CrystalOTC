@@ -49,31 +49,21 @@ if ENABLE_SERVERS then
     -- Each entry defines port, protocol, and authentication options.
     -- @table Servers_init
     --
-    -- DEV (devserver.flag next to the exe): localhost ONLY - no background requests to the
-    -- release endpoint. Release (no flag) = the production login below.
-    if g_resources.fileExists("/devserver.flag") then
-        Servers_init = {
-            ["http://127.0.0.1/login.php"] = {
-                port = 8080,
-                protocol = 1525,
-                httpLogin = true,
-                useAuthenticator = false,
-                gameHost = "127.0.0.1",
-                gamePort = 7182
-            }
+    -- This fork targets the local Crystal server only. The HTTP login service listens on
+    -- 8080 and advertises a stale game endpoint, so gameHost/gamePort override it with the
+    -- real 127.0.0.1:7182 game port. A devserver.flag branch used to exist here, but both
+    -- of its arms resolved to this same localhost entry; add one back only when a second
+    -- endpoint genuinely exists.
+    Servers_init = {
+        ["http://127.0.0.1/login.php"] = {
+            port = 8080,
+            protocol = 1525,
+            httpLogin = true,
+            useAuthenticator = false,
+            gameHost = "127.0.0.1",
+            gamePort = 7182
         }
-    else
-        Servers_init = {
-            ["http://127.0.0.1/login.php"] = {
-                port = 8080,
-                protocol = 1525,
-                httpLogin = true,
-                useAuthenticator = false,
-                gameHost = "127.0.0.1",
-                gamePort = 7182
-            }
-        }
-    end
+    }
 end
 
 g_app.setName("CrystalOTC");
