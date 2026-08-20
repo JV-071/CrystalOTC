@@ -109,6 +109,74 @@ converge. Separately, the outfit-customisation window the server pushes at login
 covered the map but had already altered the layout by the time it was hidden, so the game
 interface is isolated early and repeatedly rather than only at the shutter.
 
+## map-core and map-screenshot on the fixture platform
+
+Both scenes now capture the server-authored surface platform rather than the live world.
+`map-core` measures **3 differing pixels of 656,880 (0.0005%)** between consecutive runs;
+`map-screenshot` measures **62 of 168,960 (0.037%)**.
+
+The readback residual is one animated decoration. `Thing:setAnimate(false)` freezes a sprite
+at whatever phase it currently holds, which differs per run, so freezing does not by itself
+make an animated item deterministic -- it only stops it advancing. Accepted, since it is well
+inside policy.
+
+Two contaminants were removed. The hovered-tile **crosshair** is drawn into the MAP pool
+wherever the pointer sits, so it reached the framebuffer readback as well as the window
+capture; `suppressCaptureTooltip` does not reach it because it is a map texture, not a
+widget. It alone accounted for a full 32x32 tile of drift. Separately, running the interface
+isolation immediately before `doMapScreenshot` relayouts the widget tree and intermittently
+left the client with no map widget to read back from, so the capture silently timed out; the
+readback path now gets only the animation freeze, which is all that applies to it.
+
+## shader-matrix
+
+Every shipped fragment program over one identical textured cell, plus a no-shader control and
+a row applying the six outfit shaders through their real creature route. **0 differing pixels**
+between consecutive runs -- only possible because `u_Time` is now pinnable; nine of the shaders
+animate and thirteen animated cells could never have fit the 656-pixel budget.
+
+Two constraints shaped it. The cells must be **textured**: `Painter::drawCoords` binds the
+extra multi-texture units only inside its textured branch and otherwise leaves the texcoord
+attribute disabled, so solid-colour cells would not exercise Fog or Snow at all. The cell
+image is large and fully opaque, which also keeps it out of atlas packing -- the
+offset-sampling shaders (bloom, radial blur, zomg, pulse, heat, noise) would otherwise sample
+whatever happened to be packed beside it, coupling the result to packing order.
+
+Map shaders appear here as fragment programs only. Their real bind site is the MAP framebuffer
+to screen blit, and `Client::canDraw(MAP)` is literally `g_game.isOnline()`, so a UIMap with no
+connection produces no MAP-pool content. `shader-matrix-map` is declared in the manifest as the
+online scene still owing that coverage.
+
+## Corrections to the planning documents
+
+Two documented assumptions were checked against the source and do not hold.
+
+**`AUTO_STAT` is compiled out of every build this repository produces.** `ENABLE_STATS` is
+defined nowhere in CMake and the release binary contains none of the stat description
+literals. The implementation plan's Phase 0 item "existing `AUTO_STAT` counters suffice
+initially" is therefore wrong for a release build, and enabling them is not a valid
+substitute: each `AUTO_STAT` allocates, builds a description string and takes a global mutex
+on hot paths including every Lua call and every packet, so the instrumented build does not
+measure the renderer either. The only release-available accessors are a **1 Hz integer** FPS
+counter, `g_stats.getWidgetsInfo`, `g_atlas.getStats()` and `collectgarbage("count")`. The
+client also sleeps to cap itself at 60 FPS by default, so an uninstrumented FPS figure
+measures the cap rather than the renderer. A frame-time baseline needs a decision before it
+can be built.
+
+**Survey quirk 7 is inaccurate as written.** The FOREGROUND framebuffer does not stretch.
+`GraphicalApplication::resize` sizes the UI and that framebuffer at `viewport/scale`, but the
+framebuffer is blitted 1:1 into a destination rect equal to its own size, inside a painter
+whose resolution is the full physical viewport. A scale change is therefore capturable as a
+genuine image difference rather than a rescale, which is what the `display-density` feature
+should freeze.
+
+Also relevant to the unimplemented `windowing` scene: `focus` is **not observable in any
+captured image** -- `hasFocus()` has zero consumers anywhere in the tree, so it is a pure
+state bit. And under the CI Xvfb there is no window manager, so `setFullscreen`/`maximize` are
+silently dropped while the client still flips its own state bits, making `isFullscreen()` a
+false-positive assertion headlessly. The Xvfb screen is also exactly the capture size, so any
+windowing step that grows the window past 1020x644 would exceed the root window there.
+
 ## CI gating
 
 Two scenes are captured and archived but deliberately **not** gated against a reference:
