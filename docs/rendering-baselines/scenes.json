@@ -25,15 +25,17 @@
     },
     {
       "id": "ui-clipping-opacity",
-      "automation": "client-script",
+      "automation": "client",
       "requiresOnlineGame": false,
-      "features": ["nested-clipping", "scroll-area", "opacity", "map-hole", "foreground-fbo"]
+      "features": ["nested-clipping", "rotated-clipping", "scroll-area", "opacity", "overlapping-alpha"],
+      "command": "--renderer-baseline=ui-clipping-opacity --renderer-baseline-output=ui-clipping-opacity.png"
     },
     {
       "id": "text-matrix",
-      "automation": "client-script",
+      "automation": "client",
       "requiresOnlineGame": false,
-      "features": ["bitmap-font", "ttf-font", "outlined-text", "alignment", "rotation"]
+      "features": ["bitmap-font", "ttf-font", "ttf-stroke", "outlined-text", "font-scale", "alignment", "rotation"],
+      "command": "--renderer-baseline=text-matrix --renderer-baseline-output=text-matrix.png"
     },
     {
       "id": "outfit-masks",
