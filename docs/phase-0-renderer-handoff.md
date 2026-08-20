@@ -25,6 +25,62 @@ At this checkpoint:
 - The llvmpipe workflow has run on GitHub. Its first run failed; the failure and all four
   warnings were diagnosed from the logs and fixed. It has **not yet completed a green run**.
 
+## Phase 0 checklist
+
+Against the implementation plan's Phase 0 tasks:
+
+- [x] **XQuartz GL bring-up.** Client builds and runs on Apple Silicon; XQuartz 2.8.6, OpenGL 2.1, GLSL 1.20.
+- [x] **CI software-GL reference.** Ubuntu container + Xvfb + Mesa llvmpipe, digest-pinned, green.
+- [x] **Script the validation-matrix scenes.** All 15 scenes in `scenes.json` have a command.
+- [x] **Cover every surveyed edge.** Seven temp-FBO sites, map hole, `useFramebuffer` Outline, Fog/Snow multi-texture, UIGraph lines, atlas growth, map readback.
+- [x] **Resolve `[D §12.4]`** — the `x/3, y/1.5` offsets are intentional framing; verdict recorded in the survey.
+- [x] ~~Frame-time and memory baselines~~ — **deferred to Phase 3** (`AUTO_STAT` is compiled out; the client caps at 60 FPS, so a Phase 0 figure measures the cap and has nothing to compare against).
+
+Against the exit gate:
+
+- [x] The client runs on macOS via XQuartz.
+- [x] A checked-in scene list (`scenes.json`, machine-readable, single source of truth).
+- [~] A CI-generated reference-image set — **6 of 7 seeded**; `startup-ui` awaits a green run.
+- [x] A known-deviations note, including the XQuartz-versus-llvmpipe comparison with evidence.
+
+### Scenes
+
+Repeatability is two or more consecutive captures compared with
+`tools/compare_renderer_images.py`, out of 656,880 pixels unless noted.
+
+| Scene | Impl | Where | CI | Repeatability |
+|---|---|---|---|---|
+| `startup-ui` | [x] | offline | gated, **ref pending** | 0 px |
+| `ui-clipping-opacity` | [x] | offline | gated | 0 px |
+| `text-matrix` | [x] | offline | gated | 0 px |
+| `particles-blends` | [x] | offline | gated | within tolerance, max delta 1 |
+| `composition-all` | [x] | offline | gated | 0 px |
+| `graph-lines` | [x] | offline | gated | 0 px |
+| `atlas-resources` | [x] | offline | gated | 0 px |
+| `outfit-masks` | [x] | offline | captured only | 0 px (was 520 before pinned `u_Time`) |
+| `temporary-framebuffers` | [x] | offline | captured only | 0 px (was 449 before pinned `u_Time`) |
+| `shader-matrix` | [x] | offline | captured only | 0 px |
+| `windowing` | [x] | offline | not capturable | 0 px |
+| `lighting-overlap` | [x] | online | — | 161 px (0.024%) |
+| `map-screenshot` | [x] | online | — | 62 px of 168,960 (0.037%) |
+| `map-core` | [x] | online | — | 16–765 px, tolerance 0.002 |
+| `shader-matrix-map` | [x] | online | — | 778 px, tolerance 0.002 |
+
+`captured only` means CI captures and archives the scene but does not compare it, because
+`data/things/*` is gitignored so a runner renders creature and item previews empty. `not
+capturable` means a headless runner cannot produce the scene at all. Both carry a reason in
+the manifest.
+
+### Supporting work
+
+- [x] Comparator made gate-ready: alpha delta visible in diffs, distinct exit codes, no diff allocation when unused.
+- [x] `tools/renderer_scenes.py` — manifest is the single source of truth; the scene list had been duplicated three times.
+- [x] llvmpipe workflow fixed and green: four build blockers, autotools for `alsa`, a real comparison gate, concurrency, caches, environment fingerprint.
+- [x] Server fixtures committed in `crystalserver` (`f47f6e41`), unpushed.
+- [x] Capture determinism: isolated write directory, pre-login window sizing, pinned `u_Time`, pinned login background, verified fixture arrival, crosshair suppression.
+- [x] Design documents tracked and four contradicted claims corrected.
+- [x] Windows release job gated off forks; the Windows build itself is the compile gate and passes.
+
 ## What changed since the previous handoff
 
 ### Capture determinism
