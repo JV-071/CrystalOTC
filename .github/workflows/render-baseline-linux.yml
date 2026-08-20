@@ -1,0 +1,109 @@
+name: Renderer baseline - Linux llvmpipe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/framework/graphics/**"
+      - "src/framework/ui/**"
+      - "src/client/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "init.lua"
+      - "docs/rendering-baselines/**"
+      - "tools/compare_renderer_images.py"
+      - "vcpkg.json"
+      - "CMakePresets.json"
+      - "CMakeLists.txt"
+      - "src/CMakeLists.txt"
+      - ".github/workflows/render-baseline-linux.yml"
+  pull_request:
+    paths:
+      - "src/framework/graphics/**"
+      - "src/framework/ui/**"
+      - "src/client/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "init.lua"
+      - "docs/rendering-baselines/**"
+      - "tools/compare_renderer_images.py"
+      - "vcpkg.json"
+      - "CMakePresets.json"
+      - "CMakeLists.txt"
+      - "src/CMakeLists.txt"
+      - ".github/workflows/render-baseline-linux.yml"
+
+permissions:
+  contents: read
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg
+
+jobs:
+  startup-ui:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GLX software-rendering prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1-mesa-dri libx11-dev mesa-utils ninja-build python3-pil \
+            xauth xvfb
+
+      - name: Read pinned vcpkg baseline
+        id: vcpkg
+        shell: bash
+        run: echo "commit=$(python3 -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Install pinned vcpkg
+        uses: lukka/run-vcpkg@a400452f634fe49e9f18d388aeb1809dcc642136
+        with:
+          vcpkgGitCommitId: ${{ steps.vcpkg.outputs.commit }}
+
+      - name: Configure
+        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=OFF
+
+      - name: Build
+        run: cmake --build --preset linux-release --parallel 2
+
+      - name: Capture startup UI with llvmpipe
+        shell: bash
+        run: |
+          mkdir -p artifacts/render-baselines
+          xvfb-run -a -s "-screen 0 1020x644x24" sh -c '
+            LIBGL_ALWAYS_SOFTWARE=1 glxinfo -B > artifacts/render-baselines/glxinfo.txt
+            LIBGL_ALWAYS_SOFTWARE=1 timeout 30s build/linux-release/bin/otclient \
+              --renderer-baseline=startup-ui \
+              --renderer-baseline-output=startup-ui.png \
+              > artifacts/render-baselines/client.log 2>&1
+          '
+          capture=$(find "$HOME" -path '*/render-baselines/startup-ui.png' -print -quit)
+          test -n "$capture"
+          cp "$capture" artifacts/render-baselines/startup-ui.png
+          file artifacts/render-baselines/startup-ui.png
+
+      - name: Record capture metadata
+        shell: bash
+        run: |
+          {
+            echo "commit=${GITHUB_SHA}"
+            echo "backend=opengl-llvmpipe"
+            echo "viewport=1020x644"
+            echo "runner=ubuntu-24.04"
+          } > artifacts/render-baselines/metadata.txt
+
+      - name: Upload canonical baseline candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: renderer-baseline-opengl-llvmpipe-${{ github.sha }}
+          path: artifacts/render-baselines
+          if-no-files-found: error
