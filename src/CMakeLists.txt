@@ -30,6 +30,18 @@ if(APPLE AND TOGGLE_COCOA_WINDOW AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "14.0" CACHE STRING "Minimum macOS version for the app bundle" FORCE)
   message(STATUS "macOS deployment target defaulted to ${CMAKE_OSX_DEPLOYMENT_TARGET}")
 endif()
+
+# Decision 5 in docs/metal-implementation-plan.md, resolved 2026-08-20: Apple Silicon only,
+# no universal binary. Left unset this resolved to whatever the build host happened to be -
+# arm64 both locally and on the macos-15 runner, but by accident rather than by choice, and
+# an Intel host would have produced an x86_64 bundle claiming the same identity. Same FORCE
+# and same scoping as the deployment target above, and for the same reason: this changes
+# codegen for every target, and the XQuartz build is the vehicle the renderer baselines are
+# captured with. Widening it to all of APPLE is a one-line change if that is ever wanted.
+if(APPLE AND TOGGLE_COCOA_WINDOW AND NOT CMAKE_OSX_ARCHITECTURES)
+  set(CMAKE_OSX_ARCHITECTURES "arm64" CACHE STRING "macOS target architectures" FORCE)
+  message(STATUS "macOS architecture defaulted to ${CMAKE_OSX_ARCHITECTURES}")
+endif()
 option(DEBUG_LOG "Enable Debug Log" OFF)
 option(ASAN_ENABLED "Build this target with AddressSanitizer" OFF)
 option(BUILD_STATIC_LIBRARY "Build using static libraries" OFF)
