@@ -249,6 +249,24 @@ local function stabilizeOnlineUi()
     end
 end
 
+-- client_background picks one of six login backgrounds at random on every startup, seeded
+-- from the wall clock (modules/client_background/background.lua). Any scene that shows the
+-- login screen -- startup-ui and windowing -- is therefore only one-in-six likely to match a
+-- previous capture. Pin it to the first background so those scenes are comparable at all.
+local BASELINE_LOGIN_BACKGROUND = "/images/background_crystal1"
+
+local function pinLoginBackground()
+    local backgroundModule = modules.client_background
+    if not backgroundModule or not backgroundModule.getBackground then
+        return
+    end
+
+    local background = backgroundModule.getBackground()
+    if background and not background:isDestroyed() then
+        background:setImageSource(BASELINE_LOGIN_BACKGROUND)
+    end
+end
+
 local function suppressCaptureTooltip()
     local rootWidget = g_ui.getRootWidget()
     local hovered = rootWidget:getHoveredChild()
@@ -695,6 +713,7 @@ end
 -- full-window path and the MAP framebuffer readback: the readback samples the MAP pool, so
 -- animation frozen here matters there too even though the UI hardening does not.
 local function prepareForShutter()
+    pinLoginBackground()
     suppressCaptureTooltip()
     isolateGameInterface()
     pinInterfaceLayout()
@@ -1181,6 +1200,7 @@ function RendererBaseline.onLoginError(message)
 end
 
 function RendererBaseline.onRun()
+    pinLoginBackground()
     activeScenario = optionValue("renderer-baseline")
     if activeScenario == "startup-ui" then
         RendererBaseline.captureScene(activeScenario, 2500)
