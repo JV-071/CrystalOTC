@@ -10,7 +10,7 @@ This directory defines the Phase 0 visual reference process used while the OpenG
 - A channel difference of 2 is tolerated by default. At most 0.1% of pixels may exceed that tolerance. Missing passes, wrong dimensions, clipping errors, alpha errors, and coordinate shifts always fail review regardless of the aggregate percentage.
 - PNGs and metadata are CI artifacts. They are not committed until a scene is stable and its required game assets can be distributed reproducibly.
 
-The complete required coverage and automation status live in [scenes.json](scenes.json). `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`, `outfit-masks`, `temporary-framebuffers`, `composition-all`, and the fixture-backed `map-core` capture are automated now. Entries marked `fixture-server`, `client-script`, `native-fixture`, or `desktop-driver` are the remaining Phase 0 fixture work, not optional coverage.
+The complete required coverage and automation status live in [scenes.json](scenes.json). `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`, `outfit-masks`, `temporary-framebuffers`, `composition-all`, and the fixture-backed `map-core` and `map-screenshot` captures are automated now. Entries marked `fixture-server`, `client-script`, `native-fixture`, or `desktop-driver` are the remaining Phase 0 fixture work, not optional coverage.
 
 ## macOS XQuartz bring-up
 
@@ -59,6 +59,8 @@ DISPLAY="$DISPLAY" build/macos-release/bin/otclient \
   --renderer-baseline=map-core \
   --renderer-baseline-output=map-core.png
 ```
+
+Use `--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png` with the same environment to capture the MAP framebuffer readback rather than the complete client window. This scene preserves and verifies the legacy asymmetric one-tile/two-tile margin crop.
 
 The online driver defaults to `127.0.0.1:7182` and protocol 15.25. Override these with `CRYSTALOTC_BASELINE_HOST`, `CRYSTALOTC_BASELINE_PORT`, or `CRYSTALOTC_BASELINE_VERSION`. Credentials stay out of command-line arguments and capture metadata.
 

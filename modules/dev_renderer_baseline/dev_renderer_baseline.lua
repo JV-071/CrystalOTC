@@ -427,6 +427,46 @@ function RendererBaseline.captureScene(scene, delay)
     end, delay)
 end
 
+function RendererBaseline.captureMapScreenshot(scene, delay)
+    local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
+    if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
+        fail("--renderer-baseline-output must be a PNG filename without a directory")
+        return
+    end
+
+    if not g_resources.directoryExists("/render-baselines") then
+        g_resources.makeDir("/render-baselines")
+    end
+
+    local virtualPath = "/render-baselines/" .. outputName
+    local realPath = g_resources.getWriteDir() .. "render-baselines/" .. outputName
+    if g_resources.fileExists(virtualPath) then
+        g_resources.deleteFile(virtualPath)
+    end
+
+    g_logger.info("[renderer-baseline] capturing " .. scene .. " to " .. realPath)
+    captureEvent = scheduleEvent(function()
+        g_app.doMapScreenshot(virtualPath)
+
+        local attempts = 0
+        local function waitForCapture()
+            attempts = attempts + 1
+            if g_resources.fileExists(virtualPath) then
+                exitEvent = scheduleEvent(function()
+                    g_logger.info("[renderer-baseline] capture complete: " .. realPath)
+                    g_app.exit()
+                end, 1500)
+            elseif attempts >= 100 then
+                fail("capture timed out after 10 seconds: " .. realPath)
+            else
+                exitEvent = scheduleEvent(waitForCapture, 100)
+            end
+        end
+
+        exitEvent = scheduleEvent(waitForCapture, 100)
+    end, delay)
+end
+
 function RendererBaseline.loginFixtureServer()
     local account = os.getenv("CRYSTALOTC_BASELINE_ACCOUNT")
     local password = os.getenv("CRYSTALOTC_BASELINE_PASSWORD")
@@ -462,7 +502,7 @@ function RendererBaseline.loginFixtureServer()
 end
 
 function RendererBaseline.onGameStart()
-    if activeScenario ~= "map-core" then
+    if activeScenario ~= "map-core" and activeScenario ~= "map-screenshot" then
         return
     end
 
@@ -471,11 +511,15 @@ function RendererBaseline.onGameStart()
         loginTimeoutEvent = nil
     end
 
-    RendererBaseline.captureScene(activeScenario, 4000)
+    if activeScenario == "map-screenshot" then
+        RendererBaseline.captureMapScreenshot(activeScenario, 4000)
+    else
+        RendererBaseline.captureScene(activeScenario, 4000)
+    end
 end
 
 function RendererBaseline.onLoginError(message)
-    if activeScenario == "map-core" then
+    if activeScenario == "map-core" or activeScenario == "map-screenshot" then
         fail("fixture-server login failed: " .. tostring(message))
     end
 end
@@ -484,7 +528,7 @@ function RendererBaseline.onRun()
     activeScenario = optionValue("renderer-baseline")
     if activeScenario == "startup-ui" then
         RendererBaseline.captureScene(activeScenario, 2500)
-    elseif activeScenario == "map-core" then
+    elseif activeScenario == "map-core" or activeScenario == "map-screenshot" then
         RendererBaseline.loginFixtureServer()
     elseif activeScenario == "ui-clipping-opacity" then
         RendererBaseline.buildClippingOpacityScene()

@@ -85,9 +85,10 @@
     },
     {
       "id": "map-screenshot",
-      "automation": "fixture-server",
+      "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["map-readback", "cropping", "vertical-flip"]
+      "features": ["map-readback", "asymmetric-margin-crop", "vertical-flip"],
+      "command": "--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png"
     }
   ]
 }
