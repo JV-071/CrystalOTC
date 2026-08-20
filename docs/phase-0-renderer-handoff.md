@@ -76,7 +76,7 @@ the manifest.
 - [x] Comparator made gate-ready: alpha delta visible in diffs, distinct exit codes, no diff allocation when unused.
 - [x] `tools/renderer_scenes.py` — manifest is the single source of truth; the scene list had been duplicated three times.
 - [x] llvmpipe workflow fixed and green: four build blockers, autotools for `alsa`, a real comparison gate, concurrency, caches, environment fingerprint.
-- [x] Server fixtures committed in `crystalserver` (`f47f6e41`), unpushed.
+- [x] Server fixtures committed and pushed to `aacruzgon/crystalserver` (`f47f6e41`, branch `local/testing`).
 - [x] Capture determinism: isolated write directory, pre-login window sizing, pinned `u_Time`, pinned login background, verified fixture arrival, crosshair suppression.
 - [x] Design documents tracked and four contradicted claims corrected.
 - [x] Windows release job gated off forks; the Windows build itself is the compile gate and passes.
@@ -161,11 +161,11 @@ it is blocked rather than pending:
    produce one: take `startup-ui.png` from that run's artifact and commit it to
    `docs/rendering-baselines/references/opengl-llvmpipe/`.
 
-2. **Push the crystalserver fixture commit** (`f47f6e41` on branch `local/testing`) once the
-   client side is considered settled. Note that repository's remotes are named the opposite
-   way round from this one: `origin` is upstream (`zimbadev/crystalserver`) and the fork is
-   `fork` (`aacruzgon/crystalserver`). Pushing to `origin` there has been disabled locally to
-   prevent the mistake.
+~~2. Push the crystalserver fixture commit.~~ **Done** — `f47f6e41` is on
+   `aacruzgon/crystalserver`, branch `local/testing`. Note that repository names its remotes
+   the opposite way round from this one: `origin` is upstream (`zimbadev/crystalserver`) and
+   the fork is `fork` (`aacruzgon/crystalserver`). Pushing to `origin` there has been disabled
+   locally to prevent the mistake.
 
 ## Deferred follow-ups
 
