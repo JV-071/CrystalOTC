@@ -82,6 +82,23 @@ local function isolateClientScene()
     sceneRoot:raise()
 end
 
+local function suppressCaptureTooltip()
+    local rootWidget = g_ui.getRootWidget()
+    local hovered = rootWidget:getHoveredChild()
+    while hovered do
+        hovered:setTooltip(nil)
+        if hovered.setSpecialToolTip then
+            hovered:setSpecialToolTip(nil)
+        end
+        hovered = hovered:getHoveredChild()
+    end
+
+    if g_tooltip then
+        g_tooltip.hide()
+        g_tooltip.hideSpecial()
+    end
+end
+
 function RendererBaseline.buildClippingOpacityScene()
     local root = beginClientScene(
         "OpenGL UI clipping and opacity",
@@ -538,6 +555,7 @@ function RendererBaseline.captureScene(scene, delay)
         end
 
         captureEvent = scheduleEvent(function()
+            suppressCaptureTooltip()
             g_app.doScreenshot(virtualPath)
 
             -- Screenshot encoding is dispatched asynchronously. Poll for the new file, then
