@@ -514,6 +514,14 @@ void Application::registerLuaFunctions()
         g_mainDispatcher.addEvent([] { g_shaders.clear(); });
     });
 
+    // Pin u_Time for reproducible captures; see PainterShaderProgram::setFixedTime.
+    g_lua.bindClassStaticFunction("g_shaders", "setFixedTime", [](const float seconds) {
+        PainterShaderProgram::setFixedTime(seconds);
+    });
+    g_lua.bindClassStaticFunction("g_shaders", "clearFixedTime", [] {
+        PainterShaderProgram::clearFixedTime();
+    });
+
     // UIWidget
     g_lua.registerClass<UIWidget>();
     g_lua.bindClassStaticFunction<UIWidget>("create", [] { return std::make_shared<UIWidget>(); });

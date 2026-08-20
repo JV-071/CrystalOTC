@@ -131,9 +131,25 @@ void PainterShaderProgram::setResolution(const Size& resolution)
     m_resolution = resolution;
 }
 
+namespace
+{
+    bool g_shaderFixedTimeEnabled = false;
+    float g_shaderFixedTimeValue = 0.f;
+}
+
+void PainterShaderProgram::setFixedTime(const float seconds)
+{
+    g_shaderFixedTimeEnabled = true;
+    g_shaderFixedTimeValue = seconds;
+}
+
+void PainterShaderProgram::clearFixedTime() { g_shaderFixedTimeEnabled = false; }
+bool PainterShaderProgram::hasFixedTime() { return g_shaderFixedTimeEnabled; }
+
 void PainterShaderProgram::updateTime()
 {
-    const float time = g_clock.seconds() - m_startTime;
+    const float time = g_shaderFixedTimeEnabled ? g_shaderFixedTimeValue
+                                                : g_clock.seconds() - m_startTime;
     if (m_time == time)
         return;
 

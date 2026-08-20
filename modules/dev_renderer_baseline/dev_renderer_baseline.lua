@@ -47,7 +47,21 @@ local function makeLabel(parent, x, y, width, height, text, font, color, alignme
     return label
 end
 
+-- Every shader in the registry reads u_Time as wall-clock seconds, so an animated shader makes
+-- its scene irreproducible: outfit-masks and temporary-framebuffers each carry one Outline probe
+-- and already spend 520 and 449 of the 656-pixel tolerance budget on it. Pin the phase instead.
+-- 2.0 s is deliberately away from t=0, where several shaders sit at a degenerate value.
+local CAPTURE_SHADER_TIME = 2.0
+
+local function freezeShaderTime()
+    if g_shaders and g_shaders.setFixedTime then
+        g_shaders.setFixedTime(CAPTURE_SHADER_TIME)
+    end
+end
+
 local function beginClientScene(title, subtitle)
+    freezeShaderTime()
+
     if EnterGame and EnterGame.hide then
         EnterGame.hide()
     end
@@ -91,6 +105,8 @@ end
 --     on g_game.isOnline() and the client is still offline at that moment. Nothing
 --     hides it again once the game starts, so it covers the map centre.
 local function stabilizeOnlineUi()
+    freezeShaderTime()
+
     if modules.client_options and modules.client_options.setOption then
         pcall(modules.client_options.setOption, "showFps", false, true)
     end

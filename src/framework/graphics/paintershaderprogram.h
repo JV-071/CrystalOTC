@@ -65,6 +65,15 @@ public:
     void setResolution(const Size& resolution);
     void updateTime();
 
+    // Deterministic-capture support. u_Time is wall-clock derived and had no override, so any
+    // shader that animates made its frame irreproducible: renderer baseline captures could not
+    // gate a shader scene, and a GL-versus-Metal comparison of the same shader could never line
+    // up. Pinning the value makes every animated shader render a fixed, chosen phase. Applies to
+    // every program at once because the comparison is only meaningful frame-wide.
+    static void setFixedTime(float seconds);
+    static void clearFixedTime();
+    static bool hasFixedTime();
+
     void addMultiTexture(const std::string& file);
     void bindMultiTextures() const;
 
