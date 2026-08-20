@@ -35,6 +35,13 @@
 #include <errno.h>
 #else
 #include <execinfo.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#ifdef __APPLE__
+#include <net/if_dl.h>
+#else
+#include <netpacket/packet.h>
+#endif
 #endif
 
 void Platform::init(std::vector<std::string>& args)
@@ -175,6 +182,53 @@ bool Platform::openDir(std::string path, bool now)
     g_dispatcher.scheduleEvent(action, 50);
 	
 	return true;
+}
+
+std::vector<std::string> Platform::getMacAddresses()
+{
+#ifdef ANDROID
+    return {};
+#else
+    ifaddrs* interfaces = nullptr;
+    if (getifaddrs(&interfaces) != 0)
+        return {};
+
+    std::vector<std::string> macAddresses;
+    for (const ifaddrs* interface = interfaces; interface; interface = interface->ifa_next) {
+        if (!interface->ifa_addr || (interface->ifa_flags & IFF_LOOPBACK))
+            continue;
+
+        const unsigned char* address = nullptr;
+        size_t addressLength = 0;
+#ifdef __APPLE__
+        if (interface->ifa_addr->sa_family == AF_LINK) {
+            const auto* linkAddress = reinterpret_cast<const sockaddr_dl*>(interface->ifa_addr);
+            address = reinterpret_cast<const unsigned char*>(LLADDR(linkAddress));
+            addressLength = linkAddress->sdl_alen;
+        }
+#else
+        if (interface->ifa_addr->sa_family == AF_PACKET) {
+            const auto* linkAddress = reinterpret_cast<const sockaddr_ll*>(interface->ifa_addr);
+            address = linkAddress->sll_addr;
+            addressLength = linkAddress->sll_halen;
+        }
+#endif
+
+        if (!address || addressLength == 0)
+            continue;
+
+        std::string macAddress;
+        macAddress.reserve(addressLength * 2);
+        for (size_t i = 0; i < addressLength; ++i)
+            macAddress += fmt::format("{:02x}", address[i]);
+        macAddresses.emplace_back(std::move(macAddress));
+    }
+
+    freeifaddrs(interfaces);
+    std::sort(macAddresses.begin(), macAddresses.end());
+    macAddresses.erase(std::unique(macAddresses.begin(), macAddresses.end()), macAddresses.end());
+    return macAddresses;
+#endif
 }
 
 std::string Platform::getCPUName()

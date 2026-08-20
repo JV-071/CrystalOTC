@@ -25,6 +25,16 @@
 #ifndef CPPHTTPLIB_OPENSSL_SUPPORT
 #    define CPPHTTPLIB_OPENSSL_SUPPORT
 #endif
+
+#ifdef __APPLE__
+// cpp-httplib's non-blocking resolver and automatic Keychain support include
+// CFNetwork, whose legacy global Size/Point/Rect names collide with framework
+// geometry types. Login requests already run on g_asyncDispatcher and currently
+// disable certificate verification, so neither macOS-only path is needed here.
+#    undef CPPHTTPLIB_USE_NON_BLOCKING_GETADDRINFO
+#    define CPPHTTPLIB_DISABLE_MACOSX_AUTOMATIC_ROOT_CERTIFICATES
+#endif
+
 #include <framework/luaengine/luaobject.h>
 #include <httplib.h>
 

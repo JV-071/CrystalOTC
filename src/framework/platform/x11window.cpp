@@ -418,6 +418,22 @@ void X11Window::internalChooseGLVisual()
 
     m_rootWindow = DefaultRootWindow(m_display);
 #else
+#ifdef __APPLE__
+    // XQuartz's compatibility renderer is GL 2.1, so use its stable GLX 1.2
+    // visual path. It exposes the same 8-bit RGBA, double-buffered window
+    // format without depending on newer FBConfig behavior.
+    static int attrList[] = {
+        GLX_RGBA,
+        GLX_DOUBLEBUFFER,
+        GLX_RED_SIZE, 8,
+        GLX_GREEN_SIZE, 8,
+        GLX_BLUE_SIZE, 8,
+        GLX_ALPHA_SIZE, 8,
+        X11None
+    };
+
+    m_visual = glXChooseVisual(m_display, m_screen, attrList);
+#else
     static int attrList[] = {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,
         GLX_DOUBLEBUFFER, True,
@@ -434,6 +450,7 @@ void X11Window::internalChooseGLVisual()
         g_logger.fatal("Couldn't choose RGBA, double buffered fbconfig");
 
     m_visual = glXGetVisualFromFBConfig(m_display, *m_fbConfig);
+#endif
     if (!m_visual)
         g_logger.fatal("Couldn't choose RGBA, double buffered visual");
 

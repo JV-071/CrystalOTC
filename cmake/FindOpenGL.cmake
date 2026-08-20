@@ -95,6 +95,7 @@ ELSE (WIN32)
 
     FIND_PATH(OPENGL_INCLUDE_DIR GL/gl.h
       /usr/share/doc/NVIDIA_GLX-1.0/include
+      /opt/X11/include
       /usr/include
       /usr/local/include
       /usr/openwin/share/include
@@ -114,6 +115,7 @@ ELSE (WIN32)
     FIND_LIBRARY(OPENGL_gl_LIBRARY
       NAMES MesaGL GL
       PATHS /usr/lib
+            /opt/X11/lib
             /usr/local/lib
             /opt/graphics/OpenGL/lib
             /usr/openwin/lib
@@ -134,6 +136,7 @@ ELSE (WIN32)
     FIND_LIBRARY(OPENGL_glu_LIBRARY
       NAMES MesaGLU GLU
       PATHS ${OPENGL_gl_LIBRARY}
+            /opt/X11/lib
             /usr/lib
             /usr/local/lib
             /opt/graphics/OpenGL/lib

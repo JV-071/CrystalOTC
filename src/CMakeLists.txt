@@ -177,6 +177,17 @@ if(APPLE)
   # Required for Physfs
   find_library(FOUNDATION Foundation REQUIRED)
   find_library(IOKIT IOKit REQUIRED)
+
+  # The GLX client and Xlib must come from the same XQuartz installation.
+  # Homebrew's X11 libraries are ABI-compatible at link time but do not share
+  # XQuartz's GLX display internals, causing visual selection to fail at runtime.
+  if(NOT EXISTS "/opt/X11/include/X11/Xlib.h")
+    message(FATAL_ERROR "XQuartz headers were not found under /opt/X11")
+  endif()
+  set(X11_X11_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz X11 include directory" FORCE)
+  set(X11_X11_LIB "/opt/X11/lib/libX11.dylib" CACHE FILEPATH "XQuartz X11 library" FORCE)
+  set(X11_Xext_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz Xext include directory" FORCE)
+  set(X11_Xext_LIB "/opt/X11/lib/libXext.dylib" CACHE FILEPATH "XQuartz Xext library" FORCE)
 endif()
 if(UNIX AND NOT ANDROID AND NOT WASM)
   find_package(X11 REQUIRED)
@@ -889,6 +900,7 @@ else() # Linux
           ${GMP_INCLUDE_DIR}
           ${PHYSFS_INCLUDE_DIR}
           ${GLEW_INCLUDE_DIR}
+          ${OPENGL_INCLUDE_DIR}
           ${PARALLEL_HASHMAP_INCLUDE_DIRS}
           ${NLOHMANN_JSON_INCLUDE_DIR}
           ${OPENSSL_INCLUDE_DIR}
