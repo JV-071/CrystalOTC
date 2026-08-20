@@ -26,8 +26,16 @@ Subcommands
                           command               the capture command line, or
                                                 an empty line when the scene
                                                 has no automated command
+    fixture             print the fixture-server pin as key=value lines.
+    fixture KEY         print one pin field: repository, branch, commit,
+                        scriptPath, or vendoredCopy.
     validate            validate the manifest. Prints nothing on success;
                         prints one message per problem on stderr otherwise.
+                        Beyond manifest shape this also enforces the
+                        fixture-server pin: the vendored fixture scripts must
+                        match their recorded sha256 digests, the anchors must
+                        agree with FIXTURE_ANCHORS in the capture driver, and
+                        every online scene must name an anchor that exists.
 
 Exit codes
     0  success / manifest is valid
@@ -43,7 +51,9 @@ Standard library only - no third-party imports.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -63,6 +73,30 @@ REQUIRED_SCENE_KEYS = ("id", "automation", "requiresOnlineGame", "features")
 SUPPORTED_FIELDS = ("captureSize", "channelTolerance", "maxDifferentFraction", "command")
 
 BASELINE_FLAG = "--renderer-baseline="
+
+CAPTURE_DRIVER_PATH = (
+    REPOSITORY_ROOT / "modules" / "dev_renderer_baseline" / "dev_renderer_baseline.lua"
+)
+
+REQUIRED_FIXTURE_KEYS = (
+    "repository",
+    "branch",
+    "commit",
+    "scriptPath",
+    "vendoredCopy",
+    "files",
+    "anchors",
+)
+FIXTURE_PIN_FIELDS = ("repository", "branch", "commit", "scriptPath", "vendoredCopy")
+
+# ``local FIXTURE_ANCHORS = { ... }`` in the capture driver, and one ``key = {x=,y=,z=}``
+# entry inside it. The manifest is the declared contract; this is the second copy that
+# has to agree with it.
+DRIVER_ANCHOR_TABLE_RE = re.compile(r"^local FIXTURE_ANCHORS\s*=\s*\{(.*?)^\}", re.S | re.M)
+DRIVER_ANCHOR_ENTRY_RE = re.compile(
+    r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{\s*"
+    r"x\s*=\s*(-?\d+)\s*,\s*y\s*=\s*(-?\d+)\s*,\s*z\s*=\s*(-?\d+)\s*\}"
+)
 
 
 class ManifestError(Exception):
@@ -196,6 +230,145 @@ def validate_tolerances(container: object, where: str, errors: list[str]) -> Non
             errors.append(f"{where}: maxDifferentFraction must be a number between 0 and 1")
 
 
+def driver_anchors(path: Path) -> dict[str, dict[str, int]] | None:
+    """``FIXTURE_ANCHORS`` as declared by the capture driver, or None if unreadable."""
+    try:
+        source = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    table = DRIVER_ANCHOR_TABLE_RE.search(source)
+    if table is None:
+        return None
+    return {
+        name: {"x": int(x), "y": int(y), "z": int(z)}
+        for name, x, y, z in DRIVER_ANCHOR_ENTRY_RE.findall(table.group(1))
+    }
+
+
+def is_anchor(value: object) -> bool:
+    return (
+        isinstance(value, dict)
+        and set(value) == {"x", "y", "z"}
+        and all(isinstance(value[axis], int) and not isinstance(value[axis], bool) for axis in "xyz")
+    )
+
+
+def validate_fixture_server(manifest: dict, errors: list[str]) -> None:
+    """Enforce the fixture-server pin.
+
+    The four online scenes are uncapturable without server-side fixtures that live in a
+    different repository, on a personal fork. Prose cannot keep that honest, so the pin is
+    checked three ways: the vendored scripts against their digests, the anchors against the
+    capture driver's own copy, and each online scene's anchor key against the anchor table.
+    """
+    fixture = manifest.get("fixtureServer")
+    if fixture is None:
+        if any(scene.get("requiresOnlineGame") is True for scene in scenes_of(manifest)):
+            errors.append(
+                "manifest: scenes require an online game but there is no 'fixtureServer' pin "
+                "recording which server commit provides the fixtures"
+            )
+        return
+
+    if not isinstance(fixture, dict):
+        errors.append("manifest.fixtureServer: must be an object")
+        return
+
+    for key in REQUIRED_FIXTURE_KEYS:
+        if key not in fixture:
+            errors.append(f"manifest.fixtureServer: missing required key '{key}'")
+
+    for key in FIXTURE_PIN_FIELDS:
+        value = fixture.get(key)
+        if key in fixture and (not isinstance(value, str) or not value.strip()):
+            errors.append(f"manifest.fixtureServer: {key} must be a non-empty string")
+
+    commit = fixture.get("commit")
+    if isinstance(commit, str) and not re.fullmatch(r"[0-9a-f]{40}", commit):
+        errors.append(
+            "manifest.fixtureServer: commit must be a full 40-character lowercase sha1, so the "
+            "pin cannot drift with an abbreviation collision"
+        )
+
+    # The vendored copy is what a reader actually has in hand; verify it is the pinned code.
+    files = fixture.get("files")
+    vendored = fixture.get("vendoredCopy")
+    if "files" in fixture and not isinstance(files, dict):
+        errors.append("manifest.fixtureServer: files must be an object of name -> sha256")
+    elif isinstance(files, dict) and isinstance(vendored, str):
+        directory = REPOSITORY_ROOT / vendored
+        if not directory.is_dir():
+            errors.append(f"manifest.fixtureServer: vendoredCopy directory not found: {vendored}")
+        else:
+            for name, digest in sorted(files.items()):
+                if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+                    errors.append(
+                        f"manifest.fixtureServer.files['{name}']: must be a sha256 hex digest"
+                    )
+                    continue
+                target = directory / name
+                if not target.is_file():
+                    errors.append(f"manifest.fixtureServer: vendored file missing: {vendored}/{name}")
+                    continue
+                actual = hashlib.sha256(target.read_bytes()).hexdigest()
+                if actual != digest:
+                    errors.append(
+                        f"manifest.fixtureServer: {vendored}/{name} does not match the pinned "
+                        f"digest (recorded {digest[:12]}..., found {actual[:12]}...). Either the "
+                        "vendored copy drifted from the server or the pin was not updated with it"
+                    )
+            present = {item.name for item in directory.glob("*.lua")}
+            for extra in sorted(present - set(files)):
+                errors.append(
+                    f"manifest.fixtureServer: {vendored}/{extra} is not recorded in files, so its "
+                    "contents are unpinned"
+                )
+
+    anchors = fixture.get("anchors")
+    if "anchors" in fixture and (not isinstance(anchors, dict) or not anchors):
+        errors.append("manifest.fixtureServer: anchors must be a non-empty object")
+        return
+    if not isinstance(anchors, dict):
+        return
+
+    for name, anchor in sorted(anchors.items()):
+        if not is_anchor(anchor):
+            errors.append(
+                f"manifest.fixtureServer.anchors['{name}']: must be an object with integer "
+                "x, y and z"
+            )
+
+    # Second copy: the driver compares the player position against its own table.
+    declared = driver_anchors(CAPTURE_DRIVER_PATH)
+    if declared is None:
+        errors.append(
+            "manifest.fixtureServer: could not read FIXTURE_ANCHORS from "
+            f"{CAPTURE_DRIVER_PATH.relative_to(REPOSITORY_ROOT)}, so the anchors cannot be "
+            "cross-checked against the capture driver"
+        )
+        return
+
+    for name, anchor in sorted(anchors.items()):
+        if not is_anchor(anchor):
+            continue
+        if name not in declared:
+            errors.append(
+                f"manifest.fixtureServer.anchors['{name}']: the capture driver's FIXTURE_ANCHORS "
+                "has no such key"
+            )
+        elif declared[name] != anchor:
+            errors.append(
+                f"manifest.fixtureServer.anchors['{name}']: manifest says "
+                f"{anchor['x']},{anchor['y']},{anchor['z']} but the capture driver says "
+                f"{declared[name]['x']},{declared[name]['y']},{declared[name]['z']}"
+            )
+    for name in sorted(set(declared) - set(anchors)):
+        errors.append(
+            f"manifest.fixtureServer.anchors: the capture driver declares anchor '{name}' that "
+            "the manifest does not pin"
+        )
+
+
 def validate(manifest: dict) -> list[str]:
     errors: list[str] = []
 
@@ -217,6 +390,11 @@ def validate(manifest: dict) -> list[str]:
     if not isinstance(raw_scenes, list) or not raw_scenes:
         errors.append("manifest: scenes must be a non-empty array")
         return errors
+
+    fixture = manifest.get("fixtureServer")
+    anchor_keys: set[str] = set()
+    if isinstance(fixture, dict) and isinstance(fixture.get("anchors"), dict):
+        anchor_keys = set(fixture["anchors"])
 
     seen: set[str] = set()
     for position, scene in enumerate(raw_scenes):
@@ -298,6 +476,35 @@ def validate(manifest: dict) -> list[str]:
                         "explaining why CI cannot capture the scene at all"
                     )
 
+        # An online scene is uncapturable without the fixture server, and which character
+        # captures it is load-bearing rather than incidental: a hasfulllight group pins world
+        # light to 255 and disables the LIGHT pool entirely. Both must be declared.
+        if scene.get("requiresOnlineGame") is True:
+            anchor_key = scene.get("fixtureAnchor")
+            if not isinstance(anchor_key, str) or not anchor_key.strip():
+                errors.append(
+                    f"{where}: an online scene must name the fixture platform it captures via "
+                    "'fixtureAnchor'"
+                )
+            elif anchor_keys and anchor_key not in anchor_keys:
+                errors.append(
+                    f"{where}: fixtureAnchor '{anchor_key}' is not one of "
+                    f"fixtureServer.anchors ({', '.join(sorted(anchor_keys))})"
+                )
+
+            group = scene.get("requiresCharacterGroup")
+            if not isinstance(group, str) or not group.strip():
+                errors.append(
+                    f"{where}: an online scene must declare 'requiresCharacterGroup' - whether "
+                    "the capture character carries hasfulllight decides whether the LIGHT pool "
+                    "runs at all"
+                )
+
+        elif "fixtureAnchor" in scene:
+            errors.append(f"{where}: fixtureAnchor is only meaningful for an online scene")
+
+    validate_fixture_server(manifest, errors)
+
     return errors
 
 
@@ -328,6 +535,15 @@ def build_parser() -> argparse.ArgumentParser:
     field_parser.add_argument("id")
     field_parser.add_argument("key", help=f"one of: {', '.join(SUPPORTED_FIELDS)}")
 
+    fixture_parser = subparsers.add_parser(
+        "fixture", help="print the fixture-server pin"
+    )
+    fixture_parser.add_argument(
+        "key",
+        nargs="?",
+        help=f"one of: {', '.join(FIXTURE_PIN_FIELDS)} (omit to print every field)",
+    )
+
     subparsers.add_parser("validate", help="validate the manifest")
     return parser
 
@@ -357,6 +573,30 @@ def main(argv: list[str] | None = None) -> int:
             selected = [scene.get("id") for scene in scenes_of(manifest) if is_offline(scene)]
         for scene_id in selected:
             print(scene_id)
+        return EXIT_SUCCESS
+
+    if args.subcommand == "fixture":
+        fixture = manifest.get("fixtureServer")
+        if not isinstance(fixture, dict):
+            print("error: manifest has no 'fixtureServer' pin", file=sys.stderr)
+            return EXIT_INVALID
+        if args.key is None:
+            for key in FIXTURE_PIN_FIELDS:
+                print(f"{key}={fixture.get(key, '')}")
+            anchors = fixture.get("anchors")
+            if isinstance(anchors, dict):
+                for name, anchor in sorted(anchors.items()):
+                    if is_anchor(anchor):
+                        print(f"anchor.{name}={anchor['x']},{anchor['y']},{anchor['z']}")
+            return EXIT_SUCCESS
+        if args.key not in FIXTURE_PIN_FIELDS:
+            print(
+                f"error: unsupported pin field '{args.key}' "
+                f"(supported: {', '.join(FIXTURE_PIN_FIELDS)})",
+                file=sys.stderr,
+            )
+            return EXIT_USAGE
+        print(fixture.get(args.key, ""))
         return EXIT_SUCCESS
 
     if args.subcommand == "field":

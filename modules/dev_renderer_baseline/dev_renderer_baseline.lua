@@ -1280,6 +1280,12 @@ end
 -- player is walk-exhausted, and the player may not be fully placed when the first one goes
 -- out. Trusting a fixed delay produced captures whose camera sat somewhere else entirely,
 -- differing from the previous run across 38% of the frame.
+--
+-- These coordinates are the client half of a contract with the fixture server. The manifest
+-- pins the other half (docs/rendering-baselines/scenes.json, "fixtureServer".anchors) and
+-- `python3 tools/renderer_scenes.py validate` fails if the two disagree, so edit both or
+-- neither. The fixture scripts themselves are vendored at
+-- docs/rendering-baselines/fixture-server/ for reference.
 local FIXTURE_ANCHORS = {
     map = { x = 34400, y = 34100, z = 6 },
     lighting = { x = 34500, y = 34201, z = 8 }
@@ -1310,7 +1316,19 @@ local function waitForFixturePosition(key, onReady, attempts)
     end
 
     if attempts >= 60 then
-        fail(string.format("never reached fixture '%s' at %d,%d,%d", key, anchor.x, anchor.y, anchor.z))
+        -- Login already succeeded by this point, so the server is up and reachable and the
+        -- failure is specifically about the fixtures. Four causes produce this identically,
+        -- and the capture cannot tell them apart, so name all four rather than none.
+        fail(string.format(
+            "never reached fixture '%s' at %d,%d,%d after %d checks. The server answered login, "
+            .. "so check, in order: (1) the fixture scripts are installed at the path pinned by "
+            .. "'fixtureServer' in docs/rendering-baselines/scenes.json; (2) the server was "
+            .. "RESTARTED after installing them, because the platform builder is a GlobalEvent "
+            .. "onStartup and only fires on the GAME_STATE_INIT transition; (3) the capture "
+            .. "character may talk, since !fixture is registered for group 1 and up; (4) the "
+            .. "server's anchor coordinates still match this client's - run "
+            .. "'python3 tools/renderer_scenes.py fixture' to see the pinned pair",
+            key, anchor.x, anchor.y, anchor.z, attempts))
         return
     end
 

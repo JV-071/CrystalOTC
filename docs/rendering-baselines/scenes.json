@@ -3,6 +3,23 @@
   "canonicalBackend": "opengl-llvmpipe",
   "captureSize": [1020, 644],
   "defaultTolerance": { "channelTolerance": 2, "maxDifferentFraction": 0.001 },
+  "fixtureServer": {
+    "repository": "https://github.com/aacruzgon/crystalserver",
+    "branch": "local/testing",
+    "commit": "f47f6e41504f126218fc2d649c5a0c088c3375a0",
+    "scriptPath": "data-global/scripts/custom/renderer_fixtures",
+    "vendoredCopy": "docs/rendering-baselines/fixture-server",
+    "files": {
+      "renderer_fixtures_lib.lua": "848a7e98712ad8b7b6f4347e3b9e16fb79de99a7e938cea2cc074d07447c343d",
+      "renderer_fixtures_startup.lua": "a3751133d9e0fe128919e80cdd29c0093167b89f11c0b6f2da10f27005521614",
+      "renderer_fixtures_talkaction.lua": "1aa08c1744f45afdc781fa297abb837ac8daa86cb1e8a1c83cc3858485fd932c"
+    },
+    "anchors": {
+      "map": { "x": 34400, "y": 34100, "z": 6 },
+      "lighting": { "x": 34500, "y": 34201, "z": 8 }
+    },
+    "note": "The four requiresOnlineGame scenes cannot be captured without these server-side fixtures, and the fixtures live in a different repository on a personal fork - an upstream crystalserver clone has never had them. This block is the pin. renderer_scenes.py validate enforces three things against it: the vendored copy under vendoredCopy matches the recorded sha256 digests, the anchors agree with FIXTURE_ANCHORS in modules/dev_renderer_baseline/dev_renderer_baseline.lua, and every online scene names an anchor that exists here. Startup events fire only on the GAME_STATE_INIT transition, so installing the scripts into a running server does nothing - it must be restarted."
+  },
   "scenes": [
     {
       "id": "startup-ui",
@@ -17,6 +34,8 @@
       "requiresOnlineGame": true,
       "features": ["floors", "tiles", "creatures", "camera-movement", "map-fbo", "map-hole"],
       "command": "--renderer-baseline=map-core --renderer-baseline-output=map-core.png",
+      "fixtureAnchor": "map",
+      "requiresCharacterGroup": "hasfulllight",
       "maxDifferentFraction": 0.002,
       "toleranceReason": "The scene deliberately includes creatures, and a creature on a live server cannot be perfectly frozen from the client: setAnimate stops a thing advancing but leaves it on whatever phase it already held. Consecutive runs measure 16 to 765 differing pixels, roughly one 32x32 sprite, so the limit is raised from the 0.001 default to cover one creature. Anything larger is a real change."
     },
@@ -25,7 +44,10 @@
       "automation": "client+fixture-server",
       "requiresOnlineGame": true,
       "features": ["colored-lights", "overlapping-lights", "dynamic-texture-upload", "multiply", "underground-ambient"],
-      "command": "--renderer-baseline=lighting-overlap --renderer-baseline-output=lighting-overlap.png"
+      "command": "--renderer-baseline=lighting-overlap --renderer-baseline-output=lighting-overlap.png",
+      "fixtureAnchor": "lighting",
+      "requiresCharacterGroup": "normal",
+      "characterGroupReason": "ProtocolGame forces world light and every creature light to 255/215 for any player whose group carries hasfulllight (groups 4-7), and LightView sets m_isDark = intensity < 250, so the entire LIGHT pool is skipped for such a character. This scene must be captured by a group-1 character or it renders no lights at all."
     },
     {
       "id": "ui-clipping-opacity",
@@ -104,6 +126,8 @@
       "requiresOnlineGame": true,
       "features": ["map-composition-shader", "map-shader-uniforms", "draw-viewport-edge", "multi-capture"],
       "command": "--renderer-baseline=shader-matrix-map --renderer-baseline-output=shader-matrix-map.png",
+      "fixtureAnchor": "map",
+      "requiresCharacterGroup": "hasfulllight",
       "maxDifferentFraction": 0.002,
       "toleranceReason": "Captures the same fixture platform as map-core and inherits the same residual: a creature on a live server cannot be perfectly frozen from the client. Consecutive runs measured 778 differing pixels, roughly one sprite.",
       "multiCapture": "One capture per map shader plus a Default frame to diff against: shader-matrix-map-01-default.png through shader-matrix-map-14-noise.png. A map shader applies to the whole composed map, so only one can be shown per frame.",
@@ -132,7 +156,10 @@
       "requiresOnlineGame": true,
       "features": ["map-readback", "asymmetric-margin-crop", "vertical-flip"],
       "captureSize": [480, 352],
-      "command": "--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png"
+      "command": "--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png",
+      "fixtureAnchor": "map",
+      "requiresCharacterGroup": "hasfulllight",
+      "characterGroupReason": "Deliberately the inverse of lighting-overlap: a hasfulllight character pins world light to 255, which disables the LIGHT pool and makes the surface platform immune to the day/night cycle this build seeds from the wall clock."
     }
   ]
 }
