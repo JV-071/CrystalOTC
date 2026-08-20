@@ -57,6 +57,9 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
   CCACHE_MAXSIZE: 2G
   ARTIFACT_DIR: ${{ github.workspace }}/artifacts/render-baselines
+  # run-vcpkg otherwise sets this to 'clear;x-gha,readwrite'; that backend has been removed
+  # from vcpkg, so it warns and nothing is cached. Use the directory actions/cache restores.
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite"
   REFERENCE_DIR: docs/rendering-baselines/references/opengl-llvmpipe
   # Keep in sync with jobs.client-scenes.container.image below - the `container`
   # key cannot read the `env` context, so the digest is written twice on purpose.
@@ -89,6 +92,7 @@ jobs:
           export DEBIAN_FRONTEND=noninteractive
           apt-get update
           apt-get install -y --no-install-recommends \
+            autoconf automake autoconf-archive libtool \
             build-essential ca-certificates ccache cmake curl file git ninja-build \
             pkg-config tar unzip zip \
             libasound2-dev \
@@ -102,61 +106,11 @@ jobs:
           git config --global --add safe.directory '*'
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate renderer scene manifest
         shell: bash
         run: python3 tools/renderer_scenes.py validate
-
-      - name: Read pinned vcpkg baseline
-        id: vcpkg
-        shell: bash
-        run: echo "commit=$(python3 -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')" >> "$GITHUB_OUTPUT"
-
-      # vcpkg aborts at startup when VCPKG_DEFAULT_BINARY_CACHE names a directory that
-      # does not exist, and nothing else in this job creates it.
-      - name: Create cache directories
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR" "$ARTIFACT_DIR"
-
-      - name: Cache vcpkg binaries and downloads
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ github.workspace }}/.cache/vcpkg
-            ${{ github.workspace }}/vcpkg/downloads
-          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-
-            vcpkg-linux-release-
-
-      - name: Cache compiler cache (ccache)
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.cache/ccache
-          key: ccache-linux-release-${{ github.sha }}
-          restore-keys: |
-            ccache-linux-release-
-
-      - name: Install pinned vcpkg
-        uses: lukka/run-vcpkg@a400452f634fe49e9f18d388aeb1809dcc642136
-        with:
-          vcpkgGitCommitId: ${{ steps.vcpkg.outputs.commit }}
-
-      # The linux-release preset already sets OPTIONS_ENABLE_CCACHE=ON; it is repeated
-      # here so the workflow, the preset and the cache step agree in one visible place.
-      - name: Configure
-        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=ON
-
-      - name: Build
-        run: cmake --build --preset linux-release --parallel 2
-
-      - name: Report compiler cache statistics
-        if: always()
-        shell: bash
-        run: ccache --show-stats || true
 
       - name: Record environment fingerprint
         shell: bash
@@ -186,6 +140,59 @@ jobs:
 
           echo "--- environment fingerprint ---"
           cat "$ARTIFACT_DIR/metadata.txt"
+
+      - name: Read pinned vcpkg baseline
+        id: vcpkg
+        shell: bash
+        run: echo "commit=$(python3 -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')" >> "$GITHUB_OUTPUT"
+
+      # vcpkg aborts at startup when VCPKG_DEFAULT_BINARY_CACHE names a directory that
+      # does not exist, and nothing else in this job creates it.
+      - name: Create cache directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR" "$ARTIFACT_DIR"
+
+      - name: Cache vcpkg binaries and downloads
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-linux-release-
+
+      - name: Cache compiler cache (ccache)
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.cache/ccache
+          key: ccache-linux-release-${{ github.sha }}
+          restore-keys: |
+            ccache-linux-release-
+
+      - name: Install pinned vcpkg
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11.6
+        with:
+          vcpkgGitCommitId: ${{ steps.vcpkg.outputs.commit }}
+          # Without this the action globs '**/vcpkg.json' and also matches the port
+          # manifests inside the vcpkg checkout, warning that it found several.
+          vcpkgJsonGlob: "vcpkg.json"
+
+      # The linux-release preset already sets OPTIONS_ENABLE_CCACHE=ON; it is repeated
+      # here so the workflow, the preset and the cache step agree in one visible place.
+      - name: Configure
+        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=ON
+
+      - name: Build
+        run: cmake --build --preset linux-release --parallel 2
+
+      - name: Report compiler cache statistics
+        if: always()
+        shell: bash
+        run: ccache --show-stats || true
 
       - name: Capture offline client scenes with llvmpipe
         shell: bash
@@ -353,7 +360,7 @@ jobs:
       # glxinfo output are exactly what a reviewer needs to triage that failure.
       - name: Upload canonical baseline candidate
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: renderer-baseline-opengl-llvmpipe-${{ github.sha }}
           path: artifacts/render-baselines
