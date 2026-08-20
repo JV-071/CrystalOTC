@@ -117,8 +117,26 @@ the normal startup flow re-shows because `EnterGame.show()` only guards on
 
 ## lighting-overlap
 
-Implemented and repeatable: two consecutive captures differ by **15 of 656,880 pixels
-(0.0023%)**.
+~~Implemented and repeatable: two consecutive captures differ by **15 of 656,880 pixels
+(0.0023%)**.~~
+
+**Re-measured 2026-08-20, and the single figure was misleading.** Three consecutive captures
+against the fixture server at `f47f6e41` differ pairwise by **899, 891 and 218 of 656,880
+pixels** (0.137%, 0.136%, 0.033%). The first capture of a session is the outlier and later ones
+converge, so a two-capture measurement lands anywhere between 0.03% and 0.14% depending on which
+pair it happens to sample. Both earlier figures -- 15 px here and 161 px in the handoff -- were
+real measurements of favourable pairs, not a stable property of the scene.
+
+The variance is **not in the lights**. The differing pixels form four small clusters, all in UI
+chrome: the minimap widget on the right panel and three button borders. The map viewport, the
+three coloured torches and their overlap are pixel-stable. The scene therefore still
+demonstrates what it was built to demonstrate, but its residual is larger than the 0.001 default
+tolerance and is dominated by a widget that has nothing to do with lighting.
+
+This is recorded rather than fixed. `lighting-overlap` is an online scene, so it is not in
+`ids --gated` and has no committed reference -- nothing fails today. Anyone gating it later must
+first neutralise the minimap the way `stabilizeOnlineUi` already neutralises the FPS/ping HUD,
+or crop the comparison to the map viewport.
 
 The two earlier attempts recorded in the handoff failed for a reason no client-side change
 could have fixed. The baseline character `GOD` belongs to a group carrying `hasfulllight`,

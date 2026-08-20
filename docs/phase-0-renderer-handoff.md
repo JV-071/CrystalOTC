@@ -64,7 +64,7 @@ Repeatability is two or more consecutive captures compared with
 | `shader-matrix` | [x] | offline | gated (post-handoff) | 0 px |
 | `shader-matrix-outfits` | [x] | offline | captured only (post-handoff) | 0 px |
 | `windowing` | [x] | offline | not capturable | 0 px |
-| `lighting-overlap` | [x] | online | — | 161 px (0.024%) |
+| `lighting-overlap` | [x] | online | — | 161 px (0.024%) at this checkpoint; **re-measured 2026-08-20 at 899/891/218 px pairwise** — see known-deviations |
 | `map-screenshot` | [x] | online | — | 62 px of 168,960 (0.037%) |
 | `map-core` | [x] | online | — | 16–765 px, tolerance 0.002 |
 | `shader-matrix-map` | [x] | online | — | 778 px, tolerance 0.002 |
