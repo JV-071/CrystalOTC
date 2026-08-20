@@ -91,8 +91,10 @@
       "id": "shader-matrix-map",
       "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["map-composition-shader", "map-shader-uniforms", "shader-fade"],
-      "note": "Not implemented. shader-matrix covers every fragment program, but not the map-composition route: map shaders bind at the MAP framebuffer to screen blit via the pool's onBeforeDraw hook, and Client::canDraw(MAP) is g_game.isOnline(), so a UIMap with no connection produces no MAP-pool content at all. Covering the bind site, its four map uniforms and the shader-fade needs a live map."
+      "features": ["map-composition-shader", "map-shader-uniforms", "draw-viewport-edge", "multi-capture"],
+      "command": "--renderer-baseline=shader-matrix-map --renderer-baseline-output=shader-matrix-map.png",
+      "multiCapture": "One capture per map shader plus a Default frame to diff against: shader-matrix-map-01-default.png through shader-matrix-map-14-noise.png. A map shader applies to the whole composed map, so only one can be shown per frame.",
+      "note": "Covers what shader-matrix structurally cannot: map shaders bind at the MAP framebuffer to screen blit through the pool's onBeforeDraw hook, which also writes the four map uniforms, and Client::canDraw(MAP) is g_game.isOnline(), so none of it is reachable offline."
     },
     {
       "id": "atlas-resources",

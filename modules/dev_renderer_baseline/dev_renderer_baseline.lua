@@ -236,8 +236,16 @@ local function stabilizeOnlineUi()
     -- and the game interface keeps the geometry it settled on, which showed up as a map
     -- panel of a different size from run to run.
     isolateGameInterface()
+    pinInterfaceLayout()
     for _, delay in ipairs({ 500, 1500, 2500 }) do
-        scheduleEvent(isolateGameInterface, delay)
+        scheduleEvent(function()
+            isolateGameInterface()
+            -- Pin the layout here too, not only in the shutter path. The splitter reflows on
+            -- the following frame, so a capture that pins in its own tick still records the
+            -- pre-pin geometry -- which showed up in the multi-capture map-shader scene as a
+            -- first frame whose map panel was shorter than the thirteen after it.
+            pinInterfaceLayout()
+        end, delay)
     end
 
     if modules.client_options and modules.client_options.setOption then
@@ -1045,6 +1053,78 @@ function RendererBaseline.runWindowingScene()
     end)
 end
 
+-- shader-matrix-map covers what shader-matrix structurally cannot: the map-composition
+-- route. A map shader is bound at the MAP framebuffer to screen blit through the pool's
+-- onBeforeDraw hook, and that hook is also where the four map uniforms are written. None of
+-- it is reachable offline, because Client::canDraw(MAP) is literally g_game.isOnline().
+--
+-- A map shader applies to the whole composed map, so only one can be shown per frame. This
+-- is therefore a multi-capture scene: one image per shader, plus a Default frame to diff
+-- against. Fade is set to 0/0, which makes the switch immediate and removes the only
+-- timing-dependent term besides u_Time, and u_Time is already pinned.
+--
+-- drawViewportEdge is carried per shader in the registry and changes which tiles the map view
+-- renders, so it has to be applied alongside the shader exactly as game_shaders does.
+local MAP_SHADER_SEQUENCE = {
+    { name = "Default" },
+    { name = "Map - Fog" },
+    { name = "Map - Rain" },
+    { name = "Map - Snow" },
+    { name = "Map - Gray Scale" },
+    { name = "Map - Bloom" },
+    { name = "Map - Sepia" },
+    { name = "Map - Pulse", edge = true },
+    { name = "Map - Old Tv" },
+    { name = "Map - Party" },
+    { name = "Map - Radial Blur", edge = true },
+    { name = "Map - Zomg", edge = true },
+    { name = "Map - Heat", edge = true },
+    { name = "Map - Noise" }
+}
+
+function RendererBaseline.runMapShaderScene()
+    local base = (optionValue("renderer-baseline-output") or "shader-matrix-map.png"):gsub("%.png$", "")
+    local index = 0
+
+    local function slug(name)
+        return name:gsub("^Map %- ", ""):gsub("%s+", "-"):lower()
+    end
+
+    local function captureNext()
+        index = index + 1
+        local entry = MAP_SHADER_SEQUENCE[index]
+
+        if not entry then
+            g_logger.info(string.format("[renderer-baseline] captured %d map shaders",
+                #MAP_SHADER_SEQUENCE))
+            g_app.exit()
+            return
+        end
+
+        local mapPanel = modules.game_interface and modules.game_interface.getMapPanel
+            and modules.game_interface.getMapPanel()
+        if not mapPanel or mapPanel:isDestroyed() then
+            fail("no map panel available for shader-matrix-map")
+            return
+        end
+
+        if entry.name ~= "Default" and not g_shaders.getShader(entry.name) then
+            g_logger.error("[renderer-baseline] shader not registered: " .. entry.name)
+        end
+
+        mapPanel:setShader(entry.name, 0, 0)
+        mapPanel:setDrawViewportEdge(entry.edge == true)
+
+        -- Let the switch land and the map repaint before the shutter. A shader keeps its pool
+        -- repainting, so the frame never settles by itself; this only has to outlast the bind.
+        setupEvent = scheduleEvent(function()
+            takeCapture(string.format("%s-%02d-%s.png", base, index, slug(entry.name)), captureNext)
+        end, 900)
+    end
+
+    captureNext()
+end
+
 function RendererBaseline.captureMapScreenshot(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -1167,7 +1247,7 @@ end
 
 function RendererBaseline.onGameStart()
     if activeScenario ~= "map-core" and activeScenario ~= "map-screenshot"
-        and activeScenario ~= "lighting-overlap" then
+        and activeScenario ~= "lighting-overlap" and activeScenario ~= "shader-matrix-map" then
         return
     end
 
@@ -1181,6 +1261,9 @@ function RendererBaseline.onGameStart()
     if activeScenario == "map-screenshot" then
         RendererBaseline.prepareMapScene()
         RendererBaseline.captureMapScreenshot(activeScenario, 6000)
+    elseif activeScenario == "shader-matrix-map" then
+        RendererBaseline.prepareMapScene()
+        setupEvent = scheduleEvent(RendererBaseline.runMapShaderScene, 6000)
     elseif activeScenario == "lighting-overlap" then
         -- The teleport is a server round trip, so allow it to land and the light
         -- bitmap to be recomputed before the shutter.
@@ -1194,7 +1277,7 @@ end
 
 function RendererBaseline.onLoginError(message)
     if activeScenario == "map-core" or activeScenario == "map-screenshot"
-        or activeScenario == "lighting-overlap" then
+        or activeScenario == "lighting-overlap" or activeScenario == "shader-matrix-map" then
         fail("fixture-server login failed: " .. tostring(message))
     end
 end
@@ -1205,7 +1288,7 @@ function RendererBaseline.onRun()
     if activeScenario == "startup-ui" then
         RendererBaseline.captureScene(activeScenario, 2500)
     elseif activeScenario == "map-core" or activeScenario == "map-screenshot"
-        or activeScenario == "lighting-overlap" then
+        or activeScenario == "lighting-overlap" or activeScenario == "shader-matrix-map" then
         RendererBaseline.loginFixtureServer()
     elseif activeScenario == "ui-clipping-opacity" then
         RendererBaseline.buildClippingOpacityScene()
