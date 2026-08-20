@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "canonicalBackend": "opengl-llvmpipe",
   "captureSize": [1020, 644],
+  "defaultTolerance": { "channelTolerance": 2, "maxDifferentFraction": 0.001 },
   "scenes": [
     {
       "id": "startup-ui",
@@ -42,7 +43,9 @@
       "automation": "client",
       "requiresOnlineGame": false,
       "features": ["outfit-mask-colors", "mount", "addons", "multiply", "creature-preview-fbo", "outline-framebuffer", "nested-fbo", "time-shader"],
-      "command": "--renderer-baseline=outfit-masks --renderer-baseline-output=outfit-masks.png"
+      "command": "--renderer-baseline=outfit-masks --renderer-baseline-output=outfit-masks.png",
+      "ciGate": false,
+      "ciGateReason": "Renders outfit, mount and addon previews from data/things/*, which is gitignored. A CI runner has no game assets, so this scene captures an empty preview there; gating it would freeze a blank image as the accepted reference. Captured and archived as an artifact only."
     },
     {
       "id": "particles-blends",
@@ -63,7 +66,9 @@
       "automation": "client",
       "requiresOnlineGame": false,
       "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip-horizontal", "item-widget-flip-vertical", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"],
-      "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png"
+      "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png",
+      "ciGate": false,
+      "ciGateReason": "Renders creature, item, effect and missile widget previews from data/things/*, which is gitignored. A CI runner has no game assets, so this scene captures empty previews there; gating it would freeze a blank image as the accepted reference. Captured and archived as an artifact only."
     },
     {
       "id": "graph-lines",
@@ -96,6 +101,7 @@
       "automation": "client+fixture-server",
       "requiresOnlineGame": true,
       "features": ["map-readback", "asymmetric-margin-crop", "vertical-flip"],
+      "captureSize": [480, 352],
       "command": "--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png"
     }
   ]
