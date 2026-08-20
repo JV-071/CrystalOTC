@@ -146,7 +146,13 @@ jobs:
 
   release:
     name: Publish "latest" release
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    # Never publish from a fork. The step deletes and recreates a public "latest" release and
+    # its tag on every push to main, which on a development fork is noise at best and a
+    # download that can be mistaken for an upstream build at worst. A fork's default workflow
+    # token is also read-only, so the job could only fail there: it already declares
+    # contents: write, but the repository-level default caps the token and the release API
+    # returns 403 regardless.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.repository.fork == false }}
     needs: build
     runs-on: ubuntu-latest
     permissions:
