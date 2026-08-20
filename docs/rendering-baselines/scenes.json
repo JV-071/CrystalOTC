@@ -12,9 +12,10 @@
     },
     {
       "id": "map-core",
-      "automation": "fixture-server",
+      "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["floors", "tiles", "creatures", "missiles", "effects", "camera-movement", "map-fbo"]
+      "features": ["floors", "tiles", "creatures", "missiles", "effects", "camera-movement", "map-fbo"],
+      "command": "--renderer-baseline=map-core --renderer-baseline-output=map-core.png"
     },
     {
       "id": "lighting-overlap",
