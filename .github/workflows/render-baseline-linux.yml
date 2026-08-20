@@ -81,14 +81,14 @@ jobs:
           mkdir -p artifacts/render-baselines
           xvfb-run -a -s "-screen 0 1020x644x24" sh -c '
             LIBGL_ALWAYS_SOFTWARE=1 glxinfo -B > artifacts/render-baselines/glxinfo.txt
-            for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines; do
+            for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines atlas-resources; do
               LIBGL_ALWAYS_SOFTWARE=1 timeout 30s build/linux-release/bin/otclient \
                 --renderer-baseline="$scene" \
                 --renderer-baseline-output="$scene.png" \
                 > "artifacts/render-baselines/client-$scene.log" 2>&1
             done
           '
-          for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines; do
+          for scene in startup-ui ui-clipping-opacity text-matrix particles-blends outfit-masks temporary-framebuffers composition-all graph-lines atlas-resources; do
             capture=$(find "$HOME" -path "*/render-baselines/$scene.png" -print -quit)
             test -n "$capture"
             cp "$capture" "artifacts/render-baselines/$scene.png"
