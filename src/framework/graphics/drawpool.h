@@ -24,6 +24,8 @@
 
 #include "declarations.h"
 #include "framebuffer.h"
+#include "render/renderdeclarations.h"
+#include "render/renderframe.h"
 #include "framework/core/timer.h"
 
 #include "../stdext/storage.h"
@@ -160,6 +162,13 @@ protected:
         TexturePtr texture;
         uint32_t textureId{ 0 };
         uint16_t textureMatrixId{ 0 };
+
+        // Logical identity of whatever this state draws with, valid in BOTH the deferred
+        // (`texture`) and the already-resolved (`textureId`) case. The GL path ignores it;
+        // a frame compiler needs it because `textureId` is a native id and native ids may
+        // not cross the renderer boundary.
+        TextureHandle textureHandle;
+
         size_t hash{ 0 };
 
         bool operator==(const PoolState& s2) const { return hash == s2.hash; }
@@ -174,15 +183,27 @@ protected:
         std::shared_ptr<CoordsBuffer> coords;
         PoolState state;
 
-        // Vulkan renderer stage 4: bind/releaseFrameBuffer actions are opaque GL lambdas
-        // to the feeder, and the objects between them have coordinates LOCAL to the temporary
-        // framebuffer. The marker + blit parameters let the feeder reconstruct that mapping
-        // without executing the actions. On the GL path these fields are dead (a dozen or so bytes per object).
-        uint8_t vkFbMarker{ 0 };   // 0 = regular object, 1 = bind, 2 = release
-        uint8_t vkFbFlip{ 0 };     // as in FrameBuffer::prepare: 0 none, 1 horizontal, 2 vertical
-        float vkFbOpacity{ 1.f };  // opacity of the state GL would blit the framebuffer with
-        Size vkFbSize;             // size of the temporary framebuffer (at bind)
-        Rect vkFbDest;             // destination rect of the blit (at release)
+        // Declared temporary-framebuffer boundary. bind/releaseFrameBuffer push opaque GL
+        // lambdas, and the objects between them have coordinates LOCAL to that temporary
+        // framebuffer - so any consumer that does not EXECUTE the lambdas needs the boundary
+        // stated as data. These fields state it: where a nested target begins, how big it is,
+        // and how its result is blitted back out.
+        //
+        // Introduced for the Vulkan feeder, which is why they were originally named vkFb*.
+        // They are not Vulkan-specific and never were: they are the declared input any frame
+        // compiler needs, and the pool compiler is their second consumer. The GL path ignores
+        // them (a dozen or so bytes per object) because it just runs the lambdas.
+        // What an `action` callback MEANS, for consumers that cannot execute it. Only read
+        // when `action` is set. Deliberately separate from fbMarker: the framebuffer markers
+        // are consumed by the shipped Vulkan feeder as raw 1/2, and this migration does not
+        // change code it cannot compile and run.
+        ActionIdiom idiom{ ActionIdiom::Opaque };
+
+        uint8_t fbMarker{ 0 };   // 0 = regular object, 1 = bind, 2 = release
+        uint8_t fbFlip{ 0 };     // as in FrameBuffer::prepare: 0 none, 1 horizontal, 2 vertical
+        float fbOpacity{ 1.f };  // opacity of the state GL would blit the framebuffer with
+        Size fbSize;             // size of the temporary framebuffer (at bind)
+        Rect fbDest;             // destination rect of the blit (at release)
     };
 
     struct DrawObjectState
@@ -212,6 +233,25 @@ private:
     void add(const Color& color, const TexturePtr& texture, DrawMethod&& method, const CoordsBufferPtr& coordsBuffer = nullptr);
 
     void addAction(const std::function<void()>& action, size_t hash = 0);
+    void addAction(const std::function<void()>& action, ActionIdiom idiom, size_t hash = 0);
+    void addDeclaredAction(const std::function<void()>& action, ActionIdiom idiom,
+                           PoolState&& state, std::shared_ptr<CoordsBuffer>&& coords, size_t hash = 0);
+    void addLineStrip(const std::vector<Point>& points, uint16_t width, const Color& color,
+                      const std::function<void()>& glAction);
+
+    // Declares a dynamic texture upload for this frame. LightView is the only producer: it
+    // computes an RGBA bitmap of one texel per visible tile on the CPU and re-uploads it when
+    // the light hash changes. Declared only in the frames GL would actually upload in, so a
+    // compiled frame does no more work than the GL one.
+    void addTextureUpload(TextureHandle texture, const Size& size, const uint8_t* pixels, size_t byteCount);
+
+    // The light overlay, declared. `src` is in map pixels and is divided by tileSize to reach
+    // the light texture's normalised space - the same arithmetic LightView::updateCoords does.
+    void addLightOverlay(const TexturePtr& texture, const Rect& dest, const Rect& src,
+                         uint16_t tileSize, const std::function<void()>& glAction);
+
+    // Declares the material this pool's target blit is composited with (the map shader).
+    void setCompositionMaterial(MaterialHandle material, const MaterialParams& params, float opacity);
     void bindFrameBuffer(const Size& size, const Color& color = Color::white);
     void releaseFrameBuffer(const Rect& dest);
     void releaseFrameBuffer(const Rect& dest, uint8_t flipDirection);
@@ -371,24 +411,50 @@ private:
 
     SpinLock m_threadLock;
 
-    // Vulkan renderer stage 4: the Vulkan path does not execute GL actions (m_framebuffer->prepare),
-    // so dest/src from preDraw travel to the drawing thread separately: preDraw writes pending
-    // (map thread only), release() publishes under m_threadLock, the feeder reads under the same
-    // lock when taking over the object list.
-    Rect m_vkPendingFbDest;
-    Rect m_vkPendingFbSrc;
-    Rect m_vkFbDest;
-    Rect m_vkFbSrc;
+    // Declared pool-framebuffer blit rects. A consumer that does not execute GL actions cannot
+    // learn dest/src from m_framebuffer->prepare, so they travel to the drawing thread as data:
+    // preDraw writes the pending pair (map thread only) and release() publishes it under
+    // m_threadLock, together with the object list, so no consumer can ever pair rects from one
+    // frame with objects from another.
+    Rect m_pendingFbDest;
+    Rect m_pendingFbSrc;
+    Rect m_fbDest;
+    Rect m_fbSrc;
 
-    // Explicit "map hole punch" rect for the Vulkan feeder: UIMap registers the rectangle of the
-    // alpha-0 window it cuts over the game view, so the feeder only cuts UI geometry for a shape
-    // MATCHING this rect. Guessing by "untextured + alpha=0" alone cut holes through regular UI
-    // (any widget faded to zero opacity), letting the world show through e.g. the prey window.
-    Rect m_vkPendingMapHole;
-    Rect m_vkMapHole;
+    // Declared "map hole punch" rect: UIMap registers the rectangle of the alpha-0 window it cuts
+    // over the game view, so a consumer only treats a shape MATCHING this rect as a hole.
+    // This has to be declared rather than inferred, and the reason is empirical: guessing by
+    // "untextured + alpha=0" alone cut holes through regular UI - any widget faded to zero
+    // opacity - letting the world show through e.g. the prey window.
+    Rect m_pendingMapHole;
+    Rect m_mapHole;
+
+    // Declared dynamic uploads, published under m_threadLock alongside the object list for
+    // exactly the same reason the blit rects are: a consumer must never pair uploads from
+    // one frame with objects from another.
+    std::vector<TextureUpdate> m_pendingUploads;
+    std::vector<TextureUpdate> m_uploads;
+
+    // Declared composition material for this pool's target blit. The GL path expresses the
+    // map shader as an onBeforeDraw callback that binds a program and sets uniforms right
+    // before the blit; a consumer that does not run callbacks needs it as data.
+    //
+    // One behavioural note: MapView computes the shader-fade opacity inside that callback, on
+    // the render thread, whereas this is declared one step earlier on the producer thread. A
+    // compiled frame therefore samples the fade ramp one frame ahead of the GL one. That is a
+    // sub-frame difference in a fade, and declaring it here also removes the callback's
+    // existing habit of mutating MapView state from the render thread.
+    MaterialHandle m_pendingCompositionMaterial;
+    MaterialParams m_pendingCompositionParams;
+    float m_pendingCompositionOpacity{ 1.f };
+
+    MaterialHandle m_compositionMaterial;
+    MaterialParams m_compositionParams;
+    float m_compositionOpacity{ 1.f };
 
     friend class DrawPoolManager;
     friend class VkDrawFeeder;
+    friend class PoolCompiler;
 };
 
 extern DrawPoolManager g_drawPool;

@@ -43,6 +43,21 @@ public:
         m_buffer.insert(m_buffer.end(), &arr[0], &arr[size]);
     }
 
+    // Float-precision triangle. The integer addTriangle above is fine for the axis-aligned
+    // geometry the client draws, but a triangulated line's offset normal is a fraction of a
+    // pixel on any diagonal segment, and rounding it visibly bends thin lines.
+    void addTriangleF(const PointF& a, const PointF& b, const PointF& c)
+    {
+        float arr[] = {
+            a.x, a.y,
+            b.x, b.y,
+            c.x, c.y
+        };
+
+        const size_t size = sizeof(arr) / sizeof(float);
+        m_buffer.insert(m_buffer.end(), &arr[0], &arr[size]);
+    }
+
     void addRect(const Rect& rect)
     {
         const float top = rect.top();

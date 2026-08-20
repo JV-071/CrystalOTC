@@ -209,10 +209,10 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     select(type);
     const auto pool = getCurrentPool();
 
-    // Vulkan renderer stage 4: dest/src go to the pool explicitly (see comment in drawpool.h).
-    // On the GL path this is two Rect copies per frame - negligible cost.
-    pool->m_vkPendingFbDest = dest;
-    pool->m_vkPendingFbSrc = src;
+    // dest/src go to the pool as declared data (see comment in drawpool.h), because a consumer
+    // that does not run GL actions cannot recover them. Two Rect copies per frame.
+    pool->m_pendingFbDest = dest;
+    pool->m_pendingFbSrc = src;
 
     pool->resetState();
 

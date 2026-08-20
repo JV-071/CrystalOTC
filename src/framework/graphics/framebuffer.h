@@ -56,6 +56,13 @@ public:
 
     void setCompositionMode(const CompositionMode mode) { m_compositeMode = mode; }
     void disableBlend() { m_disableBlend = true; }
+
+    // Read-only view of the composition state a frame compiler needs to describe this
+    // target's blit. Previously only reachable through friendship with DrawPool.
+    CompositionMode getCompositionMode() const { return m_compositeMode; }
+    bool isBlendDisabled() const { return m_disableBlend; }
+    bool hasAlphaWriting() const { return m_useAlphaWriting; }
+
     void doScreenshot(std::string file, uint16_t x = 0, uint16_t y = 0);
     Size getSize();
 

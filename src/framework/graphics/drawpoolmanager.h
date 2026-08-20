@@ -53,9 +53,18 @@ public:
     void addFilledTriangle(const Point& a, const Point& b, const Point& c, const Color& color = Color::white) const;
     void addBoundingRect(const Rect& dest, const Color& color = Color::white, uint16_t innerLineWidth = 1) const;
     void addAction(const std::function<void()>& action, size_t hash = 0) const { getCurrentPool()->addAction(action, hash); }
+    void addAction(const std::function<void()>& action, const ActionIdiom idiom, size_t hash = 0) const { getCurrentPool()->addAction(action, idiom, hash); }
+    void addLineStrip(const std::vector<Point>& points, const uint16_t width, const Color& color, const std::function<void()>& glAction) const
+    { getCurrentPool()->addLineStrip(points, width, color, glAction); }
+    void addLightOverlay(const TexturePtr& texture, const Rect& dest, const Rect& src, const uint16_t tileSize, const std::function<void()>& glAction) const
+    { getCurrentPool()->addLightOverlay(texture, dest, src, tileSize, glAction); }
+    void addTextureUpload(const TextureHandle texture, const Size& size, const uint8_t* pixels, const size_t byteCount) const
+    { getCurrentPool()->addTextureUpload(texture, size, pixels, byteCount); }
+    void setCompositionMaterial(const MaterialHandle material, const MaterialParams& params, const float opacity) const
+    { getCurrentPool()->setCompositionMaterial(material, params, opacity); }
 
-    // Registers the rect of UIMap's alpha-0 cutout for the Vulkan feeder (see DrawPool::m_vkMapHole).
-    void setVkMapHole(const Rect& rect) const { getCurrentPool()->m_vkPendingMapHole = rect; }
+    // Registers the rect of UIMap's alpha-0 cutout as declared data (see DrawPool::m_mapHole).
+    void setMapHole(const Rect& rect) const { getCurrentPool()->m_pendingMapHole = rect; }
 
     void bindFrameBuffer(const Size& size, const Color& color = Color::white) const { getCurrentPool()->bindFrameBuffer(size, color); }
     void releaseFrameBuffer(const Rect& dest) const { getCurrentPool()->releaseFrameBuffer(dest); };

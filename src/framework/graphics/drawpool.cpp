@@ -24,6 +24,7 @@
 
 #include "painter.h"
 #include "textureatlas.h"
+#include "render/linetriangulation.h"
 
 DrawPool* DrawPool::create(const DrawPoolType type)
 {
@@ -80,7 +81,11 @@ void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& m
     auto& list = m_objects[m_currentDrawOrder];
     auto& state = getCurrentState();
 
-    if (!list.empty() && list.back().coords && list.back().state == state) {
+    // `!list.back().action` is what keeps an action object a BATCH BARRIER. It used to be
+    // implied by actions having no coords, but a tagged action now carries its declared
+    // geometry there, and merging live geometry into it would delete that geometry from the
+    // GL render - drawObject runs the callback and never looks at coords.
+    if (!list.empty() && list.back().coords && !list.back().action && list.back().state == state) {
         auto& last = list.back();
         coordsBuffer ? last.coords->append(coordsBuffer.get()) : addCoords(*last.coords, method);
     } else if (m_alwaysGroupDrawings) {
@@ -187,6 +192,7 @@ DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, Texture* textu
         // Texture is batched inside an atlas
         copy.textureId = textureAtlas->getId();
         copy.textureMatrixId = textureAtlas->getTransformMatrixId();
+        copy.textureHandle = TextureHandle{ textureAtlas->getUniqueId() };
     } else if (texture) {
         if (texture->isEmpty() || // Texture not initialized in the current OpenGL context
             !texture->canCacheInAtlas() || // Texture is marked as non-atlas-cacheable (short-lived/temporary, e.g. minimap)
@@ -199,6 +205,7 @@ DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, Texture* textu
             copy.textureId = texture->getId();
             copy.textureMatrixId = texture->getTransformMatrixId();
         }
+        copy.textureHandle = TextureHandle{ texture->getUniqueId() };
     }
 
     return copy;
@@ -293,9 +300,14 @@ void DrawPool::release() {
         // the CONTENT hash is unchanged - GL takes them fresh from prepare() on every
         // draw, so we too publish them always, together with the old object list.
         SpinLock::Guard guard(m_threadLock);
-        m_vkFbDest = m_vkPendingFbDest;
-        m_vkFbSrc = m_vkPendingFbSrc;
-        m_vkMapHole = m_vkPendingMapHole;
+        m_fbDest = m_pendingFbDest;
+        m_fbSrc = m_pendingFbSrc;
+        m_mapHole = m_pendingMapHole;
+        m_uploads.swap(m_pendingUploads);
+        m_pendingUploads.clear();
+        m_compositionMaterial = m_pendingCompositionMaterial;
+        m_compositionParams = m_pendingCompositionParams;
+        m_compositionOpacity = m_pendingCompositionOpacity;
         return;
     }
 
@@ -305,9 +317,14 @@ void DrawPool::release() {
 
     // Publish the framebuffer dest/src for the Vulkan path - together with the object list,
     // under the same lock, so the feeder never sees rects from a different frame than the objects.
-    m_vkFbDest = m_vkPendingFbDest;
-    m_vkFbSrc = m_vkPendingFbSrc;
-    m_vkMapHole = m_vkPendingMapHole;
+    m_fbDest = m_pendingFbDest;
+    m_fbSrc = m_pendingFbSrc;
+    m_mapHole = m_pendingMapHole;
+    m_uploads.swap(m_pendingUploads);
+    m_pendingUploads.clear();
+    m_compositionMaterial = m_pendingCompositionMaterial;
+    m_compositionParams = m_pendingCompositionParams;
+    m_compositionOpacity = m_pendingCompositionOpacity;
 
     m_objectsDraw[0].clear();
 
@@ -334,7 +351,8 @@ void DrawPool::release() {
             auto& last = m_objectsDraw[0].back();
             auto& first = objs.front();
 
-            if (last.state == first.state && last.coords && first.coords) {
+            if (last.state == first.state && last.coords && first.coords
+                && !last.action && !first.action) {
                 last.coords->append(first.coords.get());
                 addFirst = false;
             }
@@ -362,7 +380,8 @@ void DrawPool::flush()
             auto& last = m_objectsFlushed.back();
             auto& first = objs.front();
 
-            if (last.state == first.state && last.coords && first.coords) {
+            if (last.state == first.state && last.coords && first.coords
+                && !last.action && !first.action) {
                 last.coords->append(first.coords.get());
                 addFirst = false;
             }
@@ -468,10 +487,94 @@ void DrawPool::removeFramebuffer() {
     m_framebuffer = nullptr;
 }
 
+// A polyline, recorded as BOTH the GL line call and its triangulated equivalent. GL keeps
+// drawing GL_LINE_STRIP; a compiler takes the triangles. Triangulating here rather than in
+// the compiler costs a few hundred floats in the frames where a graph is actually visible,
+// and keeps the declared form testable on its own.
+void DrawPool::addLineStrip(const std::vector<Point>& points, const uint16_t width, const Color& color,
+                            const std::function<void()>& glAction)
+{
+    auto coords = getCoordsBuffer();
+    RenderLines::triangulateStrip(*coords, points, static_cast<float>(width));
+
+    PoolState state = getCurrentState();
+    state.color = color;
+    state.texture = nullptr;
+    state.textureId = 0;
+    state.textureMatrixId = 0;
+    state.textureHandle = {};
+
+    addDeclaredAction(glAction, ActionIdiom::LineStrip, std::move(state), std::move(coords));
+}
+
+void DrawPool::addTextureUpload(const TextureHandle texture, const Size& size,
+                                const uint8_t* pixels, const size_t byteCount)
+{
+    if (!texture.isValid() || !pixels || byteCount == 0)
+        return;
+
+    auto& update = m_pendingUploads.emplace_back();
+    update.texture = texture;
+    update.size = size;
+    update.pixels.assign(pixels, pixels + byteCount);
+}
+
+void DrawPool::addLightOverlay(const TexturePtr& texture, const Rect& dest, const Rect& src,
+                               const uint16_t tileSize, const std::function<void()>& glAction)
+{
+    auto coords = getCoordsBuffer();
+    const auto& offset = src.topLeft();
+    const auto& size = src.size();
+    coords->addRect(
+        RectF(dest.left(), dest.top(), dest.width(), dest.height()),
+        RectF(static_cast<float>(offset.x) / tileSize, static_cast<float>(offset.y) / tileSize,
+              static_cast<float>(size.width()) / tileSize, static_cast<float>(size.height()) / tileSize));
+
+    PoolState state;
+    state.compositionMode = CompositionMode::MULTIPLY;
+    state.transformMatrix = DEFAULT_MATRIX3;
+    state.color = Color::white;
+    state.texture = texture;
+    state.textureHandle = texture ? TextureHandle{ texture->getUniqueId() } : TextureHandle{};
+
+    addDeclaredAction(glAction, ActionIdiom::LightOverlay, std::move(state), std::move(coords));
+}
+
+void DrawPool::setCompositionMaterial(const MaterialHandle material, const MaterialParams& params,
+                                      const float opacity)
+{
+    m_pendingCompositionMaterial = material;
+    m_pendingCompositionParams = params;
+    m_pendingCompositionOpacity = opacity;
+}
+
 void DrawPool::addAction(const std::function<void()>& action, size_t hash)
 {
+    addAction(action, ActionIdiom::Opaque, hash);
+}
+
+// Records an action TOGETHER WITH the geometry and state that action would have produced.
+// The GL path runs the callback and ignores both; a frame compiler emits the declared form
+// and never runs the callback. This is how an idiom stops being opaque without the GL path
+// changing behaviour at all.
+void DrawPool::addDeclaredAction(const std::function<void()>& action, const ActionIdiom idiom,
+                                 PoolState&& state, std::shared_ptr<CoordsBuffer>&& coords, size_t hash)
+{
     const uint8_t order = m_type == DrawPoolType::MAP ? THIRD : FIRST;
-    m_objects[order].emplace_back(action);
+    auto& obj = m_objects[order].emplace_back(action);
+    obj.idiom = idiom;
+    obj.state = std::move(state);
+    obj.coords = std::move(coords);
+
+    if (hasFrameBuffer() && hash > 0 && !m_hashCtrl.isLast(hash)) {
+        m_hashCtrl.put(hash);
+    }
+}
+
+void DrawPool::addAction(const std::function<void()>& action, const ActionIdiom idiom, size_t hash)
+{
+    const uint8_t order = m_type == DrawPoolType::MAP ? THIRD : FIRST;
+    m_objects[order].emplace_back(action).idiom = idiom;
     if (hasFrameBuffer() && hash > 0 && !m_hashCtrl.isLast(hash)) {
         m_hashCtrl.put(hash);
     }
@@ -500,8 +603,8 @@ void DrawPool::bindFrameBuffer(const Size& size, const Color& color)
     // Marker for the Vulkan feeder (see DrawObject in drawpool.h). addAction pushes the action
     // onto the end of the same bucket we are using here.
     auto& bindObject = m_objects[m_type == DrawPoolType::MAP ? THIRD : FIRST].back();
-    bindObject.vkFbMarker = 1;
-    bindObject.vkFbSize = size;
+    bindObject.fbMarker = 1;
+    bindObject.fbSize = size;
 }
 void DrawPool::releaseFrameBuffer(const Rect& dest)
 {
@@ -521,10 +624,10 @@ void DrawPool::releaseFrameBuffer(const Rect& dest, uint8_t flipDirection)
 
     // Marker for the Vulkan feeder (see DrawObject in drawpool.h).
     auto& releaseObject = m_objects[m_type == DrawPoolType::MAP ? THIRD : FIRST].back();
-    releaseObject.vkFbMarker = 2;
-    releaseObject.vkFbFlip = flipDirection;
-    releaseObject.vkFbDest = dest;
-    releaseObject.vkFbOpacity = getCurrentState().opacity;
+    releaseObject.fbMarker = 2;
+    releaseObject.fbFlip = flipDirection;
+    releaseObject.fbDest = dest;
+    releaseObject.fbOpacity = getCurrentState().opacity;
 
     if (hasFrameBuffer() && !dest.isNull()) m_hashCtrl.put(dest.hash());
     --m_bindedFramebuffers;
