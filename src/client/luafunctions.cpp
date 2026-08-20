@@ -45,6 +45,7 @@
 #include "thingtypemanager.h"
 #include "tile.h"
 #include "towns.h"
+#include "uicompositionfixture.h"
 #include "uicreature.h"
 #include "uieffect.h"
 #include "uiitem.h"
@@ -1211,6 +1212,9 @@ void Client::registerLuaFunctions()
     g_lua.bindClassMemberFunction<UICreature>("setDirection", &UICreature::setDirection);
     g_lua.bindClassMemberFunction<UICreature>("setCenter", &UICreature::setCenter);
     g_lua.bindClassMemberFunction<UICreature>("isCentered", &UICreature::isCentered);
+
+    g_lua.registerClass<UICompositionFixture, UIWidget>();
+    g_lua.bindClassStaticFunction<UICompositionFixture>("create", [] { return std::make_shared<UICompositionFixture>(); });
 
     g_lua.registerClass<UISpellPreview, UIWidget>();
     g_lua.bindClassStaticFunction<UISpellPreview>("create", [] { return std::make_shared<UISpellPreview>(); });

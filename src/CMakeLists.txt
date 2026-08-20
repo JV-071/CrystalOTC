@@ -398,6 +398,7 @@ set(SOURCE_FILES
         client/thingtypemanager.cpp
         client/tile.cpp
         client/towns.cpp
+        client/uicompositionfixture.cpp
         client/uicreature.cpp
         client/uigraph.cpp
         client/uiitem.cpp

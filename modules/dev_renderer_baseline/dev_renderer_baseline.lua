@@ -3,6 +3,7 @@ RendererBaseline = {}
 local captureEvent
 local exitEvent
 local loginTimeoutEvent
+local setupEvent
 local activeScenario
 local sceneRoot
 
@@ -52,7 +53,11 @@ local function beginClientScene(title, subtitle)
     end
 
     g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
-    sceneRoot = makePanel(g_ui.getRootWidget(), 0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT, "#111827ff")
+    local rootWidget = g_ui.getRootWidget()
+    for _, child in ipairs(rootWidget:getChildren()) do
+        child:hide()
+    end
+    sceneRoot = makePanel(rootWidget, 0, 0, CAPTURE_WIDTH, CAPTURE_HEIGHT, "#111827ff")
     sceneRoot:setId("rendererBaselineScene")
     sceneRoot:setPhantom(true)
     sceneRoot:raise()
@@ -336,6 +341,36 @@ function RendererBaseline.buildTemporaryFramebufferScene()
     return true
 end
 
+function RendererBaseline.buildCompositionScene()
+    local root = beginClientScene(
+        "OpenGL composition mode matrix",
+        "A native fixture submits identical solid geometry through every painter blend descriptor"
+    )
+
+    local fixture = place(g_ui.createWidget("UICompositionFixture", root), 48, 152, 924, 278)
+    fixture:setBackgroundColor("#020617ff")
+    fixture:setBorderWidth(1)
+    fixture:setBorderColor("#64748bff")
+
+    local modes = {
+        { name = "NORMAL", formula = "SRC_A / 1-SRC_A", live = true, color = "#fb7185ff" },
+        { name = "MULTIPLY", formula = "DST_COLOR / 1-SRC_A", live = true, color = "#67e8f9ff" },
+        { name = "ADD", formula = "1-SRC_COLOR (both)", live = true, color = "#fde047ff" },
+        { name = "REPLACE", formula = "ONE / ZERO", live = false, color = "#c4b5fdff" },
+        { name = "DESTINATION", formula = "1-DST_A / DST_A", live = false, color = "#86efacff" },
+        { name = "LIGHT", formula = "ZERO / SRC_COLOR", live = false, color = "#fdba74ff" }
+    }
+    for index, mode in ipairs(modes) do
+        local x = 48 + (index - 1) * 156
+        makeLabel(root, x, 449, 144, 24, mode.name, "Verdana Bold-11px-new", mode.color, AlignCenter)
+        makeLabel(root, x, 475, 144, 34, mode.formula, "Verdana-8px-outline", "#e2e8f0ff", AlignCenter):setTextWrap(true)
+        makeLabel(root, x, 516, 144, 24, mode.live and "live caller" or "descriptor only", nil, mode.live and "#4ade80ff" or "#94a3b8ff", AlignCenter)
+    end
+
+    makeLabel(root, 48, 572, 924, 28, "The destination cell intentionally remains unchanged over opaque content; that is the defined destination-alpha equation.", nil, "#94a3b8ff", AlignCenter)
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -388,7 +423,7 @@ function RendererBaseline.captureScene(scene, delay)
             end
 
             exitEvent = scheduleEvent(waitForCapture, 100)
-        end, 100)
+        end, 250)
     end, delay)
 end
 
@@ -471,6 +506,15 @@ function RendererBaseline.onRun()
         if RendererBaseline.buildTemporaryFramebufferScene() then
             RendererBaseline.captureScene(activeScenario, 1500)
         end
+    elseif activeScenario == "composition-all" then
+        -- Build after startup dialogs have opened so the retained foreground target is
+        -- populated exclusively from the isolated fixture on its next refresh.
+        setupEvent = scheduleEvent(function()
+            setupEvent = nil
+            if RendererBaseline.buildCompositionScene() then
+                RendererBaseline.captureScene(activeScenario, 750)
+            end
+        end, 1500)
     else
         fail("unknown automated scenario '" .. tostring(activeScenario) .. "'")
     end
@@ -502,6 +546,10 @@ function RendererBaseline.terminate()
     if loginTimeoutEvent then
         removeEvent(loginTimeoutEvent)
         loginTimeoutEvent = nil
+    end
+    if setupEvent then
+        removeEvent(setupEvent)
+        setupEvent = nil
     end
     if sceneRoot then
         sceneRoot:destroy()

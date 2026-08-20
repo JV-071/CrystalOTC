@@ -53,9 +53,10 @@
     },
     {
       "id": "composition-all",
-      "automation": "native-fixture",
+      "automation": "client+native-fixture",
       "requiresOnlineGame": false,
-      "features": ["normal", "multiply", "add-weird", "replace", "destination-blending", "light-modulate"]
+      "features": ["normal", "multiply", "add-weird", "replace", "destination-blending", "light-modulate", "retained-destination"],
+      "command": "--renderer-baseline=composition-all --renderer-baseline-output=composition-all.png"
     },
     {
       "id": "temporary-framebuffers",
