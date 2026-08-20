@@ -104,8 +104,130 @@ end
 --     which the normal startup flow then re-shows because EnterGame.show() only guards
 --     on g_game.isOnline() and the client is still offline at that moment. Nothing
 --     hides it again once the game starts, so it covers the map centre.
+-- Online captures must show the game interface and nothing else. The server can push a
+-- modal at any moment -- a Sample character arrives with the outfit-customisation window
+-- open, which covers the whole map -- and any such window is both unwanted and
+-- unpredictable. This is the online counterpart of isolateClientScene().
+local function isolateGameInterface()
+    if not g_game.isOnline() then
+        return
+    end
+
+    local gameRoot = modules.game_interface and modules.game_interface.getRootPanel
+        and modules.game_interface.getRootPanel()
+    if not gameRoot then
+        return
+    end
+
+    local rootWidget = g_ui.getRootWidget()
+    local keep = gameRoot
+    while keep and keep:getParent() and keep:getParent() ~= rootWidget do
+        keep = keep:getParent()
+    end
+
+    for _, child in ipairs(rootWidget:getChildren()) do
+        if child ~= keep and child:isVisible() then
+            child:hide()
+        end
+    end
+end
+
+-- The map panel takes whatever vertical space the console splitter leaves it, and that
+-- settled at three different values across consecutive runs of the same scene (308, 370
+-- and 461 px tall), which alone made an online capture irreproducible. Waiting longer did
+-- not converge, so pin the splitter instead of hoping the layout agrees with itself.
+-- Light configuration is applied straight to the map widget rather than through
+-- client_options.setOption, whose action runs against the options module's panel table
+-- and is not necessarily built yet at game start.
+--
+-- The requested ambient floor of 0 is NOT what the capture ends up with: client_options
+-- applies its own 25% default during game start and wins, so the unlit ground settles at
+-- a mid grey rather than black. That is left as observed behaviour because it is stable
+-- and the scene's purpose -- proving the CPU light bitmap, its dynamic texture upload and
+-- the MULTIPLY overlay with overlapping coloured sources -- is unaffected. Do not read
+-- the unlit tiles as a zero-ambient reference.
+local lightingSceneActive = false
+
+local function applyLightingSetup()
+    if not lightingSceneActive or not g_game.isOnline() then
+        return
+    end
+
+    local gameInterface = modules.game_interface
+    local mapPanel = gameInterface and gameInterface.getMapPanel and gameInterface.getMapPanel()
+    if not mapPanel or mapPanel:isDestroyed() then
+        return
+    end
+
+    mapPanel:setDrawLights(true)
+    mapPanel:setMinimumAmbientLight(0)
+end
+
+local BASELINE_SPLITTER_MARGIN = 161
+
+local function pinInterfaceLayout()
+    if not g_game.isOnline() then
+        return
+    end
+
+    local gameInterface = modules.game_interface
+    local gameRoot = gameInterface and gameInterface.getRootPanel and gameInterface.getRootPanel()
+    if not gameRoot then
+        return
+    end
+
+    local splitter = gameRoot:getChildById("bottomSplitter")
+    if not splitter or splitter:isDestroyed() then
+        return
+    end
+
+    splitter:setMarginBottom(BASELINE_SPLITTER_MARGIN)
+    if gameInterface.bottomSplitterOnGeometryChange then
+        pcall(gameInterface.bottomSplitterOnGeometryChange, splitter)
+    end
+end
+
+-- The fixture torches carry six animation phases and creatures idle, so their sprites
+-- would land at a different phase in every capture even though the light they emit is
+-- phase-independent. Freeze every visible thing on the player's floor.
+local function freezeMapAnimation()
+    if not g_game.isOnline() then
+        return
+    end
+
+    local player = g_game.getLocalPlayer()
+    if not player then
+        return
+    end
+
+    for _, tile in ipairs(g_map.getTiles(player:getPosition().z)) do
+        for _, thing in ipairs(tile:getThings()) do
+            if thing.setAnimate then
+                thing:setAnimate(false)
+            end
+        end
+    end
+end
+
+-- Server broadcasts and the fixture talkaction's own confirmation both draw centred text
+-- over the map, so anything left on screen has to go before the shutter.
+local function clearOnScreenMessages()
+    if modules.game_textmessage and modules.game_textmessage.clearMessages then
+        pcall(modules.game_textmessage.clearMessages)
+    end
+end
+
 local function stabilizeOnlineUi()
     freezeShaderTime()
+
+    -- Isolate immediately and then again while the server may still be pushing windows.
+    -- Hiding a modal at capture time is not enough: it has already been laid out by then,
+    -- and the game interface keeps the geometry it settled on, which showed up as a map
+    -- panel of a different size from run to run.
+    isolateGameInterface()
+    for _, delay in ipairs({ 500, 1500, 2500 }) do
+        scheduleEvent(isolateGameInterface, delay)
+    end
 
     if modules.client_options and modules.client_options.setOption then
         pcall(modules.client_options.setOption, "showFps", false, true)
@@ -590,6 +712,11 @@ function RendererBaseline.captureScene(scene, delay)
 
         captureEvent = scheduleEvent(function()
             suppressCaptureTooltip()
+            isolateGameInterface()
+            pinInterfaceLayout()
+            applyLightingSetup()
+            clearOnScreenMessages()
+            freezeMapAnimation()
 
             -- Record the geometry the capture was actually taken at. Baseline provenance
             -- depends on it, and a drifting map panel is otherwise only visible as a large
@@ -708,8 +835,32 @@ function RendererBaseline.loginFixtureServer()
     end, 30000)
 end
 
+-- lighting-overlap proves the CPU light bitmap, its dynamic texture upload and the
+-- MULTIPLY overlay. It only works underground and only for a character WITHOUT the
+-- hasfulllight group flag: that flag makes the server report world light 255 and every
+-- creature light 255/215, and the client skips the whole LIGHT pool once ambient
+-- intensity reaches 250. Underground the client substitutes Light{0,215} for the
+-- server's world light, which also removes the wall-clock day/night cycle.
+-- Ambient is pinned to 0 so unlit ground stays black and the light bitmap is the only
+-- thing modulating the scene.
+function RendererBaseline.prepareLightingScene()
+    lightingSceneActive = true
+    applyLightingSetup()
+
+    g_game.talk("!fixture lighting")
+
+    -- setMinimumAmbientLight only takes effect on the next rendered frame, and
+    -- client_options applies its own stored ambient default during game start, which can
+    -- land after this call. Re-apply on a schedule that finishes well before the shutter
+    -- so the light texture is recomputed and drawn at least once with the pinned values.
+    for _, delay in ipairs({ 1000, 3000, 4500 }) do
+        scheduleEvent(applyLightingSetup, delay)
+    end
+end
+
 function RendererBaseline.onGameStart()
-    if activeScenario ~= "map-core" and activeScenario ~= "map-screenshot" then
+    if activeScenario ~= "map-core" and activeScenario ~= "map-screenshot"
+        and activeScenario ~= "lighting-overlap" then
         return
     end
 
@@ -722,13 +873,19 @@ function RendererBaseline.onGameStart()
 
     if activeScenario == "map-screenshot" then
         RendererBaseline.captureMapScreenshot(activeScenario, 4000)
+    elseif activeScenario == "lighting-overlap" then
+        -- The teleport is a server round trip, so allow it to land and the light
+        -- bitmap to be recomputed before the shutter.
+        RendererBaseline.prepareLightingScene()
+        RendererBaseline.captureScene(activeScenario, 6000)
     else
         RendererBaseline.captureScene(activeScenario, 4000)
     end
 end
 
 function RendererBaseline.onLoginError(message)
-    if activeScenario == "map-core" or activeScenario == "map-screenshot" then
+    if activeScenario == "map-core" or activeScenario == "map-screenshot"
+        or activeScenario == "lighting-overlap" then
         fail("fixture-server login failed: " .. tostring(message))
     end
 end
@@ -737,7 +894,8 @@ function RendererBaseline.onRun()
     activeScenario = optionValue("renderer-baseline")
     if activeScenario == "startup-ui" then
         RendererBaseline.captureScene(activeScenario, 2500)
-    elseif activeScenario == "map-core" or activeScenario == "map-screenshot" then
+    elseif activeScenario == "map-core" or activeScenario == "map-screenshot"
+        or activeScenario == "lighting-overlap" then
         RendererBaseline.loginFixtureServer()
     elseif activeScenario == "ui-clipping-opacity" then
         RendererBaseline.buildClippingOpacityScene()

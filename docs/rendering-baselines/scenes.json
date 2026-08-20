@@ -20,9 +20,10 @@
     },
     {
       "id": "lighting-overlap",
-      "automation": "fixture-server",
+      "automation": "client+fixture-server",
       "requiresOnlineGame": true,
-      "features": ["day-night", "colored-lights", "overlapping-lights", "dynamic-texture-upload", "multiply"]
+      "features": ["colored-lights", "overlapping-lights", "dynamic-texture-upload", "multiply", "underground-ambient"],
+      "command": "--renderer-baseline=lighting-overlap --renderer-baseline-output=lighting-overlap.png"
     },
     {
       "id": "ui-clipping-opacity",
