@@ -293,13 +293,20 @@ rendering regression.
 ## CI gating
 
 Three scenes are captured and archived but deliberately **not** gated against a reference:
-`outfit-masks`, `temporary-framebuffers` and `shader-matrix`. `data/things/*` is gitignored,
-so a CI runner has no game assets and their creature, item and outfit previews render empty
-there; gating them would freeze a blank image as the accepted reference. `shader-matrix` is
-the near miss: its sixteen fragment cells would gate cleanly and only its outfit row does
-not, so splitting that row out would let them. The manifest records this in
-`ciGate`/`ciGateReason`, and `tools/renderer_scenes.py ids --gated` is the authoritative
-list.
+`outfit-masks`, `temporary-framebuffers` and `shader-matrix-outfits`. `data/things/*` is
+gitignored, so a CI runner has no game assets and their creature, item and outfit previews
+render empty there; gating them would freeze a blank image as the accepted reference. The
+manifest records this in `ciGate`/`ciGateReason`, and `tools/renderer_scenes.py ids --gated`
+is the authoritative list.
+
+**Updated 2026-08-20:** `shader-matrix` used to be the fourth. It was the near miss - sixteen
+fragment cells that would gate cleanly and one outfit row that would not - so the outfit row
+was split out into `shader-matrix-outfits` and the fragment half is now gated. One cell of it,
+`forge_result_silhouette`, still renders differently by environment: `game_exaltationforge`
+registers that shader in its `onLoad`, which does not run without game assets, so with assets
+the cell draws a black silhouette and without them it draws the image unshaded. Both are
+deterministic, so the gate holds against the llvmpipe reference - but a local XQuartz capture
+of this scene will always differ from that reference in that one cell.
 
 Reference images are compared against a **digest-pinned** `ubuntu:24.04` container. llvmpipe
 rasterization is the reference implementation for every checked-in PNG and the hosted runner

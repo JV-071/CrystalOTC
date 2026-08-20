@@ -10,7 +10,9 @@ This directory defines the Phase 0 visual reference process used while the OpenG
 - A channel difference of 2 and at most 0.1% differing pixels are the manifest defaults (`defaultTolerance` in [scenes.json](scenes.json)). A scene may raise its own limit with `channelTolerance`/`maxDifferentFraction` plus a `toleranceReason`; `map-core` and `shader-matrix-map` are at 0.2% because a creature on a live server cannot be perfectly frozen. Resolve the effective value with `tools/renderer_scenes.py field <id> maxDifferentFraction`. Missing passes, wrong dimensions, clipping errors, alpha errors, and coordinate shifts always fail review regardless of the aggregate percentage.
 - Per-run PNGs and metadata are CI artifacts. The canonical llvmpipe reference for each gated scene is committed under `references/opengl-llvmpipe/`, together with `ENVIRONMENT.txt` for the run that produced it; the CI job compares every gated capture against its reference and fails on drift. Scenes marked `ciGate: false` are captured and archived only. See [references/opengl-llvmpipe/README.md](references/opengl-llvmpipe/README.md).
 
-The complete coverage list lives in [scenes.json](scenes.json), and `tools/renderer_scenes.py` is the single source of truth shared by the local capture flow and the CI job: `tools/renderer_scenes.py ids --all` reports 15 scenes, `ids --offline` the 10 CI can capture, and `ids --gated` the 7 compared against a checked-in reference. Every scene has an automated `command`; Phase 0 is complete. `ciCapture: false` marks a scene CI cannot capture at all (`windowing`), and `ciGate: false` marks one captured but not compared (`outfit-masks`, `temporary-framebuffers`, `shader-matrix`), each carrying a `ciCaptureReason` or `ciGateReason`.
+The complete coverage list lives in [scenes.json](scenes.json), and `tools/renderer_scenes.py` is the single source of truth shared by the local capture flow and the CI job: `tools/renderer_scenes.py ids --all` reports 16 scenes, `ids --offline` the 11 CI can capture, and `ids --gated` the 8 compared against a checked-in reference. Every scene has an automated `command`; Phase 0 is complete. `ciCapture: false` marks a scene CI cannot capture at all (`windowing`), and `ciGate: false` marks one captured but not compared (`outfit-masks`, `temporary-framebuffers`, `shader-matrix-outfits`), each carrying a `ciCaptureReason` or `ciGateReason`.
+
+`shader-matrix` was split on 2026-08-20 so that its sixteen fragment cells could be gated: every fragment cell draws a tracked image from `data/images`, so it renders identically with or without game assets, while the six outfit cells depend on gitignored `data/things/*` and moved to `shader-matrix-outfits`. The fragment cells kept their exact coordinates through the split.
 
 ## macOS XQuartz bring-up
 
@@ -47,11 +49,11 @@ for scene in $(python3 tools/renderer_scenes.py ids --offline); do
 done
 ```
 
-That query reports 10 scenes and includes `startup-ui`, so the loop repeats the capture shown above.
+That query reports 11 scenes and includes `startup-ui`, so the loop repeats the capture shown above.
 
 The scripted fixture is isolated from normal startup windows one frame before readback. This keeps late-opening login and game-option dialogs out of the capture without changing normal client startup behavior.
 
-For an online capture, the server must be built from the fixture branch: `aacruzgon/crystalserver` commit `f47f6e41` on branch `local/testing`, which adds `data-global/scripts/custom/renderer_fixtures/`, a startup GlobalEvent that builds the surface and underground platforms plus a `!fixture <map|lighting>` talkaction. The driver no longer captures wherever the character happens to be: it polls the player position against the platform anchor and re-sends the talkaction until it lands, failing loudly rather than capturing the wrong place, so a plain server aborts the run. Start that server and its login database, then provide a disposable fixture account through the environment:
+For an online capture, the server must be built from the fixture branch. That dependency is pinned in `scenes.json` under `fixtureServer` — print it with `python3 tools/renderer_scenes.py fixture` — and the scripts themselves are vendored for reference under [fixture-server/](fixture-server/), which documents installation, the restart requirement, and the per-scene character-group rule. In short: `aacruzgon/crystalserver` commit `f47f6e41` on branch `local/testing`, which adds `data-global/scripts/custom/renderer_fixtures/`, a startup GlobalEvent that builds the surface and underground platforms plus a `!fixture <map|lighting>` talkaction. The GlobalEvent fires only on the `GAME_STATE_INIT` transition, so a server that was already running when the scripts were installed will not have the platforms. The driver no longer captures wherever the character happens to be: it polls the player position against the platform anchor and re-sends the talkaction until it lands, failing loudly rather than capturing the wrong place, so a plain server aborts the run. Start that server and its login database, then provide a disposable fixture account through the environment:
 
 ```sh
 CRYSTALOTC_BASELINE_ACCOUNT="@fixture" \
@@ -62,7 +64,7 @@ DISPLAY="$DISPLAY" build/macos-release/bin/otclient \
   --renderer-baseline-output=map-core.png
 ```
 
-Use the `GOD` character for `map-core`, `map-screenshot`, and `shader-matrix-map`: its group carries `hasfulllight`, which pins world light and makes those captures immune to the day/night cycle. `lighting-overlap` needs a group-1 character on the same account for the inverse reason, and stands on the underground platform; see [known-deviations.md](known-deviations.md).
+Use the `GOD` character for `map-core`, `map-screenshot`, and `shader-matrix-map`: its group carries `hasfulllight`, which pins world light and makes those captures immune to the day/night cycle. `lighting-overlap` needs a group-1 character on the same account for the inverse reason, and stands on the underground platform; see [known-deviations.md](known-deviations.md). Each online scene declares this as `requiresCharacterGroup` in the manifest, and `renderer_scenes.py validate` requires it to be present.
 
 Use `--renderer-baseline=map-screenshot --renderer-baseline-output=map-screenshot.png` with the same environment to capture the MAP framebuffer readback rather than the complete client window. This scene preserves and verifies the legacy asymmetric one-tile/two-tile margin crop.
 

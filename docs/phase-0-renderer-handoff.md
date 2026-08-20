@@ -12,7 +12,7 @@ The OpenGL client builds and runs on Apple Silicon through XQuartz. The reposito
 deterministic capture driver, an image comparator, a manifest that is now the single source
 of truth for the scene list, and a Linux llvmpipe workflow with a real comparison gate.
 
-All fifteen declared scenes are automated. `lighting-overlap` — the scene the previous
+All fifteen declared scenes are automated. (**Updated 2026-08-20, post-handoff:** sixteen, after `shader-matrix` was split into a gated fragment half and an ungated `shader-matrix-outfits`; see *Post-handoff cleanup* below.) `lighting-overlap` — the scene the previous
 handoff recorded as having failed twice — is implemented and repeatable, driven by
 server-authored world state. `shader-matrix`, `shader-matrix-map` and `windowing` were added
 after the previous handoff; `windowing` is the only scene a headless runner cannot capture.
@@ -33,7 +33,7 @@ Against the implementation plan's Phase 0 tasks:
 
 - [x] **XQuartz GL bring-up.** Client builds and runs on Apple Silicon; XQuartz 2.8.6, OpenGL 2.1, GLSL 1.20.
 - [x] **CI software-GL reference.** Ubuntu container + Xvfb + Mesa llvmpipe, digest-pinned, green.
-- [x] **Script the validation-matrix scenes.** All 15 scenes in `scenes.json` have a command.
+- [x] **Script the validation-matrix scenes.** All 15 scenes in `scenes.json` have a command. (16 after the post-handoff split.)
 - [x] **Cover every surveyed edge.** Seven temp-FBO sites, map hole, `useFramebuffer` Outline, Fog/Snow multi-texture, UIGraph lines, atlas growth, map readback.
 - [x] **Resolve `[D §12.4]`** — the `x/3, y/1.5` offsets are intentional framing; verdict recorded in the survey.
 - [x] ~~Frame-time and memory baselines~~ — **deferred to Phase 3** (`AUTO_STAT` is compiled out; the client caps at 60 FPS, so a Phase 0 figure measures the cap and has nothing to compare against).
@@ -42,7 +42,7 @@ Against the exit gate:
 
 - [x] The client runs on macOS via XQuartz.
 - [x] A checked-in scene list (`scenes.json`, machine-readable, single source of truth).
-- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`).
+- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`). (8 gated post-handoff; `shader-matrix` awaits its first reference.)
 - [x] A known-deviations note, including the XQuartz-versus-llvmpipe comparison with evidence.
 
 ### Scenes
@@ -61,7 +61,8 @@ Repeatability is two or more consecutive captures compared with
 | `atlas-resources` | [x] | offline | gated | 0 px |
 | `outfit-masks` | [x] | offline | captured only | 0 px (was 520 before pinned `u_Time`) |
 | `temporary-framebuffers` | [x] | offline | captured only | 0 px (was 449 before pinned `u_Time`) |
-| `shader-matrix` | [x] | offline | captured only | 0 px |
+| `shader-matrix` | [x] | offline | gated (post-handoff; reference pending) | 0 px |
+| `shader-matrix-outfits` | [x] | offline | captured only (post-handoff) | 0 px |
 | `windowing` | [x] | offline | not capturable | 0 px |
 | `lighting-overlap` | [x] | online | — | 161 px (0.024%) |
 | `map-screenshot` | [x] | online | — | 62 px of 168,960 (0.037%) |
@@ -146,9 +147,9 @@ floor and a hole cut in a z=7 platform would expose nothing.
 ## Automated scenes
 
 Offline, gated in CI: `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`,
-`composition-all`, `graph-lines`, `atlas-resources`.
+`composition-all`, `graph-lines`, `atlas-resources`, and — post-handoff — `shader-matrix`.
 
-Offline, captured but not gated: `outfit-masks`, `temporary-framebuffers`, `shader-matrix`.
+Offline, captured but not gated: `outfit-masks`, `temporary-framebuffers`, `shader-matrix-outfits`.
 
 Offline, not capturable in CI: `windowing` — a desktop driver, not a headless capture.
 
@@ -157,7 +158,7 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 
 ## Remaining Phase 0 work
 
-None. Every scene in `scenes.json` has a command, all seven gated scenes have a reference, and
+None. Every scene in `scenes.json` has a command, all seven gated scenes had a reference at this checkpoint (eight are gated post-handoff; `shader-matrix` is pending its first), and
 the workflow gates them green: run `32381800862` compared six at exactly 0 differing pixels
 and `atlas-resources` at 158, inside its tolerance.
 
@@ -176,13 +177,17 @@ that risks invalidating the warm vcpkg cache on a build whose median is around 6
 It deserves its own commit and a cold build to verify, not a ride-along on an unrelated fix.
 The renderer-baseline workflow is already off Node 20, where there was no cache to lose.
 
-**`tests-lua.yml` tests nothing.** It installs Lua 5.1, checks out the code, and ends. It
-runs on every pull request and on every push to `main`, with no path filter, and always
-reports green, so it reads as a passing check while asserting nothing. It also uses
-`actions/checkout@main`, an unpinned floating ref.
+~~**`tests-lua.yml` tests nothing.**~~ **Resolved 2026-08-20 (post-handoff).** It now
+syntax-checks every tracked `.lua` file with LuaJIT - the parser the client actually embeds -
+and fails the job if the sweep ever checks zero files. `actions/checkout` is pinned by SHA.
+Fixing it surfaced three genuine invalid escape sequences in
+`tools/lua-binding-generator/generate_lua_bindings.lua` (`\*` and `\%`, neither a Lua escape),
+which had made that file unloadable; they are fixed.
 
-**`actions/labeler@main` is unpinned** in `pr-labeler.yml`, and `.github/labeler.yml` still
-uses v4 syntax, so a labeler major release can break it with no change in this repository.
+~~**`actions/labeler@main` is unpinned.**~~ **Resolved 2026-08-20 (post-handoff).** Pinned to
+`v7.0.0` by SHA, and `.github/labeler.yml` migrated from the v4 schema to the v5-and-later
+`changed-files`/`any-glob-to-any-file` form. The action had reached v7 while the config stayed
+v4, so this was already broken rather than merely at risk.
 
 **The container digest does not freeze Mesa.** The baseline job pins `ubuntu:24.04` by digest,
 which freezes the base image, but Mesa is installed by `apt` at job time from the Ubuntu
@@ -194,16 +199,68 @@ rotates a superseded version out of the archive.
 **`XZ_SANDBOX` unused-variable warning** is emitted by the `liblzma` port at the pinned vcpkg
 baseline, not by this repository. Silencing it means patching a port or moving the baseline.
 
-**`shader-matrix` cannot be CI-gated as one scene.** Its sixteen fragment cells would gate
-cleanly, but its six outfit cells render creature previews from `data/things/*`, which is
-gitignored, so a CI runner draws them empty. Splitting the outfit row into its own scene would
-let the fragment half be gated. The same reasoning applies to `outfit-masks` and
-`temporary-framebuffers`, which are gated off for exactly this reason.
+~~**`shader-matrix` cannot be CI-gated as one scene.**~~ **Resolved 2026-08-20
+(post-handoff).** The outfit row is now `shader-matrix-outfits` and `shader-matrix` is gated.
+The fragment cells kept their exact coordinates through the split, verified against three
+pre-split captures at 0 differing pixels in the `y < 482` band. The reasoning still applies to
+`outfit-masks` and `temporary-framebuffers`, which remain gated off - splitting those would
+mean removing their creature previews, which is the coverage, not an incidental cell.
 
 **`map-screenshot` carries a 62-pixel residual** from one animated decoration.
 `Thing:setAnimate(false)` stops a sprite advancing but leaves it on whatever phase it already
 held, and that phase differs per run. Freezing at a *known* phase would need a binding that
 does not exist.
+
+## Post-handoff cleanup (2026-08-20)
+
+Work done after checkpoint `d56850a`, before Phase 1 started. Four of the deferred follow-ups
+above; the rest stay deferred with their reasoning unchanged.
+
+**`shader-matrix` split, and the fragment half gated.** The scene's six outfit cells moved to a
+new `shader-matrix-outfits`; the sixteen fragment cells plus one unshaded control cell stayed
+in `shader-matrix`, which is now CI-gated. Every fragment cell draws
+`data/images/background_crystal1`, which is tracked, so the scene renders identically with or
+without game assets. Both halves share one grid (`SHADER_GRID` in the capture driver) and the
+fragment cells kept their exact coordinates: the `y < 482` band of a post-split capture is
+**0 differing pixels** against three separate pre-split captures. Both scenes measure 0 px
+across consecutive runs.
+
+Its reference is not seeded yet. A gated scene with no reference is a GitHub *notice*, not a
+failure, so the workflow stays green and reports `UNGATED-pending-reference` until the PNG from
+the next green run is committed under `references/opengl-llvmpipe/`.
+
+**The fixture-server dependency is pinned and machine-checked.** The four online scenes were
+uncapturable without `crystalserver` scripts that exist only on a personal fork, and nothing in
+this repository recorded that beyond prose. Now:
+
+- `scenes.json` carries a `fixtureServer` block - repository, branch, full commit sha, script
+  path, and the platform anchors - readable with `tools/renderer_scenes.py fixture`.
+- The three fixture scripts are vendored byte-identically under
+  `docs/rendering-baselines/fixture-server/`, with a README covering installation, the
+  restart requirement and the per-scene character-group rule.
+- `renderer_scenes.py validate` now fails if the vendored copy drifts from its recorded sha256
+  digests, if a vendored `.lua` is unrecorded, if the manifest anchors disagree with
+  `FIXTURE_ANCHORS` in the capture driver, or if an online scene does not name an existing
+  anchor and declare its `requiresCharacterGroup`. All five failure modes were tested.
+- The driver's timeout message used to say only `never reached fixture 'map' at ...`, which is
+  identical across four genuinely different causes. It now names all four, leading with the
+  likeliest: the server was not restarted after the scripts were installed.
+
+**`tests-lua.yml` is a real gate.** It syntax-checks all 262 tracked `.lua` files with LuaJIT -
+the parser the client embeds, rather than PUC `lua5.1` - and fails if the sweep ever checks
+zero files, which is the exact way it was previously vacuous. Writing it surfaced three
+invalid escape sequences (`\*` and `\%`, neither a Lua escape) in
+`tools/lua-binding-generator/generate_lua_bindings.lua` that had made that file unloadable;
+they are fixed, and the sweep is clean.
+
+**`actions/labeler` pinned and its config migrated.** Pinned to `v7.0.0` by SHA. The config was
+still v4 schema against a `@main` reference that had reached v7, so it was already broken, not
+merely at risk; it now uses the v5-and-later `changed-files`/`any-glob-to-any-file` form with
+explicit `permissions`.
+
+Deliberately still deferred, reasoning unchanged: the Node 20 bump in `build-windows.yml` (it
+drags `actions/cache` and needs a cold ~60-minute build to verify), Mesa version pinning, the
+`XZ_SANDBOX` port warning, and `map-screenshot`'s 62-pixel animated-decoration residual.
 
 ## Reproduction commands
 
@@ -333,8 +390,12 @@ Deliberately not in this repository:
 
 - **The server fixtures.** They live in `crystalserver`, commit `f47f6e41` on branch
   `local/testing`, pushed to `aacruzgon/crystalserver`. No online scene runs without it.
+  **Post-handoff:** the pin now lives in `scenes.json` under `fixtureServer` and the scripts
+  are vendored read-only under `docs/rendering-baselines/fixture-server/`, enforced by
+  `renderer_scenes.py validate`. The running server still has to come from that commit.
 - **Sprite and appearance data.** `data/things/*` is gitignored, which is why `outfit-masks`,
-  `temporary-framebuffers` and `shader-matrix` are captured but never gated.
+  `temporary-framebuffers` and `shader-matrix-outfits` are captured but never gated
+  (`shader-matrix` itself became gateable post-handoff by splitting the outfit cells out).
 - **References for the ungated scenes.** Only the seven gated PNGs are checked in, under
   `docs/rendering-baselines/references/opengl-llvmpipe/`, next to the `ENVIRONMENT.txt`
   fingerprint of the run that produced them.

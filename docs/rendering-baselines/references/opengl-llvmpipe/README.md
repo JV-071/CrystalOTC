@@ -16,9 +16,18 @@ container digest and the same Mesa packages, and the later one compared the six
 unchanged references at 0 differing pixels each.
 
 Only the scenes `tools/renderer_scenes.py ids --gated` reports are stored here.
-`outfit-masks`, `temporary-framebuffers` and `shader-matrix` are captured by CI
-but deliberately not gated, so they have no reference; see their `ciGateReason`
-in `scenes.json`.
+`outfit-masks`, `temporary-framebuffers` and `shader-matrix-outfits` are captured
+by CI but deliberately not gated, so they have no reference; see their
+`ciGateReason` in `scenes.json`.
+
+`shader-matrix` became gated on 2026-08-20, when its six outfit cells were split
+out into `shader-matrix-outfits` so the sixteen fragment cells no longer depended
+on gitignored `data/things/*`. **Its reference is not yet seeded**: the workflow
+reports `UNGATED-pending-reference` and stays green until the PNG lands here. One
+cell in it, `forge_result_silhouette`, renders unshaded in CI because
+`game_exaltationforge` does not load without game assets; that is deterministic
+and gates fine, but it is why a local XQuartz capture of this scene will always
+differ from the reference in that cell.
 
 ## These are CI references, not universal ones
 
