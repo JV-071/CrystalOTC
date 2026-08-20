@@ -45,9 +45,10 @@
     },
     {
       "id": "particles-blends",
-      "automation": "client-script",
+      "automation": "client",
       "requiresOnlineGame": false,
-      "features": ["particles", "normal", "multiply", "add-weird"]
+      "features": ["particles", "single-burst-emitter", "normal", "multiply", "add-weird"],
+      "command": "--renderer-baseline=particles-blends --renderer-baseline-output=particles-blends.png"
     },
     {
       "id": "composition-all",

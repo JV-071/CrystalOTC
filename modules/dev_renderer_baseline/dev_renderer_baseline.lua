@@ -191,6 +191,42 @@ function RendererBaseline.buildTextMatrixScene()
     rotatedRight:setRotation(17)
 end
 
+local function makeParticleCard(root, x, title, mode, effectName, accent)
+    makeLabel(root, x + 10, 118, 270, 24, title, "Verdana Bold-11px-new", accent)
+    local card = makePanel(root, x, 148, 286, 390, "#0f172aff", accent)
+
+    local tileColors = { "#f8fafcff", "#64748bff" }
+    for row = 0, 5 do
+        for column = 0, 3 do
+            makePanel(card, x + 23 + column * 60, 181 + row * 48, 60, 48, tileColors[(row + column) % 2 + 1])
+        end
+    end
+
+    local particles = place(g_ui.createWidget("UIParticles", card), x + 23, 181, 240, 288)
+    particles:setEffect(effectName)
+    makeLabel(card, x + 23, 481, 240, 30, mode, "Verdana Bold-11px-new", "#ffffffff", AlignCenter):setBackgroundColor("#020617dd")
+    return particles
+end
+
+function RendererBaseline.buildParticlesBlendScene()
+    if not g_particles.importParticle("/modules/dev_renderer_baseline/renderer-baseline-particles.otps") then
+        fail("failed to import deterministic particle definitions")
+        return false
+    end
+
+    local root = beginClientScene(
+        "OpenGL particle composition modes",
+        "One fixed particle per card exercises the three blend modes used by live rendering"
+    )
+
+    makeParticleCard(root, 48, "NORMAL", "SRC_A, 1 - SRC_A", "renderer-baseline-normal", "#fb7185ff")
+    makeParticleCard(root, 358, "MULTIPLY", "DST_COLOR, 1 - SRC_A", "renderer-baseline-multiply", "#67e8f9ff")
+    makeParticleCard(root, 668, "ADD (LEGACY)", "1 - SRC_COLOR (both)", "renderer-baseline-add-weird", "#fde047ff")
+
+    makeLabel(root, 48, 558, 906, 32, "Static single-burst emitters remove timing and random-position variance while retaining the real particle draw path.", nil, "#94a3b8ff", AlignCenter)
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -312,6 +348,12 @@ function RendererBaseline.onRun()
     elseif activeScenario == "text-matrix" then
         RendererBaseline.buildTextMatrixScene()
         RendererBaseline.captureScene(activeScenario, 1000)
+    elseif activeScenario == "particles-blends" then
+        if RendererBaseline.buildParticlesBlendScene() then
+            -- The foreground pool is retained and refresh-capped. Give the one-shot
+            -- particle systems enough time to reach a stable cached frame.
+            RendererBaseline.captureScene(activeScenario, 2500)
+        end
     else
         fail("unknown automated scenario '" .. tostring(activeScenario) .. "'")
     end

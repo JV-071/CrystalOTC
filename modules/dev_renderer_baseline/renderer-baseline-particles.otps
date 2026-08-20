@@ -1,0 +1,71 @@
+Particle
+  name: renderer_baseline_normal
+  duration: 30
+  position-radius: 0
+  velocity: 0
+  velocity-angle: 0
+  acceleration: 0
+  acceleration-angle: 0
+  colors: #f43f5eff #f43f5eff
+  colors-stops: 0 1
+  size: 150 150
+  texture: /particles/particle2
+  composition-mode: normal
+
+Particle
+  name: renderer_baseline_multiply
+  duration: 30
+  position-radius: 0
+  velocity: 0
+  velocity-angle: 0
+  acceleration: 0
+  acceleration-angle: 0
+  colors: #22d3eeff #22d3eeff
+  colors-stops: 0 1
+  size: 150 150
+  texture: /particles/particle2
+  composition-mode: multiply
+
+Particle
+  name: renderer_baseline_add_weird
+  duration: 30
+  position-radius: 0
+  velocity: 0
+  velocity-angle: 0
+  acceleration: 0
+  acceleration-angle: 0
+  colors: #facc15ff #facc15ff
+  colors-stops: 0 1
+  size: 96 96
+  texture: /particles/particle2
+  composition-mode: addition
+
+Effect
+  name: renderer-baseline-normal
+  System
+    Emitter
+      position: 0 0
+      duration: 0.02
+      burst-rate: 1
+      burst-count: 1
+      particle-type: renderer_baseline_normal
+
+Effect
+  name: renderer-baseline-multiply
+  System
+    Emitter
+      position: 0 0
+      duration: 0.02
+      burst-rate: 1
+      burst-count: 1
+      particle-type: renderer_baseline_multiply
+
+Effect
+  name: renderer-baseline-add-weird
+  System
+    Emitter
+      position: 0 0
+      duration: 0.02
+      burst-rate: 1
+      burst-count: 1
+      particle-type: renderer_baseline_add_weird
