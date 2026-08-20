@@ -807,11 +807,10 @@ function RendererBaseline.buildShaderMatrixScene()
     return true
 end
 
-function RendererBaseline.captureScene(scene, delay)
-    local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
+local function resolveCaptureTarget(outputName)
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
         fail("--renderer-baseline-output must be a PNG filename without a directory")
-        return
+        return nil
     end
 
     if not g_resources.directoryExists("/render-baselines") then
@@ -819,16 +818,67 @@ function RendererBaseline.captureScene(scene, delay)
     end
 
     local virtualPath = "/render-baselines/" .. outputName
-    local realPath = g_resources.getWriteDir() .. "render-baselines/" .. outputName
     if g_resources.fileExists(virtualPath) then
         g_resources.deleteFile(virtualPath)
     end
+
+    return virtualPath, g_resources.getWriteDir() .. "render-baselines/" .. outputName
+end
+
+local function logCaptureGeometry()
+    -- Baseline provenance depends on the geometry the capture was actually taken at; a
+    -- drifting map panel is otherwise only visible as a large unexplained pixel diff.
+    local mapPanel = modules.game_interface and modules.game_interface.getMapPanel
+        and modules.game_interface.getMapPanel()
+    if mapPanel and not mapPanel:isDestroyed() then
+        local rect = mapPanel:getRect()
+        g_logger.info(string.format("[renderer-baseline] map panel rect=%d,%d %dx%d",
+            rect.x, rect.y, rect.width, rect.height))
+    end
+end
+
+-- Take one screenshot and hand control to onComplete once the encoder has finished with it.
+-- The terminal action is a parameter rather than a hardcoded exit, so a multi-step scene can
+-- chain captures; every single-capture scene simply passes g_app.exit.
+local function takeCapture(outputName, onComplete)
+    local virtualPath, realPath = resolveCaptureTarget(outputName)
+    if not virtualPath then
+        return
+    end
+
+    g_logger.info("[renderer-baseline] capturing to " .. realPath)
+    prepareForShutter()
+    logCaptureGeometry()
+    g_app.doScreenshot(virtualPath)
+
+    -- Screenshot encoding is dispatched asynchronously. Poll for the new file, then leave a
+    -- short settle period because the encoder can still own application resources after the
+    -- directory entry becomes visible.
+    local attempts = 0
+    local function waitForCapture()
+        attempts = attempts + 1
+        if g_resources.fileExists(virtualPath) then
+            exitEvent = scheduleEvent(function()
+                g_logger.info("[renderer-baseline] capture complete: " .. realPath)
+                onComplete()
+            end, 1500)
+        elseif attempts >= 100 then
+            fail("capture timed out after 10 seconds: " .. realPath)
+        else
+            exitEvent = scheduleEvent(waitForCapture, 100)
+        end
+    end
+
+    exitEvent = scheduleEvent(waitForCapture, 100)
+end
+
+function RendererBaseline.captureScene(scene, delay)
+    local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
 
     -- A fixed logical viewport keeps same-backend comparisons meaningful. The normal
     -- startup flow has finished by the time this delayed event fires, so fonts, images,
     -- clipping, translucent widgets, and the initial framebuffer resize are all live.
     g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
-    g_logger.info("[renderer-baseline] capturing " .. scene .. " to " .. realPath)
 
     captureEvent = scheduleEvent(function()
         -- Startup modules can open windows after onRun. Keep scripted fixtures above
@@ -838,42 +888,142 @@ function RendererBaseline.captureScene(scene, delay)
         end
 
         captureEvent = scheduleEvent(function()
-            prepareForShutter()
-
-            -- Record the geometry the capture was actually taken at. Baseline provenance
-            -- depends on it, and a drifting map panel is otherwise only visible as a large
-            -- unexplained pixel diff.
-            local mapPanel = modules.game_interface and modules.game_interface.getMapPanel
-                and modules.game_interface.getMapPanel()
-            if mapPanel and not mapPanel:isDestroyed() then
-                local rect = mapPanel:getRect()
-                g_logger.info(string.format("[renderer-baseline] map panel rect=%d,%d %dx%d",
-                    rect.x, rect.y, rect.width, rect.height))
-            end
-
-            g_app.doScreenshot(virtualPath)
-
-            -- Screenshot encoding is dispatched asynchronously. Poll for the new file, then
-            -- leave a short settle period because the encoder can still own application
-            -- resources after the directory entry becomes visible.
-            local attempts = 0
-            local function waitForCapture()
-                attempts = attempts + 1
-                if g_resources.fileExists(virtualPath) then
-                    exitEvent = scheduleEvent(function()
-                        g_logger.info("[renderer-baseline] capture complete: " .. realPath)
-                        g_app.exit()
-                    end, 1500)
-                elseif attempts >= 100 then
-                    fail("capture timed out after 10 seconds: " .. realPath)
-                else
-                    exitEvent = scheduleEvent(waitForCapture, 100)
-                end
-            end
-
-            exitEvent = scheduleEvent(waitForCapture, 100)
+            takeCapture(outputName, function() g_app.exit() end)
         end, 250)
     end, delay)
+end
+
+-- windowing is the only multi-capture scene. It drives the real startup UI -- which is
+-- anchored and genuinely reflows -- through a sequence of window states, capturing after each.
+--
+-- Only resize and display density are assertable from an image. doScreenshot reads the
+-- PHYSICAL viewport, so a resize changes the PNG dimensions outright, and a HUD-scale change
+-- is a real difference rather than a rescale: GraphicalApplication::resize sizes the UI and
+-- the FOREGROUND framebuffer at viewport/scale, but that framebuffer is blitted 1:1 into a
+-- destination rect equal to its own size inside a painter at full physical resolution.
+--
+-- focus is not assertable at all: hasFocus() has no consumers anywhere in the tree, so it is
+-- a pure state bit. fullscreen and maximize are honoured by a real window manager but are
+-- silently dropped under a headless X server, while the client still flips its own state
+-- bits -- so asserting isFullscreen() headlessly would be a false positive. Both are recorded
+-- as state alongside the images rather than being pretended to be pixels.
+--
+-- The window is only ever made SMALLER than the capture size: a headless X server is
+-- typically created at exactly the capture size, and growing past it would exceed the root
+-- window.
+--
+-- The window can only be tested by GROWING it: modules/startup/startup.lua sets a desktop
+-- minimum size of exactly the capture size (1020x644), so the window manager clamps any
+-- smaller request and the resize never lands. A headless X server created at exactly the
+-- capture size therefore cannot exercise the resize step at all, which is one more reason
+-- this scene is not CI-gated.
+local WINDOWING_LARGE = { width = 1200, height = 700 }
+
+local function windowingReportLine(label)
+    local size = g_window.getSize()
+    local position = g_window.getPosition()
+    return string.format(
+        "%-10s size=%dx%d position=%d,%d density=%.2f scaled=%s fullscreen=%s maximized=%s focus=%s visible=%s",
+        label, size.width, size.height, position.x, position.y,
+        g_window.getDisplayDensity(), tostring(g_app.isScaled()),
+        tostring(g_window.isFullscreen()), tostring(g_window.isMaximized()),
+        tostring(g_window.hasFocus()), tostring(g_window.isVisible()))
+end
+
+-- X11Window::resize is posted to the main dispatcher and the client's own size only updates
+-- later, from ConfigureNotify inside poll(). Poll for the landed value rather than trusting a
+-- fixed delay.
+local function waitForWindowSize(width, height, onReady, attempts)
+    attempts = (attempts or 0) + 1
+    local size = g_window.getSize()
+
+    if size.width == width and size.height == height then
+        setupEvent = scheduleEvent(onReady, 400)
+    elseif attempts >= 60 then
+        g_logger.error(string.format(
+            "[renderer-baseline] window never reached %dx%d, stuck at %dx%d", width, height,
+            size.width, size.height))
+        setupEvent = scheduleEvent(onReady, 400)
+    else
+        setupEvent = scheduleEvent(function()
+            waitForWindowSize(width, height, onReady, attempts)
+        end, 100)
+    end
+end
+
+function RendererBaseline.runWindowingScene()
+    local base = (optionValue("renderer-baseline-output") or "windowing.png"):gsub("%.png$", "")
+    local report = {}
+
+    local function output(suffix)
+        return string.format("%s-%s.png", base, suffix)
+    end
+
+    local function finish()
+        report[#report + 1] = "platform=" .. g_window.getPlatformType()
+        report[#report + 1] = "display=" .. g_window.getDisplayWidth() .. "x" .. g_window.getDisplayHeight()
+
+        if not g_resources.directoryExists("/render-baselines") then
+            g_resources.makeDir("/render-baselines")
+        end
+
+        local path = "/render-baselines/" .. base .. "-state.txt"
+        g_resources.writeFileContents(path, table.concat(report, "\n") .. "\n")
+        g_logger.info("[renderer-baseline] window state written: "
+            .. g_resources.getWriteDir() .. "render-baselines/" .. base .. "-state.txt")
+        g_app.exit()
+    end
+
+    -- The fullscreen and focus probe runs LAST and takes no image. Toggling fullscreen
+    -- recreates the window, and the framebuffer read back immediately afterwards came out
+    -- entirely black, so no capture may follow it. focus is unobservable in an image anyway,
+    -- and a headless X server has no window manager to honour the request while the client
+    -- still flips its own state bit -- so both are recorded as state, never asserted as pixels.
+    local function stepStateProbe()
+        g_window.setFullscreen(true)
+        setupEvent = scheduleEvent(function()
+            report[#report + 1] = windowingReportLine("fullscreen")
+            g_window.setFullscreen(false)
+
+            setupEvent = scheduleEvent(function()
+                report[#report + 1] = windowingReportLine("windowed")
+                finish()
+            end, 800)
+        end, 800)
+    end
+
+    local function stepScaled()
+        g_app.setHUDScale(2)
+        setupEvent = scheduleEvent(function()
+            report[#report + 1] = windowingReportLine("scaled")
+            takeCapture(output("4-scaled"), function()
+                g_app.setHUDScale(1)
+                setupEvent = scheduleEvent(stepStateProbe, 400)
+            end)
+        end, 800)
+    end
+
+    local function stepRestored()
+        g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+        waitForWindowSize(CAPTURE_WIDTH, CAPTURE_HEIGHT, function()
+            report[#report + 1] = windowingReportLine("restored")
+            takeCapture(output("3-restored"), stepScaled)
+        end)
+    end
+
+    local function stepGrown()
+        g_window.resize(WINDOWING_LARGE)
+        waitForWindowSize(WINDOWING_LARGE.width, WINDOWING_LARGE.height, function()
+            report[#report + 1] = windowingReportLine("grown")
+            takeCapture(output("2-grown"), stepRestored)
+        end)
+    end
+
+    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    waitForWindowSize(CAPTURE_WIDTH, CAPTURE_HEIGHT, function()
+        report[#report + 1] = windowingReportLine("initial")
+        takeCapture(output("1-initial"), stepGrown)
+    end)
 end
 
 function RendererBaseline.captureMapScreenshot(scene, delay)
@@ -1070,6 +1220,12 @@ function RendererBaseline.onRun()
         if RendererBaseline.buildGraphLineScene() then
             RendererBaseline.captureScene(activeScenario, 1000)
         end
+    elseif activeScenario == "windowing" then
+        -- Drives the real startup UI, so no scripted scene is built.
+        setupEvent = scheduleEvent(function()
+            setupEvent = nil
+            RendererBaseline.runWindowingScene()
+        end, 2000)
     elseif activeScenario == "shader-matrix" then
         if RendererBaseline.buildShaderMatrixScene() then
             RendererBaseline.captureScene(activeScenario, 2000)

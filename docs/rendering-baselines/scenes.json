@@ -105,7 +105,11 @@
       "id": "windowing",
       "automation": "desktop-driver",
       "requiresOnlineGame": false,
-      "features": ["resize", "display-density", "fullscreen", "focus", "display-move"]
+      "features": ["resize", "display-density", "fullscreen", "focus", "multi-capture"],
+      "command": "--renderer-baseline=windowing --renderer-baseline-output=windowing.png",
+      "multiCapture": ["windowing-1-initial.png", "windowing-2-grown.png", "windowing-3-restored.png", "windowing-4-scaled.png", "windowing-state.txt"],
+      "ciCapture": false,
+      "ciCaptureReason": "Needs things a headless runner cannot provide. modules/startup/startup.lua sets a desktop minimum window size of exactly the capture size, so resize can only be tested by growing, and a headless X server is created at exactly that size. There is also no window manager, so setFullscreen is silently dropped while the client still flips its own state bit, making isFullscreen a false-positive assertion. The scene also emits several files rather than one <id>.png."
     },
     {
       "id": "map-screenshot",

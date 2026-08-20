@@ -5,7 +5,8 @@ This is the single source of truth shared by the local capture workflow and by
 the renderer-baseline CI job, so that neither hard-codes a scene list.
 
 Subcommands
-    ids --offline       scene ids CI can capture without a game server:
+    ids --offline       scene ids CI can capture without a game server
+                        (excludes scenes marked "ciCapture": false):
                         the scene has a non-empty "command" and
                         "requiresOnlineGame" is not true. One id per line.
     ids --gated         scene ids CI must COMPARE against a committed
@@ -91,11 +92,19 @@ def scenes_of(manifest: dict) -> list[dict]:
 
 
 def is_offline(scene: dict) -> bool:
-    """Capturable without a game server: has a command and is not online-only."""
+    """Capturable by CI without a game server.
+
+    Requires a command, no game server, and no explicit ``ciCapture: false``. The
+    last case exists for scenes that need something a headless runner cannot give
+    them at all -- a window manager, or a display larger than the capture size --
+    as opposed to merely rendering differently there.
+    """
     command = scene.get("command")
     if not isinstance(command, str) or not command.strip():
         return False
-    return scene.get("requiresOnlineGame") is not True
+    if scene.get("requiresOnlineGame") is True:
+        return False
+    return scene.get("ciCapture") is not False
 
 
 def is_gated(scene: dict) -> bool:
@@ -276,6 +285,17 @@ def validate(manifest: dict) -> list[str]:
                     errors.append(
                         f"{where}: ciGate false requires a non-empty ciGateReason explaining "
                         "why the scene is captured but not compared"
+                    )
+
+        if "ciCapture" in scene:
+            if not isinstance(scene["ciCapture"], bool):
+                errors.append(f"{where}: ciCapture must be a boolean")
+            elif scene["ciCapture"] is False:
+                reason = scene.get("ciCaptureReason")
+                if not isinstance(reason, str) or not reason.strip():
+                    errors.append(
+                        f"{where}: ciCapture false requires a non-empty ciCaptureReason "
+                        "explaining why CI cannot capture the scene at all"
                     )
 
     return errors
