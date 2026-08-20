@@ -1,0 +1,21 @@
+commit=0045e1450fd8524769525f9b7e139cf81cbf1d30
+backend=opengl-llvmpipe
+window=1020x644
+runner_label=ubuntu-24.04
+runner_image=unknown/unknown
+container_image=ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517
+container_source_tag=docker.io/library/ubuntu:24.04
+libgl_always_software=1
+glx_OpenGL vendor string: Mesa
+glx_OpenGL renderer string: llvmpipe (LLVM 20.1.2, 256 bits)
+glx_OpenGL core profile version string: 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2
+glx_OpenGL version string: 4.5 (Compatibility Profile) Mesa 25.2.8-0ubuntu0.24.04.2
+pkg_libasound2-dev:amd64=1.2.11-1ubuntu0.3
+pkg_libgl1-mesa-dev:amd64=25.2.8-0ubuntu0.24.04.2
+pkg_libgl1-mesa-dri:amd64=25.2.8-0ubuntu0.24.04.2
+pkg_libglew-dev:amd64=2.2.0-4build1
+pkg_libx11-dev:amd64=2:1.8.7-1build1
+pkg_mesa-utils=9.0.0-2
+pkg_xvfb=2:21.1.12-1ubuntu1.6
+pkg_pillow=10.2.0
+tool_cmake version 3.28.3
