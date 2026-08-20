@@ -1027,8 +1027,54 @@ endif()
 # Link compilation files folder
 # *****************************************************************************
 
-## Link compilation files to build/bin folder, else link to the main dir
-if (TOGGLE_BIN_FOLDER)
+# *****************************************************************************
+# macOS application bundle
+# *****************************************************************************
+
+# Only for the Cocoa platform layer. The XQuartz build stays a plain executable so the
+# renderer-baseline tooling keeps finding build/<preset>/bin/otclient where it expects it.
+#
+# Scope note: this produces a bundle that launches and finds its resources. Bundle
+# *completeness* for distribution - real asset copies instead of symlinks, embedded dylibs
+# under Contents/Frameworks, rpaths, signing and notarization - is Phase 7
+# (docs/metal-implementation-plan.md).
+if(APPLE AND TOGGLE_COCOA_WINDOW)
+  set_target_properties(${PROJECT_NAME} PROPERTIES
+          MACOSX_BUNDLE TRUE
+          OUTPUT_NAME "CrystalOTC"
+          MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/macos/Info.plist.in"
+          MACOSX_BUNDLE_BUNDLE_NAME "CrystalOTC"
+          MACOSX_BUNDLE_EXECUTABLE_NAME "CrystalOTC"
+          MACOSX_BUNDLE_GUI_IDENTIFIER "com.crystalotc.client"
+          MACOSX_BUNDLE_BUNDLE_VERSION "4.0"
+          MACOSX_BUNDLE_SHORT_VERSION_STRING "4.0"
+          MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2010-2026 OTClient contributors"
+  )
+
+  # The client locates its work directory by probing for init.lua; ResourceManager gained
+  # Contents/Resources as a candidate for exactly this. data/ alone is ~776 MB, so a
+  # developer build links rather than copies - a real copy per build would dominate the
+  # edit/run loop. Phase 7 replaces this with a staged copy for distribution.
+  set(_OTC_BUNDLE_RESOURCES "${CMAKE_BINARY_DIR}/bin/CrystalOTC.app/Contents/Resources")
+  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+          COMMAND ${CMAKE_COMMAND} -E make_directory "${_OTC_BUNDLE_RESOURCES}"
+          COMMENT "Linking client resources into CrystalOTC.app/Contents/Resources"
+          VERBATIM
+  )
+  foreach(_res init.lua data modules mods)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -f "${_OTC_BUNDLE_RESOURCES}/${_res}"
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                    "${CMAKE_SOURCE_DIR}/${_res}" "${_OTC_BUNDLE_RESOURCES}/${_res}"
+            VERBATIM
+    )
+  endforeach()
+endif()
+
+## Link compilation files to build/bin folder, else link to the main dir.
+## A macOS bundle always goes to the build directory: a .app dropped in the source tree
+## would be untracked clutter, and the POST_BUILD resource links below assume that path.
+if (TOGGLE_BIN_FOLDER OR (APPLE AND TOGGLE_COCOA_WINDOW))
   set_target_properties(${PROJECT_NAME}
           PROPERTIES
           RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"

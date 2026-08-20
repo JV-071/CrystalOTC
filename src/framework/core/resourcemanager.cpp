@@ -165,6 +165,17 @@ bool ResourceManager::discoverWorkDir(const std::string& existentFile)
                                     g_resources.getBaseDir(),
                                     g_resources.getBaseDir() + "/game_data/",
                                     g_resources.getBaseDir() + "../",
+#ifdef __APPLE__
+                                    // Bundle resources. PhysicsFS reports the .app directory
+                                    // itself as the base dir for a bundled executable - not
+                                    // Contents/MacOS, which is where the binary actually
+                                    // lives - so the first form is the one that hits. The
+                                    // second covers a plain (unbundled) layout that still
+                                    // keeps an adjacent Resources directory. Neither is
+                                    // reachable through the generic candidates above.
+                                    g_resources.getBaseDir() + "Contents/Resources/",
+                                    g_resources.getBaseDir() + "../Resources/",
+#endif
                                     g_resources.getBaseDir() + "../share/" + g_app.getCompactName() + "/" };
 
     bool found = false;
