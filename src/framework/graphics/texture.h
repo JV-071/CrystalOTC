@@ -25,6 +25,12 @@
 #include "declarations.h"
 #include <framework/core/timer.h>
 
+// The unique-id counter is seeded here, above every id GL generates, so that a Texture's
+// unique id can double as its logical render handle. The renderer boundary reserves everything
+// BELOW this value for render-target textures and static_asserts against it, so lowering it
+// would make a sprite's handle compare equal to a render target's.
+inline constexpr uint32_t TEXTURE_UNIQUE_ID_SEED = UINT16_MAX;
+
 class Texture
 {
 public:

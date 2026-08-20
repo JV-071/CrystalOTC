@@ -35,8 +35,9 @@
 #include <mutex>
 #include <vector>
 
- // UINT16_MAX = just to avoid conflicts with GL generated ID.
-static std::atomic_uint32_t UID(UINT16_MAX);
+ // Seeded above every GL-generated id (see TEXTURE_UNIQUE_ID_SEED in texture.h, which the
+ // renderer boundary static_asserts against).
+static std::atomic_uint32_t UID(TEXTURE_UNIQUE_ID_SEED);
 
 // --- Batched GL texture deletion queue ---------------------------------------------------------
 // WHY we defer at all: ~Texture can run on any thread (GC of things runs on the map thread,
