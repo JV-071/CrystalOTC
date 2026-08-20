@@ -170,6 +170,14 @@ void Texture::create()
     if (!m_image && m_id == 0 && !m_source.empty())
         m_image = Image::load(m_source);
 
+    // Pure Vulkan/Metal mode: the same reasoning as the constructor a hundred lines up,
+    // which already returns here - createTexture() reaches glGenTextures, and with no GL
+    // context that is a null GLEW pointer (or, against Apple's OpenGL.framework, a
+    // segfault). m_image is deliberately kept rather than cleared: those pixels are
+    // exactly what a non-GL backend uploads later.
+    if (!g_window.hasGLContext())
+        return;
+
     if (m_image) {
         createTexture();
         uploadPixels(m_image, getProp(buildMipmaps), getProp(compress));

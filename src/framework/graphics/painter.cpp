@@ -51,9 +51,11 @@ Painter::Painter()
     setResolution(g_window.getSize());
 
     // Pure Vulkan mode (no GL context): no shader programs and no GL state.
-    // The painter lives on as a carrier of resolution/matrices (used e.g. by text layout),
-    // but does not perform a single GL call. On an emergency fallback to GL, main.cpp
-    // creates the Painter from scratch - this time with the programs.
+    // The painter lives on as a carrier of resolution/matrices (used e.g. by text layout).
+    // Note setResolution above runs before this guard and would otherwise reach
+    // glViewport, so updateGlViewport carries its own hasGLContext() check.
+    // On an emergency fallback to GL, main.cpp creates the Painter from scratch - this
+    // time with the programs.
     if (!g_window.hasGLContext())
         return;
 
@@ -303,4 +305,18 @@ void Painter::updateGlClipRect() const
 void Painter::updateGlTexture() const { if (m_glTextureId != 0) glBindTexture(GL_TEXTURE_2D, m_glTextureId); }
 void Painter::updateGlBlendEquation() const { glBlendEquation(static_cast<GLenum>(m_blendEquation)); }
 void Painter::updateGlAlphaWriting() const { glColorMask(1, 1, 1, m_alphaWriting); }
-void Painter::updateGlViewport() const { glViewport(0, 0, m_resolution.width(), m_resolution.height()); }
+void Painter::updateGlViewport() const
+{
+    // Reached from setResolution, which the constructor calls *before* its hasGLContext()
+    // guard - the painter is deliberately kept alive as a carrier of resolution and
+    // matrices even when there is no GL context. Every other GL entry point in this file
+    // is reachable only from a draw, which the render loop already gates.
+    //
+    // This was latent until a second GL-less window appeared: XQuartz's libGL returned
+    // harmlessly when called with no current context, so the stray glViewport went
+    // unnoticed. Apple's OpenGL.framework segfaults instead.
+    if (!g_window.hasGLContext())
+        return;
+
+    glViewport(0, 0, m_resolution.width(), m_resolution.height());
+}
