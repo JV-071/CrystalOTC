@@ -7,17 +7,50 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  job:
-    name: Run Lua Tests
+  syntax:
+    name: Lua syntax check
     runs-on: ubuntu-latest
 
     steps:
-      - name: Update
-        run: sudo apt-get update
+      - name: Check out code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - name: Setup Lua
-        run: sudo apt-get install -y lua5.1 liblua5.1-0-dev
+      # The client embeds LuaJIT (vcpkg "luajit", src/CMakeLists.txt), so LuaJIT is the
+      # parser that actually loads these files at runtime. Checking with PUC lua5.1 would
+      # accept syntax LuaJIT rejects, and vice versa.
+      - name: Install LuaJIT
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends luajit
 
-      - name: Check out code.
-        uses: actions/checkout@main
+      - name: Syntax-check every tracked Lua file
+        run: |
+          set -uo pipefail
+
+          checked=0
+          failed=0
+
+          while IFS= read -r file; do
+            checked=$((checked + 1))
+            if ! output=$(luajit -b "$file" /dev/null 2>&1); then
+              failed=$((failed + 1))
+              echo "::error file=$file::${output}"
+            fi
+          done < <(git ls-files '*.lua')
+
+          echo "checked ${checked} Lua file(s), ${failed} failure(s)"
+
+          # This job previously installed Lua, checked out, and ended: it reported green
+          # while asserting nothing. Guard against silently regressing to that state.
+          if [ "${checked}" -eq 0 ]; then
+            echo "::error::no Lua files were checked - the sweep asserted nothing"
+            exit 1
+          fi
+
+          if [ "${failed}" -ne 0 ]; then
+            exit 1
+          fi
