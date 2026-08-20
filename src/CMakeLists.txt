@@ -294,7 +294,26 @@ if(ANDROID)
   find_package(EGL REQUIRED)
 else()
   if(NOT WASM)
-    find_package(OpenGL REQUIRED)
+    if(APPLE AND TOGGLE_COCOA_WINDOW)
+      # Why this build does not use find_package(OpenGL): the vendored
+      # cmake/FindOpenGL.cmake defaults OPENGL_USE_APPLE_X11 to ON, searches /opt/X11 for
+      # libGL, and folds FindX11's libraries into OPENGL_LIBRARIES (lines 54, 118,
+      # 129-134). That is how a Cocoa build ended up linking XQuartz libGL/libGLU and
+      # Homebrew libX11 despite never touching X11, and it made XQuartz a build
+      # requirement for a window that does not use it.
+      #
+      # Flipping OPENGL_USE_APPLE_X11 to OFF is not the fix: that branch sets
+      # "-framework AGL", and AGL was removed from the macOS SDK years ago.
+      #
+      # Nothing on this path calls GL - CocoaWindow reports hasGLContext() == false - but
+      # the GL call sites are still compiled, so the core GL symbols must still resolve.
+      # Apple's (deprecated) OpenGL.framework provides them with no X11 involvement, and
+      # GLU is not needed at all: the client references zero glu* symbols.
+      find_library(OPENGL_FRAMEWORK OpenGL REQUIRED)
+      set(OPENGL_LIBRARIES "${OPENGL_FRAMEWORK}")
+    else()
+      find_package(OpenGL REQUIRED)
+    endif()
     if(DEFINED VCPKG_TARGET_TRIPLET)
       find_package(GLEW REQUIRED)
     else()
