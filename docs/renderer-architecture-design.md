@@ -79,7 +79,7 @@ Handles are allocated by a render-thread `ResourceRegistry` and mapped to native
 |---|---|---|
 | `Texture` | owns GL texture id, uploads via `glTexImage2D` `[S 7]` | owns a `TextureHandle` + CPU-side descriptor (size, smooth, repeat, mipmaps, upside-down); uploads become `TextureUpdate` commands queued to the registry |
 | `FrameBuffer` | owns GL FBO + texture `[S 3]` | replaced by `RenderTargetHandle` + retained `TextureHandle`; the class survives only as a thin shim during migration |
-| `PainterShaderProgram` | compiles GLSL, uploads uniforms | becomes a `MaterialHandle` + parameter block description (section 5); GLSL compilation moves into GLBackend |
+| `PainterShaderProgram` | compiles GLSL, uploads uniforms, and owns a process-wide `u_Time` override (`setFixedTime`/`clearFixedTime`, `paintershaderprogram.h:73-75`) that every renderer baseline depends on | becomes a `MaterialHandle` + parameter block description (section 5); GLSL compilation moves into GLBackend, and the time override becomes a FrameAssembler-supplied frame-global (§5.2) |
 | `CoordsBuffer` | client-side float arrays `[S 6.1]` | unchanged as producer scratch; PoolCompiler copies into the PoolProgram's vertex arena |
 
 Destruction is deferred: the registry retires a handle only after every in-flight frame referencing it completes (GL: frame fence; Metal: command-buffer completion handler). This replaces today's `g_mainDispatcher.addEvent([id]{ glDeleteFramebuffers... })` pattern with one uniform mechanism.
@@ -212,7 +212,7 @@ The uniform ABI becomes one typed struct, replacing per-location uploads:
 
 ```cpp
 struct MaterialParams {                  // std140-compatible layout
-    float time;                          // TIME_UNIFORM
+    float time;                          // TIME_UNIFORM: frame-global, pinnable (see below)
     Size  resolution;                    // RESOLUTION_UNIFORM
     // client extension [S 5.2]:
     float itemId, outfitId, mountId, shaderId;
@@ -223,6 +223,8 @@ struct MaterialParams {                  // std140-compatible layout
 ```
 
 Projection/transform/textureMatrix/color/opacity stay in the packet (they vary per draw); `MaterialParams` varies per material per frame. The index-10 collision (`ITEM_ID` vs `TRANSFORM_MATRIX` `[S 5.2, S 9.4]`) dies here by construction — the new ABI has no shared index space. The GL backend maps struct fields to the legacy uniform locations so existing `.frag` sources compile unmodified.
+
+**One field is not per-material.** `time` is a frame-global input the FrameAssembler supplies to every material at once, and it must keep the process-wide override `PainterShaderProgram` gained on 2026-08-20 (`setFixedTime`/`clearFixedTime`, `paintershaderprogram.h:73-75`, Lua-exposed as `g_shaders.setFixedTime`, `luafunctions.cpp:518-523`). Pinning it is the only reason an animated shader frame is reproducible at all — nine of the shipped programs animate, and the renderer baselines pin the phase to 2.0 s — so the override has to survive the migration into every backend, not just GL (§9.1).
 
 ### 5.3 Map shaders and `useFramebuffer`
 
@@ -300,7 +302,7 @@ A backend with no GPU behind it. `initialize` needs no surface, `render()` seria
 
 1. **CI without hardware:** validate PoolCompiler output (pass splitting at FBO markers, hole-punch packets, line triangulation, `onlyOnce` scoping) on headless runners.
 2. **Golden-frame regression tests:** compile a fixed scene, diff the recording against a checked-in baseline; refactors that reorder passes, drop state, or change geometry fail a test instead of shipping a rendering bug.
-3. **Cross-backend triage:** when GL and Metal disagree visually, record the identical frame both consumed — if the recordings match, the bug is below the boundary in one backend; if not, it is in the compiler. This turns "pixels differ" into a bisectable question.
+3. **Cross-backend triage:** when GL and Metal disagree visually, record the identical frame both consumed — if the recordings match, the bug is below the boundary in one backend; if not, it is in the compiler. This turns "pixels differ" into a bisectable question. It only works while the `u_Time` pin (§5.2) survives the migration into *every* backend: unpinned, the two frames are captured at different animation phases and there is nothing to compare.
 
 Backend selection is explicit config (`graphics.renderBackend`), which already exists for Vulkan (`drawpoolmanager.cpp:58`); fallback policy per the companion doc's error-handling section.
 
@@ -333,6 +335,6 @@ Backend selection is explicit config (`graphics.renderBackend`), which already e
 ## 12. Open questions for the implementation plan
 
 1. Should the GLBackend adopt streamed VBOs when consuming vertex arenas, or keep client arrays for bit-exact Phase 3 comparison first? (Recommendation: client arrays first, VBOs as a follow-up flag.)
-2. Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site? (Needs one more look at which site consumes it.)
+2. ~~Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site?~~ **Answered from source 2026-08-20:** the question's premise was wrong — no single call site consumes it. Temp targets are pooled by *nesting depth*, not by site or size: `bindFrameBuffer` and `releaseFrameBuffer` key on `frameIndex = m_bindedFramebuffers` (`drawpool.cpp:483`, `:508`) and `getTemporaryFrameBuffer(index)` indexes a per-pool vector (`drawpool.cpp:526-534`), with the counter starting at -1 (`drawpool.h:326`). The pre-created buffer is therefore depth 0 for *whichever* FOREGROUND site issues the outermost bind (uiitem, uieffect, uimissile, uispellpreview, creature preview), and it is LINEAR only because `FrameBuffer::m_smooth` defaults to true (`framebuffer.h:86`, applied on resize at `framebuffer.cpp:67`) while every lazily created buffer is explicitly `setSmooth(false)` (`drawpool.cpp:532`). So `smooth` must be a per-target descriptor bit — it cannot be inferred from the site. The same default also makes both retained pool targets LINEAR (`setFramebuffer`, `drawpool.cpp:447-451`).
 3. Golden-frame format for the RecordingBackend: full packet dump vs. hash-tree? (Affects CI diff ergonomics only.)
 4. ~~Whether the `x/3, y/1.5` screenshot offsets are a bug to fix or behavior to keep.~~ **Resolved 2026-08-20:** intentional framing (`[S 3.5]`). The crop is preserved deliberately; the readback API expresses it as explicit top-left parameters.

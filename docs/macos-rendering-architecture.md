@@ -132,6 +132,8 @@ This retains `X11Window` and the existing OpenGL renderer.
 
 ### Required work
 
+**Status 2026-08-20:** all but the macOS build job are complete — see `docs/metal-implementation-plan.md` Phase 0 and `docs/rendering-baselines/known-deviations.md`.
+
 - Install and document XQuartz.
 - Resolve the existing macOS/vcpkg dependencies.
 - Validate GLX context creation on Apple Silicon.
@@ -732,10 +734,10 @@ The renderer should expose structured initialization errors such as:
 
 ## Phase 0: Establish rendering baselines
 
-- Capture representative Windows OpenGL and Vulkan screenshots.
-- Record known Vulkan deviations.
-- Create scenes covering map, lighting, outfits, particles, text, clipping, opacity, all blend modes, and resize/fullscreen behavior.
-- Establish memory and frame-time baselines.
+- ~~Capture representative Windows OpenGL and Vulkan screenshots.~~ **Superseded 2026-08-20:** no Windows machine is available and the visual baseline was resolved as full OpenGL, so the canonical reference is Mesa llvmpipe in CI, with XQuartz as the local reference — see `docs/metal-implementation-plan.md` Phase 0 and `docs/rendering-baselines/`.
+- ~~Record known Vulkan deviations.~~ **Done 2026-08-20:** `docs/rendering-baselines/known-deviations.md`, section "Windows Vulkan feeder versus OpenGL".
+- ~~Create scenes covering map, lighting, outfits, particles, text, clipping, opacity, all blend modes, and resize/fullscreen behavior.~~ **Done 2026-08-20:** 15 scenes in `docs/rendering-baselines/scenes.json`, covering all six painter descriptors rather than only the live composition modes. Two qualifications: fullscreen and focus are recorded as state rather than pixels, because toggling fullscreen recreates the window and `hasFocus()` has no consumers; and day/night proved unfreezable in this build, so it was dropped from the lighting scene.
+- ~~Establish memory and frame-time baselines.~~ **Deferred to Phase 3 (2026-08-20):** `AUTO_STAT` is compiled out of every build this repository produces (`ENABLE_STATS` is defined in no CMake file), and enabling it instruments hot paths rather than the renderer. Measurement moves to where the legacy and RenderFrame paths can be compared in one environment.
 
 This prevents platform-port work from masking pre-existing renderer differences.
 
@@ -1026,7 +1028,7 @@ CrystalOTC must validate its actual OpenGL ES calls and GLSL ES shaders against 
 - [CMake `MACOSX_BUNDLE_INFO_PLIST`](https://cmake.org/cmake/help/latest/prop_tgt/MACOSX_BUNDLE_INFO_PLIST.html) — supplies a custom `Info.plist` template for the bundle.
 - [CMake `MACOSX_PACKAGE_LOCATION`](https://cmake.org/cmake/help/latest/prop_sf/MACOSX_PACKAGE_LOCATION.html) — places assets, frameworks, and other files inside the bundle structure.
 - [CMake `enable_language`](https://cmake.org/cmake/help/latest/command/enable_language.html) — enables Objective-C and Objective-C++ (`OBJC`, `OBJCXX`) for Cocoa/Metal source files.
-- [CMake `FindOpenGL`](https://cmake.org/cmake/help/latest/module/FindOpenGL.html) — relevant only for the legacy XQuartz/native OpenGL path.
+- [CMake `FindOpenGL`](https://cmake.org/cmake/help/latest/module/FindOpenGL.html) — the XQuartz/GLX OpenGL route is the local reference vehicle for the Metal port, so this is on the critical path rather than out of it (see `docs/metal-implementation-plan.md` Phase 0).
 
 The target bundle should place game resources under `Contents/Resources`, executables under `Contents/MacOS`, and embedded dynamic frameworks/libraries under `Contents/Frameworks`, with runpaths appropriate to that layout.
 
@@ -1045,4 +1047,4 @@ All embedded libraries, including MoltenVK or ANGLE, must be placed at stable bu
 - [XQuartz](https://www.xquartz.org/) — maintained X11 server for macOS and the dependency required by the existing `X11Window` route.
 - [XQuartz releases](https://www.xquartz.org/releases/) — current installers and supported system information.
 
-This remains useful for a development proof-of-life but is not the target native macOS architecture.
+XQuartz is not the target native macOS architecture, but it is no longer optional: it is the required local OpenGL reference vehicle for the Metal migration, and a hard requirement of the macOS CMake path (`src/CMakeLists.txt:176-191`).

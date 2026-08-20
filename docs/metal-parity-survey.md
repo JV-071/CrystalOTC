@@ -25,7 +25,7 @@ Five pools, drawn every frame in enum order (`DrawPoolManager::draw`, `drawpoolm
 |---|---|---|---|---|---|
 | 1 | `MAP` | yes | none | MAP atlas | FBO has `alphaWriting=false` and blend **disabled** during its screen blit (`drawpool.cpp:33-35`) |
 | 2 | `CREATURE_INFORMATION` | no | 500 fps | FOREGROUND atlas | `m_alwaysGroupDrawings=true` — draws batched by state hash (`drawpool.cpp:44-47`) |
-| 3 | `LIGHT` | no | none | — | not geometry: one action lambda per frame (section 3.4) |
+| 3 | `LIGHT` | no | none | — | not geometry: at most one action lambda per frame (section 3.4); the pool is skipped entirely unless `Client::canDraw(LIGHT)` (`client.cpp:135-136`) and `MapView::isDrawingLights()` (`mapview.cpp:976`) both hold — online, lights enabled, and world-light intensity < 250 (`lightview.h:44`) |
 | 4 | `FOREGROUND_MAP` | no | 500 fps | FOREGROUND atlas | grouped like CREATURE_INFORMATION |
 | 5 | `FOREGROUND` | yes | 10 fps | FOREGROUND atlas | FBO sized `viewport / UI-scale` (`graphicalapplication.cpp:415`); one pre-created temp FBO with smoothing (`drawpool.cpp:40`) |
 
@@ -61,8 +61,8 @@ All six must exist as Metal blend descriptors, but note the actual usage below w
 |---|---|
 | `NORMAL` | default everywhere |
 | `MULTIPLY` | outfit color masks (`creature.cpp:443`), paperdoll masks (`paperdoll.cpp:87`), the light-texture overlay (`lightview.cpp:114`), particles (`particletype.cpp:121`) |
-| `ADD` | particles only (`particletype.cpp:123`) |
-| `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` | **no callers found in C++, Lua bindings, or modules.** Defined and implemented, currently dead. |
+| `ADD` | particles in production (`particletype.cpp:123`; the `.otps` parser accepts only normal/multiply/addition, `particletype.cpp:117-124`), plus the `composition-all` parity fixture (`uicompositionfixture.cpp:38`) |
+| `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` | **no *production* callers in C++, Lua bindings, or modules.** **Updated 2026-08-20:** no longer dead — the parity fixture `UICompositionFixture::drawSelf` (`uicompositionfixture.cpp:47-65`) drives all six, and the CI-gated `composition-all` baseline freezes them against a checked-in llvmpipe reference. |
 
 ### 2.3 Blend equation
 
@@ -111,7 +111,7 @@ The GL CPU-side atlas (`textureatlas.cpp`) allocates one FBO per 1–N atlas lay
 2. computes the light bitmap **on the CPU** (`updatePixels`) into a pixel buffer of one RGBA texel per visible tile (double-buffered, swapped under the pool spinlock);
 3. enqueues one action lambda (`lightview.cpp:105-119`) that uploads the pixels (`Texture::updatePixels` → `glTexSubImage2D`) and draws a single textured quad over the map destination with `CompositionMode::MULTIPLY`, linear filtering providing the smoothing (`m_texture->setSmooth(true)`, texture sized `mapSize` in tiles, drawn stretched with fractional src coords).
 
-Metal parity for lighting is therefore: **one dynamic RGBA8 texture upload + one multiply-blended quad per frame.** The LIGHT pool's other machinery (hash controller with `agroup`, scale factor) feeds the CPU computation, not the GPU.
+Metal parity for lighting is therefore: **at most one dynamic RGBA8 texture upload plus one multiply-blended quad, in the frames where the LIGHT pool runs at all.** **Corrected 2026-08-20** (established while implementing the `lighting-overlap` baseline): both halves are conditional. The pool never runs unless world-light intensity < 250 (`client.cpp:135-136`, `mapview.cpp:976`, `lightview.h:44`) — a `hasfulllight` character disables lighting client-side outright, and underground `MapView::updateLight` substitutes `Light{0,215}` for the server's world light (`mapview.cpp:562-567`). Even when it does run, the texture upload is guarded by the light hash controller (`lightview.cpp:94-110`); only the multiply quad is unconditional inside the lambda (`lightview.cpp:112-118`). The LIGHT pool's other machinery (hash controller with `agroup`, scale factor) feeds the CPU computation, not the GPU.
 
 ### 3.5 Readback sites (3)
 
@@ -132,14 +132,14 @@ Every `addAction` site outside the drawpool internals, i.e. every opaque GL lamb
 | `drawpool.cpp:483` (bindFrameBuffer) | resize+bind temp FBO, reset painter state | begin-offscreen-pass |
 | `drawpool.cpp:508` (releaseFrameBuffer) | release FBO, re-apply outer state, blit with flip | end-pass + textured draw |
 | `drawpoolmanager.cpp:225` (preDraw) | `m_framebuffer->prepare(dest, src, colorClear)` — set pool FBO blit quad and clear color | pass metadata (already mirrored in `m_vkPendingFbDest/Src`) |
-| `mapview.cpp:65` (registerEvents) | installs `m_pool->onBeforeDraw`: bind the active **map shader** and set its uniforms (center/global coord, zoom, walk offset, fade opacity) right before the MAP FBO→screen blit | material + parameter block on the map-composition draw |
+| `mapview.cpp:65` (registerEvents) | installs `m_pool->onBeforeDraw` (`mapview.cpp:66`): bind the active **map shader** and set its uniforms (center/global coord, zoom, walk offset, fade opacity) right before the MAP FBO→screen blit; and `m_pool->onAfterDraw` (`mapview.cpp:102`), which does `resetShaderProgram()` + `resetOpacity()` after it | material + parameter block on the map-composition draw; the teardown is implicit once every packet carries its own state |
 | `uimap.cpp:86-89` (drawSelf) | `glDisable(GL_BLEND)`, draw `Color::alpha` filled rect over the game-view rect (punches a transparent hole through the FOREGROUND FBO so the map shows through), `glEnable(GL_BLEND)`; rect also registered via `setVkMapHole` | REPLACE-style draw with blend off; the explicit rect already exists (`m_vkMapHole`, `drawpool.h:387-388`) |
 | `uigraph.cpp:55,75` | `g_painter->drawLine(...)` with width + color for skill graphs | line-strip geometry (section 6.3) |
 | `lightview.cpp:105` | upload light pixels, draw multiply quad (section 3.4) | dynamic-texture update + draw packet |
 
 That is the entire list. The "GL lambdas" problem is seven idioms, not an unbounded surface.
 
-`onBeforeDraw`/`onAfterDraw` hooks exist on every pool (`drawpool.h:112-113`); the only registrations found are MapView's map-shader hook above and its foreground counterpart (`uimap.cpp:75` area).
+`onBeforeDraw`/`onAfterDraw` hooks exist on every pool (`drawpool.h:112-113`), but — **corrected 2026-08-20** — only the MAP pool ever registers them, both inside `MapView::registerEvents`: the map-shader bind (`mapview.cpp:66`) and its teardown (`mapview.cpp:102`). There is no foreground counterpart; `uimap.cpp:75` is a `g_drawPool.preDraw` callback for the FOREGROUND_MAP pool, a different mechanism.
 
 ---
 
@@ -174,7 +174,7 @@ All registered from `.frag` files via `createFragmentShader`; none use `createFr
 - **Item (1):** Hover - Desaturate
 - **Mount (1):** Rainbow
 
-Plus C++-side registrations elsewhere (e.g. exaltation forge, attached effects) that reuse the same files/registry. Multi-texture (`addMultiTexture` → `u_Tex1..3`) is used by exactly two shaders (Fog, Snow).
+**Corrected 2026-08-20:** no C++ code registers a shader anywhere. The only other registration site is Lua — `game_exaltationforge` creates six further programs out of `modules/game_exaltationforge/menu/shaders/*.frag` (`game_exaltationforge.lua:247`, `:573`, and the `recreateForgeResultShader` helper at `:545-546`, driven from `:1043`, `:1072` and `playResultFade` at `:1090`, `:1094`), removing and re-creating them mid-session (`g_shaders.removeShader`, `game_exaltationforge.lua:545`, `:1102-1106`). Attached effects only *reference* registry names (`AttachedEffect::setShader` → `g_shaders.getShader`, `attachedeffect.cpp:228`). Multi-texture (`addMultiTexture` → `u_Tex1..3`) is used by exactly two shaders (Fog, Snow).
 
 ### 5.4 Where painter shaders apply
 
@@ -189,7 +189,7 @@ Plus C++-side registrations elsewhere (e.g. exaltation forge, attached effects) 
 
 ### 5.6 Consequence for the Metal shader policy
 
-The full supported set is: 4 built-ins + ~21 module fragments + the fixed vertex stage. All against one fixed ABI. This is compatible with either hand-written MSL or a build-time GLSL→SPIR-V→MSL step; a runtime translator is only needed if `createFragmentShaderFromCode` must keep working for out-of-repo Lua.
+The full supported set is: 4 built-ins + 27 registered module programs compiled from 22 `.frag` files + the fixed vertex stage. All against one fixed ABI. (**Corrected 2026-08-20:** the 21 `game_shaders` programs are backed by only 16 unique files — `party.frag`, `radialblur.frag`, `heat.frag` and `noise.frag` are each registered under two or three names — and the exaltation forge adds 6 files and 6 programs; `forge.frag` and `test.frag` ship with no registration site. Registration is also runtime and repeatable — `removeShader` + `createFragmentShader` — so the material registry must support mid-session create/destroy.) This is compatible with either hand-written MSL or a build-time GLSL→SPIR-V→MSL step; a runtime translator is only needed if `createFragmentShaderFromCode` must keep working for out-of-repo Lua.
 
 ---
 
@@ -205,7 +205,7 @@ The full supported set is: 4 built-ins + ~21 module fragments + the fixed vertex
 
 ### 6.3 Lines
 
-`Painter::drawLine` (`painter.cpp:124-145`): `GL_LINE_STRIP` with `glLineWidth(width)` and `GL_LINE_SMOOTH`. Used only by `UIGraph` (`uigraph.cpp:55,75`). Metal has no wide or smooth lines — the port must triangulate (screen-space quad strip per segment). Visual tolerance here can be generous; it is analytics graphs, not game art.
+`Painter::drawLine` (`painter.cpp:124-145`): `GL_LINE_STRIP` with `glLineWidth(width)` and `GL_LINE_SMOOTH`. Used only by `UIGraph` (`uigraph.cpp:55,75`). Metal has no wide or smooth lines — the port must triangulate (screen-space quad strip per segment). Visual tolerance here can be generous; it is analytics graphs, not game art — and **measurably has to be**: XQuartz and llvmpipe already disagree by 1.52% of the frame on identical `graph-lines` geometry (quirk 10; `docs/rendering-baselines/known-deviations.md`).
 
 ### 6.4 Batching
 
@@ -216,7 +216,7 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 ## 7. Texture inventory
 
 - **Format:** everything is RGBA8/`GL_UNSIGNED_BYTE` (`texture.cpp:383-405`); 1/3/4-channel images normalize on upload. No sRGB formats, no compressed textures, no depth/stencil anywhere.
-- **Updates:** `glTexSubImage2D` after first allocation (`texture.cpp:185-198`) — LightView refreshes its texture per frame through this path; the satellite map and animated textures also stream.
+- **Updates:** `glTexSubImage2D` after first allocation (`texture.cpp:185-198`) — LightView re-uploads through this path only when its light hash changed (`lightview.cpp:94-110`), and not at all in frames where the LIGHT pool is skipped (section 3.4); the satellite map and animated textures also stream.
 - **Sampling:** smooth ⇒ LINEAR (+`LINEAR_MIPMAP_LINEAR` with mips), else NEAREST (+`NEAREST_MIPMAP_NEAREST`); wrap is REPEAT or CLAMP_TO_EDGE per-texture (`texture.cpp:336-355`). Four sampler states cover the whole client.
 - **Per-texture matrix:** textures own a transform-matrix id in a global registry (`g_textures.getMatrixById`, `painter.cpp:225`) mapping pixel src coords to normalized coords — this is the `u_TextureMatrix` the fixed vertex stage consumes.
 - **Upside-down flag:** FBO-backed textures set `setUpsideDown(true)` (`framebuffer.cpp:68`, `framebuffer.cpp:184`), which flips the texture matrix. This is the central GL-vs-render-target orientation mechanism the Metal backend must map onto its own texture-origin convention.
@@ -243,9 +243,9 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 6. Atlas smooth-padding draw samples outside the source texture bounds, relying on clamp behavior (section 3.3).
 7. ~~FOREGROUND FBO renders at `viewport/scale` and stretches.~~ **Corrected 2026-08-20:** it does not stretch. `GraphicalApplication::resize` sizes the UI and the FOREGROUND FBO at `viewport/scale`, but the FBO is blitted 1:1 into a destination rect equal to its own size, inside a painter whose resolution is the full physical viewport. A UI-scale change is therefore a genuine image difference, not a rescale — which is what a `display-density` baseline should freeze.
 8. Pool FBO skip-if-unchanged (hash) is load-bearing for performance; the explicit model needs an equivalent "reuse last target contents" pass mode.
-9. `onlyOnce` state overrides restore the *previous* state, not defaults (`drawpool.cpp:289-311`) — compiler must replicate exact scoping.
-10. Line rendering needs triangulation on Metal (section 6.3).
-11. `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` composition modes and non-ADD blend equations are currently dead code — decide whether parity includes them (recommendation: implement the table entries anyway; they are one blend descriptor each).
+9. `onlyOnce` state overrides restore the *previous* state, not defaults (`DrawPool::resetOnlyOnceParameters`, defined inline at `drawpool.h:289-311`; the setters that record the previous value start at `drawpool.cpp:198`) — compiler must replicate exact scoping.
+10. Line rendering needs triangulation on Metal (section 6.3). **Quantified 2026-08-20:** XQuartz and llvmpipe already differ by 9,967 px — 1.52% of the frame, max channel delta 235 — on identical `graph-lines` geometry, because llvmpipe antialiases wide lines and XQuartz rasterizes them hard-edged. There is therefore no single correct GL line rendering for a triangulated Metal path to match: line scenes may only be compared same-environment, and the triangulated path inherits that tolerance envelope (`docs/rendering-baselines/known-deviations.md`).
+11. `REPLACE`, `DESTINATION_BLENDING`, `LIGHT` composition modes and non-ADD blend equations are currently dead code — decide whether parity includes them (recommendation: implement the table entries anyway; they are one blend descriptor each). **Updated 2026-08-20 — half settled, half still open.** The three composition modes are no longer dead and the decision is closed: the CI-gated `composition-all` baseline (`uicompositionfixture.cpp`) exercises all six against a checked-in llvmpipe reference, so parity *does* include them and a backend missing a descriptor fails an existing gate. Non-ADD blend equations are still genuinely dead — the only caller of `Painter::setBlendEquation` (`painter.cpp:192`) is the pool-state replay at `drawpool.cpp:432`, and `DrawPool::setBlendEquation` (`drawpool.cpp:208`) / `DrawPoolManager::setBlendEquation` (`drawpoolmanager.h:66`) have no callers in `src/`, `modules/` or `mods/` — so that half remains a decision, recommendation unchanged.
 
 ---
 
@@ -253,8 +253,8 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 
 Observed live combinations, for the Metal pipeline cache key:
 
-- Fragment function: textured | solid | replace-color | line | one of ~21 module fragments (fixed vertex stage throughout)
-- Blend: NORMAL | MULTIPLY | ADD (+3 dead modes if kept)
+- Fragment function: textured | solid | replace-color | line | one of 27 registered module programs over 22 `.frag` files (fixed vertex stage throughout)
+- Blend: all six — NORMAL | MULTIPLY | ADD in production, plus REPLACE | DESTINATION_BLENDING | LIGHT under the CI-gated `composition-all` baseline (updated 2026-08-20)
 - Alpha write: on | off (off only for MAP FBO passes)
 - Color format: single RGBA8/BGRA8 everywhere
 - Blend disabled: MAP blit, atlas compositing, hole punch

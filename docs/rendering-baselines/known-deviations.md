@@ -20,22 +20,22 @@ The `ui-clipping-opacity` and `text-matrix` client fixtures were also captured t
 
 The `particles-blends` fixture uses one fixed, single-burst particle for each composition mode used by live code: NORMAL, MULTIPLY, and the legacy ADD equation. Two settled captures had no pixels beyond the default per-channel tolerance; the maximum observed channel delta was 1. The ADD particle is intentionally smaller because its high-contrast center magnifies harmless one-channel raster rounding while still making the blend equation unmistakable.
 
-The `outfit-masks` fixture freezes creature animation and captures mask recoloring, both addon layers, a mount, the creature-preview framebuffer, and the framebuffer-backed Outline shader. Outline deliberately retains its production `u_Time` brightness pulse. Two captures therefore differed in 520 pixels (0.0792%, below the 0.1% policy limit); the diff was confined to the outlined preview and is expected for this scene.
+The `outfit-masks` fixture freezes creature animation and captures mask recoloring, both addon layers, a mount, the creature-preview framebuffer, and the framebuffer-backed Outline shader. Outline retains its production `u_Time` brightness pulse, which before shader time was pinned made two captures differ in 520 pixels (0.0792%, below the 0.1% policy limit), confined to the outlined preview. With `g_shaders.setFixedTime` the scene now measures 0 differing pixels; see *Capture determinism controls* below.
 
-The `temporary-framebuffers` fixture covers every surveyed call site: creature preview, the nested Outline/ThingType path, item blits with both flip directions, effect and missile widgets, and spell-preview object compositing. Its animated outline probe is kept small enough for the whole-scene tolerance: the repeated XQuartz capture differed in 449 pixels (0.0684%), confined to the expected shader pulse.
+The `temporary-framebuffers` fixture covers every surveyed call site: creature preview, the nested Outline/ThingType path, item blits with both flip directions, effect and missile widgets, and spell-preview object compositing. Its animated outline probe made the repeated XQuartz capture differ in 449 pixels (0.0684%) before shader time was pinned, confined to the expected shader pulse; it now measures 0. See *Capture determinism controls* below.
 
 The native `composition-all` fixture exercises all six painter descriptors, including the three with no production caller. Its ADD cell consistently exposes a faint image of startup UI retained in the FOREGROUND target, even though the fixture submits REPLACE clears for the target area and each destination cell. This is frozen as observed OpenGL behavior, not accepted as desirable renderer semantics. Two captures had no pixels beyond tolerance (maximum channel delta 2).
 
-The map-screenshot offsets are intended framing, despite their unusual spelling. The MAP framebuffer is three tiles larger than the visible dimension. `MapView::calcFramebufferSource` selects the visible region after one spare tile on logical left/top, leaving two on right/bottom. For a 32 px sprite, the left-origin x offset is therefore 32; bottom-origin `glReadPixels` must skip the two logical bottom tiles, so its y offset is 64. The existing `x / 3, y / 1.5` call receives a total three-tile trim (96 px) and produces exactly those offsets. The XQuartz fixture-server capture was correctly oriented and measured 480x352, exactly the 15x11 visible tiles. Preserve the output crop while moving the arithmetic into explicit top-left readback parameters. The currently running development world has animated effects and creatures, so repeated local captures are diagnostic; a canonical comparison still requires a controlled fixture-server state.
+The map-screenshot offsets are intended framing, despite their unusual spelling. The MAP framebuffer is three tiles larger than the visible dimension. `MapView::calcFramebufferSource` selects the visible region after one spare tile on logical left/top, leaving two on right/bottom. For a 32 px sprite, the left-origin x offset is therefore 32; bottom-origin `glReadPixels` must skip the two logical bottom tiles, so its y offset is 64. The existing `x / 3, y / 1.5` call receives a total three-tile trim (96 px) and produces exactly those offsets. The XQuartz fixture-server capture was correctly oriented and measured 480x352, exactly the 15x11 visible tiles. Preserve the output crop while moving the arithmetic into explicit top-left readback parameters. Repeated captures against the live development world were diagnostic only, because its animated effects and creatures move between runs. Both map scenes were since moved onto the server-authored fixture platform; see *map-core and map-screenshot on the fixture platform* below for the resulting repeatability figures.
 
 The `graph-lines` fixture drives the real `UIGraph` action-lambda path with fixed 1 px, 3 px, and 6 px `GL_LINE_STRIP` geometry. Hover information is disabled so mouse position cannot change the result. Two XQuartz captures were pixel-identical (656,880 pixels, maximum channel delta 0).
 
 The `atlas-resources` fixture loads sixteen unique 522x522 smooth textures, an atlas-eligible 1344x320 sheet, and an APNG frame through the production foreground atlas. Both XQuartz runs grew the linear filter group to three 2048x2048 layers. Releasing and reloading four textures left one reusable inactive size bucket while retaining 41 cached entries. Clearing the texture-manager cache also freezes the displayed APNG after its first upload. The two final captures were pixel-identical.
 
-The first XQuartz-versus-llvmpipe comparison was run on 2026-08-20, against the seeded
-reference set. Five of the seven gated scenes agree across the two GL stacks; the two that do
-not are characterised below. XQuartz performance numbers are still never compared directly
-with llvmpipe or native GPU numbers.
+The first XQuartz-versus-llvmpipe comparison was run on 2026-08-20, against the reference set
+as seeded at 09:07 that morning. Five of the seven gated scenes agree across the two GL
+stacks; the two that do not are characterised below. XQuartz performance numbers are still
+never compared directly with llvmpipe or native GPU numbers.
 
 | Scene | Differing px | Fraction | Max channel delta | Verdict |
 |---|---|---|---|---|
@@ -45,7 +45,14 @@ with llvmpipe or native GPU numbers.
 | `particles-blends` | 168 | 0.026% | 52 | agree |
 | `composition-all` | 490 | 0.075% | 4 | agree |
 | `graph-lines` | 9,967 | **1.52%** | 235 | **differ — line smoothing** |
-| `startup-ui` | 449,332 | **68.4%** | 254 | **differ — missing assets in CI** |
+| `startup-ui` | 449,332 | **68.4%** | 254 | **differ — superseded, see below** |
+
+The `startup-ui` row is no longer reproducible and should not be re-measured against the
+current reference. It predates the login-background pin on both sides and was compared against
+a reference that has since been dropped and reseeded (`8b0b550`, `09eb5d9`), so the background
+was rolled independently on each side and its 68.4% conflates the CI asset-missing dialog with
+two different backgrounds. The other six rows still stand: those reference PNGs are
+byte-identical to the ones seeded in `046991f`.
 
 That clipping, opacity, text, atlas packing, particle blending and all six composition
 descriptors agree to within a handful of pixels across two independent GL implementations is
@@ -64,6 +71,7 @@ no single "correct" GL line rendering to match.
 the CI client has no game assets and its capture carries an asset-missing dialog in front of
 the login window. Locally the assets exist and the dialog does not appear. This is expected
 and is documented next to the reference images; it is not evidence about either rasterizer.
+The 68.4% above is not a clean measurement of it, though, for the reason noted under the table.
 
 The client must link `libGL`, `libX11`, and `libXext` from the same XQuartz installation. Mixing XQuartz GL with Homebrew X11 links successfully but causes GLX visual selection to fail at runtime. The macOS CMake path now pins all four headers/libraries under `/opt/X11`.
 
@@ -98,8 +106,8 @@ now **0 differing pixels**.
 Five consecutive captures against the live development world measured 0, 3, 752, 749 and 0
 differing pixels once the controls above were in place, down from 62%. The residual is live
 world content -- a walking NPC and a timed server broadcast -- and is why the scene needs the
-server-authored fixture platform rather than the live world. It is not yet pointed at that
-platform, so it is still diagnostic, not canonical.
+server-authored fixture platform rather than the live world. It was moved onto that platform
+in the same phase; see *map-core and map-screenshot on the fixture platform* below.
 
 Two contaminants were removed outright: the FPS/ping HUD, which `client_topmenu` draws
 *inside* the map panel so its per-frame text lands on the MAP pool the scene exists to
@@ -175,8 +183,8 @@ whatever happened to be packed beside it, coupling the result to packing order.
 
 Map shaders appear here as fragment programs only. Their real bind site is the MAP framebuffer
 to screen blit, and `Client::canDraw(MAP)` is literally `g_game.isOnline()`, so a UIMap with no
-connection produces no MAP-pool content. `shader-matrix-map` is declared in the manifest as the
-online scene still owing that coverage.
+connection produces no MAP-pool content. `shader-matrix-map` is the online scene that carries
+that coverage; it is declared in the manifest and described below.
 
 ## Three determinism traps worth knowing before adding a scene
 
@@ -239,35 +247,40 @@ to 68,505 for Fog, Bloom and Party. Fade is set to 0/0 so the switch is immediat
 `drawViewportEdge` is applied alongside each shader as `game_shaders` does, because it changes
 which tiles the map view renders.
 
-## Corrections to the planning documents
+## Corrections applied to the planning documents
 
-Two documented assumptions were checked against the source and do not hold.
+Two documented assumptions were checked against the source, did not hold, and have since been
+corrected in place (commit `a35ca65`). Recorded here with the evidence.
 
 **`AUTO_STAT` is compiled out of every build this repository produces.** `ENABLE_STATS` is
 defined nowhere in CMake and the release binary contains none of the stat description
 literals. The implementation plan's Phase 0 item "existing `AUTO_STAT` counters suffice
-initially" is therefore wrong for a release build, and enabling them is not a valid
-substitute: each `AUTO_STAT` allocates, builds a description string and takes a global mutex
-on hot paths including every Lua call and every packet, so the instrumented build does not
-measure the renderer either. The only release-available accessors are a **1 Hz integer** FPS
-counter, `g_stats.getWidgetsInfo`, `g_atlas.getStats()` and `collectgarbage("count")`. The
-client also sleeps to cap itself at 60 FPS by default, so an uninstrumented FPS figure
-measures the cap rather than the renderer. A frame-time baseline needs a decision before it
-can be built.
+initially" was therefore wrong for a release build and has been struck (item 6 of
+`docs/metal-implementation-plan.md`). Enabling them is not a valid substitute either: each
+`AUTO_STAT` allocates, builds a description string and takes a global mutex on hot paths
+including every Lua call and every packet, so the instrumented build does not measure the
+renderer either. The only release-available accessors are a **1 Hz integer** FPS counter,
+`g_stats.getWidgetsInfo`, `g_atlas.getStats()` and `collectgarbage("count")`. The client
+also sleeps to cap itself at 60 FPS by default, so an uninstrumented FPS figure measures the
+cap rather than the renderer. A frame-time baseline needed a decision before it could be
+built, and that decision has since been taken: performance measurement is deferred to Phase
+3, where the legacy and RenderFrame paths can be compared in the same environment.
 
-**Survey quirk 7 is inaccurate as written.** The FOREGROUND framebuffer does not stretch.
+**Survey quirk 7 was inaccurate as written and has been corrected** in
+`docs/metal-parity-survey.md`. The FOREGROUND framebuffer does not stretch.
 `GraphicalApplication::resize` sizes the UI and that framebuffer at `viewport/scale`, but the
 framebuffer is blitted 1:1 into a destination rect equal to its own size, inside a painter
 whose resolution is the full physical viewport. A scale change is therefore capturable as a
 genuine image difference rather than a rescale, which is what the `display-density` feature
 should freeze.
 
-Also relevant to the unimplemented `windowing` scene: `focus` is **not observable in any
-captured image** -- `hasFocus()` has zero consumers anywhere in the tree, so it is a pure
-state bit. And under the CI Xvfb there is no window manager, so `setFullscreen`/`maximize` are
-silently dropped while the client still flips its own state bits, making `isFullscreen()` a
-false-positive assertion headlessly. The Xvfb screen is also exactly the capture size, so any
-windowing step that grows the window past 1020x644 would exceed the root window there.
+Also relevant to the `windowing` scene, and the reason it is marked `ciCapture: false`:
+`focus` is **not observable in any captured image** -- `hasFocus()` has zero consumers
+anywhere in the tree, so it is a pure state bit. And under the CI Xvfb there is no window
+manager, so `setFullscreen`/`maximize` are silently dropped while the client still flips its
+own state bits, making `isFullscreen()` a false-positive assertion headlessly. The Xvfb
+screen is also exactly the capture size, so any windowing step that grows the window past
+1020x644 would exceed the root window there.
 
 ## atlas-resources has a small bounded variance in CI
 
@@ -279,10 +292,14 @@ rendering regression.
 
 ## CI gating
 
-Two scenes are captured and archived but deliberately **not** gated against a reference:
-`outfit-masks` and `temporary-framebuffers`. `data/things/*` is gitignored, so a CI runner
-has no game assets and both render empty previews there; gating them would freeze a blank
-image as the accepted reference. The manifest records this in `ciGate`/`ciGateReason`.
+Three scenes are captured and archived but deliberately **not** gated against a reference:
+`outfit-masks`, `temporary-framebuffers` and `shader-matrix`. `data/things/*` is gitignored,
+so a CI runner has no game assets and their creature, item and outfit previews render empty
+there; gating them would freeze a blank image as the accepted reference. `shader-matrix` is
+the near miss: its sixteen fragment cells would gate cleanly and only its outfit row does
+not, so splitting that row out would let them. The manifest records this in
+`ciGate`/`ciGateReason`, and `tools/renderer_scenes.py ids --gated` is the authoritative
+list.
 
 Reference images are compared against a **digest-pinned** `ubuntu:24.04` container. llvmpipe
 rasterization is the reference implementation for every checked-in PNG and the hosted runner

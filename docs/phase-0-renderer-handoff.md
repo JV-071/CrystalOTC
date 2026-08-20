@@ -1,6 +1,6 @@
 # Phase 0 renderer handoff
 
-**Checkpoint:** `0045e14` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
+**Checkpoint:** `d56850a` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
 
 **Date:** 2026-08-20
 
@@ -12,9 +12,10 @@ The OpenGL client builds and runs on Apple Silicon through XQuartz. The reposito
 deterministic capture driver, an image comparator, a manifest that is now the single source
 of truth for the scene list, and a Linux llvmpipe workflow with a real comparison gate.
 
-Eleven of the fourteen declared scenes are automated. `lighting-overlap` — the scene the
-previous handoff recorded as having failed twice — is implemented and repeatable, driven by
-server-authored world state. `shader-matrix` and `windowing` remain unimplemented.
+All fifteen declared scenes are automated. `lighting-overlap` — the scene the previous
+handoff recorded as having failed twice — is implemented and repeatable, driven by
+server-authored world state. `shader-matrix`, `shader-matrix-map` and `windowing` were added
+after the previous handoff; `windowing` is the only scene a headless runner cannot capture.
 
 At this checkpoint:
 
@@ -22,8 +23,9 @@ At this checkpoint:
 - `luac -p` passes on `init.lua` and the capture driver.
 - `python3 tools/renderer_scenes.py validate` exits 0.
 - Every offline scene listed below was captured repeatedly and compared.
-- The llvmpipe workflow has run on GitHub. Its first run failed; the failure and all four
-  warnings were diagnosed from the logs and fixed. It has **not yet completed a green run**.
+- The llvmpipe workflow runs green on GitHub. Its first run failed; the failure and all four
+  warnings were diagnosed from the logs and fixed. Run `32381800862` compared six gated scenes
+  at 0 differing pixels and `atlas-resources` at 158, inside tolerance.
 
 ## Phase 0 checklist
 
@@ -121,9 +123,10 @@ green and cyan at equal brightness.
 ### Server fixtures
 
 `crystalserver` gained `data-global/scripts/custom/renderer_fixtures/` (commit `f47f6e41`,
-branch `local/testing`, **not pushed**): a startup GlobalEvent that builds two platforms at
-coordinates the shipped map never touches, and a `!fixture` talkaction usable by a group-1
-character. No shipped file and no `.otbm` was edited; the map is never written back.
+branch `local/testing`, pushed to `aacruzgon/crystalserver`): a startup GlobalEvent that
+builds two platforms at coordinates the shipped map never touches, and a `!fixture`
+talkaction usable by a group-1 character. No shipped file and no `.otbm` was edited; the map
+is never written back.
 
 The surface platform is at z=6, not z=7, because `calcLastVisibleFloor` clamps to the sea
 floor and a hole cut in a z=7 platform would expose nothing.
@@ -145,9 +148,12 @@ floor and a hole cut in a z=7 platform would expose nothing.
 Offline, gated in CI: `startup-ui`, `ui-clipping-opacity`, `text-matrix`, `particles-blends`,
 `composition-all`, `graph-lines`, `atlas-resources`.
 
-Offline, captured but not gated: `outfit-masks`, `temporary-framebuffers`.
+Offline, captured but not gated: `outfit-masks`, `temporary-framebuffers`, `shader-matrix`.
 
-Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-overlap`.
+Offline, not capturable in CI: `windowing` — a desktop driver, not a headless capture.
+
+Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-overlap`,
+`shader-matrix-map`.
 
 ## Remaining Phase 0 work
 
@@ -170,10 +176,10 @@ that risks invalidating the warm vcpkg cache on a build whose median is around 6
 It deserves its own commit and a cold build to verify, not a ride-along on an unrelated fix.
 The renderer-baseline workflow is already off Node 20, where there was no cache to lose.
 
-**`tests-lua.yml` tests nothing.** It installs LuaJIT, checks out the code, and ends. It runs
-on every push and pull request with no path filter and always reports green, so it reads as a
-passing check while asserting nothing. It also uses `actions/checkout@main`, an unpinned
-floating ref.
+**`tests-lua.yml` tests nothing.** It installs Lua 5.1, checks out the code, and ends. It
+runs on every pull request and on every push to `main`, with no path filter, and always
+reports green, so it reads as a passing check while asserting nothing. It also uses
+`actions/checkout@main`, an unpinned floating ref.
 
 **`actions/labeler@main` is unpinned** in `pr-labeler.yml`, and `.github/labeler.yml` still
 uses v4 syntax, so a labeler major release can break it with no change in this repository.
@@ -284,20 +290,51 @@ d0cebb6 feat(graphics): allow pinning shader time for reproducible captures
 942fe68 ci(renderer): make the llvmpipe baseline job runnable and gated
 3b49ea5 test(renderer): implement the lighting-overlap scene
 0045e14 ci(renderer): fix the first llvmpipe run's failures and warnings
+09e9d2f docs(renderer): record phase zero determinism findings
+42e5a5e test(renderer): capture the map scenes on the fixture platform
+38200aa test(renderer): add the shader matrix scene
+98a7f75 docs(renderer): correct two planning assumptions and record new scenes
+f58286e docs(renderer): track the renderer design documents as authored
+a35ca65 docs(renderer): correct four claims contradicted by the source
+046991f ci(renderer): seed the canonical llvmpipe reference set
+343e2a5 docs(renderer): record the first XQuartz versus llvmpipe comparison
+16fc2c3 test(renderer): add the windowing multi-capture driver
+8b0b550 fix(renderer): pin the randomized login background
+261fefe test(renderer): add the map-composition shader scene
+ba2383b fix(renderer): verify fixture arrival instead of assuming it
+262a72a docs(renderer): record the windowing and map-shader scenes
+65060b0 ci(windows): do not publish releases from a fork
+6843c99 docs(renderer): record deferred follow-ups and restate what is left
+4ba926a fix(renderer): do not report a missing shader as a capture failure
+aa58b68 docs(renderer): add a Phase 0 completion checklist
+87f0c32 docs(renderer): mark the server fixture commit as pushed
+4976522 ci(renderer): correct the derived capture directory
+09eb5d9 ci(renderer): reseed the startup-ui reference
+d56850a docs(renderer): close out Phase 0
 ```
 
 ## Repository hygiene at handoff
 
-These design documents remain untracked and were deliberately neither edited nor staged:
+The working tree is clean and `main` is pushed to `origin`, the fork `aacruzgon/CrystalOTC`.
+
+The four renderer design documents are tracked as of `f58286e`:
 
 - `docs/macos-rendering-architecture.md`
 - `docs/metal-implementation-plan.md`
 - `docs/metal-parity-survey.md`
 - `docs/renderer-architecture-design.md`
 
-Their commit disposition is still an open decision. Note that
-`docs/renderer-architecture-design.md` §7 and §12.4 should be amended: the
-`glReadPixels(x/3, y/1.5)` offsets are confirmed **intentional framing**, not a bug, so the
-crop is preserved deliberately rather than "not reproduced at the boundary".
+The four claims of theirs that the source contradicted were corrected in `a35ca65`. Among
+them, `docs/renderer-architecture-design.md` §7 and §12.4 now record the
+`glReadPixels(x/3, y/1.5)` offsets as **intentional framing**, not a bug, so the crop is
+preserved deliberately rather than "not reproduced at the boundary".
 
-The `crystalserver` fixture commit `f47f6e41` is unpushed on branch `local/testing`.
+Deliberately not in this repository:
+
+- **The server fixtures.** They live in `crystalserver`, commit `f47f6e41` on branch
+  `local/testing`, pushed to `aacruzgon/crystalserver`. No online scene runs without it.
+- **Sprite and appearance data.** `data/things/*` is gitignored, which is why `outfit-masks`,
+  `temporary-framebuffers` and `shader-matrix` are captured but never gated.
+- **References for the ungated scenes.** Only the seven gated PNGs are checked in, under
+  `docs/rendering-baselines/references/opengl-llvmpipe/`, next to the `ENVIRONMENT.txt`
+  fingerprint of the run that produced them.

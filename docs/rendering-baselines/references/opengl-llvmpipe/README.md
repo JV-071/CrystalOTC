@@ -1,16 +1,24 @@
 # Canonical llvmpipe references
 
-Seeded from a green run of `Renderer baseline - Linux llvmpipe`
-(run `32378720716`, commit `4976522`). `ENVIRONMENT.txt` is that run's
-fingerprint; check it first when a comparison fails unexpectedly.
+Seeded from two green runs of `Renderer baseline - Linux llvmpipe`. Six of the
+references come from run `32369322871` (commit `0045e145`) and have not been
+touched since: `atlas-resources`, `composition-all`, `graph-lines`,
+`particles-blends`, `text-matrix` and `ui-clipping-opacity`.
 
-`startup-ui` was reseeded from that run. Its first reference came from an earlier
-run and could never match again: the login background is chosen at random from
-six images on every startup, and pinning it changed what the scene renders.
+`startup-ui` came later, from run `32378720716` (commit `4976522`). Its first
+reference, seeded from the same earlier run as the other six, could never match
+again: the login background is chosen at random from six images on every
+startup, and pinning it changed what the scene renders.
+
+`ENVIRONMENT.txt` is the later run's fingerprint; check it first when a
+comparison fails unexpectedly. It describes both sets: the two runs used the same
+container digest and the same Mesa packages, and the later one compared the six
+unchanged references at 0 differing pixels each.
 
 Only the scenes `tools/renderer_scenes.py ids --gated` reports are stored here.
-`outfit-masks` and `temporary-framebuffers` are captured by CI but deliberately
-not gated, so they have no reference; see their `ciGateReason` in `scenes.json`.
+`outfit-masks`, `temporary-framebuffers` and `shader-matrix` are captured by CI
+but deliberately not gated, so they have no reference; see their `ciGateReason`
+in `scenes.json`.
 
 ## These are CI references, not universal ones
 
