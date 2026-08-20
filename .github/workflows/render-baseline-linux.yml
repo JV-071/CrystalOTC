@@ -44,7 +44,7 @@ env:
   VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg
 
 jobs:
-  startup-ui:
+  client-scenes:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
 
@@ -75,21 +75,25 @@ jobs:
       - name: Build
         run: cmake --build --preset linux-release --parallel 2
 
-      - name: Capture startup UI with llvmpipe
+      - name: Capture offline client scenes with llvmpipe
         shell: bash
         run: |
           mkdir -p artifacts/render-baselines
           xvfb-run -a -s "-screen 0 1020x644x24" sh -c '
             LIBGL_ALWAYS_SOFTWARE=1 glxinfo -B > artifacts/render-baselines/glxinfo.txt
-            LIBGL_ALWAYS_SOFTWARE=1 timeout 30s build/linux-release/bin/otclient \
-              --renderer-baseline=startup-ui \
-              --renderer-baseline-output=startup-ui.png \
-              > artifacts/render-baselines/client.log 2>&1
+            for scene in startup-ui ui-clipping-opacity text-matrix; do
+              LIBGL_ALWAYS_SOFTWARE=1 timeout 30s build/linux-release/bin/otclient \
+                --renderer-baseline="$scene" \
+                --renderer-baseline-output="$scene.png" \
+                > "artifacts/render-baselines/client-$scene.log" 2>&1
+            done
           '
-          capture=$(find "$HOME" -path '*/render-baselines/startup-ui.png' -print -quit)
-          test -n "$capture"
-          cp "$capture" artifacts/render-baselines/startup-ui.png
-          file artifacts/render-baselines/startup-ui.png
+          for scene in startup-ui ui-clipping-opacity text-matrix; do
+            capture=$(find "$HOME" -path "*/render-baselines/$scene.png" -print -quit)
+            test -n "$capture"
+            cp "$capture" "artifacts/render-baselines/$scene.png"
+            file "artifacts/render-baselines/$scene.png"
+          done
 
       - name: Record capture metadata
         shell: bash
