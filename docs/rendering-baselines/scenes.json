@@ -95,6 +95,8 @@
       "requiresOnlineGame": true,
       "features": ["map-composition-shader", "map-shader-uniforms", "draw-viewport-edge", "multi-capture"],
       "command": "--renderer-baseline=shader-matrix-map --renderer-baseline-output=shader-matrix-map.png",
+      "maxDifferentFraction": 0.002,
+      "toleranceReason": "Captures the same fixture platform as map-core and inherits the same residual: a creature on a live server cannot be perfectly frozen from the client. Consecutive runs measured 778 differing pixels, roughly one sprite.",
       "multiCapture": "One capture per map shader plus a Default frame to diff against: shader-matrix-map-01-default.png through shader-matrix-map-14-noise.png. A map shader applies to the whole composed map, so only one can be shown per frame.",
       "note": "Covers what shader-matrix structurally cannot: map shaders bind at the MAP framebuffer to screen blit through the pool's onBeforeDraw hook, which also writes the four map uniforms, and Client::canDraw(MAP) is g_game.isOnline(), so none of it is reachable offline."
     },
