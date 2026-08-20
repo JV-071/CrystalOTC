@@ -775,10 +775,12 @@ function EnterGame.loginSuccess(requestId, jsonSession, jsonWorlds, jsonCharacte
 
 	for _, world in ipairs(json.decode(jsonWorlds)) do
 		if world.id then
+			local serverConfig = G.serverConfig or {}
+
 			worlds[world.id] = {
 				name = world.name,
-				ip = world.externaladdressprotected,
-				port = world.externalportprotected,
+				ip = serverConfig.gameHost or world.externaladdressprotected,
+				port = serverConfig.gamePort or world.externalportprotected,
 				previewState = world.previewstate == 1,
 				pvptype = world.pvptype
 			}
@@ -842,6 +844,7 @@ function EnterGame.doLogin()
 
 	G.host = hostInit
 	G.port = valuesInit.port
+	G.serverConfig = valuesInit
 
 	local clientVersion = tonumber(valuesInit.protocol)
 	local httpLogin = valuesInit.httpLogin

@@ -185,8 +185,19 @@ function g_game.getSupportedClients()
 		1510,
 		1511,
 		1520,
-		1521
+		1521,
+		1525,
+		1530
 	}
+end
+
+function g_game.getClientAssetVersion(client)
+	local clients = {
+		-- The Crystal 15.25 server uses the asset catalog currently stored as 1530.
+		[1525] = 1530
+	}
+
+	return clients[client] or client
 end
 
 function g_game.getClientProtocolVersion(client)

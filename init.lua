@@ -53,20 +53,24 @@ if ENABLE_SERVERS then
     -- release endpoint. Release (no flag) = the production login below.
     if g_resources.fileExists("/devserver.flag") then
         Servers_init = {
-            ["http://127.0.0.1/summer/login.php"] = {
-                port = 80,
-                protocol = 1530,
+            ["http://127.0.0.1/login.php"] = {
+                port = 8080,
+                protocol = 1525,
                 httpLogin = true,
-                useAuthenticator = false
+                useAuthenticator = false,
+                gameHost = "127.0.0.1",
+                gamePort = 7182
             }
         }
     else
         Servers_init = {
-            ["http://127.0.0.1/summer/login.php"] = {
-                port = 80,
-                protocol = 1530,
+            ["http://127.0.0.1/login.php"] = {
+                port = 8080,
+                protocol = 1525,
                 httpLogin = true,
-                useAuthenticator = false
+                useAuthenticator = false,
+                gameHost = "127.0.0.1",
+                gamePort = 7182
             }
         }
     end
@@ -76,10 +80,8 @@ g_app.setName("CrystalOTC");
 g_app.setCompactName("crystalotc");
 g_app.setOrganizationName("Crystal");
 
--- Our exe gates client versions on g_gameConfig.getLastSupportedVersion() (default 1). The
--- ported modules configure supported versions through a mechanism our exe doesn't expose,
--- so setClientVersion(1530) at login threw "Client version 1530 not supported". Raise the
--- ceiling here so the 1530 protocol (our server + data/things/1530) is accepted.
+-- Accept both Crystal 15.25 and the existing 15.30 client profile. Crystal 15.25 reuses
+-- the checked-in 1530 asset catalog; only the advertised/wire version changes.
 g_gameConfig.setLastSupportedVersion(1530)
 
 g_app.hasUpdater = function()

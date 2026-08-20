@@ -68,8 +68,12 @@ end
 
 local function load(version)
 	local errorList = {}
-	-- CrystalOTC: per-version assets (/things/1530/), not /things/assets/
-	local THINGS_ASSETS_PATH = "/things/" .. version .. "/"
+	local assetVersion = g_game.getClientAssetVersion(version)
+	local THINGS_ASSETS_PATH = "/things/" .. assetVersion .. "/"
+
+	if assetVersion ~= version then
+		g_logger.info(string.format("[game_things.load()] Client %d uses asset catalog %d.", version, assetVersion))
+	end
 
 	if version >= 1281 and not g_game.getFeature(GameLoadSprInsteadProtobuf) then
 		local filePath = resolvepath(THINGS_ASSETS_PATH)
