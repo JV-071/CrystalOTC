@@ -253,7 +253,7 @@ Single rule: **every logical surface is top-left origin, y-down, in pixels.** Co
 - The projection matrix (`painter.cpp:249-267`) moves into the backends. GL keeps the y-flipping matrix for the backbuffer and uses a *non-flipping* variant for FBO passes, absorbing today's `upsideDown` texture-matrix mechanism; Metal uses one convention everywhere.
 - `Texture::setUpsideDown` and flipped-blit quads (`addHorizontally/VerticallyFlippedQuad`) leave shared code; the compiler emits pre-flipped UVs where `vkFbFlip` demands it, and only the GL backend knows render-target textures are stored bottom-up.
 - Scissor rects arrive in packets top-left and **pre-clamped to the target** (Metal validates; GL forgave `[S 8]`). The GL backend applies its own y-flip formula internally.
-- Readback results are delivered top-left-origin; the backend flips, not the caller. The `x/3, y/1.5` screenshot oddity `[S 9.5]` is *not* reproduced in the boundary — it stays (or gets fixed) in `client.cpp`'s request parameters, where it is visible.
+- Readback results are delivered top-left-origin; the backend flips, not the caller. The `x/3, y/1.5` screenshot offsets `[S 9.5]` are **intentional framing, not an oddity** (resolved 2026-08-20): they select the visible region inside the MAP FBO's three-tile margin, yielding x=32 and y=64 at 32 px sprites. The boundary reproduces that crop, expressed as explicit top-left readback parameters rather than as divisors in `client.cpp`.
 
 ## 8. Caching and the frame graph
 
@@ -335,4 +335,4 @@ Backend selection is explicit config (`graphics.renderBackend`), which already e
 1. Should the GLBackend adopt streamed VBOs when consuming vertex arenas, or keep client arrays for bit-exact Phase 3 comparison first? (Recommendation: client arrays first, VBOs as a follow-up flag.)
 2. Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site? (Needs one more look at which site consumes it.)
 3. Golden-frame format for the RecordingBackend: full packet dump vs. hash-tree? (Affects CI diff ergonomics only.)
-4. Whether the `x/3, y/1.5` screenshot offsets are a bug to fix or behavior to keep — needs a visual check on Windows before the readback API freezes its request semantics.
+4. ~~Whether the `x/3, y/1.5` screenshot offsets are a bug to fix or behavior to keep.~~ **Resolved 2026-08-20:** intentional framing (`[S 3.5]`). The crop is preserved deliberately; the readback API expresses it as explicit top-left parameters.

@@ -118,7 +118,7 @@ Metal parity for lighting is therefore: **one dynamic RGBA8 texture upload + one
 | Site | Reads | Notes |
 |---|---|---|
 | `FrameBuffer::extractTexture` (`framebuffer.cpp:174-187`) | any FBO → `glReadPixels` → new `Texture` with `upsideDown` flag | this is the "texture with no source pixels" case the Vk feeder cannot handle |
-| `FrameBuffer::doScreenshot` (`framebuffer.cpp:189-221`) | map FBO region → PNG, `image.flipVertically()` | called from `client.cpp:167` with a 3-sprite margin; note the suspicious `glReadPixels(x/3, y/1.5, ...)` offsets — pre-existing oddity, do not "fix" silently during the port |
+| `FrameBuffer::doScreenshot` (`framebuffer.cpp:189-221`) | map FBO region → PNG, `image.flipVertically()` | called from `client.cpp:167` with a 3-sprite margin. **Resolved 2026-08-20:** the `glReadPixels(x/3, y/1.5, ...)` offsets are *intentional framing*, not an oddity. The MAP FBO carries a three-tile margin — one logical tile left/top, two right/bottom — so at 32 px sprites the correct offsets are x=32 and y=64, and the `/3` and `/1.5` divisors produce exactly those. Verified: the capture measures 480x352 for a 15x11 viewport. Preserve the crop. |
 | `GraphicalApplication::doScreenshot` (`graphicalapplication.cpp:440-451`) | default framebuffer → PNG | Lua-exposed (`g_app.doScreenshot`) |
 
 ---
@@ -163,7 +163,7 @@ The vertex stage is **always** `projection × transform × (x, y, 1)`; the fragm
 Framework indices (`paintershaderprogram.h:30-45`): projection=0, textureMatrix=1, color=2, opacity=3, time=4, tex0–3=5–8, resolution=9, transform=10.
 Client extension (`framework/graphics/shadermanager.h:31-43`): itemId=10, outfitId=11, mountId=12, shaderId=13, mapZoom=14, walkOffset=15, mapCenterCoord=16, mapGlobalCoord=17, textOffset=18, textCenter=19.
 
-**Hazard:** `ITEM_ID_UNIFORM = 10` collides with `TRANSFORM_MATRIX_UNIFORM = 10`. `Painter::drawCoords` writes the transform matrix through index 10 on every draw, so an item shader that binds `u_ItemId` at slot 10 has its uniform location aliased. Whatever the current visual outcome is, it is part of "current behavior" — investigate before freezing the parity contract, and do not let the Metal ABI inherit the collision.
+**Hazard (latent — see below):** `ITEM_ID_UNIFORM = 10` collides with `TRANSFORM_MATRIX_UNIFORM = 10`. `Painter::drawCoords` writes the transform matrix through index 10 on every draw, so an item shader binding `u_ItemId` at slot 10 would have its uniform location aliased. **Investigated 2026-08-20:** the collision is currently *unreachable*. `registerItemShaders()` only calls `createFragmentShader`, and neither `setupItemShader` nor `setupTextShader` has a caller anywhere in `modules/` or `mods/`, so `u_ItemId` is never bound in shipped code and there is no current visual outcome to preserve. The Metal ABI must still not inherit the shared index space.
 
 ### 5.3 Module shader inventory (`modules/game_shaders/shaders.lua`)
 
@@ -238,10 +238,10 @@ Consecutive objects with identical state hashes merge coord buffers (`drawpool.c
 1. **`ADD` composition is not additive** — `(1−src, 1−src)` weights. Particles depend on it. Copy the formula, not the name.
 2. **`NORMAL` accumulates alpha additively** (`ONE, ONE` alpha factors) — matters inside FBOs later sampled with their alpha.
 3. **MAP FBO blits with blend disabled and writes no alpha** — map pixels replace, never blend, at composition.
-4. Uniform index 10 collision (section 5.2).
-5. `glReadPixels(x/3, y/1.5)` in map screenshot (section 3.5) — looks like a bug kept for output compatibility; decide, don't inherit blindly.
+4. Uniform index 10 collision (section 5.2) — **latent, not live:** `setupItemShader` and `setupTextShader` have no callers in `modules/` or `mods/`, so `u_ItemId` is never bound and the collision is currently unreachable. Still must not be inherited by the Metal ABI.
+5. ~~`glReadPixels(x/3, y/1.5)` looks like a bug.~~ **Resolved 2026-08-20:** intentional framing, see section 3.5. Preserve the crop.
 6. Atlas smooth-padding draw samples outside the source texture bounds, relying on clamp behavior (section 3.3).
-7. FOREGROUND FBO renders at `viewport/scale` and stretches — UI scale factor is implemented by FBO sizing, not by transform.
+7. ~~FOREGROUND FBO renders at `viewport/scale` and stretches.~~ **Corrected 2026-08-20:** it does not stretch. `GraphicalApplication::resize` sizes the UI and the FOREGROUND FBO at `viewport/scale`, but the FBO is blitted 1:1 into a destination rect equal to its own size, inside a painter whose resolution is the full physical viewport. A UI-scale change is therefore a genuine image difference, not a rescale — which is what a `display-density` baseline should freeze.
 8. Pool FBO skip-if-unchanged (hash) is load-bearing for performance; the explicit model needs an equivalent "reuse last target contents" pass mode.
 9. `onlyOnce` state overrides restore the *previous* state, not defaults (`drawpool.cpp:289-311`) — compiler must replicate exact scoping.
 10. Line rendering needs triangulation on Metal (section 6.3).

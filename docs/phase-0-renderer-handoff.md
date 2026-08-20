@@ -95,17 +95,20 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 
 ## Remaining Phase 0 work
 
-1. **Point `map-core` and `map-screenshot` at the fixture platform** (`!fixture map`, as GOD).
-   They still capture the live development world, which leaves ~0.15% residual drift from a
-   walking NPC and timed server broadcasts. The platform exists and is ready.
-2. **Implement `shader-matrix`.** The design is settled: a UIMap offline produces no MAP-pool
-   content at all (`canDraw(MAP)` is literally `g_game.isOnline()`), so the map-*composition*
-   route needs a live map — but map fragment programs can be applied to image widgets
-   offline, and a shaded cell must draw a real texture or multi-texture never binds. With
-   `u_Time` now pinnable the scene can be gated, which was impossible before.
-3. **Add the `windowing` driver.** Needs multi-capture support; the driver currently takes one
-   screenshot and exits.
-4. **Record 60 seconds of release-build frame-time and memory.**
+1. **Add the `windowing` driver.** It is the last offline scene with no command. Note that
+   `focus` is not observable in any captured image (`hasFocus()` has zero consumers), and CI's
+   Xvfb has no window manager, so `setFullscreen`/`maximize` are silently dropped while the
+   client still flips its state bits — those are logged-state assertions, not image ones.
+2. **Implement `shader-matrix-map`.** `shader-matrix` now covers every shipped fragment
+   program offline, but not the map-*composition* route: map shaders bind at the MAP
+   framebuffer to screen blit and `canDraw(MAP)` is literally `g_game.isOnline()`, so that
+   bind site, its four map uniforms and the shader fade still need a live map.
+3. **Support multi-capture in the driver.** `captureScene` is hard-wired to one screenshot
+   followed by exit, which `windowing` needs factored apart.
+4. ~~Record 60 seconds of release-build frame-time and memory.~~ **Deferred to Phase 3.**
+   `AUTO_STAT` is compiled out of every build this repository produces, and the client caps
+   itself at 60 FPS by default, so a Phase 0 figure would measure the cap rather than the
+   renderer — and there is nothing to compare it against until a second path exists.
 5. **Get the llvmpipe workflow green**, then seed references with
    `workflow_dispatch(refresh_references=true)` and commit them. Until references exist every
    gated scene logs `UNGATED-pending-reference` and the gate is a no-op.
