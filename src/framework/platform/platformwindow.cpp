@@ -34,6 +34,10 @@ AndroidWindow window;
 #elif defined __EMSCRIPTEN__
 #include "browserwindow.h"
 BrowserWindow window;
+#elif defined CRYSTALOTC_COCOA_WINDOW
+#include "cocoawindow.h"
+#include <framework/core/clock.h>
+CocoaWindow window;
 #else
 #include "x11window.h"
 #include <framework/core/clock.h>

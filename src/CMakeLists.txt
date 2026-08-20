@@ -13,6 +13,7 @@ option(TOGGLE_FRAMEWORK_EDITOR "Use Editor " OFF)
 option(TOGGLE_DIRECTX "Use DX9 support" OFF)
 option(ENABLE_DISCORD_RPC "Use Discord Rich Presence" OFF)
 option(TOGGLE_BIN_FOLDER "Use build/bin folder for generate compilation files" OFF)
+option(TOGGLE_COCOA_WINDOW "macOS: use the native Cocoa/Metal window instead of XQuartz/X11" OFF)
 option(DEBUG_LOG "Enable Debug Log" OFF)
 option(ASAN_ENABLED "Build this target with AddressSanitizer" OFF)
 option(BUILD_STATIC_LIBRARY "Build using static libraries" OFF)
@@ -178,18 +179,31 @@ if(APPLE)
   find_library(FOUNDATION Foundation REQUIRED)
   find_library(IOKIT IOKit REQUIRED)
 
-  # The GLX client and Xlib must come from the same XQuartz installation.
-  # Homebrew's X11 libraries are ABI-compatible at link time but do not share
-  # XQuartz's GLX display internals, causing visual selection to fail at runtime.
-  if(NOT EXISTS "/opt/X11/include/X11/Xlib.h")
-    message(FATAL_ERROR "XQuartz headers were not found under /opt/X11")
+  # Two mutually exclusive macOS platform layers. XQuartz remains the default because it
+  # is the OpenGL reference vehicle the renderer baselines are captured through
+  # (docs/metal-implementation-plan.md, Phase 0); Cocoa is opt-in until Metal can draw
+  # the client, since the Cocoa window deliberately provides no GL context.
+  if(TOGGLE_COCOA_WINDOW)
+    enable_language(OBJCXX)
+    find_library(APPKIT AppKit REQUIRED)
+    find_library(METAL Metal REQUIRED)
+    find_library(QUARTZCORE QuartzCore REQUIRED)
+    log_option_enabled("Cocoa window (native macOS)")
+  else()
+    # The GLX client and Xlib must come from the same XQuartz installation.
+    # Homebrew's X11 libraries are ABI-compatible at link time but do not share
+    # XQuartz's GLX display internals, causing visual selection to fail at runtime.
+    if(NOT EXISTS "/opt/X11/include/X11/Xlib.h")
+      message(FATAL_ERROR "XQuartz headers were not found under /opt/X11")
+    endif()
+    set(X11_X11_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz X11 include directory" FORCE)
+    set(X11_X11_LIB "/opt/X11/lib/libX11.dylib" CACHE FILEPATH "XQuartz X11 library" FORCE)
+    set(X11_Xext_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz Xext include directory" FORCE)
+    set(X11_Xext_LIB "/opt/X11/lib/libXext.dylib" CACHE FILEPATH "XQuartz Xext library" FORCE)
+    log_option_disabled("Cocoa window (native macOS)")
   endif()
-  set(X11_X11_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz X11 include directory" FORCE)
-  set(X11_X11_LIB "/opt/X11/lib/libX11.dylib" CACHE FILEPATH "XQuartz X11 library" FORCE)
-  set(X11_Xext_INCLUDE_PATH "/opt/X11/include" CACHE PATH "XQuartz Xext include directory" FORCE)
-  set(X11_Xext_LIB "/opt/X11/lib/libXext.dylib" CACHE FILEPATH "XQuartz Xext library" FORCE)
 endif()
-if(UNIX AND NOT ANDROID AND NOT WASM)
+if(UNIX AND NOT ANDROID AND NOT WASM AND NOT (APPLE AND TOGGLE_COCOA_WINDOW))
   find_package(X11 REQUIRED)
 endif()
 if(WIN32)
@@ -475,6 +489,14 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/ui/uiwidgettext.cpp
           framework/ui/uiwidgethtml.cpp
           framework/ui/uiqrcode.cpp
+  )
+endif()
+
+# Objective-C++, so it can only be added when the language is enabled; every other
+# platform window is guarded internally and compiled unconditionally.
+if(APPLE AND TOGGLE_COCOA_WINDOW)
+  set(SOURCE_FILES ${SOURCE_FILES}
+          framework/platform/cocoawindow.mm
   )
 endif()
 
@@ -930,7 +952,6 @@ else() # Linux
 
           absl::log_internal_check_op
           Threads::Threads
-          X11::X11
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
@@ -946,6 +967,24 @@ else() # Linux
           Vorbis::vorbis
           Freetype::Freetype
   )
+
+  # The platform layer decides which windowing stack is linked. Cocoa replaces X11
+  # outright rather than sitting beside it, so the two are never linked together.
+  if(APPLE AND TOGGLE_COCOA_WINDOW)
+    target_link_libraries(otclient_core
+            PUBLIC
+            ${APPKIT}
+            ${METAL}
+            ${QUARTZCORE}
+    )
+    target_compile_definitions(otclient_core PUBLIC CRYSTALOTC_COCOA_WINDOW)
+  else()
+    target_link_libraries(otclient_core
+            PUBLIC
+            X11::X11
+    )
+  endif()
+
 
   if (TOGGLE_FRAMEWORK_PROTOBUF)
       target_link_libraries(otclient_core
