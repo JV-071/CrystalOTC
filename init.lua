@@ -171,3 +171,10 @@ if g_app.hasUpdater() then
 end
 
 loadModules()
+
+-- Renderer baseline captures are opt-in and must never affect a normal client launch.
+-- The module takes the screenshot after the regular startup modules have built the UI,
+-- which makes the capture exercise the same DrawPool/OpenGL path as an interactive run.
+if g_app.getStartupOptions():find("--renderer-baseline=", 1, true) then
+    g_modules.ensureModuleLoaded("dev_renderer_baseline")
+end

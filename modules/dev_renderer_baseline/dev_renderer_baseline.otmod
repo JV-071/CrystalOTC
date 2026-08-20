@@ -1,0 +1,9 @@
+Module
+  name: dev_renderer_baseline
+  description: Opt-in deterministic renderer baseline capture driver
+  author: CrystalOTC
+  reloadable: false
+  sandboxed: false
+  scripts: [ dev_renderer_baseline ]
+  @onLoad: RendererBaseline.init()
+  @onUnload: RendererBaseline.terminate()

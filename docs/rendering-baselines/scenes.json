@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "canonicalBackend": "opengl-llvmpipe",
+  "captureSize": [1020, 644],
+  "scenes": [
+    {
+      "id": "startup-ui",
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["login-background", "bitmap-font", "ttf-font", "icons", "translucent-ui", "initial-resize"],
+      "command": "--renderer-baseline=startup-ui --renderer-baseline-output=startup-ui.png"
+    },
+    {
+      "id": "map-core",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["floors", "tiles", "creatures", "missiles", "effects", "camera-movement", "map-fbo"]
+    },
+    {
+      "id": "lighting-overlap",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["day-night", "colored-lights", "overlapping-lights", "dynamic-texture-upload", "multiply"]
+    },
+    {
+      "id": "ui-clipping-opacity",
+      "automation": "client-script",
+      "requiresOnlineGame": false,
+      "features": ["nested-clipping", "scroll-area", "opacity", "map-hole", "foreground-fbo"]
+    },
+    {
+      "id": "text-matrix",
+      "automation": "client-script",
+      "requiresOnlineGame": false,
+      "features": ["bitmap-font", "ttf-font", "outlined-text", "alignment", "rotation"]
+    },
+    {
+      "id": "outfit-masks",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["outfit-mask-colors", "mount", "addons", "animation", "multiply"]
+    },
+    {
+      "id": "particles-blends",
+      "automation": "client-script",
+      "requiresOnlineGame": false,
+      "features": ["particles", "normal", "multiply", "add-weird"]
+    },
+    {
+      "id": "composition-all",
+      "automation": "native-fixture",
+      "requiresOnlineGame": false,
+      "features": ["normal", "multiply", "add-weird", "replace", "destination-blending", "light-modulate"]
+    },
+    {
+      "id": "temporary-framebuffers",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"]
+    },
+    {
+      "id": "shader-matrix",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["all-module-shaders", "fog-multitexture", "snow-multitexture", "outline-framebuffer"]
+    },
+    {
+      "id": "atlas-resources",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["atlas-growth", "smooth-padding", "large-texture", "animated-texture", "gc-reload"]
+    },
+    {
+      "id": "windowing",
+      "automation": "desktop-driver",
+      "requiresOnlineGame": false,
+      "features": ["resize", "display-density", "fullscreen", "focus", "display-move"]
+    },
+    {
+      "id": "map-screenshot",
+      "automation": "fixture-server",
+      "requiresOnlineGame": true,
+      "features": ["map-readback", "cropping", "vertical-flip"]
+    }
+  ]
+}
