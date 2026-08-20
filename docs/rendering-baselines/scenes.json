@@ -80,9 +80,10 @@
     },
     {
       "id": "atlas-resources",
-      "automation": "fixture-server",
-      "requiresOnlineGame": true,
-      "features": ["atlas-growth", "smooth-padding", "large-texture", "animated-texture", "gc-reload"]
+      "automation": "client",
+      "requiresOnlineGame": false,
+      "features": ["atlas-growth", "linear-filter-group", "smooth-padding", "large-texture", "animated-texture", "gc-reload"],
+      "command": "--renderer-baseline=atlas-resources --renderer-baseline-output=atlas-resources.png"
     },
     {
       "id": "windowing",

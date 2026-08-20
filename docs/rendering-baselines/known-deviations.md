@@ -30,6 +30,8 @@ The map-screenshot offsets are intended framing, despite their unusual spelling.
 
 The `graph-lines` fixture drives the real `UIGraph` action-lambda path with fixed 1 px, 3 px, and 6 px `GL_LINE_STRIP` geometry. Hover information is disabled so mouse position cannot change the result. Two XQuartz captures were pixel-identical (656,880 pixels, maximum channel delta 0).
 
+The `atlas-resources` fixture loads sixteen unique 522x522 smooth textures, an atlas-eligible 1344x320 sheet, and an APNG frame through the production foreground atlas. Both XQuartz runs grew the linear filter group to three 2048x2048 layers. Releasing and reloading four textures left one reusable inactive size bucket while retaining 41 cached entries. Clearing the texture-manager cache also freezes the displayed APNG after its first upload. The two final captures were pixel-identical.
+
 No XQuartz-versus-llvmpipe image has been compared yet, so no cross-environment pixel difference is accepted. Small rasterization and sampling differences may be accepted only after side-by-side evidence is attached here. XQuartz performance numbers are never compared directly with llvmpipe or native GPU numbers.
 
 The client must link `libGL`, `libX11`, and `libXext` from the same XQuartz installation. Mixing XQuartz GL with Homebrew X11 links successfully but causes GLX visual selection to fail at runtime. The macOS CMake path now pins all four headers/libraries under `/opt/X11`.

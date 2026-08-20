@@ -428,6 +428,85 @@ function RendererBaseline.buildGraphLineScene()
     return true
 end
 
+function RendererBaseline.buildAtlasResourceScene()
+    local root = beginClientScene(
+        "OpenGL atlas resource lifecycle",
+        "Smooth-padding uploads, multi-layer growth, a large sheet, APNG frame upload, and cache reload"
+    )
+
+    local atlasPaths = {}
+    local quadrants = { "bottom_left", "bottom_right", "top_left", "top_right" }
+    for _, quadrant in ipairs(quadrants) do
+        for image = 1, 4 do
+            table.insert(atlasPaths, string.format("/images/game/wheel/wheel-border/%s/%d", quadrant, image))
+        end
+    end
+
+    local atlasWidgets = {}
+    for index, path in ipairs(atlasPaths) do
+        local column = (index - 1) % 8
+        local row = math.floor((index - 1) / 8)
+        local x = 70 + column * 110
+        local y = 136 + row * 116
+        local tile = place(g_ui.createWidget("UIWidget", root), x, y, 96, 96)
+        tile:setBackgroundColor("#0f172aff")
+        tile:setBorderWidth(1)
+        tile:setBorderColor(row == 0 and "#38bdf8ff" or "#c084fcff")
+        tile:setImageSmooth(true)
+        tile:setImageFixedRatio(true)
+        tile:setImageSource(path)
+        atlasWidgets[index] = tile
+        makeLabel(root, x, y + 94, 96, 18, string.format("L%02d", index), "Verdana-8px-outline", "#cbd5e1ff", AlignCenter)
+    end
+
+    local large = place(g_ui.createWidget("UIWidget", root), 70, 396, 510, 122)
+    large:setBackgroundColor("#0f172aff")
+    large:setBorderWidth(1)
+    large:setBorderColor("#4ade80ff")
+    large:setImageSmooth(true)
+    large:setImageFixedRatio(true)
+    large:setImageSource("/images/game/imbuing/imbuement-icons-64")
+
+    local animated = place(g_ui.createWidget("UIWidget", root), 610, 396, 330, 122)
+    animated:setBackgroundColor("#0f172aff")
+    animated:setBorderWidth(1)
+    animated:setBorderColor("#f59e0bff")
+    animated:setImageSmooth(true)
+    animated:setImageFixedRatio(true)
+    animated:setImageSource("/images/ui/dragon-animated")
+
+    makeLabel(root, 70, 528, 510, 22, "1344 x 320 atlas-eligible sheet", "Verdana Bold-11px-new", "#4ade80ff", AlignCenter)
+    makeLabel(root, 610, 528, 330, 22, "APNG frame frozen after cache release", "Verdana Bold-11px-new", "#f59e0bff", AlignCenter)
+    local stats = makeLabel(root, 70, 558, 870, 34, "Waiting for atlas flush...", "Verdana-8px-outline", "#94a3b8ff", AlignCenter)
+
+    setupEvent = scheduleEvent(function()
+        setupEvent = nil
+        local before = g_atlas.getStats()
+        for index = 1, 4 do
+            atlasWidgets[index]:setImageSource("")
+        end
+        g_textures.clearCache()
+        collectgarbage()
+
+        setupEvent = scheduleEvent(function()
+            setupEvent = nil
+            for index = 1, 4 do
+                atlasWidgets[index]:setImageSource(atlasPaths[index])
+            end
+
+            setupEvent = scheduleEvent(function()
+                setupEvent = nil
+                local after = g_atlas.getStats()
+                g_logger.info("[renderer-baseline] atlas before reload: " .. before)
+                g_logger.info("[renderer-baseline] atlas after reload: " .. after)
+                stats:setText("linear atlas grew past one layer; four 522 px entries were released and reloaded")
+            end, 600)
+        end, 250)
+    end, 600)
+
+    return true
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
     if outputName:find("[/\\]") or not outputName:match("^[%w%._%-]+%.png$") then
@@ -619,6 +698,10 @@ function RendererBaseline.onRun()
     elseif activeScenario == "graph-lines" then
         if RendererBaseline.buildGraphLineScene() then
             RendererBaseline.captureScene(activeScenario, 1000)
+        end
+    elseif activeScenario == "atlas-resources" then
+        if RendererBaseline.buildAtlasResourceScene() then
+            RendererBaseline.captureScene(activeScenario, 2200)
         end
     else
         fail("unknown automated scenario '" .. tostring(activeScenario) .. "'")
