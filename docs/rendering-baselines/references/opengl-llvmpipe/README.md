@@ -10,10 +10,11 @@ reference, seeded from the same earlier run as the other six, could never match
 again: the login background is chosen at random from six images on every
 startup, and pinning it changed what the scene renders.
 
-`ENVIRONMENT.txt` is the later run's fingerprint; check it first when a
-comparison fails unexpectedly. It describes both sets: the two runs used the same
-container digest and the same Mesa packages, and the later one compared the six
-unchanged references at 0 differing pixels each.
+`ENVIRONMENT.txt` is the newest contributing run's fingerprint (`32395555810`,
+commit `4ed061ff`); check it first when a comparison fails unexpectedly. It
+describes every set here: all three runs used the same container digest and the
+same Mesa packages, and each later run compared the earlier references at 0
+differing pixels - except `atlas-resources`, which sits at its documented 158.
 
 Only the scenes `tools/renderer_scenes.py ids --gated` reports are stored here.
 `outfit-masks`, `temporary-framebuffers` and `shader-matrix-outfits` are captured
@@ -22,12 +23,18 @@ by CI but deliberately not gated, so they have no reference; see their
 
 `shader-matrix` became gated on 2026-08-20, when its six outfit cells were split
 out into `shader-matrix-outfits` so the sixteen fragment cells no longer depended
-on gitignored `data/things/*`. **Its reference is not yet seeded**: the workflow
-reports `UNGATED-pending-reference` and stays green until the PNG lands here. One
-cell in it, `forge_result_silhouette`, renders unshaded in CI because
-`game_exaltationforge` does not load without game assets; that is deterministic
-and gates fine, but it is why a local XQuartz capture of this scene will always
-differ from the reference in that cell.
+on gitignored `data/things/*`. Its reference comes from run `32395555810`
+(commit `4ed061ff`), the first run after the split, which compared the other
+seven at PASS and reported this one as `UNGATED-pending-reference`.
+
+One cell in it, `forge_result_silhouette`, renders **unshaded** in CI: the shader
+is registered by `game_exaltationforge`, and that module fails to load without
+game assets, so the client logs `shader unavailable in this environment` and the
+cell draws the plain image. Verified against this reference: that cell is
+pixel-identical to the neighbouring `no shader` control. It is deterministic and
+gates fine, but it means the shader itself is only exercised locally, and a local
+XQuartz capture of this scene will always differ from this reference in that one
+cell - locally the shader draws a black silhouette.
 
 ## These are CI references, not universal ones
 
