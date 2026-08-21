@@ -90,7 +90,7 @@ The client has classes that look like an abstraction layer—`Painter`, `Texture
 
 Examples include:
 
-- General enums are assigned OpenGL constants such as `GL_TRIANGLES` and `GL_FUNC_ADD`.
+- ~~General enums are assigned OpenGL constants such as `GL_TRIANGLES` and `GL_FUNC_ADD`.~~ **Corrected 2026-08-20 (Phase 2, `fa8656d`):** they no longer are. `CompositionMode`, `DrawMode`, `BlendEquation` and `ShaderType` are plain `uint8_t` enums and `declarations.h` no longer includes `glutil.h`, so a translation unit that wants a graphics forward declaration no longer gets GLEW with it. The GL numbering moved into `glPrimitiveOf`/`glBlendEquationOf` (`painter.cpp`) and `glShaderStageOf` (`shader.cpp`). The leak narrowed rather than closed: the ten files that include `shaderprogram.h` still pull GL in, because that class calls `glUniform*` from inline methods.
 - `Painter` stores an OpenGL texture ID and contains `updateGl*` methods.
 - `Painter::drawCoords` ends in `glDrawArrays`.
 - `Texture` owns and uploads OpenGL texture objects.
@@ -760,14 +760,16 @@ Success criterion: a native macOS window can open, process input, resize, and pr
 
 ## Phase 2: Stabilize the renderer boundary
 
-- Introduce API-neutral enums for primitive topology, blend modes, shader/material types, and pixel formats.
-- Stop defining shared enums with `GL_*` values.
-- Introduce logical resource handles.
-- Convert framebuffer action lambdas into explicit operations.
-- Add a `RenderFrameCompiler` alongside the existing path.
-- Implement a recording/null backend for tests.
+- ~~Introduce API-neutral enums for primitive topology, blend modes, shader/material types, and pixel formats.~~ **Done 2026-08-20 (Phase 2), except pixel formats:** `DrawMode`, `BlendEquation`, `ShaderType` and `CompositionMode` are plain `uint8_t` enums in `declarations.h`, and `BlendMode`, `LoadAction`, `BuiltinMaterial` and `ActionIdiom` were added in `src/framework/graphics/render/renderdeclarations.h`. There is **no** pixel-format enum anywhere in `src/framework/graphics/`; texture formats are still chosen inside the GL path.
+- ~~Stop defining shared enums with `GL_*` values.~~ **Done 2026-08-20 (Phase 2, `fa8656d`):** no enumerator carries a GL token and `declarations.h` includes no graphics-API header. The numbering moved to `glPrimitiveOf`/`glBlendEquationOf` in `painter.cpp` and `glShaderStageOf` in `shader.cpp`. `ShaderType` turned out to be a *third* GL-valued enum, which the parity survey does not list beside `DrawMode` and `BlendEquation`.
+- ~~Introduce logical resource handles.~~ **Done at the boundary only, 2026-08-20 (Phase 2, `71bb824`):** `TextureHandle`, `RenderTargetHandle` and `MaterialHandle` live in `renderdeclarations.h` and are minted deterministically by `renderhandles.h`; `DrawPool::PoolState` carries a `textureHandle` beside its native `textureId`. The shared classes were **not** converted: there is no `ResourceRegistry` in `src/`, and `Texture`, `FrameBuffer` and `PainterShaderProgram` gained no handle members and still own their GL objects directly. `[D §2.1]`'s pass-through registry remains Phase 3 work.
+- ~~Convert framebuffer action lambdas into explicit operations.~~ **Declared, not converted, 2026-08-20 (Phase 2, `700b41b`):** each action is now tagged with an `ActionIdiom` and, where it carries geometry, records declared state and coords, so the compiler can express all seven surveyed idioms without executing the callback — an untagged action poisons the program rather than being silently dropped. The `std::function` lambdas themselves remain and the GL path still runs them; `DrawPool::addAction(std::function)` is still present and called from `mapview.cpp`, `uimap.cpp`, `drawpool.cpp` and `drawpoolmanager.cpp`.
+- ~~Add a `RenderFrameCompiler` alongside the existing path.~~ **Built, but not yet alongside anything, 2026-08-20 (Phase 2, `797bd79`/`6509905`):** it shipped as `PoolCompiler` plus `FrameAssembler` under `src/framework/graphics/render/`. It has **no production caller** — it is not wired into `DrawPool::release()`, `DrawPool` holds no `PoolProgram`, and the only non-test reference is `PoolCompiler::materialOf` from `mapview.cpp`. Running it beside the GL path, and comparing the two, is Phase 3.
+- ~~Implement a recording/null backend for tests.~~ **Done 2026-08-20 (Phase 2, `021112b`):** `RecordingBackend` serialises a `RenderFrame` to stable, human-readable text at fixed float precision. `tests/render/render_boundary_test.cpp` adds 22 cases, taking `ctest` from 22 to 44.
 
 Success criterion: a representative frame can be compiled and inspected without calling OpenGL.
+
+**Status 2026-08-20: met, with one qualification about where it is enforced.** `RenderGoldenFrame.RepresentativeFrameMatchesTheBaseline` compiles a representative pool — direct draws, a composition-mode bracket, a nested transient target with a flip, a map-hole punch and a live scissor — into three passes and six packets, and diffs the recording against a checked-in golden on a runner with no GPU. The qualification: `ctest` runs in exactly one workflow, `.github/workflows/build-macos.yml`. `build-windows.yml` and `render-baseline-linux.yml` compile the new suite but never execute it, so the golden frame is gated on macOS alone.
 
 ## Phase 3: Preserve the OpenGL backend
 
@@ -913,6 +915,8 @@ If full visual parity is mandatory in the first macOS release, substitute ANGLE 
 - `src/framework/graphics/framebuffer.*`
 - `src/framework/graphics/shader*`
 - `src/framework/graphics/drawpool.*`
+- `src/framework/graphics/render/*`
+- `tests/render/render_boundary_test.cpp`
 - `src/framework/graphics/vulkan/*`
 - `data/shaders/vulkan/*`
 

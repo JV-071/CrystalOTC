@@ -31,7 +31,7 @@ DrawPool  (per pool: MAP, CREATURE_INFORMATION, LIGHT, FOREGROUND_MAP, FOREGROUN
         |  builds DrawObject lists on producer threads, exactly as today
         v
 PoolCompiler  (runs at DrawPool::release() on the producer thread)
-        |  DrawObjects + vkFbMarker boundaries + PoolState  ->  PoolProgram
+        |  DrawObjects + fbMarker boundaries + ActionIdiom + PoolState  ->  PoolProgram
         v
 PoolProgram  (double-buffered per pool, swapped under the existing SpinLock)
         |  passes, draw packets, vertex data, dynamic texture updates
@@ -50,6 +50,8 @@ GLBackend    MetalBackend   VulkanBackend    RecordingBackend
 
 The renderer boundary is the `RenderFrame`: above it, no graphics API exists; below it, no game semantics exist.
 
+**Status 2026-08-20 (Phase 2): the middle of this diagram is built but not wired.** `PoolCompiler`, `PoolProgram`, `FrameAssembler` and `RecordingBackend` all exist (`src/framework/graphics/render/`), and the compiler covers all seven idioms — but it has no production caller. `DrawPool::release()` does not compile (`drawpool.cpp:293-371`), `DrawPool` holds no `PoolProgram` member, so the “double-buffered per pool” swap above does not exist yet either, and the only non-test reference anywhere is `PoolCompiler::materialOf` from `mapview.cpp:92`. The path is exercised by `tests/render/render_boundary_test.cpp` (22 tests) and nothing else; the coexistence rule below therefore still holds trivially — the compiler is additive because nothing calls it.
+
 ### 1.1 Where the existing Vulkan renderer sits
 
 The current Vulkan code is **not** a backend in the sense above. It is a parallel interception path: `VkDrawFeeder` takes over the published `DrawObject` lists directly (same swap-under-lock protocol as `DrawPoolManager::drawObjects`) and translates what it understands into `VkSpriteBatch` geometry, bypassing `Painter` entirely (`vkfeeder.h:1-24`). Its known gaps — skipped LIGHT pool, ignored painter shaders, skipped action lambdas, no FBO-derived textures — are exactly the things the `RenderFrame` makes explicit.
@@ -57,7 +59,7 @@ The current Vulkan code is **not** a backend in the sense above. It is a paralle
 Two states, and the coexistence rule between them:
 
 - **Today (unchanged during migration):** DrawPool keeps publishing `DrawObject` lists exactly as now; the PoolCompiler is *additive*, consuming the same published lists. The feeder therefore keeps working on Windows untouched while GL and Metal move to the new boundary. Nothing in this design breaks the shipped Vulkan path. **Recorded 2026-08-20 (Phase 1):** the converse held too, and did not. The shipped Vulkan path's GL-less route was not actually GL-free — `Painter::updateGlViewport` and `Texture::create` reached `glViewport`/`glGenTextures` with no current context and were fixed in shared code (`67f9b38`). Shared-code fixes made for a new GL-less backend land on the Vulkan path as well; the coexistence rule is not symmetric with "no shared-code changes".
-- **Target:** a `VulkanBackend` implements `IRenderBackend` and consumes `RenderFrame` like every other backend, closing the feeder's feature gaps for free (light, shaders, transient targets all arrive as ordinary passes/packets). The existing `vkcontext` (device/swapchain/frame lifecycle), `vkatlas`, and `vkbatch` are reused as that backend's internals; only the feeder's translation role disappears, replaced by the PoolCompiler. At that point `VkDrawFeeder` and the `m_vk*` side-channels on DrawPool/DrawObject retire (they were promoted into PoolCompiler input in the meantime — §10).
+- **Target:** a `VulkanBackend` implements `IRenderBackend` and consumes `RenderFrame` like every other backend, closing the feeder's feature gaps for free (light, shaders, transient targets all arrive as ordinary passes/packets). The existing `vkcontext` (device/swapchain/frame lifecycle), `vkatlas`, and `vkbatch` are reused as that backend's internals; only the feeder's translation role disappears, replaced by the PoolCompiler. At that point `VkDrawFeeder` and the side-channels on DrawPool/DrawObject retire — since 2026-08-20 (Phase 2) they are spelled `fbMarker`/`m_pendingFb*`/`m_mapHole`, no longer `m_vk*` (they were promoted into PoolCompiler input and renamed in the meantime — §10).
 
 The `DrawObject` publish mechanism can only be removed after **both** the GL/Metal backends and the Vulkan path have moved off it; until then it is the compatibility keel of the migration.
 
@@ -73,7 +75,7 @@ struct RenderTargetHandle { uint32_t id; };   // 0 = backbuffer
 struct MaterialHandle     { uint16_t id; };   // 0 = Textured (default)
 ```
 
-Handles are allocated by a render-thread `ResourceRegistry` and mapped to native objects inside each backend (GL texture id, `id<MTLTexture>`, …). Shared classes change as follows:
+Handles are allocated by a render-thread `ResourceRegistry` and mapped to native objects inside each backend (GL texture id, `id<MTLTexture>`, …). **Superseded 2026-08-20 (Phase 2):** ~~allocated by a render-thread `ResourceRegistry`~~ — the handle space that shipped allocates nothing. `RenderHandles` (`src/framework/graphics/render/renderhandles.h`) mints every handle as a pure function of pool type and nesting depth, and a texture's handle *is* its `Texture::m_uniqueId`, whose seed (`TEXTURE_UNIQUE_ID_SEED`, `texture.h:32`) is `static_assert`ed to sit above the render-target range. Deterministic minting is what lets the PoolCompiler build packets on producer threads and lets golden frames compare across platforms; a shared counter could not. A registry is still owed for the handle→native-object mapping and the deferred destruction below — but not for allocation. Shared classes change as follows:
 
 | Class | Today | Target |
 |---|---|---|
@@ -81,6 +83,8 @@ Handles are allocated by a render-thread `ResourceRegistry` and mapped to native
 | `FrameBuffer` | owns GL FBO + texture `[S 3]` | replaced by `RenderTargetHandle` + retained `TextureHandle`; the class survives only as a thin shim during migration |
 | `PainterShaderProgram` | compiles GLSL, uploads uniforms, and owns a process-wide `u_Time` override (`setFixedTime`/`clearFixedTime`, `paintershaderprogram.h:73-75`) that every renderer baseline depends on | becomes a `MaterialHandle` + parameter block description (section 5); GLSL compilation moves into GLBackend, and the time override becomes a FrameAssembler-supplied frame-global (§5.2) |
 | `CoordsBuffer` | client-side float arrays `[S 6.1]` | unchanged as producer scratch; PoolCompiler copies into the PoolProgram's vertex arena |
+
+**Status 2026-08-20 (Phase 2): the Target column is still entirely target.** None of the three classes gained a handle. `Texture` keeps only its unique id, which now doubles as `TextureHandle` (`texture.h:28-32`). `FrameBuffer` gained three read-only getters rather than a shim — `getCompositionMode`/`isBlendDisabled`/`hasAlphaWriting` (`framebuffer.h:62-64`) — which is what lets a compiler describe the target's blit without friendship. `PainterShaderProgram` is unchanged; `PoolCompiler::materialOf` (`poolcompiler.cpp:66-74`) maps its `getId()` onto a `MaterialHandle` from outside. `TextureUpdate` exists and is produced (`DrawPool::addTextureUpload`, `drawpool.cpp:510`) but is carried in `RenderFrame::uploads`, not queued to a registry.
 
 Destruction is deferred: the registry retires a handle only after every in-flight frame referencing it completes (GL: frame fence; Metal: command-buffer completion handler). This replaces today's `g_mainDispatcher.addEvent([id]{ glDeleteFramebuffers... })` pattern with one uniform mechanism.
 
@@ -131,26 +135,31 @@ struct RenderPass {
 
 ### 3.1 DrawPacket
 
-One packet = one batched draw. Fields are exactly the surveyed `PoolState` `[drawpool.h:151-167]` minus GL types, plus the geometry slice:
+One packet = one batched draw. Fields are exactly the surveyed `PoolState` `[drawpool.h:153-176]` minus GL types, plus the geometry slice:
 
 ```cpp
 struct DrawPacket {
     uint32_t vertexOffset, vertexCount;  // into the pass's arena; triangles
+    bool textured = false;               // the arena pads texcoords, so this cannot be inferred
     TextureHandle texture;               // 0 = untextured (solid color)
     TextureHandle extraTex[3];           // multi-texture shaders (Fog, Snow) [S 5.3]
     MaterialHandle material;             // 0 = Textured / Solid (auto by texture)
     const MaterialParams* params;        // null for built-ins; see section 5
     Matrix3 transform;                   // model transform (pool transform stack)
-    Matrix3 textureMatrix;               // per-texture pixel->uv [S 7]
-    Rect scissor;                        // empty = disabled; top-left origin, pre-clamped
+    uint16_t textureMatrixId;            // registry id, NOT a resolved matrix [S 7]
+    Rect scissor;                        // top-left origin, pre-clamped to the target
+    bool scissorEnabled = false;         // separate flag; an ENABLED empty rect clips everything
     Color color;
     float opacity;
     BlendMode blend;                     // section 4
     bool blendEnabled = true;            // hole punch, MAP blit, atlas writes [S 2.4]
+    bool alphaWrite = true;              // off for the MAP composition draw [S 2.4, §8]
 };
 ```
 
 Deliberately absent: `BlendEquation` (no live caller; ADD is hardcoded until a user appears `[S 2.3]`), `DrawMode` (everything is triangles after compilation; strips and lines are compiled away — sections 3.2, 6), and `std::function` anything.
+
+**Corrected 2026-08-20 (Phase 2), against the shipped struct (`src/framework/graphics/render/renderframe.h:48-99`):** ~~`Matrix3 textureMatrix`~~ became `uint16_t textureMatrixId` — `TextureManager::m_matrixCache` (`texturemanager.cpp:205-218`) is unsynchronised and packets are built on producer threads, so resolving the pointer at compile time is a data race; the backend resolves it on the render thread, where the GL path already does. Two fields were added and one was missing. `textured` is explicit because `VertexArena` always keeps the texcoord array the same length as the position array (`vertexarena.h:43`), so “no texcoords” cannot be inferred from the slice. ~~`Rect scissor; // empty = disabled`~~ gained a separate `scissorEnabled` flag, because *empty = disabled* was never expressible in this `Rect` type and was backwards: `TRect(x, y, 0, 0)` sets `x2 = x - 1`, so `isValid()` is false (`rect.h:38`, `:47`) and a clip rect that misses its target — which must clip **everything** — would read as “no clipping”. The shipped compiler clamps a miss to an *enabled* empty rect (`poolcompiler.cpp:53`), with `ClipRectThatMissesTheTargetClipsEverything` (`render_boundary_test.cpp:198`) as the regression. `alphaWrite` was absent and had to exist: §4's `PipelineKey` already selects on it per packet, and §8 requires the MAP composition draw — which targets the **backbuffer** — to write no alpha, which §2.2's per-target `RenderTargetDesc::alphaWriting` cannot express (`renderframe.h:98`, fed from `poolcompiler.cpp:268` via `FrameBuffer::hasAlphaWriting`).
 
 ### 3.2 Command vocabulary is packets only
 
@@ -211,18 +220,23 @@ Module shaders register through the existing `ShaderManager` names; registration
 The uniform ABI becomes one typed struct, replacing per-location uploads:
 
 ```cpp
-struct MaterialParams {                  // std140-compatible layout
+struct alignas(8) ParamVec2 { float x, y; };   // std140 gives a two-float vector 8-byte alignment
+
+struct MaterialParams {                  // FROZEN std140 block: 80 bytes, every offset static_asserted
     float time;                          // TIME_UNIFORM: frame-global, pinnable (see below)
-    Size  resolution;                    // RESOLUTION_UNIFORM
-    // client extension [S 5.2]:
-    float itemId, outfitId, mountId, shaderId;
-    Point walkOffset;  float mapZoom;
-    PointF mapCenterCoord, mapGlobalCoord;
-    PointF textOffset, textCenter;
+    float mapZoom;
+    float itemId, outfitId, mountId, shaderId;   // client extension [S 5.2]
+    ParamVec2 resolution;                // RESOLUTION_UNIFORM (offset 24)
+    ParamVec2 walkOffset;
+    ParamVec2 mapCenterCoord, mapGlobalCoord;
+    ParamVec2 textOffset, textCenter;
+    float _tailPadding[2];               // std140 rounds the 72-byte block up to a 16-byte stride
 };
 ```
 
 Projection/transform/textureMatrix/color/opacity stay in the packet (they vary per draw); `MaterialParams` varies per material per frame. The index-10 collision (`ITEM_ID` vs `TRANSFORM_MATRIX` `[S 5.2, S 9.4]`) dies here by construction — the new ABI has no shared index space. The GL backend maps struct fields to the legacy uniform locations so existing `.frag` sources compile unmodified.
+
+**Corrected 2026-08-20 (Phase 2):** the sketch above spelled these as ~~`Size resolution`, `Point walkOffset`, `PointF …`~~. `Size` is `TSize<int>` (`size.h:131`) and `Point` is `TPoint<int>` (`point.h:109`) — integer types, which cannot sit in a std140 float block — so the frozen ABI (`src/framework/graphics/render/materialparams.h`) uses a float `ParamVec2` throughout and orders the six scalars first so the pairs land on the offsets a naturally-written GLSL block produces. `resolution` is at offset 24, `sizeof` is 80, and both are `static_assert`ed. The intent is unchanged; only the spelling is implementable.
 
 **One field is not per-material.** `time` is a frame-global input the FrameAssembler supplies to every material at once, and it must keep the process-wide override `PainterShaderProgram` gained on 2026-08-20 (`setFixedTime`/`clearFixedTime`, `paintershaderprogram.h:73-75`, Lua-exposed as `g_shaders.setFixedTime`, `luafunctions.cpp:518-523`). Pinning it is the only reason an animated shader frame is reproducible at all — nine of the shipped programs animate, and the renderer baselines pin the phase to 2.0 s — so the override has to survive the migration into every backend, not just GL (§9.1).
 
@@ -237,29 +251,29 @@ The complete `addAction` surface `[S 4]` maps as:
 
 | Idiom | Compiled form |
 |---|---|
-| `bindFrameBuffer`/`releaseFrameBuffer` (7 sites) | PoolCompiler splits the object stream at the existing `vkFbMarker` boundaries `[S 3.2]` into: transient-target pass (packets with pool-local coords) + one packet in the outer pass sampling the transient texture with `vkFbDest`/`vkFbFlip`/`vkFbOpacity`. Nesting recurses. |
-| pool-FBO `prepare` | pass metadata on the retained target's composition packet (dest/src already mirrored in `m_vkPendingFbDest/Src`) |
+| `bindFrameBuffer`/`releaseFrameBuffer` (7 sites) | PoolCompiler splits the object stream at the existing `fbMarker` boundaries `[S 3.2]` into: transient-target pass (packets with pool-local coords) + one packet in the outer pass sampling the transient texture with `fbDest`/`fbFlip`/`fbOpacity`. Nesting recurses. |
+| pool-FBO `prepare` | pass metadata on the retained target's composition packet (dest/src already mirrored in `m_pendingFbDest/Src`, published as `m_fbDest`/`m_fbSrc`) |
 | map-shader `onBeforeDraw` | material + params on the MAP composition packet (§5.3) |
-| UI map-hole punch | packet: untextured rect, `Color::alpha`, `blendEnabled=false` — semantics preserved, GL toggling gone; `m_vkMapHole` rect retires |
-| `UIGraph` lines | PoolCompiler triangulates: each segment becomes a screen-space quad of `width` px (2 triangles), `SolidColor` material. Replaces `GL_LINE_STRIP`+`glLineWidth`+`GL_LINE_SMOOTH`, which Metal lacks `[S 6.3, S 9.10]`. Anti-aliasing tolerance accepted (analytics graphs). |
+| UI map-hole punch | packet: untextured rect, `Color::alpha`, `blendEnabled=false` — semantics preserved, GL toggling gone (the compiler reads the `BlendOff`/`BlendOn` tags, `uimap.cpp:87-90`); the rect, now `m_mapHole`, does **not** retire yet — `VkDrawFeeder` still consumes it (`vkfeeder.cpp:322`, `:481-495`) |
+| `UIGraph` lines | Triangulated at **record time** (corrected 2026-08-20, Phase 2): ~~PoolCompiler triangulates~~ — `DrawPool::addLineStrip` (`drawpool.cpp:494-508`) records the GL line call and its triangles together via `RenderLines::triangulateStrip` (`render/linetriangulation.h:47`), and the compiler emits the declared geometry like any other packet (`poolcompiler.cpp`, `ActionIdiom::LineStrip`). Each segment is a screen-space quad of `width` px (2 triangles), `SolidColor` material. Replaces `GL_LINE_STRIP`+`glLineWidth`+`GL_LINE_SMOOTH`, which Metal lacks `[S 6.3, S 9.10]`. Anti-aliasing tolerance accepted (analytics graphs). |
 | LightView | `TextureUpdate` (the CPU light bitmap `[S 3.4]`) + one `Multiply` quad packet. No pass, no FBO. |
 
 After migration, `DrawPool::addAction(std::function...)` is deleted; attempts to register raw actions become compile errors, which is the enforcement mechanism for "no GL above the boundary."
 
-Atlas maintenance `[S 3.3]` compiles to explicit passes too: per dirty layer, one `Keep`-loaded pass on the layer target with `blendEnabled=false` packets (clear-rect packet, padding draw, main draw). The FrameAssembler interleaves them before the pool passes that sample the layer, making today's implicit flush-ordering an explicit dependency.
+**Not implemented as of 2026-08-20 (Phase 2) — still the design.** Phase 2's compiler and assembler know nothing about `TextureAtlas` (no reference in `src/framework/graphics/render/`); the GL path still flushes implicitly in `DrawPoolManager::drawObjects`. Atlas maintenance `[S 3.3]` compiles to explicit passes too: per dirty layer, one `Keep`-loaded pass on the layer target with `blendEnabled=false` packets (clear-rect packet, padding draw, main draw). The FrameAssembler interleaves them before the pool passes that sample the layer, making today's implicit flush-ordering an explicit dependency.
 
 ## 7. Coordinate and orientation convention
 
 Single rule: **every logical surface is top-left origin, y-down, in pixels.** Consequences, resolving the survey's orientation inventory `[S 8]`:
 
-- The projection matrix (`painter.cpp:251-269`) moves into the backends. GL keeps the y-flipping matrix for the backbuffer and uses a *non-flipping* variant for FBO passes, absorbing today's `upsideDown` texture-matrix mechanism; Metal uses one convention everywhere.
-- `Texture::setUpsideDown` and flipped-blit quads (`addHorizontally/VerticallyFlippedQuad`) leave shared code; the compiler emits pre-flipped UVs where `vkFbFlip` demands it, and only the GL backend knows render-target textures are stored bottom-up.
+- The projection matrix (`painter.cpp:276-294`) moves into the backends. GL keeps the y-flipping matrix for the backbuffer and uses a *non-flipping* variant for FBO passes, absorbing today's `upsideDown` texture-matrix mechanism; Metal uses one convention everywhere.
+- `Texture::setUpsideDown` and flipped-blit quads (`addHorizontally/VerticallyFlippedQuad`) leave shared code; the compiler emits pre-flipped UVs where `fbFlip` demands it, and only the GL backend knows render-target textures are stored bottom-up.
 - Scissor rects arrive in packets top-left and **pre-clamped to the target** (Metal validates; GL forgave `[S 8]`). The GL backend applies its own y-flip formula internally.
 - Readback results are delivered top-left-origin; the backend flips, not the caller. The `x/3, y/1.5` screenshot offsets `[S 9.5]` are **intentional framing, not an oddity** (resolved 2026-08-20): they select the visible region inside the MAP FBO's three-tile margin, yielding x=32 and y=64 at 32 px sprites. The boundary reproduces that crop, expressed as explicit top-left readback parameters rather than as divisors in `client.cpp`.
 
 ## 8. Caching and the frame graph
 
-Pool-level skip-if-unchanged survives structurally: `PoolProgram` carries the pool's content hash; when unchanged, the FrameAssembler emits **no rendering passes** for that pool — only the composition packet sampling the retained target `[S 1.1, S 9.8]`. FOREGROUND's 10 fps refresh gate and shader-refresh clocks stay in DrawPool, untouched.
+Pool-level skip-if-unchanged survives structurally: ~~`PoolProgram` carries the pool's content hash~~ **— not yet, as of 2026-08-20 (Phase 2): the shipped `PoolProgram` (`src/framework/graphics/render/poolprogram.h`) carries no content hash, and nothing skips.** The *shape* is in place — a program that contributes no passes still composites, which is exactly the reuse behaviour (`frameassembler.cpp:93-97`) — but the hash that would decide it, and the production caller that would compute it, are both outstanding. When unchanged, the FrameAssembler emits **no rendering passes** for that pool — only the composition packet sampling the retained target `[S 1.1, S 9.8]`. FOREGROUND's 10 fps refresh gate and shader-refresh clocks stay in DrawPool, untouched.
 
 The assembled superset frame is the survey's pass graph `[S 10]` verbatim: transient passes → MAP target pass → MAP composition (map-shader material, blend off, no alpha write) → CREATURE_INFORMATION → light upload + multiply packet → FOREGROUND_MAP → transient passes → FOREGROUND target pass (hole punch inside) → FOREGROUND composition → readbacks → present.
 
@@ -295,6 +309,8 @@ public:
 
 **Open as of 2026-08-20 (Phase 1): presentation ownership.** Phase 1 put acquire/clear/present inside the *window* — `CocoaWindow::swapBuffers` (driven by the unconditional `g_window.swapBuffers()` at `graphicalapplication.cpp:342`) — so `render()`'s "present" clause and `swapBuffers()` now overlap. Phase 4 has to pick one: the backend takes the drawable from the window, which needs the accessor above, or the window keeps presenting and `render()` ends at "encode, submit". This is a decision to make deliberately, not a defect — recorded so Phase 4 does not discover it late.
 
+**Status 2026-08-20 (Phase 2): the interface does not exist yet.** No `IRenderBackend`, `NativeSurface`, `RendererCaps`, `TextureDesc`, `MaterialDesc`, `RenderTargetDesc` or `ReadbackResult` is declared anywhere in `src/`. Phase 2 built the *frame* plane's input (`RenderFrame`) and one consumer of it, but the consumer is not a backend: `RecordingBackend` (`src/framework/graphics/render/recordingbackend.h`) is a pair of static functions over `const RenderFrame&`, deliberately with no lifecycle and no resource plane. The resource plane above therefore remains unvalidated by anything that has run.
+
 Implementations, in migration order:
 
 - **GLBackend** — the migration target for the existing painter; must be pixel-identical to today's output (Phase 3 gate in the companion doc).
@@ -304,7 +320,7 @@ Implementations, in migration order:
 
 ### 9.1 RecordingBackend
 
-A backend with no GPU behind it. `initialize` needs no surface, `render()` serializes the received `RenderFrame` — every pass, packet, blend mode, scissor, resource handle, and a content hash of each vertex-arena slice — to a stable JSON/binary form, and resource calls record descriptors. It exists for three jobs:
+A backend with no GPU behind it. ~~`initialize` needs no surface,~~ `render()` serializes the received `RenderFrame` — every pass, packet, blend mode, scissor, resource handle, and a content hash of each vertex-arena slice — to a stable ~~JSON/binary~~ **line-oriented text** form, ~~and resource calls record descriptors~~. **Built 2026-08-20 (Phase 2) as a serializer, not a backend object** (see the §9 status above): it is a pair of static functions — `RecordingBackend::record(const RenderFrame&)` for the full dump and `recordStructure()` for the passes-and-counts view alone (`recordingbackend.h:58`, `:62`) — so there is no `initialize`, and there are no resource calls to record, because there is no `IRenderBackend` for it to implement. Text over binary is deliberate: a golden diff is read by a person (`recordingbackend.h:51`). Stability is engineered rather than assumed — fixed `%.4f` float formatting (`recordingbackend.cpp:54`) and FNV-1a over float *bits* (`recordingbackend.cpp:74-88`), because `std::hash<float>` is implementation-defined and a libc++ golden would otherwise disagree with a libstdc++ one. It exists for three jobs:
 
 1. **CI without hardware:** validate PoolCompiler output (pass splitting at FBO markers, hole-punch packets, line triangulation, `onlyOnce` scoping) on headless runners.
 2. **Golden-frame regression tests:** compile a fixed scene, diff the recording against a checked-in baseline; refactors that reorder passes, drop state, or change geometry fail a test instead of shipping a rendering bug.
@@ -319,7 +335,7 @@ Backend selection is explicit config (`graphics.renderBackend`), which already e
 | `g_drawPool` producer API, pool structure, thread protocol, hashing/batching | **stays** |
 | CPU atlas packing, region translation in `DrawPool::add` | **stays** (flush becomes explicit passes) |
 | LightView CPU computation | **stays** (output becomes TextureUpdate + packet) |
-| `vkFbMarker`/`m_vkPendingFb*`/`m_vkMapHole` side-channels | **promoted** into PoolCompiler input, then renamed (no longer vk-specific) |
+| `fbMarker`/`m_pendingFb*`/`m_mapHole` side-channels (were `vkFbMarker`/`m_vkPendingFb*`/`m_vkMapHole`) | **done 2026-08-20 (Phase 2):** promoted into PoolCompiler input and renamed (`700b41b`); still also read by `VkDrawFeeder` |
 | `Painter` | **dies**; its projection/state logic moves into GLBackend, its matrix helpers into the compiler |
 | `FrameBuffer` | **dies** after migration (shim during) |
 | GL enums in `declarations.h` (`GL_TRIANGLES`, `GL_FUNC_ADD`) | **replaced** by API-neutral enums (companion doc Phase 2) |
@@ -341,7 +357,7 @@ Backend selection is explicit config (`graphics.renderBackend`), which already e
 ## 12. Open questions for the implementation plan
 
 1. Should the GLBackend adopt streamed VBOs when consuming vertex arenas, or keep client arrays for bit-exact Phase 3 comparison first? (Recommendation: client arrays first, VBOs as a follow-up flag.)
-2. ~~Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site?~~ **Answered from source 2026-08-20:** the question's premise was wrong — no single call site consumes it. Temp targets are pooled by *nesting depth*, not by site or size: `bindFrameBuffer` and `releaseFrameBuffer` key on `frameIndex = m_bindedFramebuffers` (`drawpool.cpp:483`, `:508`) and `getTemporaryFrameBuffer(index)` indexes a per-pool vector (`drawpool.cpp:526-534`), with the counter starting at -1 (`drawpool.h:326`). The pre-created buffer is therefore depth 0 for *whichever* FOREGROUND site issues the outermost bind (uiitem, uieffect, uimissile, uispellpreview, creature preview), and it is LINEAR only because `FrameBuffer::m_smooth` defaults to true (`framebuffer.h:86`, applied on resize at `framebuffer.cpp:67`) while every lazily created buffer is explicitly `setSmooth(false)` (`drawpool.cpp:532`). So `smooth` must be a per-target descriptor bit — it cannot be inferred from the site. The same default also makes both retained pool targets LINEAR (`setFramebuffer`, `drawpool.cpp:447-451`).
-3. Golden-frame format for the RecordingBackend: full packet dump vs. hash-tree? (Affects CI diff ergonomics only.)
+2. ~~Does the FOREGROUND pool's pre-created smoothed temp FBO (`drawpool.cpp:40`) need `smooth` as a transient-target descriptor bit, or can transient targets always be non-smooth except that one site?~~ **Answered from source 2026-08-20:** the question's premise was wrong — no single call site consumes it. Temp targets are pooled by *nesting depth*, not by site or size: `bindFrameBuffer` and `releaseFrameBuffer` key on `frameIndex = m_bindedFramebuffers` (`drawpool.cpp:593`, `:618`) and `getTemporaryFrameBuffer(index)` indexes a per-pool vector (`drawpool.cpp:636-644`), with the counter starting at -1 (`drawpool.h:366`). The pre-created buffer is therefore depth 0 for *whichever* FOREGROUND site issues the outermost bind (uiitem, uieffect, uimissile, uispellpreview, creature preview), and it is LINEAR only because `FrameBuffer::m_smooth` defaults to true (`framebuffer.h:93`, applied on resize at `framebuffer.cpp:67`) while every lazily created buffer is explicitly `setSmooth(false)` (`drawpool.cpp:642`). So `smooth` must be a per-target descriptor bit — it cannot be inferred from the site. The same default also makes both retained pool targets LINEAR (`setFramebuffer`, `drawpool.cpp:473-477`).
+3. ~~Golden-frame format for the RecordingBackend: full packet dump vs. hash-tree? (Affects CI diff ergonomics only.)~~ **Answered by implementation 2026-08-20 (Phase 2): both, split by axis.** The dump is full and per-packet, in plain text, but the *geometry* inside each packet is a hash — one FNV-1a over the slice's float bits (`recordingbackend.cpp:90-110`) — so a golden stays human-readable while still failing on a vertex change. A second view, `recordStructure()`, drops to passes/targets/load-actions/packet counts for tests that care only about pass splitting. Text over binary was chosen deliberately (`recordingbackend.h:51`), and platform stability is engineered (`%.4f`, float-bit hashing) rather than inherited from `std::hash`. Caveat: `ctest` runs only in `build-macos.yml:126`, so that stability is reasoned, not yet observed on Windows or Linux.
 4. ~~Whether the `x/3, y/1.5` screenshot offsets are a bug to fix or behavior to keep.~~ **Resolved 2026-08-20:** intentional framing (`[S 3.5]`). The crop is preserved deliberately; the readback API expresses it as explicit top-left parameters.
 5. **Settled from source 2026-08-20 (Phase 1), recorded here because §3 and §9 depend on it:** the platform layer reports `m_size` in **backing pixels** and `m_displayDensity` as the **backing scale factor**, following the `AndroidWindow` precedent. This is forced by `GraphicalApplication::resize`, which feeds `m_size` to `g_graphics` (and thence `glViewport`/`Painter::setResolution`) while laying the UI out at `m_size / m_displayDensity`. `RenderFrame::drawableSize` and `IRenderBackend::resize` are therefore already in the right unit. **Caveat the design must not inherit silently:** `g_app.setHUDScale` writes the *same* variable, so device pixel ratio and user HUD scale are conflated; separating them is a framework change, not a backend one.
