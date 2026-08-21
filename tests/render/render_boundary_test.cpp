@@ -50,6 +50,14 @@ struct DrawPoolTestAccess
     { pool.setCompositionMode(mode, onlyOnce); }
     static void resetCompositionMode(DrawPool& pool) { pool.resetCompositionMode(); }
 
+    static void addLightOverlay(DrawPool& pool, const TexturePtr& texture, const Rect& dest,
+                                const Rect& src, const uint16_t tileSize)
+    { pool.addLightOverlay(texture, dest, src, tileSize, [] {}); }
+
+    static void addTextureUpload(DrawPool& pool, const TextureHandle texture, const Size& size,
+                                 const uint8_t* pixels, const size_t byteCount)
+    { pool.addTextureUpload(texture, size, pixels, byteCount); }
+
     static void bindFrameBuffer(DrawPool& pool, const Size& size) { pool.bindFrameBuffer(size); }
 
     static void releaseFrameBuffer(DrawPool& pool, const Rect& dest) { pool.releaseFrameBuffer(dest); }
@@ -244,6 +252,74 @@ namespace {
         // interleaved nesting past depth 9, where a release would otherwise blit a state
         // belonging to a different bind. That case is guarded but untested; the surveyed call
         // sites nest one or two deep, so building a fixture for it was judged disproportionate.
+    }
+
+    TEST(RenderBoundary, LightOverlayCompilesToAMultiplyQuadAndAnUpload)
+    {
+        // The light pass is not geometry the way the rest of the frame is: LightView computes an
+        // RGBA bitmap of one texel per visible tile on the CPU, uploads it when its hash changed,
+        // and draws ONE multiply-blended quad over the map. Both halves have to survive
+        // compilation, and the upload has to appear only when the producer declared one - a
+        // compiled frame that uploaded every frame would do strictly more work than the GL path.
+        const auto light = std::make_shared<Texture>();
+        const std::vector<uint8_t> pixels(4 * 4 * 4, 0x40);
+
+        Pool pool;
+        DrawPoolTestAccess::addTextureUpload(*pool.p, TextureHandle{ light->getUniqueId() },
+                                             Size(4, 4), pixels.data(), pixels.size());
+        DrawPoolTestAccess::addLightOverlay(*pool.p, light, Rect(0, 0, 128, 128),
+                                            Rect(0, 0, 128, 128), 32);
+
+        PoolProgram program;
+        pool.compile(program);
+
+        ASSERT_TRUE(program.isComplete());
+
+        ASSERT_EQ(program.uploads.size(), 1u);
+        EXPECT_EQ(program.uploads[0].texture.id, light->getUniqueId());
+        EXPECT_EQ(program.uploads[0].size, Size(4, 4));
+        EXPECT_EQ(program.uploads[0].pixels.size(), pixels.size());
+
+        ASSERT_EQ(program.passes.size(), 1u);
+        ASSERT_EQ(program.passes[0].packets.size(), 1u);
+
+        const auto& quad = program.passes[0].packets[0];
+        EXPECT_TRUE(quad.textured);
+        EXPECT_EQ(quad.texture.id, light->getUniqueId());
+        // Multiply, not Normal. The light texture darkens what is already on the backbuffer;
+        // blending it normally would paint a grey sheet over the map instead.
+        EXPECT_EQ(quad.blend, BlendMode::Multiply);
+        EXPECT_TRUE(quad.blendEnabled);
+        EXPECT_EQ(quad.vertexCount, 6u);
+    }
+
+    TEST(RenderBoundary, MapHolePunchIsAnUnblendedTransparentRect)
+    {
+        // UIMap punches a transparent hole through the FOREGROUND target so the map composited
+        // underneath shows through. On GL that is glDisable(GL_BLEND) around a Color::alpha rect;
+        // a packet has to state the same thing, because with blending ON an alpha-zero rect is a
+        // no-op and the game view would be covered by the UI panel instead.
+        //
+        // Note the compiler reproduces this from the BlendOff/BlendOn tags rather than by
+        // recognising the rect: inferring the hole from "untextured and alpha 0" was tried and it
+        // cut holes through any widget that happened to be faded to zero.
+        Pool pool;
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOff);
+        pool.rect(Rect(177, 0, 666, 521), Color::alpha);
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOn);
+
+        PoolProgram program;
+        pool.compile(program);
+
+        ASSERT_TRUE(program.isComplete());
+        ASSERT_EQ(program.passes.size(), 1u);
+        ASSERT_EQ(program.passes[0].packets.size(), 1u);
+
+        const auto& hole = program.passes[0].packets[0];
+        EXPECT_FALSE(hole.blendEnabled);
+        EXPECT_FALSE(hole.textured);
+        EXPECT_EQ(hole.color, Color::alpha);
+        EXPECT_EQ(hole.vertexCount, 6u);
     }
 
     TEST(RenderBoundary, UntaggedActionPoisonsTheProgram)
