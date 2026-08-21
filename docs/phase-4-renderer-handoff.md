@@ -1,6 +1,7 @@
 # Phase 4 renderer handoff
 
-**Checkpoint:** `9ce989c` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
+**Checkpoint:** `9ce989c` on `main` — the phase's last code commit; the two after it are this
+documentation. Pushed to `origin`, the fork `aacruzgon/CrystalOTC`.
 
 **Date:** 2026-08-21
 
@@ -319,9 +320,11 @@ by hand._
 2bcd90a feat(renderer): draw the client with Metal
 ec188da test(renderer): measure the Metal and OpenGL backends against each other
 9ce989c fix(renderer): clear a Metal target nobody has written yet
+3fd3b0f docs(renderer): correct what Phase 4 falsified across the migration set
+6dacace docs(renderer): record the online-scene evidence for the Metal backend
 ```
 
-Note the shape: three of the six commits are fixes to shared code that had nothing to do with
+Note the shape: three of the six code commits are fixes to shared code that had nothing to do with
 Metal, and every one of them was a place where the client asked whether something had reached the
 GPU by reading an OpenGL name. That is the phase's real finding.
 

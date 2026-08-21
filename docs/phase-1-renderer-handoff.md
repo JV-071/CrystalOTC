@@ -78,7 +78,9 @@ short-circuits with no new branching in `Graphics`, `Painter`, `Texture` or `Sha
 **The window presents its own frames.** `swapBuffers` does acquire/clear/present and the
 `CAMetalLayer` never leaves `CocoaWindowImpl`. That leaves presentation ownership genuinely
 contested with `IRenderBackend::render`'s "present" clause — a Phase 4 decision, recorded in
-the design document so it is not discovered late.
+the design document so it is not discovered late. **Decided 2026-08-21 (Phase 4):** in favour of
+the backend, and the layer does leave now — through the typed `PlatformWindow::getNativeSurface()`.
+`swapBuffers` keeps this acquire-clear-present for the frames no backend draws.
 
 ## Traps worth not rediscovering
 
