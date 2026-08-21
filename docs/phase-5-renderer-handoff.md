@@ -235,10 +235,28 @@ that gating macOS would need a frozen macOS reference set. It does not. The exis
 already serves Metal. That in turn is what would let macOS UI work be gated on macOS rather than
 against a GL binary on another machine.
 
-**What it does not yet establish:** determinism. This is one run. Before any of it becomes a gate,
-the probe needs a second run compared against the first — a scene that captures is not the same as a
-scene that captures the *same thing twice*, which `particles-blends` and `windowing-2-grown` both
-demonstrate. That comparison is the next concrete step, and it costs one push.
+**Determinism, measured 2026-08-21 by re-running the same job and diffing the two artifact sets**
+(run `32508823574`, attempts 1 and 2, on different hosted runners). It needed no commit, and it was
+worth doing rather than assuming:
+
+- **Nine of eleven scenes are byte-identical across two runners** — 0 differing pixels at max
+  channel delta 0, including `startup-ui`, `text-matrix`, `graph-lines`, `atlas-resources`,
+  `shader-matrix` and both ungated outfit scenes. Those are gateable.
+- **`composition-all` sits exactly on the tolerance boundary.** The two runs differ by 0 pixels but
+  at max channel delta **2**, which is the comparator's threshold. That sub-threshold jitter is
+  enough to read 0 px against the reference on one run and 15 px on the other. Stable against
+  *itself*, marginal against a third image — which is the shape that produces a gate failing every
+  few weeks for no reason.
+- **`particles-blends` is genuinely unstable**, 102 px in `x[800..819] y[314..333]` — inside the
+  26x26 ADD-card region at `x 797-822 / y 311-336` that `known-deviations.md` already documents.
+  Same defect, same place, milder amplitude here (max channel delta 20) than the 540-946 px at 252
+  recorded on the OpenGL side. Not a Metal problem, and already the scene that fails its own
+  existing gate.
+
+So a macOS Metal gate is viable **now** for nine scenes, and the two exclusions are the two scenes
+already known to be flaky before Metal existed. That is a better position than this section
+originally guessed at, and it is only visible because the probe was run twice — a single
+observation would have gated `composition-all` at a threshold it crosses at random.
 
 **The atlas layer count is capped at 32 per (atlas, filter group).** Ample — the largest observed
 usage is three — but it is a cap where there was none, and hitting it degrades to unpacked textures

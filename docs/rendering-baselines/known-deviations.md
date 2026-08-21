@@ -648,6 +648,26 @@ captures are stable and remain the real evidence that render-target recreation a
 `FrameAssembler::invalidateRetainedTargets` work - `-4-scaled` at HUD scale 2 and `-2-grown` at a
 different resolution entirely are the only things in the whole suite that exercise them.
 
+## `composition-all` sits on the tolerance boundary
+
+Added 2026-08-21 (Phase 5), found by capturing the same scene on two different hosted macOS
+runners and diffing.
+
+The two captures differ by **0 pixels** — but at a maximum channel delta of **2**, which is exactly
+`defaultTolerance.channelTolerance`. That is not a comfortable pass; it is a tie. Sub-threshold
+jitter of that size is enough to change the verdict against a *third* image: the same scene compared
+to its checked-in llvmpipe reference reads **0 px** from one run and **15 px** from the other.
+
+This matters for anyone about to gate the scene somewhere new. It is stable against itself and
+marginal against a reference, which is the exact shape that yields a gate failing every few weeks
+with no cause anyone can find. The existing llvmpipe gate has not tripped on it because both sides
+of that comparison are produced in the same environment, and the earlier note above already records
+"maximum channel delta 2" between two XQuartz captures — the same tie, seen once and read as a pass.
+
+Either widen this scene's `channelTolerance` to 4 with a recorded reason, or accept that its verdict
+carries roughly a 15-pixel margin of noise and set `maxDifferentFraction` accordingly. Do not gate it
+at the default and assume the 0 px is a property of the scene.
+
 ## CI gating
 
 Three scenes are captured and archived but deliberately **not** gated against a reference:
