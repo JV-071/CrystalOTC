@@ -455,7 +455,9 @@ the legacy path it would fold two differences together.
 It needs two binaries. The Cocoa window deliberately creates no OpenGL context and the XQuartz
 window creates no Metal layer, so the two backends cannot coexist in one process.
 
-Measured on an Apple M3 Pro, XQuartz 2.8.6 against Metal, out of 656,880 pixels:
+Measured on an Apple M3 Pro, XQuartz 2.8.6 against Metal, out of 656,880 pixels, both sides
+forced onto `--render-path=frame`. **Updated 2026-08-21 (Phase 6), locally measured — nothing is
+pushed, so no CI run confirms these figures.** Pre-Phase-6 values kept as history.
 
 | Scene | Differing pixels | Cause |
 |---|---:|---|
@@ -465,23 +467,54 @@ Measured on an Apple M3 Pro, XQuartz 2.8.6 against Metal, out of 656,880 pixels:
 | `composition-all` | 0 | all six blend modes agree exactly |
 | `graph-lines` | 0 | both backends draw the same triangulated quads |
 | `atlas-resources` | 0 | - |
-| `particles-blends` | 22-540 | the scene's own bimodality, documented above |
-| `outfit-masks` | 579 | one Outline probe |
-| `temporary-framebuffers` | 521 | the same Outline probe |
-| `shader-matrix` | not compared | every cell is a module fragment program |
-| `shader-matrix-outfits` | not compared | all six cells are outfit programs |
+| `temporary-framebuffers` | 0 (was 521) | the Outline probe resolves on Metal now |
+| `outfit-masks` | 0 (was 579) | the same Outline probe |
+| `shader-matrix` | 17 (was not compared) | Pulse 1, Heat 1, Noise 15 - see below |
+| `particles-blends` | 28-540 | the scene's own bimodality, documented above |
+| `shader-matrix-outfits` | 2,160 (0.33%) | Jelly 1,062 and Fragmented 1,098 - see below |
+
+Eight of eleven at exactly 0, and both previously uncomparable scenes now compare: before Phase 6
+`shader-matrix` would have measured 154,018 px, the whole of its shaded area drawn unshaded.
 
 **Every difference in that table is a module fragment program**, with the single exception of
 `particles-blends`, which differs from itself on one binary by the same amount and for the reason
-recorded above. `ShaderManager` does not create GLSL programs without an OpenGL context, so none
+recorded above. ~~`ShaderManager` does not create GLSL programs without an OpenGL context, so none
 of the 27 registered module programs is available on the Metal backend and the geometry draws
-unshaded. The `.frag` to SPIR-V to MSL
-toolchain is Phase 6; the manifest records the two uncomparable scenes as
-`renderBackendComparable: false` and the two Outline probes as a measured
-`renderBackendTolerance`, and all four entries say to remove them when Phase 6 lands.
+unshaded. The `.frag` to SPIR-V to MSL toolchain is Phase 6; the manifest records the two
+uncomparable scenes as `renderBackendComparable: false` and the two Outline probes as a measured
+`renderBackendTolerance`, and all four entries say to remove them when Phase 6 lands.~~
 
-The Outline diffs are worth looking at rather than reading: each is literally the outline of one
-creature and nothing else, on an otherwise black diff image.
+**Superseded 2026-08-21 (Phase 6). The headline still holds; the reason behind it is now the
+opposite one.** Module materials *do* resolve on Metal: `ShaderManager` registers a module shader
+without a GL context and skips only compilation, and 23 `.frag` source keys are translated to MSL
+ahead of time into a committed header. `c09ff96` accordingly deleted three of the four manifest
+entries; `shader-matrix-outfits` keeps a `renderBackendTolerance` of 0.005, justified below.
+
+The residual is **two ill-conditioned shaders, not a translation defect**. Jelly (`heat.frag`) and
+Fragmented (`noise.frag`) each accumulate five cosine terms scaled by 30 into a value reaching about
+125 radians, take `cos()` of *that*, subtract two such results, and use the difference as a
+texture-coordinate offset of roughly 1.6e-3 - which on a sprite sheet is more than one texel. A few
+ULP in the accumulation therefore decides which texel is sampled, so a minority of pixels land on a
+different sprite pixel entirely while the rest agree exactly. No translator can make two shader
+compilers agree on that.
+
+That it is the shaders and not the translation was **established rather than assumed**, two ways: a
+dump of every module packet is byte-identical across the two backends apart from the texture's
+unique id - same texcoords, same viewport, same `textureMatrixId` - and forcing safe fp math on the
+Metal side changes the figure by exactly nothing.
+
+Per-cell, `shader-matrix-outfits`: Rainbow 0, Ghost 0, cyclopedia-black 0, Outline 0 (the only
+`useFramebuffer` route in the registry), Jelly 1,062 at max channel delta 241, Fragmented 1,098 at
+max channel delta 213. Nothing differs outside those two cells.
+
+The corroborating contrast is the whole argument in one line: the **same two programs** on an image
+widget in `shader-matrix` differ by 1 and 15 px, because there the offset stays inside one texel.
+`shader-matrix`'s entire 17-px residual is Pulse 1, Heat 1, Noise 15 - the same ill-conditioned
+family, three orders of magnitude smaller on a widget than on a sprite sheet.
+
+~~The Outline diffs are worth looking at rather than reading: each is literally the outline of one
+creature and nothing else, on an otherwise black diff image.~~ **Gone as of Phase 6:** both Outline
+probes now compare at exactly 0 px, and `shader-matrix-outfits`' Outline cell does too.
 
 `windowing` is outside the sweep (`ciCapture: false`) and was compared by hand: all four captures
 match at 0 differing pixels, including the 840,000-pixel grown one and the one at HUD scale 2.
@@ -497,7 +530,7 @@ measured against **its own noise floor** rather than against zero:
 | `map-core` (656,880 px) | 175 px | 190 px | 34 / 166 / 197 / 305 px |
 | `map-screenshot` (168,960 px) | 0 px | 18 / 221 / 228 px | 316 / 327 px |
 | `lighting-overlap` (656,880 px) | 713 px | 851 px | 60 / 198 / 773 / 911 px |
-| `shader-matrix-map` | - | - | not comparable: all fourteen cells are map shaders |
+| `shader-matrix-map` | - | - | ~~not comparable: all fourteen cells are map shaders~~ **comparable since Phase 6; measured, see below** |
 
 The two backends differ by no more than each differs from itself. `map-screenshot`'s residual is one
 creature a tile away plus two pixels of an animated floor sparkle - the 62-pixel animated-decoration
@@ -511,8 +544,13 @@ whole-tile offsets showed it to be another capture shifted by exactly (+64, -64)
 0.6% of pixels differ. Measure the shift before believing the percentage.
 
 Two things this comparison is **not**. It is not a reference gate - the checked-in llvmpipe PNGs
-are same-environment CI references, not a cross-stack oracle for Metal, and a macOS reference set
-still has to be captured and frozen. And it is not a performance comparison: XQuartz advertises no
+are same-environment CI references, not a cross-stack oracle for Metal, ~~and a macOS reference set
+still has to be captured and frozen.~~ **Resolved 2026-08-21 (Phase 6):** the blocker was that Metal
+could not draw module materials, so freezing a macOS set would have frozen unshaded geometry. That is
+gone. Once `shader-matrix.png` is reseeded for the `rain.frag` fix, gating macOS Metal against the
+**existing** llvmpipe references becomes a step Phase 7 can take rather than an open question -
+Phase 5 already measured nine of eleven scenes as byte-identical across two hosted runners. The
+"not a reference gate" half of this sentence stands unchanged. And it is not a performance comparison: XQuartz advertises no
 swap-control extension and is display-locked at ~121 fps, while `CAMetalLayer.displaySyncEnabled`
 genuinely comes off and the same scene measures 320-400 fps median on Metal. One of those numbers
 is a ceiling and the other is a cost.
@@ -615,6 +653,83 @@ frame advance on the OpenGL name. Same root cause as the 24-pixel `map-screensho
 both `map-core` (1,936 px within OpenGL) and `lighting-overlap`, because the world state has not
 settled - creatures are still moving into position. The figures above keep it rather than dropping
 it, since a floor computed only from settled runs would understate the noise.
+
+## Map shaders on Metal: `v_TexCoord` is vertically mirrored
+
+Added 2026-08-21 (Phase 6), and the largest single finding of that phase. It came from
+`shader-matrix-map`, which **no phase before this one could compare**: all fourteen of its cells are
+map shaders, and until Phase 6 no module program resolved on Metal at all. The scene is the only
+coverage of a module material on its real bind site — the MAP framebuffer-to-screen blit — which
+`shader-matrix` structurally cannot reach.
+
+Both backends now produce all fourteen captures and log `shader unavailable in this environment`
+**zero** times, against thirteen on the Metal side in Phase 5. Measured against the pinned fixture
+server `crystalserver` `f47f6e41`, out of 656,880 px:
+
+| Capture | Differing px | Reads `v_TexCoord` spatially? |
+|---|---:|---|
+| `03-rain` | 199 | no (its noise uses `gl_FragCoord`, which is corrected in translation) |
+| `05-gray-scale` | 225 | no |
+| `06-bloom` | 281 | no |
+| `07-sepia` | 359 | no |
+| `12-zomg` | 397 | no |
+| `10-party` | 535 | no |
+| `11-radial-blur` | 545 | no |
+| `01-default` | 1,953 | no shader at all — this is the scene's own noise floor |
+| `09-old-tv` | 15,043 (2.3%) | **yes**, one scanline term in `uv.y` |
+| `04-snow` | 15,713 (2.4%) | **yes**, samples `u_Tex1` at `v_TexCoord` |
+| `13-heat` | 190,744 (29.0%) | **yes** |
+| `14-noise` | 191,162 (29.1%) | **yes** |
+| `02-fog` | 195,742 (29.8%) | **yes**, samples `u_Tex1` at `v_TexCoord` |
+| `08-pulse` | 263,159 (40.1%) | **yes**, `v_TexCoord * u_Resolution` as a position |
+
+The split is exact: every capture that only *samples* `u_Tex0` at `v_TexCoord` sits at or below the
+1,953 px the unshaded `Default` frame varies by. Every capture that treats `v_TexCoord` as a
+**position** differs, and by how much depends on how hard it leans on it.
+
+**The cause is the render-target storage convention, not the translation.** GL stores a framebuffer's
+texture bottom-up and compensates by sampling it through an `upsideDown` texture matrix. Metal stores
+a target top-down and samples it through a plain `1/w, 1/h` matrix — the Phase 4 decision recorded in
+`[S 7]`, and the right one, because resolving GL's matrix there would invert every sampled target.
+Both therefore sample the **correct texel**. What differs is the coordinate *value*: `v_TexCoord.y`
+runs one way on GL and the other on Metal. A shader that only samples cannot tell; a full-screen
+post-effect that uses the coordinate as a position sees a vertically mirrored field.
+
+This is invisible everywhere except here. `shader-matrix` runs the same programs on image widgets,
+which sample an ordinary texture rather than a render target, and it compares at 17 px.
+
+Not fixed, and the fix is not small. The two backends need *different* texcoords to sample the same
+pixel, so no change to the geometry or the matrix can make both the sampling and the coordinate agree
+— only unifying the storage convention can, which means either rendering Metal's targets bottom-up
+like GL's (inverting a Phase 4 decision every other scene now rests on) or moving GL to top-left
+targets as `[D §7]` proposes (a change to the reference renderer). Either is a phase of work with its
+own verification. Recorded here so the next attempt starts from the mechanism rather than from the
+symptom.
+
+A second, smaller defect surfaced in the same run and **was** fixed (`b951233`): the composition
+packet carried no `extraTex`, so Fog and Snow lost `u_Tex1` at the only site they use it. Fog went
+from 273,805 px at mean channel delta 17.8 to 195,742 at 3.95 — the clouds appear, and what is left
+is the orientation difference above.
+
+## Online scenes after the module materials landed
+
+Added 2026-08-21 (Phase 6), `tools/compare_online_backends.sh`, three runs per backend per scene,
+against `crystalserver` `f47f6e41`. Re-run because Phase 6 changed what the MAP pool draws — map
+shaders resolve on Metal now — and because the previous two phases each found a defect in these
+scenes after drafting their handoff.
+
+| Scene | within OpenGL | within Metal | across backends |
+|---|---:|---:|---|
+| `map-core` (656,880 px) | 678 px | 4 px | 701 / 19 / 19 px |
+| `map-screenshot` (168,960 px) | 24 px | **0** px | **0** / 24 / 24 px |
+| `lighting-overlap` (656,880 px) | 147 px | 783 / 780 px | 167 / 773 / 788 px |
+
+Every cross-backend figure sits at or below the larger of that scene's two floors, and
+`map-screenshot` has an exactly-0 pair. `map-core`'s 701 is its run-1 outlier, which the Phase 5
+entry above already records as the run where world state has not settled; its other two pairs are
+19 px. Note Metal is the *quieter* backend on `map-core` here (4 px against OpenGL's 678) and the
+noisier one on `lighting-overlap` — neither is consistently steadier, which the Phase 5 entry also
+observed.
 
 ## `windowing`'s grown capture is bimodal, on both backends
 

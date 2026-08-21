@@ -1,6 +1,6 @@
 # Phase 6 renderer handoff
 
-**Checkpoint:** `c09ff96` on `main` — the phase's last non-documentation commit, on `origin`, the
+**Checkpoint:** `b951233` on `main` — the phase's last non-documentation commit, on `origin`, the
 fork `aacruzgon/CrystalOTC`, together with the documentation commits that follow it.
 
 **Date:** 2026-08-21
@@ -21,7 +21,7 @@ the default tolerance now.
 At this checkpoint:
 
 - **All eleven offline scenes compare across the two backends**, where two were excluded and two
-  more carried a widened tolerance. Seven match at **exactly 0 differing pixels**.
+  more carried a widened tolerance. Eight match at **exactly 0 differing pixels**.
 - `outfit-masks` and `temporary-framebuffers` fell from 579 and 521 px to **0**. That is the
   `Outfit - Outline` probe — the only shader in the registry declaring `useFramebuffer`, and
   therefore the only automated coverage of a shader applied at an offscreen blit — rendering on
@@ -35,6 +35,9 @@ At this checkpoint:
   Whatever the translated materials cost, this instrument cannot see it.
 - The four manifest entries that said "remove this when Phase 6 lands" are gone. Three were deleted
   outright; the fourth was replaced by a differently justified one — see *Bugs found*.
+- The three comparable **online** scenes agree within their own noise floors, with an exactly-0 pair
+  on `map-screenshot`. And `shader-matrix-map` was compared for the first time in the migration,
+  which is where this phase's largest finding came from — see *Bugs found* and *Deferred follow-ups*.
 
 ## Phase 6 checklist
 
@@ -78,6 +81,14 @@ runs in CI"*:
 
 All of 656,880 pixels, both sides forced onto `--render-path=frame` so the two consume an identical
 `RenderFrame` and a difference is attributable below the renderer boundary.
+
+**The gate is met for the offline matrix and qualified for map shaders.** `shader-matrix-map` — the
+fourteen map shaders on their real bind site, and a scene no earlier phase could compare — splits
+exactly in half. Eight captures sit inside the scene's own noise floor; six differ, and all six are
+shaders that read `v_TexCoord` as a *position* rather than only as a sampling coordinate. That is a
+render-target orientation difference between the backends, not a translation defect, and it is
+unfixed. Mechanism, measurements and the two possible fixes are in `known-deviations.md`, "Map
+shaders on Metal: `v_TexCoord` is vertically mirrored".
 
 The toolchain runs in CI on the Linux baseline job. That is where it belongs for two reasons that
 happen to agree: `modules/**` was already a path filter there and nowhere else, and glslang plus
@@ -216,6 +227,24 @@ changes the figure by exactly nothing, so it is not FMA contraction either. The 
 an image widget in `shader-matrix` differ by only 1 and 15 pixels, because there the offset stays
 inside one texel.
 
+**The map composition packet carried no multi-textures.** `PoolCompiler` fills `DrawPacket::extraTex`
+from the bound program, which covers every packet it builds — but the composition packet is the
+frame assembler's, built from the pool's declared material, and the compiler never sees it. So Fog
+and Snow, the only two shaders that use `u_Tex1` and both of them map shaders, sampled an unbound
+texture argument at the one site they are actually used. Found by capturing `shader-matrix-map`;
+fixed in `b951233` by carrying the handles with the material from `MapView`, the only place holding
+both. Fog went from 273,805 differing pixels at mean channel delta 17.8 to 195,742 at 3.95 — the
+clouds appear.
+
+**And behind it, the finding this phase could not fix.** The residual on those six map shaders is
+that GL stores a render target bottom-up and samples it through an `upsideDown` texture matrix,
+while Metal stores targets top-down and samples through a plain one. Both fetch the correct texel;
+`v_TexCoord.y` runs the opposite way. A shader that only samples cannot tell — which is why
+`shader-matrix` compares at 17 px on the same programs — and a full-screen post-effect that uses the
+coordinate as a position sees a mirrored field. No change to the geometry or the matrix fixes it,
+because the two backends need different texcoords to reach the same pixel; only unifying the storage
+convention does, and that is a phase of work either way.
+
 **Four deferred lambdas captured a pointer into a string that had already been popped.**
 `ShaderManager`'s `create*` and `setup*` entry points captured `name.data()` — a raw `const char*`
 into a Lua-owned string that `polymorphicPop` releases immediately — and the `setup*` ones captured
@@ -248,15 +277,18 @@ cannot until the legacy path goes — the same dependency `Painter` and `FrameBu
 narrowed it rather than closing it: the class now carries a source key and a material identity
 alongside the GLSL.
 
-**`shader-matrix-map` is comparable now and has not been compared.** All fourteen of its cells are
-map shaders, which is why every previous phase excluded it — and that reason is gone. It is an
-online scene, so it needs the pinned fixture server and it is outside every automated sweep. It is
-the only coverage of a module material on the map-composition route, which is the one route
-`shader-matrix` structurally cannot reach.
+**Map shaders are not consistent across the backends, and that is this phase's one unmet claim.**
+Six of the thirteen — Fog, Snow, Old Tv, Pulse, Heat and Noise — differ substantially at the map
+composition site because `v_TexCoord` is vertically mirrored between GL and Metal targets. The
+mechanism is fully characterised and the two possible fixes are costed in `known-deviations.md`;
+neither is small, and both change a decision the rest of the migration rests on. This is the top
+item to schedule, and it should be scheduled as work rather than carried as a tolerance: a mirrored
+coordinate field is a visible difference in a shipped effect, not sampling noise.
 
-**The other three online scenes are unmeasured since Phase 5.** Phase 3 and Phase 4 each found a
-defect there *after* drafting their handoff. Nothing in this phase is specific to the MAP pool, but
-that was true of Phase 4 as well.
+**The three comparable online scenes were re-measured and agree.** `map-core`, `map-screenshot` and
+`lighting-overlap`, three runs per backend, every cross-backend figure at or below that scene's own
+noise floor and an exactly-0 pair on `map-screenshot`. Worth repeating after anything that changes
+what the MAP pool draws, which is what made this run worth doing.
 
 **`createFragmentShaderFromCode` is a documented gap rather than a supported feature on Metal.** It
 registers GL-only and falls back to the default built-in with a one-time log. No shipped module
@@ -305,11 +337,13 @@ findings from suspicions into measurements — means comparing per grid cell. `S
 
 ## Commit ledger
 
-_Regenerated from `git log --format='%h %s' --reverse 45801df..c09ff96` rather than appended to by
+_Regenerated from `git log --format='%h %s' --reverse 45801df..b951233` rather than appended to by
 hand. `45801df` is the Phase 5 audit checkpoint this phase started from. The range ends at a named
 commit rather than at HEAD, because the documentation commits after it - including the one that
-records this range - would otherwise leave the list permanently one entry short of itself.
-22 files, +3316/-114._
+records this range - would otherwise leave the list permanently one entry short of itself. It does
+contain one documentation commit, `b62f747`, and that is not an error: this document was written
+before the online scenes were run, and running them found the defect `b951233` fixes.
+28 files changed, 3701 insertions(+), 120 deletions(-)._
 
 ```text
 19e29e3 fix(shaders): give rain.frag's noise hash a defined input
@@ -317,12 +351,15 @@ ec953ac feat(renderer): translate the module fragment shaders to Metal Shading L
 33961ca feat(renderer): give a module shader a material identity without an OpenGL context
 ef9de16 feat(renderer): draw the module materials on Metal
 c09ff96 test(renderer): cover the module material boundary and restore the gate defaults
+b62f747 docs(renderer): hand off Phase 6
+b951233 fix(renderer): give the map composition packet its multi-textures
 ```
 
 Note the shape, and that it is the opposite of Phase 5's: the phase's first commit is a one-word fix
-to a shader nobody had looked at in years, and it is load-bearing for the exit gate. The translation
-toolchain could not have found it - the shader translates cleanly either way - and only running the
-two backends against each other did.
+to a shader nobody had looked at in years, and it is load-bearing for the exit gate; the last is a
+fix found by running an online scene that no phase before this one could even compare. Neither could
+have come from the translation toolchain - both shaders translate cleanly - and both came from
+running the two backends against each other and attributing the difference per cell.
 
 ## What Phase 7 inherits
 
@@ -345,3 +382,8 @@ reliability matrix, GPU diagnostics, and promoting the macOS job to a required c
 - **The reliability matrix should include a shader that fails to compile.** Every path is written -
   a missing MSL entry, a library that fails to build, an entry point that is absent - and none has
   ever been exercised, because all 23 materials translate and compile.
+- **The map-shader orientation divergence is the one thing this phase leaves visibly wrong**, and it
+  is a renderer-architecture decision rather than a hardening task. Whoever picks it up should read
+  `known-deviations.md` first: the mechanism is settled and the choice is between two ways of
+  unifying the render-target storage convention, each of which touches a decision the rest of the
+  migration rests on.
