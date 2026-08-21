@@ -77,6 +77,10 @@ SUPPORTED_FIELDS = (
     "command",
     "renderPathChannelTolerance",
     "renderPathMaxDifferentFraction",
+    "renderBackendChannelTolerance",
+    "renderBackendMaxDifferentFraction",
+    "renderBackendComparable",
+    "renderBackendComparableReason",
 )
 
 BASELINE_FLAG = "--renderer-baseline="
@@ -197,12 +201,35 @@ def resolve_field(manifest: dict, scene: dict, key: str) -> str:
     # legacy path and triangulated quads on the compiled one, because Metal has neither wide nor
     # smoothed lines. The two are MEANT to differ there. A scene with no override answers both
     # questions with the same numbers.
-    if key in ("renderPathChannelTolerance", "renderPathMaxDifferentFraction"):
-        base = key[len("renderPath")]. lower() + key[len("renderPath") + 1 :]
-        override = scene.get("renderPathTolerance")
+    # And the cross-BACKEND comparison is a third question: one frame description, two graphics
+    # APIs. It defaults to the same numbers again, because a backend that draws the same frame
+    # differently is a defect rather than a tolerance - the exceptions have to earn their entry
+    # with a measurement and a reason, exactly as the render-path one did.
+    for prefix, override_key in (("renderPath", "renderPathTolerance"),
+                                 ("renderBackend", "renderBackendTolerance")):
+        if not key.startswith(prefix):
+            continue
+
+        base = key[len(prefix)].lower() + key[len(prefix) + 1 :]
+        if base not in ("channelTolerance", "maxDifferentFraction"):
+            continue
+
+        override = scene.get(override_key)
         if isinstance(override, dict) and base in override:
             return format_number(override[base])
         return resolve_field(manifest, scene, base)
+
+    # Whether the two graphics backends can be compared on this scene AT ALL yet. A scene made
+    # entirely of module fragment programs measures nothing on a backend that has none, so
+    # comparing it would report a failure whose cause is a phase that has not run rather than a
+    # defect. Absent means comparable, which is the answer for every scene that does not say
+    # otherwise.
+    if key == "renderBackendComparable":
+        return "false" if scene.get("renderBackendComparable") is False else "true"
+
+    if key == "renderBackendComparableReason":
+        reason = scene.get("renderBackendComparableReason")
+        return reason if isinstance(reason, str) else ""
 
     if key == "command":
         command = scene.get("command")
@@ -472,6 +499,18 @@ def validate(manifest: dict) -> list[str]:
             errors.append(f"{where}: captureSize must be an array of two positive integers")
 
         validate_tolerances(scene, where, errors)
+
+        if "renderBackendComparable" in scene:
+            if not isinstance(scene["renderBackendComparable"], bool):
+                errors.append(f"{where}: renderBackendComparable must be a boolean")
+            elif scene["renderBackendComparable"] is False:
+                reason = scene.get("renderBackendComparableReason")
+                if not isinstance(reason, str) or not reason.strip():
+                    errors.append(
+                        f"{where}: renderBackendComparable false requires a non-empty "
+                        "renderBackendComparableReason explaining what the second backend does "
+                        "not implement yet, and which phase owns it"
+                    )
 
         if "ciGate" in scene:
             if not isinstance(scene["ciGate"], bool):

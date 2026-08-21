@@ -69,6 +69,8 @@
       "requiresOnlineGame": false,
       "features": ["outfit-mask-colors", "mount", "addons", "multiply", "creature-preview-fbo", "outline-framebuffer", "nested-fbo", "time-shader"],
       "command": "--renderer-baseline=outfit-masks --renderer-baseline-output=outfit-masks.png",
+      "renderBackendTolerance": { "channelTolerance": 2, "maxDifferentFraction": 0.002 },
+      "renderBackendToleranceReason": "One Outline probe, and nothing else. Outline is the only shipped shader that declares useFramebuffer, and like every module program it is unavailable on the Metal backend until the Phase 6 toolchain translates it - so the creature's outline is missing there and the rest of the scene matches exactly. Measured at 579 differing pixels of 656,880 (0.088%), max channel delta 201, confined to the outline itself. The default 0.001 would pass this by 77 pixels, a margin nobody could interpret if it moved; 0.002 states the expectation instead of squeaking under it. Restore the default when Phase 6 lands.",
       "ciGate": false,
       "ciGateReason": "Renders outfit, mount and addon previews from data/things/*, which is gitignored. A CI runner has no game assets, so this scene captures an empty preview there; gating it would freeze a blank image as the accepted reference. Captured and archived as an artifact only."
     },
@@ -92,6 +94,8 @@
       "requiresOnlineGame": false,
       "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip-horizontal", "item-widget-flip-vertical", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"],
       "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png",
+      "renderBackendTolerance": { "channelTolerance": 2, "maxDifferentFraction": 0.002 },
+      "renderBackendToleranceReason": "The same single Outline probe as outfit-masks, for the same reason: it is this scene's useFramebuffer case, and module programs are Phase 6 work. Measured at 521 differing pixels of 656,880 (0.079%), max channel delta 237, confined to the outline. All seven temporary framebuffer sites, both flips and the nesting case match exactly.",
       "ciGate": false,
       "ciGateReason": "Renders creature, item, effect and missile widget previews from data/things/*, which is gitignored. A CI runner has no game assets, so this scene captures empty previews there; gating it would freeze a blank image as the accepted reference. Captured and archived as an artifact only."
     },
@@ -110,6 +114,8 @@
       "requiresOnlineGame": false,
       "features": ["map-fragment-programs", "fog-multitexture", "snow-multitexture", "mount-shader", "item-shader", "unshaded-control-cell", "pinned-shader-time"],
       "command": "--renderer-baseline=shader-matrix --renderer-baseline-output=shader-matrix.png",
+      "renderBackendComparable": false,
+      "renderBackendComparableReason": "Every cell in this scene is a registered module fragment program, and the Metal backend has none: ShaderManager does not create GLSL programs when there is no OpenGL context, so the cells draw as plain textured quads and 25.5% of the frame differs. That is not a defect to tolerate, it is a phase that has not run - the .frag to SPIR-V to MSL toolchain is Phase 6 - and a tolerance wide enough to pass would be no gate at all. The scene stays fully gated against its checked-in llvmpipe reference on the OpenGL side meanwhile; remove this flag when Phase 6 lands, at which point this comparison becomes the measurement of whether the translation is right.",
       "note": "The sixteen fragment cells plus one unshaded control cell, laid out on rows 0-2 of the shared shader grid. Every cell draws data/images/background_crystal1, which is tracked, so this scene renders identically with or without game assets and is CI-gated. The six outfit cells that used to occupy row 3 are now shader-matrix-outfits. One cell renders differently by environment and the gate cannot cover it: forge_result_silhouette is registered by game_exaltationforge's onLoad, which does not come up without game assets. With assets the cell draws the shader's black silhouette; without them the shader is simply unregistered and the cell draws the unshaded image, logged as 'shader unavailable in this environment'. Both are deterministic, so the llvmpipe reference freezes the unshaded form and the gate holds - but that shader itself is only exercised locally, and a local-versus-llvmpipe comparison of this scene will always differ in that one cell."
     },
     {
@@ -118,6 +124,8 @@
       "requiresOnlineGame": false,
       "features": ["outfit-shaders", "outline-framebuffer", "creature-preview-fbo", "pinned-shader-time"],
       "command": "--renderer-baseline=shader-matrix-outfits --renderer-baseline-output=shader-matrix-outfits.png",
+      "renderBackendComparable": false,
+      "renderBackendComparableReason": "The same reason as shader-matrix, reached from the outfit route: all six cells carry an outfit fragment program, none of which the Metal backend can resolve until the Phase 6 toolchain translates them. Measured at 5,581 differing pixels of 656,880 (0.85%), all of them inside the six creature cells.",
       "ciGate": false,
       "ciGateReason": "Renders UICreature previews from data/things/*, which is gitignored, so a CI runner draws them empty; gating it would freeze a blank image as the accepted reference. Split out of shader-matrix on 2026-08-20 precisely so the sixteen fragment cells could be gated without this dependency. Captured and archived as an artifact only.",
       "note": "Outfit - Outline is the only shader in the registry declaring useFramebuffer, so this scene is the only automated coverage of a shader applied at an offscreen blit. It shares the shader grid with shader-matrix, occupying row 0."

@@ -59,6 +59,49 @@ local function freezeShaderTime()
     end
 end
 
+-- The UI is laid out at m_size / m_displayDensity while the capture is the full pixel canvas,
+-- so a window whose density is not 1 fits half as many logical units into the same PNG. On
+-- X11 and on the llvmpipe runner the density already is 1 and this changes nothing; on a Retina
+-- Cocoa window it is the backing scale, and without the pin every macOS capture would differ from
+-- every reference by widget layout rather than by anything a renderer did.
+local function pinDisplayDensity()
+    -- Read through g_window rather than g_app: getHUDScale is not a Lua binding, and the two
+    -- are the same variable anyway - setHUDScale writes exactly what getDisplayDensity reads.
+    if g_window.getDisplayDensity() ~= 1 then
+        g_app.setHUDScale(1)
+    end
+end
+
+-- The login screen's email field owns keyboard focus, and its caret blinks on a wall-clock timer,
+-- so a capture lands on whichever half of the blink the run happened to reach. Within one binary
+-- two runs start closely enough that they usually agree, which is why this survived Phase 0
+-- unnoticed; across two binaries with different startup costs it is a reliable 15-pixel column
+-- nobody is testing. Hide the caret rather than time the shutter.
+--
+-- Called at scene setup as well as before every shutter, and the difference matters: a screenshot
+-- reads the frame that has already been drawn, so suppressing at the shutter only takes effect
+-- from the NEXT frame onwards. Setting it once, early, is what actually removes it.
+local function suppressTextCursors()
+    local function walk(widget)
+        if widget.setCursorVisible then
+            widget:setCursorVisible(false)
+        end
+        for _, child in ipairs(widget:getChildren()) do
+            walk(child)
+        end
+    end
+
+    walk(g_ui.getRootWidget())
+end
+
+-- Resize and pin together, because they are one decision: the capture canvas is CAPTURE_WIDTH x
+-- CAPTURE_HEIGHT pixels carrying exactly that many logical units.
+local function sizeCaptureWindow()
+    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    pinDisplayDensity()
+    suppressTextCursors()
+end
+
 local function beginClientScene(title, subtitle)
     freezeShaderTime()
 
@@ -66,7 +109,7 @@ local function beginClientScene(title, subtitle)
         EnterGame.hide()
     end
 
-    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    sizeCaptureWindow()
     local rootWidget = g_ui.getRootWidget()
     for _, child in ipairs(rootWidget:getChildren()) do
         child:hide()
@@ -723,6 +766,7 @@ end
 local function prepareForShutter()
     pinLoginBackground()
     suppressCaptureTooltip()
+    suppressTextCursors()
     isolateGameInterface()
     pinInterfaceLayout()
     applyLightingSetup()
@@ -954,7 +998,12 @@ local function runBenchmark(scene, seconds)
     g_app.resetTargetFps()
     g_window.setVerticalSync(false)
 
-    local path = optionValue("render-path") or "legacy"
+    -- What is actually running, not what the command line asked for. The two diverge: a requested
+    -- path falls back when no backend initialises, and a window with no OpenGL context resolves to
+    -- the frame path whether or not anyone said so. Reading the flag reported "path=legacy" for a
+    -- Metal frame, which is the one thing a benchmark line must never do.
+    local path = g_graphics.getRenderPath()
+    local backend = g_graphics.getRenderBackend()
     local samples = {}
 
     -- getFps() is a 1 Hz integer counter, so one sample per second is all the resolution there
@@ -977,8 +1026,8 @@ local function runBenchmark(scene, seconds)
         local mean = #samples > 0 and (total / #samples) or 0
 
         g_logger.info(string.format(
-            "[renderer-benchmark] scene=%s path=%s samples=%d fps_min=%d fps_median=%d fps_mean=%.1f",
-            scene, path, #samples, samples[1] or 0, median, mean))
+            "[renderer-benchmark] scene=%s path=%s backend=%s samples=%d fps_min=%d fps_median=%d fps_mean=%.1f",
+            scene, path, backend, #samples, samples[1] or 0, median, mean))
 
         g_app.exit()
     end
@@ -992,7 +1041,7 @@ function RendererBaseline.captureScene(scene, delay)
     -- A fixed logical viewport keeps same-backend comparisons meaningful. The normal
     -- startup flow has finished by the time this delayed event fires, so fonts, images,
     -- clipping, translucent widgets, and the initial framebuffer resize are all live.
-    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    sizeCaptureWindow()
 
     captureEvent = scheduleEvent(function()
         -- Startup modules can open windows after onRun. Keep scripted fixtures above
@@ -1123,7 +1172,7 @@ function RendererBaseline.runWindowingScene()
     end
 
     local function stepRestored()
-        g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+        sizeCaptureWindow()
         waitForWindowSize(CAPTURE_WIDTH, CAPTURE_HEIGHT, function()
             report[#report + 1] = windowingReportLine("restored")
             takeCapture(output("3-restored"), stepScaled)
@@ -1138,7 +1187,7 @@ function RendererBaseline.runWindowingScene()
         end)
     end
 
-    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    sizeCaptureWindow()
     waitForWindowSize(CAPTURE_WIDTH, CAPTURE_HEIGHT, function()
         report[#report + 1] = windowingReportLine("initial")
         takeCapture(output("1-initial"), stepGrown)
@@ -1270,7 +1319,7 @@ function RendererBaseline.loginFixtureServer()
     -- only resizes once that has already happened, so an online capture raced the
     -- resize and produced a differently sized map panel from run to run. Offline scenes
     -- never had the problem because beginClientScene() resizes during onRun.
-    g_window.resize({ width = CAPTURE_WIDTH, height = CAPTURE_HEIGHT })
+    sizeCaptureWindow()
 
     local account = os.getenv("CRYSTALOTC_BASELINE_ACCOUNT")
     local password = os.getenv("CRYSTALOTC_BASELINE_PASSWORD")
