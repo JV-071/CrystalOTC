@@ -1,6 +1,6 @@
 # Phase 6 renderer handoff
 
-**Checkpoint:** `b951233` on `main` — the phase's last non-documentation commit, on `origin`, the
+**Checkpoint:** `994371b` on `main` — the phase's last commit, all four CI jobs green on it, on `origin`, the
 fork `aacruzgon/CrystalOTC`, together with the documentation commits that follow it.
 
 **Date:** 2026-08-21
@@ -35,6 +35,14 @@ At this checkpoint:
   Whatever the translated materials cost, this instrument cannot see it.
 - The four manifest entries that said "remove this when Phase 6 lands" are gone. Three were deleted
   outright; the fourth was replaced by a differently justified one — see *Bugs found*.
+- **All four CI jobs green** on `994371b` / `a2180b3`: `Tests - Lua`, `Build - macOS (Cocoa)`,
+  `Build - Windows` (68/68 under MSVC — the figure the design document predicted, now observed
+  rather than counted) and `Renderer baseline - Linux llvmpipe`. The macOS runner asserts
+  `render path: frame (backend 'metal')` and `CPU atlases: map=8192x8192 foreground=2048x2048`,
+  so Metal and the CPU atlases come up on a host with no window server.
+- **Both llvmpipe gates pass.** The reference gate has `shader-matrix` at **0 px** after the
+  reseed, six others at 0 and `particles-blends` at its documented 626; the legacy-versus-frame
+  sweep has ten at 0 and `graph-lines` at exactly the 8,734 px Phase 3 recorded.
 - The three comparable **online** scenes agree within their own noise floors, with an exactly-0 pair
   on `map-screenshot`. And `shader-matrix-map` was compared for the first time in the migration,
   which is where this phase's largest finding came from — see *Bugs found* and *Deferred follow-ups*.
@@ -355,13 +363,11 @@ findings from suspicions into measurements — means comparing per grid cell. `S
 
 ## Commit ledger
 
-_Regenerated from `git log --format='%h %s' --reverse 45801df..b951233` rather than appended to by
-hand. `45801df` is the Phase 5 audit checkpoint this phase started from. The range ends at a named
-commit rather than at HEAD, because the documentation commits after it - including the one that
-records this range - would otherwise leave the list permanently one entry short of itself. It does
-contain one documentation commit, `b62f747`, and that is not an error: this document was written
-before the online scenes were run, and running them found the defect `b951233` fixes.
-28 files changed, 3701 insertions(+), 120 deletions(-)._
+_Regenerated from `git log --format='%h %s' --reverse 45801df..994371b` rather than appended to by
+hand. `45801df` is the Phase 5 audit checkpoint this phase started from. The range runs to the last
+commit of the phase rather than stopping short of the documentation, because this phase's
+documentation was not a tail: the handoff was written mid-phase, and running the online scenes
+afterwards found a defect. 40 files changed, 4266 insertions(+), 197 deletions(-)._
 
 ```text
 19e29e3 fix(shaders): give rain.frag's noise hash a defined input
@@ -371,6 +377,12 @@ ef9de16 feat(renderer): draw the module materials on Metal
 c09ff96 test(renderer): cover the module material boundary and restore the gate defaults
 b62f747 docs(renderer): hand off Phase 6
 b951233 fix(renderer): give the map composition packet its multi-textures
+d462ae3 docs(shaders): document the fragment ABI for module authors
+c2a4dc6 chore(renderer): make the shader generator executable
+ab9fbe3 docs(renderer): correct what Phase 6 falsified across the migration set
+72397b4 docs(renderer): record the online-scene evidence and the divergence it exposed
+a2180b3 fix(renderer): stop the shader check failing on a different glslang
+994371b ci(renderer): reseed the shader-matrix llvmpipe reference after the rain fix
 ```
 
 Note the shape, and that it is the opposite of Phase 5's: the phase's first commit is a one-word fix
