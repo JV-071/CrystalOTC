@@ -240,11 +240,17 @@ asked for; the compiler folds it in alongside the id, and both `AnimatedTexture:
 `Texture::updatePixels` bump it. The prediction was right about the mechanism and wrong only about
 which route would reach it first.
 
-**One map-core run died with SIGSEGV in `ProtocolGame::parseMessage`.** Network thread, no
+~~**One map-core run died with SIGSEGV in `ProtocolGame::parseMessage`.** Network thread, no
 renderer frame in the stack, on the legacy path where the compiler does not run. It did not
 reproduce in four further attempts. Recorded rather than chased: it is a pre-existing flake in
-the online fixture path and Phase 3 is not the change that would explain it. Worth knowing if
-someone else meets it while running these scenes.
+the online fixture path and Phase 3 is not the change that would explain it.~~ **Explained and
+fixed 2026-08-21 (`74154f7`), and it was never a flake.** It reproduces every time on a *logout*,
+which no capture performs - which is why four further map-core runs could not find it. It is a
+use-after-free: handling a packet can end the game, `Protocol::disconnect()` then closes and
+resets `m_connection`, and the connection owns the `std::function` read callback that holds the
+last reference to the protocol - so the object destroys itself from inside its own callback, and
+`msg` is a reference to the freed object's own `m_inputMessage`. Phase 3 was right that it had
+nothing to do with the compiler; it was wrong that it was intermittent.
 
 **`RenderFrame::readbacks` is still produced by nobody.** `ReadbackRequest` is the parameter type
 of `readPixels`, not a queue the frame carries. Fine as it is; worth not mistaking for an
