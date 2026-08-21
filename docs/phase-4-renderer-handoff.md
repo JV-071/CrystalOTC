@@ -22,14 +22,29 @@ the XQuartz build resolves to OpenGL exactly as before. `--render-backend=` and
 
 At this checkpoint:
 
+- All four CI jobs green on `3fd3b0f` — `Build - macOS (Cocoa)` (run `32494822009`),
+  `Build - Windows` (`32494822190`), `Renderer baseline - Linux llvmpipe` (`32494822069`),
+  `Tests - Lua` (`32494822051`).
+- The macOS job now asserts which renderer came up, not only that graphics init was reached, and
+  the assertion passes on a hosted runner: `[render] render path: frame (backend 'metal')` on an
+  `Apple Paravirtual device`. That is worth more than it looks — the backend creates its device,
+  its queue and its MSL library on virtualised hardware with no window server, and survives the
+  45-second smoke launch without ever obtaining a drawable.
+- `ctest` 58/58 on macOS and Linux, 59/59 on Windows, up from 57/58.
+- The eight reference-gated scenes are unmoved: seven at **0 differing pixels** against their
+  checked-in llvmpipe references, `particles-blends` at 626 px inside its own bimodality. The
+  legacy-versus-frame sweep is unmoved too — ten scenes at 0 px, `graph-lines` at 8,734 px, the
+  exact figures Phase 3 recorded. The OpenGL path is provably untouched by any of this.
+- No new compiler warnings. The macOS job reports the same eleven as run `32476769555`, which
+  predates this phase — identical set, identical counts — so the Metal sources, ARC and all,
+  compile clean.
 - The Cocoa client draws the login UI and live gameplay — map tiles, creatures, name tags, the
   minimap, the inventory and the chat panel — against the pinned fixture server.
 - Nine of eleven offline baseline scenes compare against the OpenGL backend consuming the
   **same compiled frames**; six match at exactly 0 differing pixels. The two that do not compare
   are the two made of module fragment programs, which Phase 6 owns.
-- `ctest` 58/58, up from 57, on both macOS configurations.
-- The OpenGL path is provably unchanged: the legacy-versus-frame sweep still reports ten scenes
-  at 0 px and `graph-lines` at 7,660, the same figures Phase 3 recorded.
+- Locally, the legacy-versus-frame sweep on XQuartz still reports ten scenes at 0 px and
+  `graph-lines` at 7,660 — again the figures Phase 3 recorded, in the other environment.
 
 ## Phase 4 checklist
 
