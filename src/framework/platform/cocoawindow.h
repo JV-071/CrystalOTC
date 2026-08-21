@@ -83,6 +83,15 @@ public:
     // No GL context is ever created on this path; see the class comment.
     bool hasGLContext() const override { return false; }
 
+    // The CAMetalLayer and its device, for a render backend that draws and presents itself.
+    // The layer stays owned by the view - this hands out a borrowed pointer, not ownership.
+    [[nodiscard]] NativeSurface getNativeSurface() const override;
+
+    // While a backend owns presentation, swapBuffers() does nothing: the backend has already
+    // acquired, encoded and presented the drawable, and a second present would replace its
+    // frame with this window's clear colour.
+    void setPresentationOwned(bool owned) override { m_presentationOwned = owned; }
+
     void showMouse() override;
     void hideMouse() override;
     void displayFatalError(std::string_view message) override;
@@ -138,6 +147,9 @@ private:
     // Backing scale is mirrored here because m_displayDensity is user-writable through
     // g_app.setHUDScale; this is what the drawable is actually sized from.
     float m_backingScale{ 1.f };
+
+    // Set by a render backend that presents its own frames; see setPresentationOwned.
+    bool m_presentationOwned{ false };
 
     // Previous NSEvent modifier mask. PlatformWindow deliberately does not record modifier
     // keys in m_keyInfo - processKeyDown/processKeyUp return early for Ctrl/Shift/Meta/Alt

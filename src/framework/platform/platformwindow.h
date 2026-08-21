@@ -30,6 +30,33 @@
  // Forward declaration
 class Color;
 
+// ---------------------------------------------------------------------------------------
+// The presentation surface a GPU backend draws onto.
+//
+// `getNativeWindowHandle()` below already exists for Vulkan, but it is a bare `void*` whose
+// meaning is "an HWND, on the one platform that has one" - the exact thing the architecture
+// document says the generic window interface must stop claiming. This is the typed form: the
+// tag says what the pointers are, and a backend that does not recognise the tag refuses to
+// initialise rather than casting hopefully.
+//
+// It is deliberately not an owning handle. The layer belongs to the view, which AppKit
+// resizes with the window; the backend borrows it for the lifetime of the window.
+// ---------------------------------------------------------------------------------------
+enum class NativeSurfaceType : uint8_t
+{
+    None = 0,
+    CocoaMetalLayer, // layer = CAMetalLayer*, device = id<MTLDevice>
+};
+
+struct NativeSurface
+{
+    NativeSurfaceType type{ NativeSurfaceType::None };
+    void* layer{ nullptr };
+    void* device{ nullptr };
+
+    [[nodiscard]] bool isValid() const { return type != NativeSurfaceType::None && layer != nullptr; }
+};
+
 //@bindsingleton g_window
 class PlatformWindow
 {
@@ -56,6 +83,21 @@ public:
     // Native window handle for the Vulkan renderer (Win32 surface). None by default -
     // platforms without support simply return no handle and Vulkan stays disabled.
     virtual void* getNativeWindowHandle() const { return nullptr; }
+
+    // The typed presentation surface, for a backend that presents its own frames. Invalid by
+    // default: a platform that does not offer one simply cannot host such a backend.
+    [[nodiscard]] virtual NativeSurface getNativeSurface() const { return {}; }
+
+    // PRESENTATION OWNERSHIP, settled here rather than left implicit.
+    //
+    // The render loop calls swapBuffers() unconditionally after drawing, which is right when
+    // the window is what presents - GL's buffer swap, and the Cocoa window's own
+    // acquire-clear-present. A backend that acquires the drawable itself must present it
+    // itself, because a drawable can only be presented by the command buffer that rendered
+    // into it; two presents per frame would show the backend's work and then immediately
+    // overwrite it. So such a backend claims presentation at initialize() and releases it at
+    // shutdown(), and the window stands down for as long as the claim stands.
+    virtual void setPresentationOwned(bool /*owned*/) {}
 
     virtual void move(const Point& pos) = 0;
     virtual void resize(const Size& size) = 0;

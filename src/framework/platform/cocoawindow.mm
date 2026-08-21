@@ -554,10 +554,32 @@ void CocoaWindow::internalApplyPendingGeometry()
         updateUnmaximizedCoords();
 }
 
+NativeSurface CocoaWindow::getNativeSurface() const
+{
+    if (!m_impl || !m_impl->layer || !m_impl->device)
+        return {};
+
+    // This translation unit compiles without ARC (nothing in CMake passes -fobjc-arc), so an
+    // Objective-C pointer converts to void* by a plain cast; a __bridge cast would not even
+    // compile here. The feature test is there so that turning ARC on later is a build
+    // configuration change rather than a silent ownership bug.
+#if __has_feature(objc_arc)
+    return { NativeSurfaceType::CocoaMetalLayer, (__bridge void*)m_impl->layer, (__bridge void*)m_impl->device };
+#else
+    return { NativeSurfaceType::CocoaMetalLayer, (void*)m_impl->layer, (void*)m_impl->device };
+#endif
+}
+
 void CocoaWindow::swapBuffers()
 {
-    // Phase 1 presentation: acquire, clear, present. Phase 4's MetalContext replaces the
-    // clear with the encoded RenderFrame; the acquisition and submission shape stays.
+    // Presentation of last resort. A render backend that acquires the drawable itself also
+    // presents it - it has to, since only the command buffer that rendered into a drawable may
+    // present it - and claims ownership here so this does not overwrite its frame. What remains
+    // is the Phase 1 acquire-clear-present, which is what runs before any backend exists and
+    // whenever one declines a frame: a navy screen is a visible, diagnosable state.
+    if (m_presentationOwned)
+        return;
+
     @autoreleasepool {
         if (!m_impl->layer || !m_impl->queue)
             return;
