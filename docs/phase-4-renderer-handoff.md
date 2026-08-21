@@ -184,6 +184,11 @@ reason: `TextureAtlas` keys its regions on a texture's OpenGL name, which is zer
 texture here, so the whole client would collide on key 0. `TextureAtlas::flush` is also unguarded
 OpenGL from top to bottom. Modelling atlas layers as passes is Phase 5; until then the compiler
 already emits standalone textures when no atlas claims one.
+**Reversed 2026-08-21 (Phase 5, `83e81ac`), which is what this decision expected:** both reasons
+were removable rather than permanent. Regions are keyed on the unique id and maintenance compiles
+to passes, so the atlases run under Metal and `atlas-resources` compares across the backends at 0
+differing pixels with atlas-backed geometry on both sides. Vulkan keeps the exclusion, for its own
+unrelated reason.
 
 ## Traps worth not rediscovering
 
@@ -366,12 +371,20 @@ running: retained targets, transient targets with nesting and both flips, `Keep`
 pass skipping and readback all work, because the frame model states them and the backend executes
 what it is given. What Phase 5 actually owes:
 
-- **Atlas layer targets.** The one part of the frame the compiler does not describe, and the reason
+- ~~**Atlas layer targets.** The one part of the frame the compiler does not describe, and the reason
   the CPU atlases are switched off here. It is also what unblocks deleting `Painter`, which
-  `TextureAtlas::flush` still drives.
-- **A macOS reference set.** The checked-in llvmpipe references are same-environment CI references,
+  `TextureAtlas::flush` still drives.~~ **Delivered 2026-08-21 (Phase 5, `83e81ac`).** A frame is a
+  complete description now: `TextureAtlas::compileMaintenance` emits the layer passes and
+  `FrameAssembler` orders them ahead of every pool. `flush()` survives only because the legacy path
+  calls it, so the `Painter` dependency expires with that path rather than before it.
+- ~~**A macOS reference set.** The checked-in llvmpipe references are same-environment CI references,
   not a cross-stack oracle for Metal. A macOS baseline has to be captured and frozen before any
-  gate can compare against it rather than against the OpenGL backend on another machine.
+  gate can compare against it rather than against the OpenGL backend on another machine.~~
+  **Contradicted by this same phase, corrected 2026-08-21 (Phase 5 audit).** The first sentence stands;
+  the conclusion does not, and the plan already said so — `tools/compare_render_backends.sh`, which Phase 4
+  itself added, runs the gate against the *live* OpenGL backend with both sides forced onto
+  `--render-path=frame`, so the two consume an identical `RenderFrame` and no frozen reference is needed.
+  None exists and none is owed.
 - **The map-composition material**, which is the one part of the online coverage Phase 4 could not
   measure: all fourteen `shader-matrix-map` cells are map shaders, and no module program resolves on
   Metal until Phase 6. The route itself works — the scene captures — but nothing shaded comes out of it.

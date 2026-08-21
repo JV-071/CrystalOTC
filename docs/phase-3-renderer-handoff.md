@@ -208,6 +208,10 @@ None block Phase 4.
 drives the atlas through `g_painter` — `clearRect`, `setTexture`, `drawCoords`. That modelling is
 Phase 5 work in the design (`[D §6]`), so task 5 has a dependency the plan places outside Phase
 3. Worth knowing before anyone schedules the deletion as a self-contained refactor.
+**Half-discharged 2026-08-21 (Phase 5, `83e81ac`):** the modelling exists —
+`TextureAtlas::compileMaintenance` is the pass form and the frame path runs it. `flush()` itself
+survives deliberately, because the legacy path still calls it, so this dependency now expires with
+the legacy path rather than ahead of it.
 
 ~~**Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
 `IRenderBackend::render`.~~ **Settled 2026-08-21 (Phase 4, `719d962`): the backend presents.** A
