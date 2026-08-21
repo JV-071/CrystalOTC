@@ -130,6 +130,64 @@ STRIP_LINE = re.compile(
 )
 
 
+HEADER_PREAMBLE = """\
+/*
+ * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+// GENERATED FILE - DO NOT EDIT.
+//
+// Produced by tools/generate_metal_shaders.py from the .frag sources named below, through
+// glslang and SPIRV-Cross. Regenerate with `tools/generate_metal_shaders.py --write`; the
+// build re-runs the translation and fails if this file is stale, so editing it by hand only
+// delays the contradiction.
+//
+// The line below records the tools that produced this file. SPIRV-Cross names its temporaries
+// after SPIR-V ids, which glslang assigns, so two different glslang versions translate the same
+// shader into byte-different but equivalent MSL. `--check` therefore compares byte-for-byte only
+// when the local toolchain matches this line, and falls back to verifying that every material
+// still translates and that the material set is unchanged when it does not - which is what CI
+// does, since a distribution's glslang is rarely the one a developer has.
+{toolchain}
+
+#pragma once
+
+#include <array>
+#include <string_view>
+
+// One MTLLibrary per material, compiled on first use rather than all at startup. Each carries
+// both stages: SPIRV-Cross derives the fragment's [[stage_in]] struct from the same varying
+// interface it derived the vertex's output from, so a generated pair agrees by construction
+// where a generated fragment paired with the hand-written built-in vertex would only agree by
+// inspection. A session that binds no module shader compiles none of them.
+struct MetalModuleMaterial
+{
+    std::string_view key;           // the .frag basename, which is what a material resolves to
+    std::string_view vertexEntry;
+    std::string_view fragmentEntry;
+    std::string_view source;
+};
+"""
+
+
 def _fail(message: str) -> "NoReturn":  # type: ignore[valid-type]
     print(f"generate_metal_shaders: {message}", file=sys.stderr)
     raise SystemExit(1)
@@ -230,6 +288,17 @@ def build_vertex_glsl() -> str:
     return "#version 450 core\n\n" + VERTEX_GLSL.format(binding=BINDING_VERTEX_PARAMS)
 
 
+def tool_version(path: str) -> str:
+    """A one-line fingerprint of a translation tool, as stable as it has one."""
+    result = subprocess.run([path, "--version"], capture_output=True, text=True)
+    text = (result.stdout + result.stderr).strip().splitlines()
+    return text[0].strip() if text else "unknown"
+
+
+def toolchain_line(glslang: str, spirv_cross: str) -> str:
+    return f"// toolchain: {tool_version(glslang)} | spirv-cross {tool_version(spirv_cross)}"
+
+
 def run(cmd: list[str], *, what: str) -> None:
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -284,6 +353,7 @@ def strip_msl_preamble(msl: str) -> str:
 
 
 def generate(manifest: dict, glslang: str, spirv_cross: str) -> str:
+    """Translate every material and render the committed header."""
     entries = []
     with tempfile.TemporaryDirectory() as tmp:
         workdir = Path(tmp)
@@ -310,59 +380,12 @@ def generate(manifest: dict, glslang: str, spirv_cross: str) -> str:
             ])
             entries.append((key, material["source"], source))
 
-    return render_header(entries)
+    return render_header(entries, toolchain_line(glslang, spirv_cross))
 
 
-def render_header(entries: list[tuple[str, str, str]]) -> str:
+def render_header(entries: list[tuple[str, str, str]], toolchain: str) -> str:
     out: list[str] = []
-    out.append("""\
-/*
- * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
-// GENERATED FILE - DO NOT EDIT.
-//
-// Produced by tools/generate_metal_shaders.py from the .frag sources named below, through
-// glslang and SPIRV-Cross. Regenerate with `tools/generate_metal_shaders.py --write`; the
-// build re-runs the translation and fails if this file is stale, so editing it by hand only
-// delays the contradiction.
-
-#pragma once
-
-#include <array>
-#include <string_view>
-
-// One MTLLibrary per material, compiled on first use rather than all at startup. Each carries
-// both stages: SPIRV-Cross derives the fragment's [[stage_in]] struct from the same varying
-// interface it derived the vertex's output from, so a generated pair agrees by construction
-// where a generated fragment paired with the hand-written built-in vertex would only agree by
-// inspection. A session that binds no module shader compiles none of them.
-struct MetalModuleMaterial
-{
-    std::string_view key;           // the .frag basename, which is what a material resolves to
-    std::string_view vertexEntry;
-    std::string_view fragmentEntry;
-    std::string_view source;
-};
-""")
+    out.append(HEADER_PREAMBLE.replace("{toolchain}", toolchain))
 
     for key, source, msl in entries:
         out.append("// ---------------------------------------------------------------------------")
@@ -382,6 +405,26 @@ struct MetalModuleMaterial
     out.append("});")
     out.append("")
     return "\n".join(out)
+
+
+TOOLCHAIN_PREFIX = "// toolchain: "
+
+
+def toolchain_of(header: str) -> str:
+    for line in header.splitlines():
+        if line.startswith(TOOLCHAIN_PREFIX):
+            return line
+    return ""
+
+
+def material_table(header: str) -> list[str]:
+    """The `{ key, vertexEntry, fragmentEntry, ... }` rows, which are what a consumer resolves."""
+    rows = []
+    for line in header.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("{ \"") and stripped.endswith("},"):
+            rows.append(stripped)
+    return rows
 
 
 def resolve_tool(explicit: str | None, candidates: list[str], what: str) -> str:
@@ -433,14 +476,42 @@ def main() -> int:
 
     if not target.is_file():
         _fail(f"{target} does not exist; run --write")
+
+    name = target.relative_to(REPO_ROOT) if target.is_relative_to(REPO_ROOT) else target
     current = target.read_text(encoding="utf-8")
-    if current != generated:
-        _fail(
-            f"{target.relative_to(REPO_ROOT)} is stale. "
-            "Re-run tools/generate_metal_shaders.py --write and commit the result."
+
+    if current == generated:
+        print(f"{name} is up to date ({len(manifest['materials'])} materials)")
+        return 0
+
+    # Reaching here means the tools translated everything - `generate` exits on anything it
+    # cannot - so the closed set is intact whatever else is true. What is left to decide is
+    # whether the difference is the SOURCES having changed or just the TOOLS being different
+    # ones. SPIRV-Cross names its temporaries after SPIR-V ids that glslang assigns, so two
+    # glslang versions produce byte-different, equivalent MSL for identical input; a
+    # distribution's glslang is rarely the one a developer has, and failing CI for that would
+    # be failing it for nothing.
+    if toolchain_of(current) != toolchain_of(generated):
+        if material_table(current) != material_table(generated):
+            _fail(
+                f"{name} does not cover the same materials as the sources do.\n"
+                "The toolchain also differs from the one that generated it, so the MSL itself "
+                "could not be compared - but the material table is toolchain-independent and it "
+                "does not match. Re-run --write and commit the result."
+            )
+        print(
+            f"{name}: every material translates and the material table matches "
+            f"({len(manifest['materials'])} materials).\n"
+            f"  Byte comparison skipped: this toolchain is not the one that generated the file.\n"
+            f"    generated with {toolchain_of(current)[len(TOOLCHAIN_PREFIX):] or 'unknown'}\n"
+            f"    running        {toolchain_of(generated)[len(TOOLCHAIN_PREFIX):] or 'unknown'}"
         )
-    print(f"{target.relative_to(REPO_ROOT)} is up to date ({len(manifest['materials'])} materials)")
-    return 0
+        return 0
+
+    _fail(
+        f"{name} is stale. "
+        "Re-run tools/generate_metal_shaders.py --write and commit the result."
+    )
 
 
 if __name__ == "__main__":

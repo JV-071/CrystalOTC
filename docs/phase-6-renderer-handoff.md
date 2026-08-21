@@ -186,6 +186,15 @@ disappears, check whether the thing it covered started working or stopped being 
 `[[position]]`, and a helper converts back to what the shipped GLSL expects. Getting this wrong is
 invisible in fifteen of sixteen `shader-matrix` cells.
 
+**A byte-exact check of generated output silently pins the tool versions.** The first CI run said
+the committed header was stale when nothing was wrong with it: Ubuntu's glslang is not Homebrew's,
+SPIRV-Cross names its temporaries after SPIR-V ids that glslang assigns, and the two therefore
+produce byte-different equivalent MSL. The header records the toolchain that made it and `--check`
+compares byte-for-byte only when the local tools match; otherwise it verifies that everything still
+translates and that the material table is unchanged. Worth knowing before writing any other
+generated-and-verified artifact: "regenerate and diff" is only a valid check when the generator is
+pinned, and neither apt nor Homebrew pins one.
+
 **Two shader compilers will never agree on an ill-conditioned shader, and no translator can make
 them.** See *Bugs found* for `heat.frag` and `noise.frag`. The useful lesson is the diagnostic
 order: dump the packet state first and confirm the *inputs* are identical before spending any time

@@ -140,6 +140,15 @@ when they are absent the build says so and skips the check.
 Commit the regenerated header with your shader. Reviewing the MSL diff is worth the minute it takes;
 it is the only place you will see what your shader actually became.
 
+**Your glslang does not have to match anyone else's.** SPIRV-Cross names its temporaries after
+SPIR-V ids that glslang assigns, so two glslang versions translate the same shader into
+byte-different but equivalent MSL. The header records the toolchain that produced it, and `--check`
+compares byte-for-byte only when the local tools match that line. When they do not — which is the
+normal case in CI, where the distribution's glslang is not the one you have — it still translates
+every shader, so an untranslatable one still fails, and it still compares the material table, so an
+added or removed shader still fails. What it cannot see in that case is an edit to an existing
+`.frag` that was not regenerated. Regenerate anyway; your own build will catch you.
+
 ## Checking your work
 
 A shader is not done when it renders. Add it to a matrix scene and compare the two backends:

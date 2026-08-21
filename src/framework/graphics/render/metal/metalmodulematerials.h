@@ -26,6 +26,14 @@
 // glslang and SPIRV-Cross. Regenerate with `tools/generate_metal_shaders.py --write`; the
 // build re-runs the translation and fails if this file is stale, so editing it by hand only
 // delays the contradiction.
+//
+// The line below records the tools that produced this file. SPIRV-Cross names its temporaries
+// after SPIR-V ids, which glslang assigns, so two different glslang versions translate the same
+// shader into byte-different but equivalent MSL. `--check` therefore compares byte-for-byte only
+// when the local toolchain matches this line, and falls back to verifying that every material
+// still translates and that the material set is unchanged when it does not - which is what CI
+// does, since a distribution's glslang is rarely the one a developer has.
+// toolchain: Glslang Version: 11:16.5.0 | spirv-cross Git commit:  Timestamp: 2026-07-06T12:43:32
 
 #pragma once
 
