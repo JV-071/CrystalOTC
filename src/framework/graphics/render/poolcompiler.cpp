@@ -188,6 +188,11 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
 
     const auto foldTextureIdentity = [&nativeTextureHash](const DrawPool::PoolState& state) {
         stdext::hash_combine(nativeTextureHash, state.textureId);
+        // The revision the producer read when it recorded the draw. It is the only one of the
+        // three terms that says anything at all about an ATLAS-backed draw: such a state carries
+        // no TexturePtr, and its `textureId` is the layer's, which does not change when the
+        // layer's contents do.
+        stdext::hash_combine(nativeTextureHash, state.textureRevision);
         if (state.texture)
             stdext::hash_combine(nativeTextureHash, state.texture->getContentRevision());
     };

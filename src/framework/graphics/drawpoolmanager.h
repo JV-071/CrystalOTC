@@ -191,6 +191,13 @@ private:
     // PoolProgram::requiresAtlasMaintenance.
     void prepareResources(const FrameAssembler::Programs& programs);
 
+    // CPU atlas maintenance, compiled rather than performed. Fills m_atlasPrograms with whatever
+    // each atlas owes this frame; the assembler puts those passes ahead of every pool.
+    void compileAtlasMaintenance();
+
+    // Retire it, once the frame carrying it has been submitted.
+    void commitAtlasMaintenance();
+
     // Points the registry's target table at the framebuffers this frame's passes name, sizing
     // transient ones on the way. Decoding a handle back to a pool is arithmetic, so this is the
     // only place that needs to know a target handle came from a DrawPool at all.
@@ -200,6 +207,17 @@ private:
     std::unique_ptr<IRenderBackend> m_backend;
     FrameAssembler m_frameAssembler;
     RenderFrame m_frame;
+
+    // The distinct atlases, by type. The pools share them - all three foreground pools point at
+    // one - so maintenance has to be driven per ATLAS rather than per pool, or the second and
+    // third pool would compile an empty program over an already-drained pending list.
+    //
+    // NON-OWNING, deliberately. The pools own them and the pools are never deleted, so an atlas
+    // outlives static destruction; holding a shared_ptr here instead made `g_drawPool`'s own
+    // teardown destroy them, which reached ~Texture through the layer framebuffers at
+    // __cxa_finalize time and aborted on a mutex that had already been destroyed.
+    std::array<TextureAtlas*, Fw::TextureAtlasType::LAST> m_atlases{};
+    FrameAssembler::AtlasPrograms m_atlasPrograms{};
     bool m_loggedFrameFallback{ false };
 
     inline bool isDrawing(const DrawPoolType type) const {

@@ -91,19 +91,18 @@ struct PoolProgram
     MaterialParams compositionParams;
     float compositionOpacity{ 1.f };
 
-    // --- known omission ------------------------------------------------------------------
+    // --- delegated work --------------------------------------------------------------------
     // True when this pool owns a CPU texture atlas, whose maintenance this program does NOT
-    // describe. That is a placement problem, not a missing feature, and it is worth stating
-    // rather than discovering: the atlas's pending-texture list is filled by
-    // `PoolState::execute` on the RENDER thread while the frame is being drawn, so at
-    // release() time - on the producer thread, which is where this program is compiled -
-    // there is nothing yet to compile. The passes have to be emitted by whoever runs the
-    // frame, from the atlas's state at that moment.
+    // describe. That is a placement problem rather than a missing feature, and it is worth
+    // stating rather than discovering: the atlas's pending-texture list is filled on the RENDER
+    // thread, so at release() time - on the producer thread, which is where this program is
+    // compiled - there is nothing yet to compile. An atlas is also shared between pools, so it
+    // does not belong to any one pool's program even in principle.
     //
-    // A backend consuming this program must therefore still perform atlas maintenance itself
-    // (bind each dirty layer, blend off, clear-rect plus padding draw plus main draw per
-    // pending texture) before the passes that sample those layers. Flagged here so a compiled
-    // frame is never mistaken for a complete description of what the GPU has to do.
+    // Since Phase 5 the work is nonetheless described, one level up: `TextureAtlas::compileMaintenance`
+    // produces an `AtlasProgram` on the render thread and `FrameAssembler` puts its passes ahead
+    // of every pool. So a RenderFrame is a complete description; a PoolProgram on its own still
+    // is not, and this says which part is elsewhere.
     bool requiresAtlasMaintenance{ false };
 
     // --- honesty -----------------------------------------------------------------------

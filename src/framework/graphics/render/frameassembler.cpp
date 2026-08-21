@@ -68,8 +68,8 @@ bool FrameAssembler::isComplete(const Programs& programs)
     return true;
 }
 
-void FrameAssembler::assemble(const Programs& programs, const Size& drawableSize,
-                              const float frameTime, RenderFrame& out)
+void FrameAssembler::assemble(const Programs& programs, const AtlasPrograms& atlases,
+                              const Size& drawableSize, const float frameTime, RenderFrame& out)
 {
     out.clear();
     out.drawableSize = drawableSize;
@@ -89,6 +89,19 @@ void FrameAssembler::assemble(const Programs& programs, const Size& drawableSize
             continue;
         for (const auto& upload : program->uploads)
             out.uploads.push_back(upload);
+    }
+
+    // Atlas maintenance goes ahead of every pool, which is where the GL path already does it -
+    // it flushes each atlas from DrawPoolManager before any pass runs. Position is not actually
+    // load-bearing: a region created during frame N is not consulted until the PRODUCER runs for
+    // frame N+1, because it is DrawPool::add that translates a source rect into atlas
+    // coordinates. So nothing this frame draws can see a region this frame created, and the
+    // compositing writes land in shelf space no draw in this frame addresses.
+    for (const auto* atlas : atlases) {
+        if (!atlas)
+            continue;
+        for (const auto& pass : atlas->passes)
+            out.passes.push_back(pass);
     }
 
     // Pools composite in enum order - the order DrawPoolManager::draw walks them in.

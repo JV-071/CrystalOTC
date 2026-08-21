@@ -190,6 +190,14 @@ protected:
         // not cross the renderer boundary.
         TextureHandle textureHandle;
 
+        // "Have the pixels behind that handle changed?", answered for the one case the handle
+        // itself cannot answer and neither can `texture`, which is null whenever the draw was
+        // resolved to an atlas layer. A layer's pixels change when a new sprite is composited
+        // into it, including into shelf space a destroyed sprite just vacated - which produces a
+        // byte-identical packet drawing entirely different art. Carried, never hashed for
+        // batching: two draws from the same layer still batch together.
+        uint32_t textureRevision{ 0 };
+
         size_t hash{ 0 };
 
         bool operator==(const PoolState& s2) const { return hash == s2.hash; }
@@ -292,7 +300,7 @@ private:
     }
 
     bool updateHash(const DrawMethod& method, const Texture* texture, const Color& color, bool hasCoord);
-    PoolState getState(const TexturePtr& texture, Texture* textureAtlas, const Color& color);
+    PoolState getState(const TexturePtr& texture, const AtlasRegion* atlasRegion, const Color& color);
 
     PoolState& getCurrentState() { return m_states[m_lastStateIndex]; }
     const PoolState& getCurrentState() const { return m_states[m_lastStateIndex]; }

@@ -50,6 +50,15 @@ namespace RenderHandles
     inline constexpr uint32_t TRANSIENT_TARGET_BASE = 64;
     inline constexpr uint32_t TRANSIENT_TARGETS_PER_POOL = 16;
 
+    // Atlas layer targets. A CPU atlas is a stack of layer framebuffers per filter group, and
+    // new sprites are composited into them by GPU draw - so a layer is a render target like any
+    // other, and the only reason it was not one before is that the compiler never described the
+    // maintenance work. It is a THIRD kind of target rather than a variant of the other two
+    // because it is keyed on (atlas, filter group, layer) and outlives every pool.
+    inline constexpr uint32_t ATLAS_TARGET_BASE = 256;
+    inline constexpr uint32_t ATLAS_FILTER_GROUPS = 2;  // nearest, linear - AtlasFilter's two
+    inline constexpr uint32_t ATLAS_LAYERS_PER_GROUP = 32;
+
     // A pool's own retained target (MAP and FOREGROUND are the only pools that have one).
     [[nodiscard]] constexpr RenderTargetHandle poolTarget(const DrawPoolType type)
     {
@@ -63,6 +72,18 @@ namespace RenderHandles
         return RenderTargetHandle{ TRANSIENT_TARGET_BASE
                                    + static_cast<uint32_t>(type) * TRANSIENT_TARGETS_PER_POOL
                                    + depth };
+    }
+
+    // One layer of one filter group of one atlas. `smooth` selects the linear-filtered group,
+    // which is the one that carries SMOOTH_PADDING; the two groups are separate layer stacks
+    // and their indices are independent, hence the group in the key rather than a flat layer id.
+    [[nodiscard]] constexpr RenderTargetHandle atlasTarget(const Fw::TextureAtlasType atlas,
+                                                           const bool smooth, const uint32_t layer)
+    {
+        return RenderTargetHandle{ ATLAS_TARGET_BASE
+                                   + ((static_cast<uint32_t>(atlas) * ATLAS_FILTER_GROUPS)
+                                      + (smooth ? 1u : 0u)) * ATLAS_LAYERS_PER_GROUP
+                                   + layer };
     }
 
     // --- textures ---------------------------------------------------------------------
@@ -102,6 +123,15 @@ namespace RenderHandles
                           + static_cast<uint32_t>(DrawPoolType::LAST) * TRANSIENT_TARGETS_PER_POOL;
     }
 
+    inline constexpr uint32_t ATLAS_TARGET_LIMIT =
+        ATLAS_TARGET_BASE
+        + static_cast<uint32_t>(Fw::TextureAtlasType::LAST) * ATLAS_FILTER_GROUPS * ATLAS_LAYERS_PER_GROUP;
+
+    [[nodiscard]] constexpr bool isAtlasTarget(const RenderTargetHandle h)
+    {
+        return h.id >= ATLAS_TARGET_BASE && h.id < ATLAS_TARGET_LIMIT;
+    }
+
     // Valid only when isPoolTarget(h) or isTransientTarget(h).
     [[nodiscard]] constexpr DrawPoolType poolOf(const RenderTargetHandle h)
     {
@@ -124,4 +154,26 @@ namespace RenderHandles
     static_assert(isTransientTarget(transientTarget(DrawPoolType::FOREGROUND, 3)));
     static_assert(poolOf(transientTarget(DrawPoolType::FOREGROUND, 3)) == DrawPoolType::FOREGROUND);
     static_assert(transientDepthOf(transientTarget(DrawPoolType::FOREGROUND, 3)) == 3);
+
+    // The three target ranges must not overlap, and none of them may reach the texture-handle
+    // space - a target's texture handle IS its target id, so an atlas layer aliasing a sprite's
+    // unique id would silently sample the wrong thing.
+    static_assert(ATLAS_TARGET_BASE >= TRANSIENT_TARGET_BASE
+                      + static_cast<uint32_t>(DrawPoolType::LAST) * TRANSIENT_TARGETS_PER_POOL,
+                  "atlas target handles overlap the transient target range");
+    static_assert(ATLAS_TARGET_LIMIT <= RENDER_TARGET_TEXTURE_LIMIT,
+                  "atlas target handles reach into the Texture unique-id space");
+
+    static_assert(isAtlasTarget(atlasTarget(Fw::TextureAtlasType::MAP, false, 0)));
+    static_assert(isAtlasTarget(atlasTarget(Fw::TextureAtlasType::FOREGROUND, true, 31)));
+    static_assert(!isAtlasTarget(poolTarget(DrawPoolType::MAP)));
+    static_assert(!isAtlasTarget(transientTarget(DrawPoolType::FOREGROUND, 3)));
+    static_assert(!isPoolTarget(atlasTarget(Fw::TextureAtlasType::MAP, false, 0)));
+    static_assert(!isTransientTarget(atlasTarget(Fw::TextureAtlasType::MAP, false, 0)));
+    // The four (atlas, filter) groups are genuinely distinct, which the arithmetic above makes
+    // easy to get wrong by one multiplication.
+    static_assert(atlasTarget(Fw::TextureAtlasType::MAP, false, 0)
+                  != atlasTarget(Fw::TextureAtlasType::MAP, true, 0));
+    static_assert(atlasTarget(Fw::TextureAtlasType::MAP, true, 0)
+                  != atlasTarget(Fw::TextureAtlasType::FOREGROUND, false, 0));
 }

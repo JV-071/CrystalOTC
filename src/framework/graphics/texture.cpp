@@ -57,7 +57,8 @@ namespace
 {
     struct PendingTextureDeletion
     {
-        uint32_t id;
+        uint32_t id;       // OpenGL name; 0 when the texture never reached a GL context
+        uint32_t uniqueId; // process-wide identity, which every texture has on every backend
         bool smooth;
     };
 
@@ -116,11 +117,21 @@ Texture::~Texture()
 #ifndef NDEBUG
     assert(!g_app.isTerminated());
 #endif
-    if (g_graphics.ok() && m_id != 0) {
-        // Just the identifier goes into the queue - the real glDeleteTextures is done by
+    // Queued when there is either a GL name to delete or an atlas region to release. The region
+    // half is what Phase 5 added: on a backend that creates no GL textures m_id is zero for every
+    // texture in the client, so making the GL name the sole entry condition would have leaked
+    // every region there. The region test rather than an unconditional queue is deliberate - a
+    // texture that never reached a GPU and never entered an atlas has nothing to retire, and
+    // taking the queue's mutex for it costs a lock on every one of them, including during static
+    // destruction, where the mutex may already be gone.
+    const bool holdsAtlasRegion =
+        std::ranges::any_of(m_atlas, [](const AtlasRegion* region) { return region != nullptr; });
+
+    if (g_graphics.ok() && (m_id != 0 || holdsAtlasRegion)) {
+        // Just the identifiers go into the queue - the real glDeleteTextures is done by
         // flushDeletedTextures() on the main thread, with one call for the whole batch.
         std::scoped_lock lock(g_pendingDeletionMutex);
-        g_pendingDeletions.emplace_back(m_id, isSmooth());
+        g_pendingDeletions.emplace_back(m_id, m_uniqueId, isSmooth());
     }
     ResourceRegistry::instance().unregisterTexture(m_uniqueId);
     g_stats.removeTexture();
@@ -151,17 +162,20 @@ void Texture::flushDeletedTextures()
     ids.clear();
     ids.reserve(batch.size());
 
-    for (const auto& [id, smooth] : batch) {
-        // The atlas indexes its regions by the source texture's identifier, so it must release
-        // them BEFORE the identifier returns to the GL pool - otherwise a new texture with the
-        // same id would inherit someone else's region and show the wrong graphic. TextureAtlas::removeTexture()
-        // has no lock of its own, and atlases are modified during flush on the render thread,
-        // i.e. the same thread as this function - which is why this is a safe place.
-        g_drawPool.removeTextureFromAtlas(id, smooth);
-        ids.push_back(id);
+    for (const auto& [id, uniqueId, smooth] : batch) {
+        // The atlas indexes its regions by the source texture's UNIQUE id, so it must release
+        // them here, while this thread is the render thread - TextureAtlas::removeTexture() has
+        // no lock of its own and atlases are modified during maintenance on this same thread.
+        // (Until Phase 5 the key was the GL name, and this had to run before the name returned to
+        // the GL pool or a new texture would inherit someone else's region. The unique id is
+        // never reused, so that particular race is gone; the threading requirement is not.)
+        g_drawPool.removeTextureFromAtlas(uniqueId, smooth);
+        if (id != 0)
+            ids.push_back(id);
     }
 
-    glDeleteTextures(static_cast<GLsizei>(ids.size()), ids.data());
+    if (!ids.empty())
+        glDeleteTextures(static_cast<GLsizei>(ids.size()), ids.data());
 
     g_deletedTextures.fetch_add(ids.size(), std::memory_order_relaxed);
     g_deletionBatches.fetch_add(1, std::memory_order_relaxed);
@@ -280,13 +294,18 @@ void Texture::setSmooth(const bool smooth)
 
     setProp(Prop::smooth, smooth);
 
+    // Atlas membership is not conditional on a GL name - a texture can hold a region on a
+    // backend that never creates one - so the filter-group move happens regardless. Only the
+    // GL filter update needs the name.
+    if (canCacheInAtlas()) {
+        g_drawPool.removeTextureFromAtlas(m_uniqueId, !smooth);
+        return;
+    }
+
     if (!m_id) return;
 
-    if (!canCacheInAtlas()) {
-        bind();
-        setupFilters();
-    } else
-        g_drawPool.removeTextureFromAtlas(m_id, !smooth);
+    bind();
+    setupFilters();
 }
 
 void Texture::allowAtlasCache() {

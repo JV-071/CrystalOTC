@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "atlasprogram.h"
 #include "poolprogram.h"
 
 #include <array>
@@ -46,12 +47,24 @@ class FrameAssembler
 {
 public:
     using Programs = std::array<const PoolProgram*, static_cast<size_t>(DrawPoolType::LAST)>;
+    using AtlasPrograms = std::array<const AtlasProgram*, static_cast<size_t>(Fw::TextureAtlasType::LAST)>;
 
     // `programs` is indexed by DrawPoolType and may hold nulls for pools that produced
-    // nothing. `frameTime` is the value every material's `time` field receives - it must
-    // honour the process-wide pin (g_shaders.setFixedTime), because pinning the phase is the
-    // only reason an animated shader frame is reproducible at all.
-    void assemble(const Programs& programs, const Size& drawableSize, float frameTime, RenderFrame& out);
+    // nothing. `atlases` is indexed by Fw::TextureAtlasType and holds whatever CPU atlas
+    // maintenance this frame owes; its passes go FIRST, ahead of every pool, which is exactly
+    // where the GL path performs the equivalent work. `frameTime` is the value every material's
+    // `time` field receives - it must honour the process-wide pin (g_shaders.setFixedTime),
+    // because pinning the phase is the only reason an animated shader frame is reproducible at
+    // all.
+    void assemble(const Programs& programs, const AtlasPrograms& atlases, const Size& drawableSize,
+                  float frameTime, RenderFrame& out);
+
+    // For callers with no atlases to maintain - the unit tests, and any backend running with the
+    // CPU atlases switched off.
+    void assemble(const Programs& programs, const Size& drawableSize, const float frameTime, RenderFrame& out)
+    {
+        assemble(programs, AtlasPrograms{}, drawableSize, frameTime, out);
+    }
 
     // True when every contributing program compiled completely. A frame built from an
     // incomplete program describes less than the client asked for and must not be rendered.

@@ -167,20 +167,21 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     // tiles bleeding into UI panels after fast tab switching). The feeder keeps its own
     // array atlas on the GPU, so CPU-side double-atlasing buys nothing in Vulkan mode.
     //
-    // Metal joins that rule for a second reason, and a harder one. The atlas keys its regions on
-    // a texture's OpenGL name, and a backend that creates no GL textures leaves every one of those
-    // at zero - so every texture in the client would collide on key 0. TextureAtlas::flush is also
-    // unguarded OpenGL from top to bottom. Modelling atlas layers as explicit passes is Phase 5
-    // work; until then Metal draws from standalone textures, which is what the compiler already
-    // emits when no atlas claims a texture.
-    if (g_configs.getPublicConfig().graphics.renderBackend == "vulkan"
-        || (m_backend && std::string_view{ m_backend->name() } == "metal")) {
+    // Metal used to join that rule, for two reasons that Phase 5 removed rather than worked
+    // around: the atlas keyed its regions on a texture's OpenGL name, zero for everything a
+    // non-GL backend creates, and `TextureAtlas::flush` was unguarded OpenGL from top to bottom.
+    // Regions are keyed on the unique id now, and maintenance compiles to ordinary passes
+    // (`TextureAtlas::compileMaintenance`), so an atlas is backend-neutral and Metal keeps it.
+    if (g_configs.getPublicConfig().graphics.renderBackend == "vulkan") {
         mapAtlasSize = -1;
         foregroundAtlasSize = -1;
     }
 
     auto atlasMap = mapAtlasSize > 0 ? std::make_shared<TextureAtlas>(Fw::TextureAtlasType::MAP, mapAtlasSize) : nullptr;
     auto atlasForeground = foregroundAtlasSize > 0 ? std::make_shared<TextureAtlas>(Fw::TextureAtlasType::FOREGROUND, foregroundAtlasSize, true) : nullptr;
+
+    m_atlases[Fw::TextureAtlasType::MAP] = atlasMap.get();
+    m_atlases[Fw::TextureAtlasType::FOREGROUND] = atlasForeground.get();
 
     // Create Pools
     for (int8_t i = -1; ++i < static_cast<uint8_t>(DrawPoolType::LAST);) {
@@ -315,10 +316,19 @@ bool DrawPoolManager::drawFrame()
 
     prepareResources(programs);
 
-    m_frameAssembler.assemble(programs, m_size, PainterShaderProgram::currentTime(), m_frame);
+    m_frameAssembler.assemble(programs, m_atlasPrograms, m_size, PainterShaderProgram::currentTime(), m_frame);
     bindFrameTargets(m_frame);
 
-    return m_backend->render(m_frame);
+    if (!m_backend->render(m_frame))
+        return false;
+
+    // Only once the frame is actually submitted. compileAtlasMaintenance() left the pending
+    // composites in place precisely so that a declined frame falls back to the legacy path with
+    // the work still to do, rather than to a drained atlas whose regions are marked composited
+    // and whose sprites would render as whatever was in that shelf space before.
+    commitAtlasMaintenance();
+
+    return true;
 }
 
 void DrawPoolManager::prepareResources(const FrameAssembler::Programs& programs)
@@ -348,10 +358,37 @@ void DrawPoolManager::prepareResources(const FrameAssembler::Programs& programs)
                     pool->m_atlas->addTexture(texture);
             }
         }
-
-        if (pool->m_atlas)
-            pool->m_atlas->flush();
     }
+
+    compileAtlasMaintenance();
+}
+
+void DrawPoolManager::compileAtlasMaintenance()
+{
+    // Driven per ATLAS rather than per pool, because the pools share them: all three foreground
+    // pools point at one atlas, so a per-pool loop would drain the pending list on the first and
+    // compile two empty programs after it.
+    //
+    // This is the last piece of frame work that used to be undescribable. `TextureAtlas::flush`
+    // performs it through g_painter with a raw glDisable(GL_BLEND) bracket; `compileMaintenance`
+    // states the same three draws per pending texture as ordinary blend-off packets on a
+    // Keep-loaded pass over the layer's target.
+    m_atlasPrograms = {};
+
+    for (size_t i = 0; i < m_atlases.size(); ++i) {
+        if (auto* atlas = m_atlases[i])
+            m_atlasPrograms[i] = atlas->compileMaintenance();
+    }
+}
+
+void DrawPoolManager::commitAtlasMaintenance()
+{
+    for (size_t i = 0; i < m_atlases.size(); ++i) {
+        if (m_atlasPrograms[i] && m_atlases[i])
+            m_atlases[i]->commitMaintenance();
+    }
+
+    m_atlasPrograms = {};
 }
 
 void DrawPoolManager::bindFrameTargets(const RenderFrame& frame)
@@ -364,6 +401,20 @@ void DrawPoolManager::bindFrameTargets(const RenderFrame& frame)
     for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
         const auto type = static_cast<DrawPoolType>(i);
         registry.bindTarget(RenderHandles::poolTarget(type), get(type)->getFrameBuffer().get());
+    }
+
+    // Every atlas layer that exists, whether or not this frame maintains one. A layer is
+    // registered even when no pass writes to it because ordinary draws SAMPLE it: an atlas-backed
+    // packet names its layer by target handle, so the handle has to resolve on any frame that
+    // draws a packed sprite - which is nearly all of them, and mostly not the frames that pack.
+    for (auto* atlas : m_atlases) {
+        if (!atlas)
+            continue;
+
+        atlas->forEachLayer([&registry](const RenderTargetHandle handle, FrameBuffer* framebuffer) {
+            if (framebuffer)
+                registry.bindTarget(handle, framebuffer);
+        });
     }
 
     // Transient targets exist only where a pass names one. They are registered here but SIZED

@@ -57,7 +57,7 @@ DrawPool* DrawPool::create(const DrawPoolType type)
 
 void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& method, const CoordsBufferPtr& coordsBuffer)
 {
-    Texture* textureAtlas = nullptr;
+    const AtlasRegion* atlasRegion = nullptr;
 
     if (texture) {
         if (!method.src.isValid() && (!coordsBuffer || coordsBuffer->size() == 0)) {
@@ -68,7 +68,7 @@ void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& m
         if (m_atlas) {
             if (const auto region = texture->getAtlasRegion(m_atlas->getType())) {
                 if (region->isEnabled()) {
-                    textureAtlas = region->atlas;
+                    atlasRegion = region;
 
                     if (method.src.isValid())
                         method.src.translate(region->x, region->y);
@@ -77,7 +77,7 @@ void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& m
         }
     }
 
-    if (!updateHash(method, textureAtlas ? textureAtlas : texture.get(), color, coordsBuffer != nullptr)) {
+    if (!updateHash(method, atlasRegion ? atlasRegion->atlas : texture.get(), color, coordsBuffer != nullptr)) {
         resetOnlyOnceParameters();
         return;
     }
@@ -95,11 +95,11 @@ void DrawPool::add(const Color& color, const TexturePtr& texture, DrawMethod&& m
     } else if (m_alwaysGroupDrawings) {
         auto& coords = m_coords.try_emplace(state.hash, nullptr).first->second;
         if (!coords) {
-            coords = list.emplace_back(getState(texture, textureAtlas, color), getCoordsBuffer()).coords.get();
+            coords = list.emplace_back(getState(texture, atlasRegion, color), getCoordsBuffer()).coords.get();
         }
         coordsBuffer ? coords->append(coordsBuffer.get()) : addCoords(*coords, method);
     } else {
-        auto& draw = list.emplace_back(getState(texture, textureAtlas, color), getCoordsBuffer());
+        auto& draw = list.emplace_back(getState(texture, atlasRegion, color), getCoordsBuffer());
         coordsBuffer ? draw.coords->append(coordsBuffer.get()) : addCoords(*draw.coords, method);
     }
 
@@ -185,18 +185,26 @@ bool DrawPool::updateHash(const DrawMethod& method, const Texture* texture, cons
     return true;
 }
 
-DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, Texture* textureAtlas, const Color& color)
+DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, const AtlasRegion* atlasRegion, const Color& color)
 {
     PoolState copy = getCurrentState();
 
     if (copy.color != color)
         copy.color = color;
 
-    if (textureAtlas) {
-        // Texture is batched inside an atlas
+    if (atlasRegion) {
+        Texture* textureAtlas = atlasRegion->atlas;
+        // Texture is batched inside an atlas.
+        //
+        // The handle names the layer as a RENDER TARGET, not as a sampled texture, because that
+        // is what a layer is: its pixels live wherever the active backend keeps target contents.
+        // Resolving it through the texture plane happened to work on OpenGL, where a
+        // FrameBuffer's colour attachment is an ordinary GL texture; it cannot work anywhere the
+        // two are different objects.
         copy.textureId = textureAtlas->getId();
         copy.textureMatrixId = textureAtlas->getTransformMatrixId();
-        copy.textureHandle = TextureHandle{ textureAtlas->getUniqueId() };
+        copy.textureHandle = RenderHandles::targetTexture(atlasRegion->layerTarget);
+        copy.textureRevision = textureAtlas->getContentRevision();
     } else if (texture) {
         if (texture->isEmpty() || // Texture not initialized in the current OpenGL context
             !texture->canCacheInAtlas() || // Texture is marked as non-atlas-cacheable (short-lived/temporary, e.g. minimap)
@@ -210,6 +218,7 @@ DrawPool::PoolState DrawPool::getState(const TexturePtr& texture, Texture* textu
             copy.textureMatrixId = texture->getTransformMatrixId();
         }
         copy.textureHandle = TextureHandle{ texture->getUniqueId() };
+        copy.textureRevision = texture->getContentRevision();
     }
 
     return copy;

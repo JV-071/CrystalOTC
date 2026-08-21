@@ -9,11 +9,14 @@
 // names, so the test emitted calls to `public:` symbols the library never defined.
 #include <framework/graphics/drawpool.h>
 
+#include <framework/graphics/render/atlasprogram.h>
 #include <framework/graphics/render/frameassembler.h>
 #include <framework/graphics/render/linetriangulation.h>
 #include <framework/graphics/render/poolcompiler.h>
 #include <framework/graphics/render/recordingbackend.h>
 #include <framework/graphics/texture.h>
+
+#include <set>
 
 // Must be at global scope: drawpool.h befriends ::DrawPoolTestAccess. Everything here is a
 // thin forward to DrawPool's producer API, so the tests exercise the real recording path
@@ -788,6 +791,139 @@ namespace {
         const RenderTargetHandle backbuffer;
         EXPECT_FALSE(RenderHandles::isPoolTarget(backbuffer));
         EXPECT_FALSE(RenderHandles::isTransientTarget(backbuffer));
+    }
+
+    TEST(RenderBoundary, AtlasLayerTargetsAreADistinctThirdKind)
+    {
+        // The whole target space is decoded by arithmetic range checks, not by a tag, so a third
+        // family is only safe while it overlaps neither of the first two. `poolOf` in particular
+        // has no kind guard - it would happily decode an atlas handle into a garbage DrawPoolType
+        // - which is exactly why the frame runner must test kind before it decodes.
+        for (int atlas = 0; atlas < Fw::TextureAtlasType::LAST; ++atlas) {
+            for (const bool smooth : { false, true }) {
+                for (uint32_t layer = 0; layer < RenderHandles::ATLAS_LAYERS_PER_GROUP; ++layer) {
+                    const auto handle = RenderHandles::atlasTarget(
+                        static_cast<Fw::TextureAtlasType>(atlas), smooth, layer);
+
+                    EXPECT_TRUE(RenderHandles::isAtlasTarget(handle));
+                    EXPECT_FALSE(RenderHandles::isPoolTarget(handle));
+                    EXPECT_FALSE(RenderHandles::isTransientTarget(handle));
+                    EXPECT_FALSE(handle.isBackbuffer());
+
+                    // An atlas layer is SAMPLED through its target-texture twin, so the handle
+                    // has to stay inside the render-target texture range or a packet naming it
+                    // would resolve to a sprite instead.
+                    EXPECT_TRUE(RenderHandles::isRenderTargetTexture(
+                        RenderHandles::targetTexture(handle)));
+                }
+            }
+        }
+
+        // Every (atlas, filter group, layer) triple is its own target. Getting one multiplication
+        // wrong here would silently composite the nearest-filtered layers into the linear ones.
+        std::set<uint32_t> seen;
+        for (int atlas = 0; atlas < Fw::TextureAtlasType::LAST; ++atlas) {
+            for (const bool smooth : { false, true }) {
+                for (uint32_t layer = 0; layer < RenderHandles::ATLAS_LAYERS_PER_GROUP; ++layer) {
+                    const auto handle = RenderHandles::atlasTarget(
+                        static_cast<Fw::TextureAtlasType>(atlas), smooth, layer);
+                    EXPECT_TRUE(seen.insert(handle.id).second)
+                        << "duplicate atlas target handle " << handle.id;
+                }
+            }
+        }
+
+        // Neither of the other two kinds may wander into the atlas range.
+        for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+            const auto type = static_cast<DrawPoolType>(i);
+            EXPECT_FALSE(RenderHandles::isAtlasTarget(RenderHandles::poolTarget(type)));
+            for (uint32_t depth = 0; depth < RenderHandles::TRANSIENT_TARGETS_PER_POOL; ++depth)
+                EXPECT_FALSE(RenderHandles::isAtlasTarget(RenderHandles::transientTarget(type, depth)));
+        }
+    }
+
+    TEST(RenderBoundary, AtlasMaintenancePassesComeBeforeEveryPool)
+    {
+        // Atlas maintenance writes the layers that pool draws SAMPLE, so it goes ahead of every
+        // pool - which is where the GL path already does it, flushing each atlas before any pool
+        // is drawn. Built by hand rather than from a TextureAtlas: constructing one reaches
+        // glGenFramebuffers, and in a unit-test process X11Window reports a GL context it does
+        // not have (PlatformWindow::hasGLContext defaults to true) while every GLEW pointer is
+        // null.
+        AtlasProgram atlas;
+        {
+            auto& pass = atlas.passes.emplace_back();
+            pass.target = RenderHandles::atlasTarget(Fw::TextureAtlasType::FOREGROUND, true, 0);
+            pass.load = LoadAction::Keep;
+            pass.viewport = Rect(0, 0, 2048, 2048);
+            pass.label = "atlas-linear";
+
+            CoordsBuffer quad;
+            quad.addRect(Rect(0, 0, 32, 32));
+            const auto slice = atlas.arena.append(quad);
+
+            auto& packet = pass.packets.emplace_back();
+            packet.vertexOffset = slice.offset;
+            packet.vertexCount = slice.count;
+            packet.blendEnabled = false;
+            packet.alphaWrite = true;
+        }
+        atlas.bindArena();
+
+        Pool pool;
+        pool.rect(Rect(0, 0, 10, 10));
+
+        PoolProgram program;
+        pool.compile(program);
+        ASSERT_TRUE(program.isComplete());
+
+        RenderFrame frame;
+        FrameAssembler assembler;
+        FrameAssembler::Programs programs{};
+        programs[static_cast<size_t>(DrawPoolType::LIGHT)] = &program;
+
+        FrameAssembler::AtlasPrograms atlases{};
+        atlases[Fw::TextureAtlasType::FOREGROUND] = &atlas;
+
+        assembler.assemble(programs, atlases, VIEWPORT, 0.f, frame);
+
+        ASSERT_GE(frame.passes.size(), 2u);
+        EXPECT_TRUE(RenderHandles::isAtlasTarget(frame.passes.front().target));
+
+        // Keep, not Clear. Atlas layers accumulate across frames, so clearing one would erase
+        // every sprite packed into it in every earlier frame.
+        EXPECT_EQ(frame.passes.front().load, LoadAction::Keep);
+        ASSERT_EQ(frame.passes.front().packets.size(), 1u);
+        EXPECT_FALSE(frame.passes.front().packets[0].blendEnabled);
+
+        // The pass must point at the ATLAS's arena, not the pool's - the same aliasing hazard
+        // the composition packets have, reached from a second producer of frame geometry.
+        EXPECT_EQ(frame.passes.front().arena, &atlas.arena);
+
+        // ...and no pool pass may have been reordered ahead of it.
+        for (size_t i = 1; i < frame.passes.size(); ++i)
+            EXPECT_FALSE(RenderHandles::isAtlasTarget(frame.passes[i].target));
+    }
+
+    TEST(RenderBoundary, AFrameWithNoAtlasWorkCarriesNoAtlasPasses)
+    {
+        // The common case by far: an atlas packs new sprites only when something new is drawn,
+        // so nearly every frame owes no maintenance at all and must not pay for an empty pass.
+        Pool pool;
+        pool.rect(Rect(0, 0, 10, 10));
+
+        PoolProgram program;
+        pool.compile(program);
+
+        RenderFrame frame;
+        FrameAssembler assembler;
+        FrameAssembler::Programs programs{};
+        programs[static_cast<size_t>(DrawPoolType::LIGHT)] = &program;
+
+        assembler.assemble(programs, FrameAssembler::AtlasPrograms{}, VIEWPORT, 0.f, frame);
+
+        for (const auto& pass : frame.passes)
+            EXPECT_FALSE(RenderHandles::isAtlasTarget(pass.target));
     }
 
     TEST(RenderBoundary, BackbufferPacketsDoNotWriteAlphaButTransientOnesDo)
