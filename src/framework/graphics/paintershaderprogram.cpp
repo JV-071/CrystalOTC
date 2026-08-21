@@ -60,6 +60,13 @@ void PainterShaderProgram::setupUniforms()
 bool PainterShaderProgram::link()
 {
     m_startTime = g_clock.seconds();
+
+    // An inert program - one built with no GL context, kept only so that a draw can name the
+    // material it wanted - has no attribute or uniform locations to bind. Reporting failure is
+    // accurate and is what the callers already tolerate: Painter keeps the object either way.
+    if (!hasGLProgram())
+        return false;
+
     bindAttributeLocation(VERTEX_ATTR, "a_Vertex");
     bindAttributeLocation(TEXCOORD_ATTR, "a_TexCoord");
     if (!ShaderProgram::link())

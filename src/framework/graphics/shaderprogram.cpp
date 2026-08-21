@@ -30,20 +30,41 @@
 #include "framework/core/graphicalapplication.h"
 #include <framework/platform/platformwindow.h>
 
+#include <atomic>
+
 uint32_t ShaderProgram::m_currentProgram = 0;
 
-ShaderProgram::ShaderProgram() :m_programId(glCreateProgram())
+namespace
+{
+    // Identity for programs that have no GL name to be identified by. Seeded far above any id
+    // glCreateProgram would hand out so that the two spaces cannot collide in a session that
+    // has both - a Vulkan run that falls back to GL builds a second Painter, with programs.
+    std::atomic_uint32_t INERT_PROGRAM_SEED{ 1u << 24 };
+}
+
+// Constructed WITHOUT a GL context, this object compiles nothing and stays inert - and that is a
+// use, not a degraded state. A draw records which material it wants by naming the program it
+// bound, and `Painter`'s replace-colour program is what every marked creature and highlighted
+// item binds; a backend that is not OpenGL needs that identity and nothing else about it. All the
+// GL entry points below guard on the program id, so an inert program is safe to link, bind and
+// destroy - it simply does none of those things.
+ShaderProgram::ShaderProgram() : m_programId(g_window.hasGLContext() ? glCreateProgram() : 0)
 {
     m_uniformLocations.fill(-1);
 
-    // Pure-Vulkan mode: no GL context, glCreateProgram legitimately returns 0 (ANGLE
-    // validates and no-ops). The program object stays inert - nothing draws through GL
-    // in this mode, so this must not be fatal.
-    if (!m_programId && !g_window.hasGLContext())
-        return;
+    if (!m_programId) {
+        if (!g_window.hasGLContext()) {
+            // The hash has to be distinct per program even here. DrawPool's state hash folds it
+            // in, and PoolState equality IS hash equality - so leaving every inert program at the
+            // same value would batch two draws that wanted different materials into one.
+            m_hash = stdext::hash_int(INERT_PROGRAM_SEED.fetch_add(1, std::memory_order_relaxed));
+            return;
+        }
 
-    if (!m_programId)
         g_logger.fatal("Unable to create GL shader program");
+    }
+
+    m_hash = stdext::hash_int(m_programId);
 }
 
 ShaderProgram::~ShaderProgram()
@@ -51,7 +72,7 @@ ShaderProgram::~ShaderProgram()
 #ifndef NDEBUG
     assert(!g_app.isTerminated());
 #endif
-    if (g_graphics.ok()) {
+    if (g_graphics.ok() && m_programId != 0) {
         g_mainDispatcher.addEvent([id = m_programId] {
             glDeleteProgram(id);
         });
@@ -69,6 +90,12 @@ bool ShaderProgram::addShader(const ShaderPtr& shader)
 
 bool ShaderProgram::addShaderFromSourceCode(ShaderType shaderType, const std::string_view sourceCode)
 {
+    // Nothing to compile into, and Shader's own constructor would reach glCreateShader. Reported
+    // as success because the caller asked for a program carrying this source and got the only
+    // thing this configuration can give it.
+    if (!hasGLProgram())
+        return true;
+
     const auto& shader = std::make_shared<Shader>(shaderType);
     if (shader->compileSourceCode(sourceCode))
         return addShader(shader);
@@ -110,6 +137,9 @@ bool ShaderProgram::link()
     if (m_linked)
         return true;
 
+    if (!hasGLProgram())
+        return false;
+
     glLinkProgram(m_programId);
 
     int value = GL_FALSE;
@@ -124,6 +154,9 @@ bool ShaderProgram::link()
 
 bool ShaderProgram::bind()
 {
+    if (!hasGLProgram())
+        return false;
+
     if (m_currentProgram == m_programId)
         return false;
 

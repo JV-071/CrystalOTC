@@ -75,15 +75,8 @@ Painter::Painter()
 {
     setResolution(g_window.getSize());
 
-    // Pure Vulkan mode (no GL context): no shader programs and no GL state.
-    // The painter lives on as a carrier of resolution/matrices (used e.g. by text layout).
-    // Note setResolution above runs before this guard and would otherwise reach
-    // glViewport, so updateGlViewport carries its own hasGLContext() check.
-    // On an emergency fallback to GL, main.cpp creates the Painter from scratch - this
-    // time with the programs.
-    if (!g_window.hasGLContext())
-        return;
-
+    // Note setResolution above would otherwise reach glViewport with no context, so
+    // updateGlViewport carries its own hasGLContext() check.
     const auto& getProgram = [](const std::string_view vertexSourceCode, const std::string_view fragmentSourceCode) {
         auto program = std::make_shared<PainterShaderProgram>();
         assert(program);
@@ -97,6 +90,20 @@ Painter::Painter()
     m_drawSolidColorProgram = getProgram(joinPainterShaderSources(glslMainVertexShader, glslPositionOnlyVertexShader), joinPainterShaderSources(glslMainFragmentShader, glslSolidColorFragmentShader));
     m_drawReplaceColorProgram = getProgram(joinPainterShaderSources(glslMainWithTexCoordsVertexShader, glslPositionOnlyVertexShader), joinPainterShaderSources(glslMainFragmentShader, glslReplaceColorFragmentShader));
     m_drawLineProgram = getProgram(lineVertexShader, lineFragmentShader);
+
+    // No GL context: the four programs above exist but compiled nothing - ShaderProgram guards
+    // every GL entry point on the id it could not create. They are still built rather than
+    // skipped, because a frame compiler names a material by WHICH program a draw bound, and the
+    // replace-colour program is the one every marked creature and highlighted item binds. Leaving
+    // it null cost that material its identity, and cost DrawPool::setShaderProgram its ability to
+    // set any shader at all, since it guards on "is the current one already the replace-colour
+    // program" and null compared equal to null.
+    //
+    // Everything below this point is live GL state, and the painter lives on either way as the
+    // carrier of resolution and matrices that text layout reads. On an emergency fallback to GL,
+    // main.cpp builds a fresh Painter - that one gets real programs.
+    if (!g_window.hasGLContext())
+        return;
 
     PainterShaderProgram::release();
 
