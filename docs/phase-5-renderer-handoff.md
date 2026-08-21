@@ -380,13 +380,18 @@ registered module programs, and the GL side of the `MaterialParams` ABI.
 
 - **Two scenes are excluded from the cross-backend gate and two more carry a widened tolerance**,
   all four naming Phase 6 and saying to restore the defaults when it lands. Those four entries are
-  the phase's acceptance test: it is done when they can be removed.
-- **`ShaderManager` registers nothing without a GL context**, so a module program has never reached
+  the phase's acceptance test: it is done when they can be removed. **Done 2026-08-21 (Phase 6):**
+  three were removed and the fourth re-justified, so the acceptance test was met as posed.
+- ~~**`ShaderManager` registers nothing without a GL context**, so a module program has never reached
   `PoolCompiler::materialOf` on the Metal backend. The material-handle-to-MSL mapping is entirely
-  unexercised rather than partly built.
+  unexercised rather than partly built.~~ **Closed 2026-08-21 (Phase 6):** registration was separated
+  from compilation, which is what gave a module program a material identity there at all.
 - **The map-composition route works but nothing shaded comes out of it.** `shader-matrix-map`
   captures all fourteen cells without incident and every one of them is a map shader, so the route
-  is proven and its payload is not.
+  is proven and its payload is not. **Payload delivered and measured 2026-08-21 (Phase 6)** — and it
+  is where that phase's largest finding came from: comparing the scene for the first time showed
+  `v_TexCoord` running the opposite way on a render target between the two backends, which six of
+  the thirteen map shaders can see.
 - **The frame is now a complete description**, which changes what a Phase 6 failure means: if a
   module material renders differently on the two backends, the recorded frames will be identical
   and the difference is in the translation. That is the triage `RecordingBackend` was built for and

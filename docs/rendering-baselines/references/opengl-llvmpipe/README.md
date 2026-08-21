@@ -27,7 +27,20 @@ on gitignored `data/things/*`. Its reference comes from run `32395555810`
 (commit `4ed061ff`), the first run after the split, which compared the other
 seven at PASS and reported this one as `UNGATED-pending-reference`.
 
-One cell in it, `forge_result_silhouette`, renders **unshaded** in CI: the shader
+**This reference is stale as of 2026-08-21 and needs a deliberate reseed.**
+`19e29e3` fixed `rain.frag`, which read an uninitialised `vec2 p` inside the
+expression that first assigns it - undefined output by construction, so every
+compiler was free to draw different rain. Initialising `p` changes what the
+shader draws on **every** backend, measured locally at 2,032 differing pixels of
+`shader-matrix` on OpenGL, all inside the Rain cell. Until this PNG is reseeded
+via the procedure in "Refreshing" below, the `shader-matrix` gate is expected to
+fail on the Rain cell and only on the Rain cell.
+
+When it is reseeded, re-verify the `forge_result_silhouette` claim below - that
+the cell is pixel-identical to the neighbouring `no shader` control - against the
+**new** reference, since the Rain cell change lands in the same image.
+
+One cell in `shader-matrix`, `forge_result_silhouette`, renders **unshaded** in CI: the shader
 is registered by `game_exaltationforge`, and that module fails to load without
 game assets, so the client logs `shader unavailable in this environment` and the
 cell draws the plain image. Verified against this reference: that cell is

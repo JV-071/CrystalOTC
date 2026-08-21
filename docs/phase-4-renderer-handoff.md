@@ -293,11 +293,14 @@ loop, if the online scenes are ever automated.
 `shader-matrix`, `shader-matrix-outfits`, and the single Outline probe in two further scenes. This
 is the Phase 6 boundary and it is stated in the manifest rather than tolerated: two scenes carry
 `renderBackendComparable: false` with a reason, and two carry a measured
-`renderBackendTolerance`. All four entries name Phase 6 and say to remove them when it lands.
+`renderBackendTolerance`. All four entries name Phase 6 and say to remove them when it lands. **Removed 2026-08-21 (Phase 6):** three are deleted outright — `outfit-masks` and `temporary-framebuffers` now compare at 0 px and `shader-matrix` at 17 — and the fourth survives only on `shader-matrix-outfits`, re-justified for shader ill-conditioning rather than for absent materials.
 
-**`ShaderManager` registers nothing without a GL context**, so a module program never reaches
+~~**`ShaderManager` registers nothing without a GL context**, so a module program never reaches
 `PoolCompiler::materialOf` on this backend and the material-handle-to-MSL mapping is entirely
-unexercised. Phase 6 will be new territory rather than a filled-in table.
+unexercised. Phase 6 will be new territory rather than a filled-in table.~~ **Closed 2026-08-21
+(Phase 6):** registration and compilation were separated, so a module program is registered without a
+GL context and only its GLSL is skipped. That is what gives it a material identity on this backend,
+and it turned out to be the unlock the whole phase rested on.
 
 **`IRenderBackend` still has no resource plane.** The Metal backend owns native objects now, which
 is the condition Phase 3 said the six virtuals were waiting for — but they would still only be
@@ -394,5 +397,8 @@ what it is given. What Phase 5 actually owes:
 - **The map-composition material**, which is the one part of the online coverage Phase 4 could not
   measure: all fourteen `shader-matrix-map` cells are map shaders, and no module program resolves on
   Metal until Phase 6. The route itself works — the scene captures — but nothing shaded comes out of it.
+  **Measured 2026-08-21 (Phase 6):** shaded output comes out of it now, and comparing it for the first
+  time found that `v_TexCoord` is vertically mirrored between the backends at that site. See
+  `docs/phase-6-renderer-handoff.md` and `known-deviations.md`.
 - **The performance envelope, on a vehicle that can measure one.** Phase 3's figures are XQuartz
   CPU time at a locked frame rate and are not comparable. Metal's are.
