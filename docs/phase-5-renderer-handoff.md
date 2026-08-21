@@ -116,6 +116,22 @@ a renderer defect — and it happened *after* an unrelated shutdown crash had al
 the same file, so the same symptom had two different causes an hour apart. The matrix script now
 sets both and preflights the display once.
 
+**A fourth way into the `gh run list` trap: labelling the output instead of filtering it.** Phases
+2, 3 and 4 each recorded a different one — needing the full SHA, passing an eight-character prefix,
+writing a full-length SHA from memory. This one is `gh run list --commit <sha> --limit 1` piped
+through a `jq` filter that prints a hardcoded job name. `--limit 1` returns the most *recent* run,
+not the one you meant, so the label is a claim the command never checked. It reported "Windows:
+completed success" for a run that was the macOS job, while the Windows job had in fact been
+**cancelled** — and a monitor that did filter by name caught the contradiction. Filter on
+`.name`, or ask for all runs and read them.
+
+**The Windows job cancels itself, and Phase 2 said so.** `build-windows.yml` sets
+`cancel-in-progress: true` on a job that takes about an hour, so pushing again while it runs kills
+it. Phase 2 recorded that Windows was cancelled on four consecutive commits before one completed;
+this phase repeated it, cancelling a run at roughly the 55-minute mark by pushing the
+documentation. When a phase's evidence depends on a green Windows build, batch the commits and push
+once.
+
 **The atlas being on is invisible in a capture.** An atlas-backed draw and a standalone one produce
 the same picture; that is the point. So a regression that quietly switched the atlases off again
 would look exactly like nothing happening, and every cross-backend measurement would silently stop
