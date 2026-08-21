@@ -320,6 +320,13 @@ sprite itself. It sits well inside the 0.1% default tolerance and needs no per-s
 but a future failure there should be checked against this region before being treated as a
 rendering regression.
 
+**It shows up in the render-path comparison too, 2026-08-21.** The legacy-versus-frame sweep
+measured this scene at 0 differing pixels in CI on run `32452811177` and at 158 on run
+`32476769563`, which is the same APNG-frame timing, not a difference between the paths - locally
+on XQuartz it is 0 on both. Worth stating because 158 appearing in a *path* comparison invites
+exactly the wrong conclusion: the two captures are one binary in one run, so a real path
+difference there would be deterministic, and this one is not.
+
 ## `particles-blends` is bimodally nondeterministic, and its high mode exceeds its own gate
 
 The scene is not merely noisy, it is **bimodal on the same binary**. Six consecutive XQuartz
