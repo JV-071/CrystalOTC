@@ -54,6 +54,15 @@ Ten scenes bit-identical covers all six composition modes, every shipped fragmen
 seven temporary-framebuffer sites including nesting and both flips, atlas growth and smooth
 padding, outfit masks, text and clipping. The eleventh is the one scene designed to differ.
 
+`windowing` is not in that sweep — it is `ciCapture: false`, because a headless runner cannot
+produce it — so it was compared by hand, and it is worth doing again after any change to target
+lifetime. It is the only scene that resizes the window and changes HUD scale mid-run, which is
+the only thing that exercises `FrameAssembler::invalidateRetainedTargets`: a resize invalidates a
+retained target's contents without changing the objects that drew into them, which is precisely
+the case a content hash cannot see. All four of its captures match at **0 differing pixels**,
+including the one at a different resolution entirely (840,000 px rather than 656,880), and its
+recorded window state is identical.
+
 **Why task 5 is not part of this gate.** The gate is *"legacy and new GL paths pixel-match"*.
 That requires both paths to exist; task 5 removes one. It is the step after the phase closes,
 not a prerequisite for closing it.
