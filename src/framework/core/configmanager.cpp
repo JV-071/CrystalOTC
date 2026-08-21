@@ -24,6 +24,10 @@
 #include <INIReader.h>
 #include "resourcemanager.h"
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
 ConfigManager g_configs;
 
 void ConfigManager::init() {
@@ -114,47 +118,68 @@ ConfigPtr ConfigManager::load(const std::string& file)
 
 void ConfigManager::setRenderBackend(const std::string& backend)
 {
-    if (backend != "gl" && backend != "vulkan" && backend != "metal") {
+    // "auto" and "opengl" joined this list in Phase 6, when the graphics-engine option became a
+    // real choice rather than a two-way vulkan/not-vulkan switch. "gl" stays accepted because it
+    // is the built-in default and what older configs contain.
+    if (backend != "auto" && backend != "gl" && backend != "opengl"
+        && backend != "vulkan" && backend != "metal") {
         g_logger.warning("[config] unknown render backend '{}' - ignoring", backend);
         return;
     }
 
     m_publicConfig.graphics.renderBackend = backend;
 
-    // config.ini sits next to the exe and is a plain text file; we replace only this one
-    // line so we don't lose comments or the rest of the user's settings
-    const std::string path = "config.ini";
-    std::ifstream in(path);
-    if (!in.is_open()) {
-        g_logger.warning("[config] cannot open {} to write the backend", path);
-        return;
-    }
+    // Read and write through the SAME filesystem the config is loaded from.
+    //
+    // loadPublicConfig() reads "config.ini" through g_resources, i.e. PhysFS. This used to write
+    // it with std::ofstream to the process working directory, which are not the same place - and
+    // for a .app launched from Finder the working directory is "/", so the user's choice was
+    // written somewhere the client would never read back, if it could be written at all. The
+    // graphics-engine option is the first setting that actually depends on this round-tripping.
+    //
+    // Only the one line is replaced, so comments and the rest of the user's settings survive; a
+    // missing file is created rather than treated as a failure, because the client ships without
+    // one and every fresh install would otherwise drop the setting silently.
+    static constexpr auto PATH = "config.ini";
 
     std::vector<std::string> lines;
-    std::string line;
     bool replaced = false;
 
-    while (std::getline(in, line)) {
-        if (line.rfind("renderBackend", 0) == 0) {
-            lines.push_back("renderBackend = " + backend);
-            replaced = true;
-        } else {
-            lines.push_back(line);
+    if (g_resources.fileExists(PATH)) {
+        std::stringstream content(g_resources.readFileContents(PATH));
+        std::string line;
+        while (std::getline(content, line)) {
+            if (line.rfind("renderBackend", 0) == 0) {
+                lines.push_back("renderBackend = " + backend);
+                replaced = true;
+            } else {
+                lines.push_back(line);
+            }
         }
+    } else {
+        // A new file needs the section header, or the next read parses nothing out of it.
+        lines.emplace_back("[graphics]");
     }
-    in.close();
 
     if (!replaced)
         lines.push_back("renderBackend = " + backend);
 
+    // Write to the WORK DIR, which is the search path config.ini is actually read from at
+    // startup - not to the PhysFS write dir, and not to the process working directory. All three
+    // are different places on a bundled .app, and only this one round-trips. ResourceManager has
+    // the same requirement in updateFiles(), which solves it by swapping the write dir; writing
+    // the real path directly avoids mutating that global state for one line of text.
+    const auto path = std::filesystem::path(g_resources.getWorkDir()) / PATH;
+
     std::ofstream out(path, std::ios::trunc);
     if (!out.is_open()) {
-        g_logger.warning("[config] cannot write {}", path);
+        g_logger.warning("[config] cannot write {}", path.string());
         return;
     }
 
     for (const auto& l : lines)
         out << l << "\n";
+    out.close();
 
     g_logger.info("[config] render backend set to '{}' - takes effect after a client restart", backend);
 }
