@@ -214,6 +214,18 @@ viewport, but an *enabled empty* scissor — the compiler's way of saying "this 
 target, so draw nothing" — is a zero-sized rect Metal rejects outright. It has no pixels either
 way, so the draw is dropped before it is encoded.
 
+**`gh run list --commit` fails silently, and there is more than one way in.** Phase 2 recorded it
+as "needs the full SHA" and Phase 3 rediscovered it within the hour by passing an eight-character
+prefix. Phase 4 found a third route: writing out a full-length SHA from memory rather than
+resolving it. `git rev-parse` costs nothing and is the only thing that makes the argument true.
+
+What makes this worth a third entry is the failure mode rather than the cause. The command returns
+an empty list for a commit that does not exist, which is indistinguishable from a commit whose jobs
+have not started — so a monitor built on it polls forever, emits nothing, and its silence reads
+exactly like "still running". Two such monitors ran here against invented SHAs and would have been
+reported as green-by-timeout if nobody had asked what they were watching. Any watch on this command
+should resolve the SHA first and treat "no runs at all" as a state to report, not to wait through.
+
 **Frame rate carries information on this vehicle, and did not on the last one.** XQuartz
 advertises no swap-control extension, so Phase 3 measured both paths at an identical display-locked
 ~121 fps. `CAMetalLayer.displaySyncEnabled` genuinely comes off: the same scene measures 320–400
