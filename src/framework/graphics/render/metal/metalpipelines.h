@@ -26,6 +26,7 @@
 
 #include "metalcontext.h"
 
+#include <string>
 #include <unordered_map>
 
 /*
@@ -69,10 +70,28 @@ public:
     [[nodiscard]] MTLVertexDescriptor* vertexDescriptor() const { return m_vertexDescriptor; }
 
 private:
-    // Null for a material with no MSL function - the module programs, which arrive with the
-    // Phase 6 shader toolchain. The caller falls back to the default built-in, which draws the
-    // geometry unshaded rather than not at all.
-    id<MTLFunction> fragmentFunctionFor(uint16_t material, bool textured);
+    // A material is a pair of functions, not a fragment variant against one shared vertex stage.
+    // The built-ins share `m_vertexFunction` because they were written to; a translated module
+    // material carries its own, because SPIRV-Cross derives the fragment's [[stage_in]] struct
+    // from the same varying interface it derived the vertex's output from, and pairing a
+    // generated fragment with a hand-written vertex would make that agreement a matter of
+    // inspection rather than of construction.
+    struct MaterialFunctions
+    {
+        id<MTLFunction> vertex{ nil };
+        id<MTLFunction> fragment{ nil };
+    };
+
+    // Falls back to the built-ins for a module material with no translated source - one
+    // registered from inline code, or one whose .frag the toolchain does not cover - and says so
+    // once per material rather than once per process, because "which effect is missing" is the
+    // useful question.
+    MaterialFunctions functionsFor(uint16_t material, bool textured);
+
+    // Compiles one material's MSL into its own MTLLibrary, on first use. Returns a pair of nils
+    // if there is no source for the key or the compile fails; both outcomes are cached, so a
+    // failure costs one compile rather than one per frame.
+    MaterialFunctions moduleFunctions(const std::string& sourceKey);
 
     MetalContext* m_context{ nullptr };
 
@@ -86,7 +105,12 @@ private:
 
     std::unordered_map<uint32_t, id<MTLRenderPipelineState>> m_pipelines;
 
-    bool m_loggedModuleMaterial{ false };
+    // Keyed on the .frag basename rather than on the material handle, because several
+    // registered shader names share one file and there is no reason to compile it twice.
+    std::unordered_map<std::string, MaterialFunctions> m_moduleFunctions;
+
+    // Materials already reported as untranslated, so the log says each one once.
+    std::unordered_map<uint16_t, bool> m_reportedMaterials;
 };
 
 #endif // CRYSTALOTC_COCOA_WINDOW

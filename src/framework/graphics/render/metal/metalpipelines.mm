@@ -23,6 +23,9 @@
 #ifdef CRYSTALOTC_COCOA_WINDOW
 
 #include "metalpipelines.h"
+
+#include "metalmodulematerials.h"
+#include <framework/graphics/render/materialregistry.h>
 #include "metalshaders.h"
 
 #include <framework/core/logger.h>
@@ -137,6 +140,8 @@ bool MetalPipelineCache::initialize(MetalContext* context)
 void MetalPipelineCache::shutdown()
 {
     m_pipelines.clear();
+    m_moduleFunctions.clear();
+    m_reportedMaterials.clear();
     m_vertexDescriptor = nil;
     m_replaceColorFunction = nil;
     m_solidFunction = nil;
@@ -146,30 +151,101 @@ void MetalPipelineCache::shutdown()
     m_context = nullptr;
 }
 
-id<MTLFunction> MetalPipelineCache::fragmentFunctionFor(const uint16_t material, const bool textured)
+MetalPipelineCache::MaterialFunctions MetalPipelineCache::moduleFunctions(const std::string& sourceKey)
 {
-    if (material >= static_cast<uint16_t>(BuiltinMaterial::FirstModule)) {
-        // A registered module program - one of the 27 the client can bind. Their MSL arrives with
-        // the Phase 6 toolchain; until then the geometry draws with the default built-in, which
-        // is the documented fallback and is visible as "the effect is missing" rather than as a
-        // hole in the frame.
-        if (!m_loggedModuleMaterial) {
-            m_loggedModuleMaterial = true;
-            g_logger.info("[metal] module materials are not translated yet (first was {}); "
-                          "drawing them with the default built-in", material);
+    if (const auto it = m_moduleFunctions.find(sourceKey); it != m_moduleFunctions.end())
+        return it->second;
+
+    MaterialFunctions functions;
+
+    const MetalModuleMaterial* material = nullptr;
+    for (const auto& candidate : METAL_MODULE_MATERIALS) {
+        if (candidate.key == sourceKey) {
+            material = &candidate;
+            break;
         }
-        return textured ? m_texturedFunction : m_solidFunction;
+    }
+
+    if (!material) {
+        m_moduleFunctions.emplace(sourceKey, functions);
+        return functions;
+    }
+
+    NSError* error = nil;
+    NSString* source = [[NSString alloc] initWithBytes:material->source.data()
+                                                length:material->source.size()
+                                              encoding:NSUTF8StringEncoding];
+
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    // Same reasoning as the built-ins: the point of this backend is comparability with GL, and
+    // reassociation is exactly what would cost it. Several of these shaders accumulate a sum
+    // over a loop - bloom takes 81 taps - where reassociation is visible rather than theoretical.
+    options.fastMathEnabled = NO;
+
+    id<MTLLibrary> library = [m_context->device() newLibraryWithSource:source options:options error:&error];
+    if (!library) {
+        g_logger.warning("[metal] module material '{}' failed to compile: {}", sourceKey,
+                         error ? [[error localizedDescription] UTF8String] : "unknown error");
+        m_moduleFunctions.emplace(sourceKey, functions);
+        return functions;
+    }
+
+    [library setLabel:[NSString stringWithUTF8String:sourceKey.c_str()]];
+
+    functions.vertex = [library newFunctionWithName:
+        [NSString stringWithUTF8String:std::string{ material->vertexEntry }.c_str()]];
+    functions.fragment = [library newFunctionWithName:
+        [NSString stringWithUTF8String:std::string{ material->fragmentEntry }.c_str()]];
+
+    if (!functions.vertex || !functions.fragment) {
+        g_logger.warning("[metal] module material '{}' compiled but is missing an entry point",
+                         sourceKey);
+        functions = {};
+    }
+
+    m_moduleFunctions.emplace(sourceKey, functions);
+    return functions;
+}
+
+MetalPipelineCache::MaterialFunctions MetalPipelineCache::functionsFor(const uint16_t material,
+                                                                      const bool textured)
+{
+    const MaterialFunctions builtin{
+        m_vertexFunction,
+        textured ? m_texturedFunction : m_solidFunction
+    };
+
+    if (material >= static_cast<uint16_t>(BuiltinMaterial::FirstModule)) {
+        // Every translated module fragment samples u_Tex0, so one bound to untextured geometry
+        // would read a texture argument nothing filled. GL would have run the same fragment
+        // against whatever happened to be bound to unit 0, which is not behaviour worth
+        // reproducing; the built-in draws the geometry instead.
+        if (!textured)
+            return builtin;
+
+        if (const auto* desc = MaterialRegistry::instance().resolve(MaterialHandle{ material });
+            desc && !desc->sourceKey.empty()) {
+            if (const auto functions = moduleFunctions(desc->sourceKey); functions.fragment)
+                return functions;
+        }
+
+        if (m_reportedMaterials.try_emplace(material, true).second) {
+            const auto* desc = MaterialRegistry::instance().resolve(MaterialHandle{ material });
+            g_logger.info("[metal] no translated MSL for material {} ('{}'); drawing it unshaded",
+                          material, desc ? desc->name : std::string{ "unregistered" });
+        }
+        return builtin;
     }
 
     switch (static_cast<BuiltinMaterial>(material)) {
         case BuiltinMaterial::SolidColor:
-            return m_solidFunction;
+            return { m_vertexFunction, m_solidFunction };
         case BuiltinMaterial::ReplaceColor:
             // A replace-colour draw still samples: the alpha it tests comes from the texture.
-            return textured ? m_replaceColorFunction : m_solidFunction;
+            return { m_vertexFunction, textured ? m_replaceColorFunction : m_solidFunction };
         case BuiltinMaterial::Textured:
         default:
-            return textured ? m_texturedFunction : m_solidFunction;
+            return builtin;
     }
 }
 
@@ -179,9 +255,11 @@ id<MTLRenderPipelineState> MetalPipelineCache::get(const MetalPipelineKey& key)
     if (const auto it = m_pipelines.find(packed); it != m_pipelines.end())
         return it->second;
 
+    const auto functions = functionsFor(key.material, key.textured);
+
     MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
-    desc.vertexFunction = m_vertexFunction;
-    desc.fragmentFunction = fragmentFunctionFor(key.material, key.textured);
+    desc.vertexFunction = functions.vertex;
+    desc.fragmentFunction = functions.fragment;
     desc.vertexDescriptor = m_vertexDescriptor;
     desc.label = [NSString stringWithFormat:@"CrystalOTC material %u blend %u%s%s%s",
                   key.material, static_cast<unsigned>(key.blend),

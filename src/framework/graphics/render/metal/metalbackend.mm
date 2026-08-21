@@ -214,13 +214,38 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
     [encoder setFragmentBytes:&fragmentUniforms length:sizeof(fragmentUniforms)
                       atIndex:MetalABI::FRAGMENT_UNIFORM_BUFFER];
 
-    // packet.params is deliberately not uploaded: no built-in material reads MaterialParams, and
-    // the materials that do are the module programs the Phase 6 toolchain brings. The block is a
-    // frozen ABI, so binding it is a two-line change when there is something to read it.
+    // The frozen parameter block. Bound unconditionally rather than only for materials that read
+    // it: a translated module fragment declares it or does not, and Metal ignores a buffer bound
+    // to a slot the function never names, so branching here would only mean the binding could be
+    // wrong. A built-in never reads it. Packets with no block of their own get the frame's
+    // defaults - FrameAssembler supplies one per pass - so there is no null case to handle.
+    static constexpr MaterialParams DEFAULT_MATERIAL_PARAMS{};
+    const MaterialParams& params = packet.params ? *packet.params : DEFAULT_MATERIAL_PARAMS;
+    [encoder setFragmentBytes:&params length:sizeof(params)
+                      atIndex:MetalABI::FRAGMENT_MATERIAL_PARAMS_BUFFER];
 
     if (textured) {
         [encoder setFragmentTexture:texture.texture atIndex:MetalABI::FRAGMENT_TEXTURE_SLOT];
         [encoder setFragmentSamplerState:texture.sampler atIndex:MetalABI::FRAGMENT_SAMPLER_SLOT];
+
+        // u_Tex1..3. Only Fog and Snow use them, and only through a map shader - but without
+        // them those two sample an unbound texture argument, which Metal treats as an error
+        // rather than as black. GL reaches the same textures from inside Painter::drawArrays,
+        // off the bound program; here they travel in the packet because there is no program to
+        // read them off.
+        for (size_t unit = 0; unit < std::size(packet.extraTex); ++unit) {
+            if (!packet.extraTex[unit].isValid())
+                continue;
+
+            const auto extra = resources.resolve(packet.extraTex[unit]);
+            if (!extra.isValid())
+                continue;
+
+            [encoder setFragmentTexture:extra.texture
+                                atIndex:MetalABI::FRAGMENT_TEXTURE_SLOT + unit + 1];
+            [encoder setFragmentSamplerState:extra.sampler
+                                     atIndex:MetalABI::FRAGMENT_SAMPLER_SLOT + unit + 1];
+        }
     }
 
     // Metal keeps the scissor across draws in one encoder, so "no clipping" has to be stated as
