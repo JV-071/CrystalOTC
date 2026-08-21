@@ -257,13 +257,23 @@ jobs:
           # (windowing is a desktop driver, not a capture), so no second filter is needed here -
           # the manifest stays the single source of truth, exactly as the Linux job treats it.
           captured=0
+          misses=0
           for scene in "${scenes[@]}"; do
+            # If the first few produce nothing, none of them will: the question this step asks is
+            # whether a runner with no window server can present-less render AT ALL, and three
+            # consecutive misses have already answered it. Bail rather than spend eleven timeouts
+            # confirming it.
+            if [ "$misses" -ge 3 ] && [ "$captured" -eq 0 ]; then
+              echo "giving up after $misses consecutive misses"
+              break
+            fi
+
             log="$OUT/$scene.log"
             read -r -a client_args <<< "$(python3 tools/renderer_scenes.py field "$scene" command)"
             "$APP" "${client_args[@]}" > "$log" 2>&1 &
             pid=$!
             # The capture driver exits on its own; this only bounds a hang.
-            for _ in $(seq 1 90); do
+            for _ in $(seq 1 60); do
               kill -0 "$pid" 2>/dev/null || break
               sleep 1
             done
@@ -274,8 +284,10 @@ jobs:
             if [ -f "$src" ]; then
               cp "$src" "$OUT/$scene.png"
               captured=$((captured + 1))
+              misses=0
               echo "captured $scene"
             else
+              misses=$((misses + 1))
               echo "no capture for $scene (see $scene.log)"
             fi
           done
