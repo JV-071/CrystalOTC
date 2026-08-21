@@ -55,7 +55,7 @@ Repeatability is two or more consecutive captures compared with
 | `startup-ui` | [x] | offline | gated | 0 px |
 | `ui-clipping-opacity` | [x] | offline | gated | 0 px |
 | `text-matrix` | [x] | offline | gated | 0 px |
-| `particles-blends` | [x] | offline | gated | within tolerance, max delta 1 |
+| `particles-blends` | [x] | offline | gated | within tolerance, max delta 1 at this checkpoint; **re-measured 2026-08-20 as bimodal — 0 px within a mode, 540 px (max delta 252) between modes, and the high mode fails its own CI gate** — see known-deviations |
 | `composition-all` | [x] | offline | gated | 0 px |
 | `graph-lines` | [x] | offline | gated | 0 px |
 | `atlas-resources` | [x] | offline | gated | 0 px |

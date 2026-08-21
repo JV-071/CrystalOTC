@@ -18,7 +18,7 @@ The first local reference capture completed on 2026-08-19 with XQuartz 2.8.6 on 
 
 The `ui-clipping-opacity` and `text-matrix` client fixtures were also captured twice on that setup. Each repeated capture was byte-equivalent at the decoded pixel level: 656,880 pixels compared, zero pixels different. Visual inspection found no clipping, alpha, alignment, TTF-stroke, or rotation defect.
 
-The `particles-blends` fixture uses one fixed, single-burst particle for each composition mode used by live code: NORMAL, MULTIPLY, and the legacy ADD equation. Two settled captures had no pixels beyond the default per-channel tolerance; the maximum observed channel delta was 1. The ADD particle is intentionally smaller because its high-contrast center magnifies harmless one-channel raster rounding while still making the blend equation unmistakable.
+The `particles-blends` fixture uses one fixed, single-burst particle for each composition mode used by live code: NORMAL, MULTIPLY, and the legacy ADD equation. ~~Two settled captures had no pixels beyond the default per-channel tolerance; the maximum observed channel delta was 1.~~ **Re-measured 2026-08-20 (Phase 2), and the two-capture figure was misleading: the scene is bimodal.** Six consecutive captures on one binary split into two modes — within a mode 0 differing pixels (max channel delta 1-2), between modes **540 of 656,880 (0.0822%) at max channel delta 252**, confined to a 26x26 region at x 797-822 / y 311-336, the centre of the ADD (LEGACY) card. The original pair happened to land in the same mode. See *`particles-blends` is bimodally nondeterministic, and its high mode exceeds its own gate* below. The ADD particle is intentionally smaller because its high-contrast center magnifies harmless one-channel raster rounding while still making the blend equation unmistakable.
 
 The `outfit-masks` fixture freezes creature animation and captures mask recoloring, both addon layers, a mount, the creature-preview framebuffer, and the framebuffer-backed Outline shader. Outline retains its production `u_Time` brightness pulse, which before shader time was pinned made two captures differ in 520 pixels (0.0792%, below the 0.1% policy limit), confined to the outlined preview. With `g_shaders.setFixedTime` the scene now measures 0 differing pixels; see *Capture determinism controls* below.
 
@@ -33,7 +33,7 @@ The `graph-lines` fixture drives the real `UIGraph` action-lambda path with fixe
 The `atlas-resources` fixture loads sixteen unique 522x522 smooth textures, an atlas-eligible 1344x320 sheet, and an APNG frame through the production foreground atlas. Both XQuartz runs grew the linear filter group to three 2048x2048 layers. Releasing and reloading four textures left one reusable inactive size bucket while retaining 41 cached entries. Clearing the texture-manager cache also freezes the displayed APNG after its first upload. The two final captures were pixel-identical.
 
 The first XQuartz-versus-llvmpipe comparison was run on 2026-08-20, against the reference set
-as seeded at 09:07 that morning. Five of the seven gated scenes agree across the two GL
+as seeded at 09:07 that morning. Five of the seven scenes gated at that date agree across the two GL
 stacks; the two that do not are characterised below. XQuartz performance numbers are still
 never compared directly with llvmpipe or native GPU numbers.
 
@@ -316,6 +316,39 @@ runs compared it at 0 and then at 158 differing pixels, confined to a 23x12 regi
 sprite itself. It sits well inside the 0.1% default tolerance and needs no per-scene override,
 but a future failure there should be checked against this region before being treated as a
 rendering regression.
+
+## `particles-blends` is bimodally nondeterministic, and its high mode exceeds its own gate
+
+The scene is not merely noisy, it is **bimodal on the same binary**. Six consecutive XQuartz
+captures at `021112b` fell into two clusters: within a cluster **0 differing pixels** (max
+channel delta 1-2), between clusters **540 of 656,880 (0.0822%) at max channel delta 252**. The
+differing pixels are one 26x26 region at x 797-822 / y 311-336 — the centre of the ADD (LEGACY)
+card, i.e. the `renderer-baseline-add-weird` emitter, not raster noise spread over the frame.
+
+This matters because the scene is **gated**. It takes the manifest defaults with no override
+(`channelTolerance` 2, `maxDifferentFraction` 0.001), and the committed llvmpipe reference was
+seeded from whichever mode that run happened to produce. Compared against that reference with the
+exact gate parameters, the six runs above split:
+
+| Mode | vs committed reference | Fraction | Max channel delta | Gate |
+|---|---|---|---|---|
+| low (4 of 6 runs) | 168 px | 0.0256% | 50-52 | PASS |
+| high (2 of 6 runs) | 698 px | **0.1063%** | 252 | **FAIL** |
+
+`render-baseline-linux.yml` fails the job on a nonzero comparator exit, so **this scene can fail
+CI spuriously with no change to the client**. An independent four-run measurement taken the same
+day put the cross-mode difference at 946 px (0.1440%), so the size of the excursion varies between
+sessions as well; both measurements land above the 0.001 limit against the reference.
+
+Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
+preference order: find and remove the source of the bimodality in the emitter (it is a
+single-burst emitter, so a genuinely fixed frame should be reachable); or give the scene a
+`maxDifferentFraction`/`toleranceReason` override wide enough for the high mode, the way `map-core`
+carries one for its creature; or ungate it. Do not simply reseed the reference — that picks a mode
+at random and leaves the other one failing.
+
+The `particles-blends` row in the XQuartz-versus-llvmpipe table above (168 px, 0.026%, max delta 52)
+was measured in the low mode, and is reproducible only in the low mode.
 
 ## CI gating
 
