@@ -71,6 +71,15 @@ public:
     [[nodiscard]] id<MTLTexture> findTarget(RenderTargetHandle handle) const;
     [[nodiscard]] Size targetSize(RenderTargetHandle handle) const;
 
+    // True once per newly created or resized target, and false forever after.
+    //
+    // A freshly allocated private texture holds undefined memory, and a pass may legitimately
+    // want to LOAD its target rather than clear it - the offscreen backbuffer is loaded every
+    // frame, because the client draws over what is already there rather than starting from
+    // nothing. On the FIRST frame there is nothing to draw over, and "whatever this memory used
+    // to be" is not it. The caller upgrades that one load to a clear.
+    bool takeUndefined(RenderTargetHandle handle);
+
     // Makes every texture the frame samples resident, and applies its dynamic uploads. Runs
     // before any pass so that encoding never has to stop to create a resource.
     void prepareFrame(const RenderFrame& frame, id<MTLCommandBuffer> commands);
@@ -96,6 +105,7 @@ private:
     {
         id<MTLTexture> texture{ nil };
         Size size;
+        bool undefined{ true };
     };
 
     id<MTLSamplerState> samplerFor(bool smooth, bool repeat, bool mipmapped);

@@ -162,8 +162,9 @@ jobs:
           done
           echo "no X11, and AppKit/Metal/QuartzCore all present"
 
-      # Boots the real client far enough to load every Lua module. It cannot present a frame
-      # without a window server, so the marker checked here is module startup, not rendering.
+      # Boots the real client far enough to load every Lua module and bring up the renderer. It
+      # cannot present a frame without a window server, so the markers checked here are module
+      # startup and backend selection, not pixels.
       - name: Smoke launch
         run: |
           set -uo pipefail
@@ -192,6 +193,17 @@ jobs:
             echo "::error::client did not reach graphics init; see the smoke log above"
             exit 1
           fi
+
+          # Since Phase 4 the same no-GL branch is what selects the Metal backend, so the run
+          # can assert which renderer came up rather than only that graphics init was reached.
+          # A hosted runner has no window server and therefore never presents a frame, but the
+          # device, the queue and the built-in MSL library are all created before one is needed -
+          # so a failure here is a real Metal problem and not a missing display.
+          if ! grep -q "render path: frame (backend 'metal')" "$RUNNER_TEMP/smoke.log"; then
+            echo "::error::client did not bring up the Metal backend; see the smoke log above"
+            exit 1
+          fi
+
           if [ "$alive" -ne 1 ]; then
             echo "::error::client exited on its own during the smoke launch"
             exit 1

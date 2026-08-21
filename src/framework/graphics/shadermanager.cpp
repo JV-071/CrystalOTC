@@ -57,9 +57,16 @@ void ShaderManager::putShader(std::string name, const PainterShaderProgramPtr& s
     }
 }
 
-// Pure Vulkan mode has no GL context: compiling GLSL painter shaders is impossible and
-// pointless (the Vulkan feeder ignores painter shader programs). Skipping creation here
-// silences dozens of red "failed to compile shader" lines at startup.
+// No GL context means no GLSL to compile: the Vulkan feeder ignores painter shader programs, and
+// the Metal backend has its own. Skipping creation here silences dozens of red "failed to compile
+// shader" lines at startup.
+//
+// The consequence is worth stating rather than discovering. A module program that is never
+// registered has no id, so PoolCompiler maps every draw that wanted one to the default material
+// and a backend is never asked for it - which is why every difference the Metal-versus-OpenGL
+// sweep reports is a module shader, and why the two shader-matrix scenes are marked as not
+// comparable across backends rather than given a tolerance. Phase 6, which brings the .frag to
+// MSL toolchain, is what changes this.
 static bool skipGlShaders()
 {
     if (g_window.hasGLContext())
@@ -68,7 +75,7 @@ static bool skipGlShaders()
     static bool logged = false;
     if (!logged) {
         logged = true;
-        g_logger.info("Vulkan mode: GL painter shaders are skipped");
+        g_logger.info("no GL context: GLSL painter shaders are not compiled");
     }
     return true;
 }

@@ -170,6 +170,13 @@ MetalContext::BufferSlice MetalContext::allocate(const void* data, const size_t 
         // Growth doubles from whatever this slot already had, so a frame that allocates in many
         // small pieces does not reallocate on each one. Only this frame index touches this
         // buffer, and this frame index is free by definition - the semaphore said so.
+        //
+        // Growing MID-FRAME abandons the old buffer with the cursor reset to zero, which reads
+        // like it would corrupt everything already written this frame and does not: a BufferSlice
+        // holds its buffer strongly, so slices handed out before the growth keep the old buffer
+        // alive at the offsets they were given, and anything already encoded is retained by the
+        // command buffer until it completes. The old allocation is released when the last slice
+        // referring to it is dropped, which is the next frame.
         uint32_t capacity = arena.buffer ? static_cast<uint32_t>([arena.buffer length]) : INITIAL_ARENA_BYTES;
         while (capacity < required)
             capacity *= 2;

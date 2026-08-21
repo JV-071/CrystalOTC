@@ -198,6 +198,7 @@ id<MTLTexture> MetalResources::ensureTarget(const RenderTargetHandle handle, con
 
     target.texture = [m_context->device() newTextureWithDescriptor:desc];
     target.size = target.texture ? size : Size();
+    target.undefined = true;
 
     if (target.texture) {
         [target.texture setLabel:[NSString stringWithFormat:@"CrystalOTC target %u (%dx%d)",
@@ -205,6 +206,16 @@ id<MTLTexture> MetalResources::ensureTarget(const RenderTargetHandle handle, con
     }
 
     return target.texture;
+}
+
+bool MetalResources::takeUndefined(const RenderTargetHandle handle)
+{
+    const auto it = m_targets.find(handle.id);
+    if (it == m_targets.end() || !it->second.undefined)
+        return false;
+
+    it->second.undefined = false;
+    return true;
 }
 
 id<MTLTexture> MetalResources::findTarget(const RenderTargetHandle handle) const

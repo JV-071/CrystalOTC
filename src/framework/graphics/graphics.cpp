@@ -56,7 +56,11 @@ void Graphics::init()
         g_textures.init();
         g_fonts.init();
 
-        g_logger.info("graphics in Vulkan mode: OpenGL initialization skipped");
+        // The trailing phrase is load-bearing beyond being readable: build-macos.yml's smoke
+        // launch greps for "OpenGL initialization skipped" as its proof that the client reached
+        // graphics init. The leading half stopped saying "Vulkan mode" once Metal existed - this
+        // branch is about the absence of a GL context, not about which backend fills the gap.
+        g_logger.info("graphics: the window provides no GL context, OpenGL initialization skipped");
         return;
     }
 

@@ -272,12 +272,18 @@ void MetalBackend::Impl::encodePass(id<MTLCommandBuffer> commands, const RenderP
     desc.colorAttachments[0].texture = target;
     desc.colorAttachments[0].storeAction = MTLStoreActionStore;
 
-    if (pass.load == LoadAction::Clear) {
+    // Keep is not a nicety: a pool whose content hash is unchanged is re-composited without being
+    // re-rendered, and every pass after the first into the same target continues it. The one
+    // exception is a target nobody has written yet - a freshly allocated private texture holds
+    // undefined memory, and loading that is not the same as loading what the last frame left.
+    const bool undefinedContents = resources.takeUndefined(pass.target);
+
+    if (pass.load == LoadAction::Clear || undefinedContents) {
         desc.colorAttachments[0].loadAction = MTLLoadActionClear;
-        desc.colorAttachments[0].clearColor = clearColorOf(pass.clearColor);
+        desc.colorAttachments[0].clearColor = pass.load == LoadAction::Clear
+            ? clearColorOf(pass.clearColor)
+            : MTLClearColorMake(0.0, 0.0, 0.0, 0.0);
     } else {
-        // Keep is not a nicety: a pool whose content hash is unchanged is re-composited without
-        // being re-rendered, and every pass after the first into the same target continues it.
         desc.colorAttachments[0].loadAction = MTLLoadActionLoad;
     }
 
