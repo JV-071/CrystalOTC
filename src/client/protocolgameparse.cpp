@@ -47,11 +47,31 @@
 
 void ProtocolGame::parseMessage(const InputMessagePtr& msg)
 {
+    // Keep this protocol alive for the whole loop.
+    //
+    // A handler can end the game - a logout, a death, a kick - and Game::processDisconnect()
+    // then sets Game::m_protocolGame to nullptr, which drops the LAST reference to this object
+    // and destroys it while its own parse loop is still on the stack. `msg` is a reference to
+    // this object's own m_inputMessage member, so from that moment the loop condition reads
+    // freed memory.
+    //
+    // That is the logout crash: SIGSEGV on the network thread at ProtocolGame::parseMessage,
+    // faulting inside InputMessage::eof() on its two adjacent uint16 fields, reached through a
+    // dangling pointer. Reproduced deterministically by sending a logout; the migration had
+    // seen it once before, as an unexplained one-off during an online capture.
+    const auto self = asProtocol();
+
     int opcode = -1;
     int prevOpcode = -1;
 
     try {
         while (!msg->eof()) {
+            // Surviving the teardown is not the same as having something to parse into. Once
+            // the protocol is disconnected the game state this packet's remaining opcodes would
+            // be applied to has already been reset, so stop rather than parse into it.
+            if (m_disconnected)
+                break;
+
             opcode = msg->getU8();
             AUTO_STAT(STATS_PACKETS, fmt::format("{} (0x{:02X})", opcode, opcode));
 

@@ -179,6 +179,11 @@ void Protocol::recv()
         return;
     }
 
+    // Nothing left to read on a protocol that has been disconnected, and the state this would
+    // reset belongs to an object the teardown has already finished with.
+    if (m_disconnected)
+        return;
+
     m_inputMessage->reset();
 
     // first update message header size
@@ -225,6 +230,20 @@ void Protocol::internalRecvHeader(const uint8_t* buffer, const uint16_t size)
 
 void Protocol::internalRecvData(const uint8_t* buffer, const uint16_t size)
 {
+    // Keep this protocol alive for the whole callback.
+    //
+    // The read callbacks capture asProtocol(), so a strong reference exists - but it is owned by
+    // the connection's std::function, and handling a packet here can end the game, which calls
+    // Protocol::disconnect(), which closes and resets m_connection. That destroys the very
+    // std::function currently executing, and with it the only remaining reference to this
+    // object. Everything after that point in this frame - including the recv() that queues the
+    // next read - would run on freed memory.
+    //
+    // This is the logout crash. Without it the fault simply moves: fixing only parseMessage
+    // relocated it from InputMessage::eof() to Protocol::recv() storing through a freed
+    // m_inputMessage.
+    const auto self = asProtocol();
+
     // process data only if really connected
     if (!isConnected()) {
         g_logger.traceError("received data while disconnected");
