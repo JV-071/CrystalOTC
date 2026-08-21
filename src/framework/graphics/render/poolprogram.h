@@ -76,6 +76,21 @@ struct PoolProgram
     MaterialParams compositionParams;
     float compositionOpacity{ 1.f };
 
+    // --- known omission ------------------------------------------------------------------
+    // True when this pool owns a CPU texture atlas, whose maintenance this program does NOT
+    // describe. That is a placement problem, not a missing feature, and it is worth stating
+    // rather than discovering: the atlas's pending-texture list is filled by
+    // `PoolState::execute` on the RENDER thread while the frame is being drawn, so at
+    // release() time - on the producer thread, which is where this program is compiled -
+    // there is nothing yet to compile. The passes have to be emitted by whoever runs the
+    // frame, from the atlas's state at that moment.
+    //
+    // A backend consuming this program must therefore still perform atlas maintenance itself
+    // (bind each dirty layer, blend off, clear-rect plus padding draw plus main draw per
+    // pending texture) before the passes that sample those layers. Flagged here so a compiled
+    // frame is never mistaken for a complete description of what the GPU has to do.
+    bool requiresAtlasMaintenance{ false };
+
     // --- honesty -----------------------------------------------------------------------
     // Anything the compiler met and could not express. A non-empty list means this program is
     // NOT a faithful description of the frame and must not drive a backend. Reporting beats
@@ -90,6 +105,7 @@ struct PoolProgram
         arena.clear();
         passes.clear();
         uploads.clear();
+        requiresAtlasMaintenance = false;
         hasComposition = false;
         compositionSource = {};
         compositionDest = {};

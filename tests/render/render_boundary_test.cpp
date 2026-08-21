@@ -478,6 +478,21 @@ namespace {
         DrawPool::setCompileFrames(false);
     }
 
+    TEST(RenderBoundary, AtlasMaintenanceIsDeclaredAsUnmodelled)
+    {
+        // The LIGHT pool owns no atlas, so nothing is owed.
+        Pool pool;
+        pool.rect(Rect(0, 0, 10, 10));
+
+        PoolProgram program;
+        pool.compile(program);
+
+        EXPECT_FALSE(program.requiresAtlasMaintenance);
+        // Not modelling the atlas must not poison the program - it is a stated omission with
+        // a known owner, not an idiom the compiler failed to express.
+        EXPECT_TRUE(program.isComplete());
+    }
+
     TEST(RenderBoundary, ContentHashTracksTheCompiledOutput)
     {
         Pool same1, same2, different;

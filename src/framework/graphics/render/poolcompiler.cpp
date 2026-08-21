@@ -105,6 +105,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     out.clear();
     out.type = pool.m_type;
     out.uploads = pool.m_uploads;
+    out.requiresAtlasMaintenance = pool.m_atlas != nullptr;
 
     const bool hasTarget = pool.m_framebuffer != nullptr && pool.m_framebuffer->isValid();
 
