@@ -547,7 +547,7 @@ Two things this comparison is **not**. It is not a reference gate - the checked-
 are same-environment CI references, not a cross-stack oracle for Metal, ~~and a macOS reference set
 still has to be captured and frozen.~~ **Resolved 2026-08-21 (Phase 6):** the blocker was that Metal
 could not draw module materials, so freezing a macOS set would have frozen unshaded geometry. That is
-gone. Once `shader-matrix.png` is reseeded for the `rain.frag` fix, gating macOS Metal against the
+gone, and `shader-matrix.png` was reseeded for the `rain.frag` fix on 2026-08-21. Gating macOS Metal against the
 **existing** llvmpipe references becomes a step Phase 7 can take rather than an open question -
 Phase 5 already measured nine of eleven scenes as byte-identical across two hosted runners. The
 "not a reference gate" half of this sentence stands unchanged. And it is not a performance comparison: XQuartz advertises no

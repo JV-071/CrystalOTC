@@ -49,14 +49,24 @@ if ENABLE_SERVERS then
     -- Each entry defines port, protocol, and authentication options.
     -- @table Servers_init
     --
-    -- This fork targets the local Crystal server only. The HTTP login service listens on
-    -- 8080 and advertises a stale game endpoint, so gameHost/gamePort override it with the
-    -- real 127.0.0.1:7182 game port. A devserver.flag branch used to exist here, but both
-    -- of its arms resolved to this same localhost entry; add one back only when a second
-    -- endpoint genuinely exists.
+    -- This fork targets the local Crystal server only, and the port below is which LOGIN
+    -- SERVICE it authenticates against - not the game port.
+    --
+    -- It used to be 8080, which is the login server for a DIFFERENT stack (the canary/otbr
+    -- containers, backed by their own database). That worked only because gameHost/gamePort
+    -- below force the game connection to crystalserver's 7182 regardless: the client
+    -- authenticated against one server and played on another. Both stacks seed identically
+    -- named sample characters, so the character list looked correct and gave no hint. The
+    -- moment the canary container stopped, login failed with "Connection refused" against a
+    -- port this repository never owned.
+    --
+    -- 8081 is crystalserver's own login service, and it advertises 127.0.0.1:7182 itself, so
+    -- the override below now agrees with what the login server says instead of contradicting
+    -- it. Keep the override: it costs nothing and it pins the game endpoint if the login
+    -- service is ever reconfigured.
     Servers_init = {
         ["http://127.0.0.1/login.php"] = {
-            port = 8080,
+            port = 8081,
             protocol = 1525,
             httpLogin = true,
             useAuthenticator = false,

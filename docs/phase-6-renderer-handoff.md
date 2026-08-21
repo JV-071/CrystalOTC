@@ -114,9 +114,11 @@ build verifies rather than produces it. Three reasons, in order of weight:
   reviewable output, not an intermediate.
 
 Enforcement is not weakened by any of it: `check_metal_shaders` fails the build wherever both tools
-are present, and the Linux job installs them and runs the same check. A `.frag` edited without
-regenerating fails; a `.frag` added without being accounted for fails; a `.frag` that cannot be
-translated fails.
+are present, and the Linux job installs them and runs the same check. A `.frag` that cannot be
+translated fails, anywhere. A `.frag` added without being accounted for fails, anywhere. A `.frag`
+edited without regenerating fails **where the toolchain matches the one that generated the header** —
+which is the developer's own machine, the one that has to regenerate it. See the trap below for why
+that qualification exists and is not a hole worth closing with a version pin.
 
 **Both stages are generated per material, not just the fragment.** SPIRV-Cross derives the
 fragment's `[[stage_in]]` struct from the same varying interface it derived the vertex output from,
@@ -218,8 +220,10 @@ which is what established that OpenGL was not zero-filling either. Initialising 
 also restores what the expression evidently meant — `s + p + scale` becomes `s + scale`, the
 canonical form of this shadertoy-derived hash. With it defined, the two backends agree at 17 px.
 
-It changes what the shader draws on **every** backend, measured at 2,032 px on OpenGL, so the
-checked-in llvmpipe reference for `shader-matrix` has to be reseeded as a deliberate refresh.
+It changes what the shader draws on **every** backend — 2,032 px on XQuartz locally, 1,461 px on
+llvmpipe in CI, the two GL stacks rasterising rain differently — so the checked-in llvmpipe
+reference for `shader-matrix` was reseeded as a deliberate refresh, and verified to differ from its
+predecessor only inside the Rain cell.
 
 **`heat.frag` and `noise.frag` are ill-conditioned by construction, and that is not a defect to
 fix.** They are the two cells of `shader-matrix-outfits` that still differ, at 2,160 px combined.
@@ -268,13 +272,18 @@ _None this phase._
 
 ## Deferred follow-ups
 
-**The `shader-matrix` llvmpipe reference must be reseeded, and this is the one piece of Phase 6 that
-cannot be finished from a developer machine.** The `rain.frag` fix changes OpenGL output by 2,032 px
-on that scene, which is 0.31% against a 0.1% gate, so the existing reference now fails. The
-procedure is the documented one: run `Renderer baseline - Linux llvmpipe` with
-`workflow_dispatch` and `refresh_references: true`, take `shader-matrix.png` out of the run
-artifact, and commit it with the reason in the message. Until that lands the llvmpipe job fails on
-that one scene, and the failure is expected rather than a regression.
+**The `shader-matrix` llvmpipe reference was reseeded, and that closes the one piece of Phase 6 that
+could not be finished from a developer machine.** The `rain.frag` fix moved OpenGL output on that
+scene, so the existing reference failed the gate — at 1,461 px in CI, where the same fix measured
+2,032 px locally on XQuartz. Refreshed from run `32525617431` via the documented
+`workflow_dispatch` + `refresh_references: true` route.
+
+It was verified rather than trusted, which is what separates a reseed from hiding a failure: the new
+reference differs from its predecessor by 1,461 px **confined entirely to the Rain cell**, 0 px in
+each of the other sixteen cells and 0 px outside the grid; the seven other gated references from the
+same run are byte-identical to the committed ones apart from `particles-blends` at its documented
+626 px, so nothing in the container or Mesa drifted underneath the refresh; and
+`forge_result_silhouette`'s image area is still pixel-identical to the `no shader` control.
 
 **An on-disk pipeline cache is still unbuilt, and nothing measured yet justifies one.** The frame
 rate is identical with sixteen module materials live and with none, so if it is ever built the case

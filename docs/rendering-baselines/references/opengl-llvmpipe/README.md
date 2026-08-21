@@ -27,18 +27,31 @@ on gitignored `data/things/*`. Its reference comes from run `32395555810`
 (commit `4ed061ff`), the first run after the split, which compared the other
 seven at PASS and reported this one as `UNGATED-pending-reference`.
 
-**This reference is stale as of 2026-08-21 and needs a deliberate reseed.**
-`19e29e3` fixed `rain.frag`, which read an uninitialised `vec2 p` inside the
-expression that first assigns it - undefined output by construction, so every
-compiler was free to draw different rain. Initialising `p` changes what the
-shader draws on **every** backend, measured locally at 2,032 differing pixels of
-`shader-matrix` on OpenGL, all inside the Rain cell. Until this PNG is reseeded
-via the procedure in "Refreshing" below, the `shader-matrix` gate is expected to
-fail on the Rain cell and only on the Rain cell.
+**Reseeded 2026-08-21** from run `32525617431` (commit `a2180b31`), a deliberate
+refresh dispatched with `refresh_references: true`.
 
-When it is reseeded, re-verify the `forge_result_silhouette` claim below - that
-the cell is pixel-identical to the neighbouring `no shader` control - against the
-**new** reference, since the Rain cell change lands in the same image.
+The cause was `19e29e3`, which fixed `rain.frag`: it read an uninitialised `vec2 p`
+inside the expression that first assigns it, so its output was undefined by
+construction and every compiler was free to draw different rain. Defining it
+changes what the shader draws on **every** backend.
+
+The refresh was verified to be exactly that change and nothing else, which is what
+makes it a legitimate reseed rather than a way of making a failure go away:
+
+- Against the previous reference, the new one differs by **1,461 px, all of them
+  inside the Rain cell**, and by 0 px in every one of the other sixteen cells and
+  outside the grid entirely. (Locally on XQuartz the same fix measured 2,032 px -
+  the two GL stacks rasterise the rain differently, as this scene's other
+  cross-stack caveats would predict.)
+- The other seven gated references produced by the same run are byte-identical to
+  the committed ones, except `particles-blends` at its documented 626 px. So the
+  container and Mesa did not drift underneath the refresh.
+
+`forge_result_silhouette` was re-verified against this new reference, as the note
+below requires: its **image area** is still pixel-identical to the neighbouring
+`no shader` control (0 differing pixels over the 136x92 image rect). Compare image
+areas rather than whole cells - the cells carry different text labels, which
+differ by construction and account for ~800 px on their own.
 
 One cell in `shader-matrix`, `forge_result_silhouette`, renders **unshaded** in CI: the shader
 is registered by `game_exaltationforge`, and that module fails to load without
