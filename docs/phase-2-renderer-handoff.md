@@ -246,8 +246,11 @@ Phase 3 makes the OpenGL renderer consume `RenderFrame`. Five things from this p
   `GLBackend` that executes a frame. **Discharged 2026-08-21 (`360c581`).**
 - **Move compilation off the pool lock.** Phase 2 compiles inside it deliberately; running both
   paths live makes that the wrong trade. **Discharged 2026-08-21 (`360c581`).**
-- **Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
-  `IRenderBackend::render`. Phase 1 raised it; Phase 2 did not settle it.
+- ~~**Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
+  `IRenderBackend::render`. Phase 1 raised it; Phase 2 did not settle it.~~ **Settled 2026-08-21
+  (Phase 4): the backend presents,** because only the command buffer that rendered into a drawable
+  may present it. `CocoaWindow::swapBuffers` keeps its acquire-clear-present for the frames no
+  backend draws.
 - **The `u_Time` pin must survive into every backend.** Without it a GL-versus-Metal comparison
   captures two different animation phases and has nothing to compare.
 - **`RecordingBackend` is the triage instrument.** When two backends disagree visually, record the

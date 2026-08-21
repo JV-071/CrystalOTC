@@ -56,7 +56,7 @@ Everything else, macOS included by default -> X11Window
 
 The selection is in `src/framework/platform/platformwindow.cpp`. **Updated 2026-08-20 (Phase 1):** the Cocoa branch exists, but `TOGGLE_COCOA_WINDOW` defaults **OFF** (`src/CMakeLists.txt:16`), so an unmodified `macos-release` preset still builds the X11 window. XQuartz remains the Phase 0 baseline reference vehicle.
 
-The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit. **Updated 2026-08-20 (Phase 1):** the `find_package(X11 REQUIRED)` guard now also excludes `APPLE AND TOGGLE_COCOA_WINDOW` (`src/CMakeLists.txt:234-236`), and `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1023-1038`). ~~X11 is nonetheless **not fully unlinked**: the shared `${OPENGL_LIBRARIES}` link still resolves to `/opt/X11` libGL and Homebrew libX11. Cutting that is outstanding Phase 1 work.~~ **Corrected 2026-08-20 (Phase 1):** X11 is now fully unlinked. The Cocoa branch skips `find_package(OpenGL)` altogether and points `OPENGL_LIBRARIES` at Apple's OpenGL.framework (`src/CMakeLists.txt:309-328`), because the vendored `cmake/FindOpenGL.cmake` defaults `OPENGL_USE_APPLE_X11` to ON (`:54`) and folds FindX11's libraries into `OPENGL_LIBRARIES` (`:129-134`). Setting `OPENGL_USE_APPLE_X11=OFF` is **not** the fix: that branch emits `-framework AGL`, and AGL was removed from the macOS SDK. GL symbols must still resolve because the GL call sites are compiled even though nothing on this path calls GL; GLU is dropped entirely (zero `glu*` references). `otool -L` shows OpenGL.framework, AppKit, Metal and QuartzCore with no `/opt/X11` and no Homebrew paths, and `.github/workflows/build-macos.yml` now guards the regression.
+The CMake build also requests X11 for every Unix target that is not Android or WebAssembly. macOS therefore follows the historical OTClient XQuartz/GLX route rather than Cocoa/AppKit. **Updated 2026-08-20 (Phase 1):** the `find_package(X11 REQUIRED)` guard now also excludes `APPLE AND TOGGLE_COCOA_WINDOW` (`src/CMakeLists.txt:234-236`), and `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1057-1073`). ~~X11 is nonetheless **not fully unlinked**: the shared `${OPENGL_LIBRARIES}` link still resolves to `/opt/X11` libGL and Homebrew libX11. Cutting that is outstanding Phase 1 work.~~ **Corrected 2026-08-20 (Phase 1):** X11 is now fully unlinked. The Cocoa branch skips `find_package(OpenGL)` altogether and points `OPENGL_LIBRARIES` at Apple's OpenGL.framework (`src/CMakeLists.txt:309-327`), because the vendored `cmake/FindOpenGL.cmake` defaults `OPENGL_USE_APPLE_X11` to ON (`:54`) and folds FindX11's libraries into `OPENGL_LIBRARIES` (`:129-134`). Setting `OPENGL_USE_APPLE_X11=OFF` is **not** the fix: that branch emits `-framework AGL`, and AGL was removed from the macOS SDK. GL symbols must still resolve because the GL call sites are compiled even though nothing on this path calls GL; GLU is dropped entirely (zero `glu*` references). `otool -L` shows OpenGL.framework, AppKit, Metal and QuartzCore with no `/opt/X11` and no Homebrew paths, and `.github/workflows/build-macos.yml` now guards the regression.
 
 Consequences of the default (XQuartz) configuration include:
 
@@ -65,7 +65,7 @@ Consequences of the default (XQuartz) configuration include:
 - Retina scaling and macOS application lifecycle integration are not handled natively.
 - The output is a command-line executable, not a self-contained `.app` bundle.
 
-**Updated 2026-08-20 (Phase 1):** all four are now conditional. With `TOGGLE_COCOA_WINDOW=ON` the window, input, clipboard, cursors, fullscreen, Retina backing scale and application lifecycle are native AppKit (`src/framework/platform/cocoawindow.mm`), and the target builds `CrystalOTC.app` (`src/CMakeLists.txt:1095`). Bundle *completeness* — real asset copies, embedded dylibs, signing — remains Phase 7; the developer build symlinks its resources (`src/CMakeLists.txt:1116`).
+**Updated 2026-08-20 (Phase 1):** all four are now conditional. With `TOGGLE_COCOA_WINDOW=ON` the window, input, clipboard, cursors, fullscreen, Retina backing scale and application lifecycle are native AppKit (`src/framework/platform/cocoawindow.mm`), and the target builds `CrystalOTC.app` (`src/CMakeLists.txt:1127-1144`). Bundle *completeness* — real asset copies, embedded dylibs, signing — remains Phase 7; the developer build symlinks its resources (`src/CMakeLists.txt:1145-1157`).
 
 ### Vulkan is explicitly Windows-only
 
@@ -112,6 +112,14 @@ OpenGL Painter
     v
 OpenGL textures, shader programs, FBOs, and glDrawArrays
 ```
+
+**Corrected 2026-08-21 (Phases 3-4): there is a renderer interface now.** `IRenderBackend`
+(`src/framework/graphics/render/irenderbackend.h`) has two implementations, `GLBackend` and
+`MetalBackend`, selected by `graphics.renderPath` and `graphics.renderBackend`. The diagram above
+still describes the legacy path, which remains live and is the default wherever OpenGL exists.
+Note the shipped interface deliberately has **no resource plane** — no `createTexture`,
+`createRenderTarget` or `createMaterial` virtuals — unlike the interface sketched later in this
+document, because during the migration `Texture` and `FrameBuffer` still own the OpenGL objects.
 
 ### Vulkan works as a parallel translation path
 
@@ -249,7 +257,7 @@ A `CocoaWindow`, implemented in Objective-C++, must provide the existing `Platfo
 
 This work is common to MoltenVK, ANGLE, and direct Metal.
 
-**Delivered 2026-08-20 (Phase 1), with two contract details this list did not state.** Every bullet above is satisfied by `src/framework/platform/cocoawindow.mm`. But: (a) `m_size` is in **backing pixels** and `m_displayDensity` is the **backing scale factor**, not points and a separate scale — forced by `GraphicalApplication::resize`, which feeds `m_size` to `g_graphics` while laying the UI out at `m_size / m_displayDensity`; `AndroidWindow` already used this convention. Note `g_app.setHUDScale` writes that same variable, so device pixel ratio and user HUD scale are conflated framework-wide. (b) The window **presents its own frames**: `CocoaWindow::swapBuffers` performs acquire/clear/present and the window reports `hasGLContext() == false`, so no `CAMetalLayer` is exposed outside `cocoawindow.mm`.
+**Delivered 2026-08-20 (Phase 1), with two contract details this list did not state.** Every bullet above is satisfied by `src/framework/platform/cocoawindow.mm`. But: (a) `m_size` is in **backing pixels** and `m_displayDensity` is the **backing scale factor**, not points and a separate scale — forced by `GraphicalApplication::resize`, which feeds `m_size` to `g_graphics` while laying the UI out at `m_size / m_displayDensity`; `AndroidWindow` already used this convention. Note `g_app.setHUDScale` writes that same variable, so device pixel ratio and user HUD scale are conflated framework-wide. (b) ~~The window **presents its own frames**: `CocoaWindow::swapBuffers` performs acquire/clear/present and the window reports `hasGLContext() == false`, so no `CAMetalLayer` is exposed outside `cocoawindow.mm`.~~ **Settled 2026-08-21 (Phase 4): presentation belongs to the backend.** `PlatformWindow` gained a typed `NativeSurface` and `getNativeSurface()`, so `CocoaWindow` hands its `CAMetalLayer` and `MTLDevice` out; `MetalBackend` acquires and presents the drawable itself — only the command buffer that rendered into a drawable may present it — and calls `setPresentationOwned(true)`, after which `swapBuffers` stands down. The Phase 1 acquire-clear-present survives as presentation of last resort: before any backend exists, and for a frame a backend declines. The window still reports `hasGLContext() == false`.
 
 ### Metal device and frame lifecycle
 
@@ -749,10 +757,10 @@ This prevents platform-port work from masking pre-existing renderer differences.
 ## Phase 1: Native macOS platform layer
 
 - ~~Add `CocoaWindow` in Objective-C++.~~ **Done 2026-08-20:** `src/framework/platform/cocoawindow.{h,mm}`.
-- ~~Create a native `.app` target.~~ **Done 2026-08-20:** `CrystalOTC.app` (`src/CMakeLists.txt:1095`), with resources symlinked rather than staged — a bundle that runs, not one that ships.
+- ~~Create a native `.app` target.~~ **Done 2026-08-20:** `CrystalOTC.app` (`src/CMakeLists.txt:1127-1144`), with resources symlinked rather than staged — a bundle that runs, not one that ships.
 - ~~Implement input, clipboard, cursors, Retina scaling, resize, fullscreen, focus, and lifecycle behavior.~~ **Done 2026-08-20**, though input is written rather than verified — see the success criterion below.
-- ~~Expose a `CAMetalLayer` and drawable size.~~ **Done differently 2026-08-20:** drawable size is exposed (`CocoaWindow::getDrawableSize`), but the layer is **not** — it stays private inside `CocoaWindowImpl`, because the window presents its own frames. Phase 4 has to decide whether the backend takes the drawable from the window or the window keeps presenting.
-- ~~Remove the unconditional macOS dependency on X11.~~ **Done 2026-08-20:** platform selection and `find_package(X11)` exclude the Cocoa build (`src/CMakeLists.txt:234-236`), `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1023-1038`), and the Cocoa branch no longer pulls X11 in through `${OPENGL_LIBRARIES}`: it bypasses `find_package(OpenGL)` and links Apple's OpenGL.framework (`src/CMakeLists.txt:309-328`). `otool -L` shows no `/opt/X11` and no Homebrew paths; CI asserts it. The default (non-Cocoa) macOS build still links XQuartz by design.
+- ~~Expose a `CAMetalLayer` and drawable size.~~ ~~**Done differently 2026-08-20:** drawable size is exposed (`CocoaWindow::getDrawableSize`), but the layer is **not** — it stays private inside `CocoaWindowImpl`, because the window presents its own frames. Phase 4 has to decide whether the backend takes the drawable from the window or the window keeps presenting.~~ **Corrected 2026-08-21 (Phase 4):** the layer is exposed after all, through `PlatformWindow::getNativeSurface()`, and Phase 4 decided the open question the other way — the backend takes the drawable and presents it. `getDrawableSize()` currently has no caller: `MetalContext` reads `drawableSize` off the layer, and the offscreen backbuffer is sized from the frame.
+- ~~Remove the unconditional macOS dependency on X11.~~ **Done 2026-08-20:** platform selection and `find_package(X11)` exclude the Cocoa build (`src/CMakeLists.txt:234-236`), `X11::X11` is linked only on the non-Cocoa branch (`src/CMakeLists.txt:1057-1073`), and the Cocoa branch no longer pulls X11 in through `${OPENGL_LIBRARIES}`: it bypasses `find_package(OpenGL)` and links Apple's OpenGL.framework (`src/CMakeLists.txt:309-327`). `otool -L` shows no `/opt/X11` and no Homebrew paths; CI asserts it. The default (non-Cocoa) macOS build still links XQuartz by design.
 
 Success criterion: a native macOS window can open, process input, resize, and present a clear color.
 
@@ -762,10 +770,10 @@ Success criterion: a native macOS window can open, process input, resize, and pr
 
 - ~~Introduce API-neutral enums for primitive topology, blend modes, shader/material types, and pixel formats.~~ **Done 2026-08-20 (Phase 2), except pixel formats:** `DrawMode`, `BlendEquation`, `ShaderType` and `CompositionMode` are plain `uint8_t` enums in `declarations.h`, and `BlendMode`, `LoadAction`, `BuiltinMaterial` and `ActionIdiom` were added in `src/framework/graphics/render/renderdeclarations.h`. There is **no** pixel-format enum anywhere in `src/framework/graphics/`; texture formats are still chosen inside the GL path.
 - ~~Stop defining shared enums with `GL_*` values.~~ **Done 2026-08-20 (Phase 2, `fa8656d`):** no enumerator carries a GL token and `declarations.h` includes no graphics-API header. The numbering moved to `glPrimitiveOf`/`glBlendEquationOf` in `painter.cpp` and `glShaderStageOf` in `shader.cpp`. `ShaderType` turned out to be a *third* GL-valued enum, which the parity survey does not list beside `DrawMode` and `BlendEquation`.
-- ~~Introduce logical resource handles.~~ **Done at the boundary only, 2026-08-20 (Phase 2, `71bb824`):** `TextureHandle`, `RenderTargetHandle` and `MaterialHandle` live in `renderdeclarations.h` and are minted deterministically by `renderhandles.h`; `DrawPool::PoolState` carries a `textureHandle` beside its native `textureId`. The shared classes were **not** converted: there is no `ResourceRegistry` in `src/`, and `Texture`, `FrameBuffer` and `PainterShaderProgram` gained no handle members and still own their GL objects directly. `[D §2.1]`'s pass-through registry remains Phase 3 work.
+- ~~Introduce logical resource handles.~~ **Done at the boundary only, 2026-08-20 (Phase 2, `71bb824`):** `TextureHandle`, `RenderTargetHandle` and `MaterialHandle` live in `renderdeclarations.h` and are minted deterministically by `renderhandles.h`; `DrawPool::PoolState` carries a `textureHandle` beside its native `textureId`. The shared classes were **not** converted: ~~there is no `ResourceRegistry` in `src/`, and~~ `Texture`, `FrameBuffer` and `PainterShaderProgram` gained no handle members and still own their GL objects directly. ~~`[D §2.1]`'s pass-through registry remains Phase 3 work.~~ **Corrected 2026-08-21 (Phase 3, `360c581`):** `ResourceRegistry` was built, and deliberately resolves only — allocating would have destroyed the determinism the derived handle scheme buys. The three shared classes still carry no handle members. **Phase 4 note:** they still own their GL objects, but `Texture` now hands its CPU pixel copy to a non-GL backend (`getPendingImage`) and releases it when that backend says so (`markUploaded`).
 - ~~Convert framebuffer action lambdas into explicit operations.~~ **Declared, not converted, 2026-08-20 (Phase 2, `700b41b`):** each action is now tagged with an `ActionIdiom` and, where it carries geometry, records declared state and coords, so the compiler can express all seven surveyed idioms without executing the callback — an untagged action poisons the program rather than being silently dropped. The `std::function` lambdas themselves remain and the GL path still runs them; `DrawPool::addAction(std::function)` is still present and called from `mapview.cpp`, `uimap.cpp`, `drawpool.cpp` and `drawpoolmanager.cpp`.
 - ~~Add a `RenderFrameCompiler` alongside the existing path.~~ **Built, but not yet alongside anything, 2026-08-20 (Phase 2, `797bd79`/`6509905`):** it shipped as `PoolCompiler` plus `FrameAssembler` under `src/framework/graphics/render/`. ~~It has **no production caller** — it is not wired into `DrawPool::release()`, `DrawPool` holds no `PoolProgram`, and the only non-test reference is `PoolCompiler::materialOf` from `mapview.cpp`.~~ **Corrected 2026-08-21 (Phase 2, `3d7001c`):** `DrawPool::release()` now calls `compilePublishedObjects()` (`drawpool.cpp:374`), which compiles the list it has just published into `m_programBuild`/`m_programPublished` (`drawpool.h:451-452`). It runs only behind `DrawPool::setCompileFrames`, and `s_compileFrames` is `false` by default (`drawpool.cpp:31`), so nothing in the shipping client reads a `PoolProgram` yet. ~~Running the two paths beside each other and comparing them is still Phase 3.~~ **Done 2026-08-21 (Phase 3):** they now run beside each other and are compared per scene, and `s_compileFrames` is switched on by `DrawPoolManager::init` when `graphics.renderPath` is `frame`.
-- ~~Implement a recording/null backend for tests.~~ **Done 2026-08-20 (Phase 2, `021112b`):** `RecordingBackend` serialises a `RenderFrame` to stable, human-readable text at fixed float precision. ~~`tests/render/render_boundary_test.cpp` adds 22 cases, taking `ctest` from 22 to 44.~~ **Updated 2026-08-21 (Phase 2):** the suite now carries **31** cases, taking `ctest` from 22 to **53** — 54 on Windows, where `StringEncoding.Utf16Conversions` is `#ifdef WIN32`. Observed green on all three toolchains: `32440662987` (macOS 53/53), `32440662865` (Linux 53/53), `32440663105` (Windows 54/54).
+- ~~Implement a recording/null backend for tests.~~ **Done 2026-08-20 (Phase 2, `021112b`):** `RecordingBackend` serialises a `RenderFrame` to stable, human-readable text at fixed float precision. ~~`tests/render/render_boundary_test.cpp` adds 22 cases, taking `ctest` from 22 to 44.~~ **Updated 2026-08-21 (Phase 2):** the suite carried **31** cases, taking `ctest` from 22 to **53** — 54 on Windows, where `StringEncoding.Utf16Conversions` is `#ifdef WIN32`. Observed green on all three toolchains at that point: `32440662987` (macOS 53/53), `32440662865` (Linux 53/53), `32440663105` (Windows 54/54). **Updated 2026-08-21 (Phase 4):** **36** cases, `ctest` 58 — 59 on Windows.
 
 Success criterion: a representative frame can be compiled and inspected without calling OpenGL.
 
@@ -774,7 +782,7 @@ Success criterion: a representative frame can be compiled and inspected without 
 ## Phase 3: Preserve the OpenGL backend
 
 - ~~Make the current OpenGL renderer consume the new frame representation.~~ **Done 2026-08-21 (`360c581`):** `GLBackend : IRenderBackend` executes a `RenderFrame`, selected by `graphics.renderPath = legacy | frame` (default `legacy`). Both paths are live at once, which is the point.
-- Keep Windows/Linux behavior stable. **Unchanged by construction:** the frame path is off by default and the Vulkan feeder still consumes the same published `DrawObject` lists.
+- Keep Windows/Linux behavior stable. **Unchanged by construction:** the frame path is off by default and the Vulkan feeder still consumes the same published `DrawObject` lists. **Qualified 2026-08-21 (Phase 4):** both halves weakened. A window with no GL context now resolves to the frame path regardless of the default — and the Windows Vulkan path is such a window, so it walks that code, finds no backend and logs two new startup warnings before settling back on the legacy path, with the draw loop unaffected because `VkDrawFeeder` still runs under the `#ifdef WIN32` arm. And Phase 4 changed shared no-GL code that path executes: `ShaderProgram` identity and hashing, and `AnimatedTexture::update`, which now advances animations there that previously held on frame 0. Recorded in the implementation plan's risk register.
 - ~~Compare output and performance against Phase 0.~~ **Output compared 2026-08-21 (`1902851`):** `tools/compare_render_paths.sh` captures every offline scene down both paths and compares them; ten of eleven match at 0 differing pixels in **both** reference environments — XQuartz locally and llvmpipe in CI (run `32452811177`) — the eleventh being the deliberately divergent line scene. ~~**Performance is still outstanding**~~ **Measured 2026-08-21 (`8199692`):** `--renderer-benchmark=<seconds>` in the capture driver, compared by whole-process CPU because the frame rate is display-locked on this vehicle and therefore says nothing. No regression on any of the three scenes measured; on `shader-matrix` the compiled path is consistently ~17% cheaper in user CPU. The instrument cannot resolve differences below roughly 15%, so this is the envelope Phase 5's gate sits inside rather than a benchmark.
 
 Doing this before full Metal ensures the new abstraction describes real existing behavior instead of an imagined renderer. **It earned that claim rather than merely asserting it:** running the two paths against each other found four places where the compiled description was wrong, none of which any amount of inspection had caught.
@@ -793,13 +801,13 @@ Success criterion: the current Vulkan renderer runs in a native macOS window wit
 
 ## Phase 4B: Direct Metal foundation
 
-- Implement `MetalRenderBackend` device and frame lifecycle.
-- Add Metal resource tables and deferred destruction.
-- Implement solid-color and textured pipelines.
-- Implement standalone textures and the sprite array atlas.
-- Implement scissor, transforms, opacity, and normal/multiply blending.
+- ~~Implement `MetalRenderBackend` device and frame lifecycle.~~ **Done 2026-08-21 (`2bcd90a`)** as `MetalBackend` plus `MetalContext`: device, queue, three frames in flight behind a semaphore, and drawable acquisition that survives a nil drawable.
+- ~~Add Metal resource tables and deferred destruction.~~ **Done, half deliberately:** `MetalResources` holds the texture and target tables. A deferred-destruction queue was not needed — a Metal command buffer retains every resource it references until it completes — so what the backend owns instead is eviction of entries whose client object is gone.
+- ~~Implement solid-color and textured pipelines.~~ **Done**, plus replace-colour, in hand-written MSL.
+- Implement standalone textures and the sprite array atlas. **Standalone textures done 2026-08-21; the atlas deliberately not.** The CPU atlases are switched off under Metal, because `TextureAtlas` keys its regions on a texture's OpenGL name — zero for every texture a non-GL backend creates — and `TextureAtlas::flush` is unguarded OpenGL throughout. Atlas layers become explicit passes in Phase 5.
+- ~~Implement scissor, transforms, opacity, and normal/multiply blending.~~ **Done**, and all six composition modes rather than two.
 
-Success criterion: login UI and normal gameplay render with parity to the current Vulkan path.
+~~Success criterion: login UI and normal gameplay render with parity to the current Vulkan path.~~ **Superseded by Decision 1 (full OpenGL parity, not Vulkan parity) and met against that instead, 2026-08-21.** Measured by capturing each offline scene from an XQuartz binary and a Cocoa binary with both forced onto the compiled frame path, so the two consume an identical `RenderFrame`: six of the nine comparable scenes match at 0 differing pixels of 656,880, two differ only by a single Outline probe (579 and 521 px, against a stated 0.002 envelope), and two are excluded as not comparable until the Phase 6 shader toolchain exists.
 
 ## Phase 5: Render targets and full composition
 
@@ -807,7 +815,7 @@ Success criterion: login UI and normal gameplay render with parity to the curren
 - Implement map scaling/cropping and framebuffer-derived textures.
 - Implement the light pass.
 - Complete composition and blend modes.
-- Implement screenshots/readback.
+- ~~Implement screenshots/readback.~~ **Done early, in Phase 4 (`2bcd90a`):** `MetalBackend::readPixels` blits into a shared buffer and returns a top-left `ReadbackResult`. It had to come early — it is the instrument every Phase 4 measurement was taken with.
 
 Success criterion: Metal output matches the established OpenGL reference scenes apart from documented tolerances.
 
@@ -916,6 +924,8 @@ If full visual parity is mandatory in the first macOS release, substitute ANGLE 
 - `src/framework/graphics/shader*`
 - `src/framework/graphics/drawpool.*`
 - `src/framework/graphics/render/*`
+- `src/framework/graphics/render/metal/*`
+- `tools/compare_render_backends.sh`
 - `tests/render/render_boundary_test.cpp`
 - `src/framework/graphics/vulkan/*`
 - `data/shaders/vulkan/*`

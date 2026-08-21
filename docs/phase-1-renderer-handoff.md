@@ -265,5 +265,8 @@ macOS and can start immediately. Three things from this phase bear on it:
   permanently in `canDrawMap`.
 - `RenderFrame::drawableSize` and `IRenderBackend::resize` are already in the right unit,
   because the platform layer reports backing pixels.
-- Presentation ownership is unresolved between the window and `IRenderBackend::render`.
-  Phase 4 must choose; Phase 2 should not assume either.
+- ~~Presentation ownership is unresolved between the window and `IRenderBackend::render`.
+  Phase 4 must choose; Phase 2 should not assume either.~~ **Chosen 2026-08-21 (Phase 4):**
+  the backend presents. A drawable may only be presented by the command buffer that rendered
+  into it, so a backend that acquires one has to; `PlatformWindow::setPresentationOwned` is how
+  it says so, and `CocoaWindow::swapBuffers` stands down while the claim holds.

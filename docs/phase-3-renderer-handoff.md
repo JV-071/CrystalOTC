@@ -209,9 +209,13 @@ drives the atlas through `g_painter` — `clearRect`, `setTexture`, `drawCoords`
 Phase 5 work in the design (`[D §6]`), so task 5 has a dependency the plan places outside Phase
 3. Worth knowing before anyone schedules the deletion as a self-contained refactor.
 
-**Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
-`IRenderBackend::render`. Phase 1 raised it, Phase 2 did not settle it, and Phase 3 did not need
-to: on GL the window still presents, and `render()` ends at "encode, submit". Phase 4 must choose.
+~~**Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
+`IRenderBackend::render`.~~ **Settled 2026-08-21 (Phase 4, `719d962`): the backend presents.** A
+drawable may only be presented by the command buffer that rendered into it, so a backend that
+acquires one has to. `PlatformWindow::setPresentationOwned` is how it says so, and the window
+stands down while the claim stands; `CocoaWindow::swapBuffers` keeps its acquire-clear-present for
+the frames no backend draws. Unchanged on GL, where the window still presents and `render()` still
+ends at "encode, submit".
 
 **A dead texture is skipped rather than drawn stale.** The legacy path binds a GL id whose
 `Texture` has been destroyed but whose id has not yet been released by the batched deleter; the
@@ -224,13 +228,13 @@ at a display-locked frame rate. Nothing below roughly 15% is resolvable. It is a
 Phase 5's gate to sit inside, not a benchmark, and a Metal figure will not be comparable to it at
 all because it will not be measured through XQuartz.
 
-**A texture whose pixels change in place is still invisible to the content hash.** The
-animated-texture fix folds the native texture *id* in, which catches an animation advancing
-because the id changes with it. It does not catch `Texture::updatePixels` overwriting an
-already-resolved texture whose id stays the same. Nothing reaches it today — the only in-place
-updater is `LightView`, and the LIGHT pool has no retained target to reuse — but a future
-streaming texture drawn into the MAP or FOREGROUND target would, and would need a content
-revision on `Texture` rather than an id.
+~~**A texture whose pixels change in place is still invisible to the content hash.**~~ **Closed
+2026-08-21 (Phase 4, `235f919`)** — and sooner than "a future streaming texture", by a backend that
+creates no GL textures at all, where the native id is zero for *everything* and the Phase 3 fix
+degenerates to a constant. `Texture::getContentRevision` is the content revision this follow-up
+asked for; the compiler folds it in alongside the id, and both `AnimatedTexture::update` and
+`Texture::updatePixels` bump it. The prediction was right about the mechanism and wrong only about
+which route would reach it first.
 
 **One map-core run died with SIGSEGV in `ProtocolGame::parseMessage`.** Network thread, no
 renderer frame in the stack, on the legacy path where the compiler does not run. It did not
@@ -303,17 +307,26 @@ for running them at all - and for not treating a handoff as written until they h
 Phase 4 is the Metal foundation: `MetalContext`, resources, vertex arenas, the pipeline cache,
 built-in MSL materials. Five things from this phase bear on it.
 
-- **`IRenderBackend` is the seam, and it is deliberately thin.** Adding the resource plane is
+- **`IRenderBackend` is the seam, and it is deliberately thin.** ~~Adding the resource plane is
   Phase 4's job, and it will be the first backend with something to own — so it is also where
-  `ResourceRegistry` grows deferred destruction.
+  `ResourceRegistry` grows deferred destruction.~~ **Half right, 2026-08-21:** Metal is indeed the
+  first backend that owns native objects, and it owns them — in `MetalResources`, not on the
+  interface. The six virtuals stayed unbuilt because their only caller would still be the backend
+  itself while `Texture` and `FrameBuffer` own the GL ones. Deferred destruction turned out to be
+  Metal's own: a command buffer retains every resource it references until it completes.
 - **`GLBackend` is the worked example**, and it is short. Every decision it makes about a packet
   is a decision Metal has to make too, in the same order.
 - **`RecordingBackend` becomes useful for the first time.** When Metal and GL disagree visually,
   record the frame both consumed: matching recordings put the bug below the boundary, differing
-  ones put it in the compiler. Phase 3 never needed it, because there was only one backend.
+  ones put it in the compiler. Phase 3 never needed it, because there was only one backend. **Nor
+  did Phase 4, in the end:** both backends run the same scene with `--render-path=frame`, so the
+  frame is identical by construction, and every difference the sweep found was attributable on
+  sight to a module shader one backend cannot compile.
 - **The `u_Time` pin has to survive.** `PainterShaderProgram::currentTime()` is what the frame
   assembler asks; an unpinned Metal frame and an unpinned GL frame are captured at different
   animation phases and have nothing to compare.
 - **Do not create a line pipeline.** Nothing can emit a line material, `BuiltinMaterial` reserves
   no slot for one, and `graph-lines` already demonstrates what the triangulated geometry looks
-  like against GL's — 1.2% to 1.3% of the frame, edges only.
+  like against GL's — 1.2% to 1.3% of the frame, edges only. **Held 2026-08-21:** no line pipeline
+  exists, and `graph-lines` compares between the two backends at **0 differing pixels**, because
+  both draw the same triangulated quads.

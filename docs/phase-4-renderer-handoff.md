@@ -1,0 +1,308 @@
+# Phase 4 renderer handoff
+
+**Checkpoint:** `9ce989c` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
+
+**Date:** 2026-08-21
+
+**Scope:** Phase 4 — the Metal foundation
+
+## Current state
+
+macOS renders the client with Metal. A pool's published object list compiles to a
+`PoolProgram`, five programs assemble into a `RenderFrame`, and `MetalBackend` executes it on
+`MTLDevice` — in a process that creates no OpenGL context at all, from a bundle that links no X11
+(asserted by CI on a runner with no XQuartz), and with no GL type below the boundary except inside
+the backend that is OpenGL.
+
+It is **selected by capability, not by preference**. A window that never created a GL context has
+a Metal layer to offer and nothing else, so it resolves to the frame path and the Metal backend;
+the XQuartz build resolves to OpenGL exactly as before. `--render-backend=` and
+`CRYSTALOTC_RENDER_BACKEND` override, which is what lets one scene be captured down both.
+
+At this checkpoint:
+
+- The Cocoa client draws the login UI, its panels, text, icons, clipping and translucency.
+- Nine of eleven offline baseline scenes compare against the OpenGL backend consuming the
+  **same compiled frames**; six match at exactly 0 differing pixels. The two that do not compare
+  are the two made of module fragment programs, which Phase 6 owns.
+- `ctest` 58/58, up from 57, on both macOS configurations.
+- The OpenGL path is provably unchanged: the legacy-versus-frame sweep still reports ten scenes
+  at 0 px and `graph-lines` at 7,660, the same figures Phase 3 recorded.
+
+## Phase 4 checklist
+
+Against the implementation plan's Phase 4 tasks:
+
+- [x] **MetalContext** — device, queue, three frames in flight with semaphore throttling,
+      per-frame command buffers, drawable acquisition that survives a nil drawable, and
+      completion-handler frame retirement.
+- [x] **Resources** — an RGBA8 texture table, the sampler states, region updates for
+      `TextureUpdate`, and staged uploads where a texture can still be in flight.
+- [x] **Vertex arenas** in per-frame `MTLBuffer` rings, two non-interleaved float2 attributes
+      described by an `MTLVertexDescriptor`.
+- [x] **Pipeline cache** on the surveyed key; all six blend modes; `alphaWrite` as a write mask;
+      blend-disabled states.
+- [x] **Built-in materials** in hand-written MSL: Textured, SolidColor, ReplaceColor. No line
+      pipeline, because nothing can emit a line material.
+- [x] **Scissor, viewport, labels** on every buffer, encoder, texture and pipeline.
+- [x] **Backbuffer-only first** — read as *offscreen* backbuffer, which turned out to be the
+      better shape. See *Decisions that were not free*.
+- [x] **Readback**, which the plan places in Phase 5. Brought forward because it is the
+      instrument every other claim on this page is measured with.
+
+Two further items the plan does not list, because it did not know they were needed:
+
+- **Three shared-code fixes** for code that asks whether something reached the GPU by reading an
+  OpenGL name. See *Bugs found, and how*.
+- **A cross-backend comparison harness**, `tools/compare_render_backends.sh`, without which none
+  of the numbers below could be stated at all.
+
+Against the exit gate — *"login + gameplay visually correct apart from features owned by P5/P6"*:
+
+| Scene | Metal vs OpenGL, same compiled frame |
+|---|---|
+| `startup-ui` | **0 px** |
+| `ui-clipping-opacity` | **0 px** |
+| `text-matrix` | **0 px** |
+| `composition-all` | **0 px** (all six blend modes) |
+| `graph-lines` | **0 px** |
+| `atlas-resources` | **0 px** |
+| `particles-blends` | 22–540 px, the scene's own documented bimodality |
+| `outfit-masks` | 579 px — one Outline probe, a module shader |
+| `temporary-framebuffers` | 521 px — the same Outline probe |
+| `shader-matrix` | not comparable: entirely module fragment programs |
+| `shader-matrix-outfits` | not comparable: the six outfit programs |
+
+All of 656,880 pixels. **Every difference in that table is a module fragment program** — except
+`particles-blends`, which differs from itself by the same amount on one binary and has its own
+entry in `known-deviations.md`. Module programs are the Phase 6 toolchain's deliverable, and each
+difference is confined to the pixels that program would have drawn: the Outline diffs are
+literally the outline and nothing else, on an otherwise black diff image.
+
+`windowing` is outside the sweep (`ciCapture: false`) and was compared by hand. All four of its
+captures match at **0 differing pixels**, including the one at 840,000 pixels rather than 656,880
+and the one at HUD scale 2 — which between them are the only thing that exercises render-target
+recreation and `FrameAssembler::invalidateRetainedTargets`.
+
+The four **online** scenes are outside it too and are not yet run: they need the fixture server,
+and running them is the remaining verification step. Phase 3's experience is the reason to insist
+on it — its last defect was found by the online scenes after the handoff was drafted.
+
+## Decisions that were not free
+
+**The backend presents, and the window stands down.** Phase 1 raised this and Phases 2 and 3 left
+it open. A drawable may only be presented by the command buffer that rendered into it, and
+acquiring one as late as possible is the entire reason acquisition is separate from encoding — so
+the backend that acquires must present. `PlatformWindow::setPresentationOwned` is the claim, and
+what remains in `CocoaWindow::swapBuffers` is the Phase 1 acquire-clear-present, which still runs
+before any backend exists and whenever one declines a frame. A navy screen is a diagnosable state.
+
+**It renders into its own offscreen backbuffer and blits that into the drawable.** The plan says
+"backbuffer-only rendering first"; this is that, with one indirection that pays for itself twice.
+A presented drawable can never be read, and every renderer baseline is a screenshot taken between
+frames — so without the offscreen copy there is nothing for `readPixels` to read, and no way to
+measure anything on this page. It also means a frame that finds no drawable loses its
+presentation rather than its work. The cost is one full-screen GPU copy per frame.
+
+**The texture matrix is derived, not resolved.** GL stores a framebuffer's texture bottom-up and
+compensates when sampling it, through the `upsideDown` half of `TextureManager`'s matrix registry.
+Metal has no such asymmetry: a render target's row 0 is its top row, exactly like an uploaded
+image's. So the backend computes `1/w, 1/h` from the resolved texture's size and never resolves
+`packet.textureMatrixId`. That is not a shortcut — resolving GL's id would apply GL's flip and
+turn every sampled target upside down.
+
+**Two pixel formats, on purpose.** Sampled textures are RGBA8, which is what `Image` already
+holds, so an upload is a copy and never a swizzle. Render targets are BGRA8, matching the layer's
+drawable, so one pipeline set serves every pass including the one that reaches the screen and the
+present is a straight copy. The readback swaps two channels on the way out, where the GL path
+flips rows instead.
+
+**Shared storage for sampled textures, private for targets.** The build is Apple Silicon only by
+Decision 5, so CPU and GPU address the same memory and an upload is a memcpy; a private copy would
+buy a staging blit and nothing else. Targets are private because nothing writes them from the CPU.
+A `TextureUpdate` is still staged and blitted rather than written directly, because the texture it
+overwrites may be sampled by a frame that has not finished and a CPU write has nothing ordering it
+against that read.
+
+**MSL is compiled at runtime from a string.** Four functions, single-digit milliseconds at
+startup. Standing up the `.frag` → glslang → SPIRV-Cross → `.metallib` build step for three
+built-ins would be building the Phase 6 toolchain early instead of building the renderer.
+
+**The CPU atlases are off under Metal**, joining the rule Vulkan already follows and for a harder
+reason: `TextureAtlas` keys its regions on a texture's OpenGL name, which is zero for every
+texture here, so the whole client would collide on key 0. `TextureAtlas::flush` is also unguarded
+OpenGL from top to bottom. Modelling atlas layers as passes is Phase 5; until then the compiler
+already emits standalone textures when no atlas claims one.
+
+## Traps worth not rediscovering
+
+**`PlatformWindow::hasGLContext()` defaults to `true`.** Only `WIN32Window` and `CocoaWindow`
+override it; `X11Window` inherits the default. So in a unit-test process built for XQuartz the
+answer is yes, there is a GL context, while GLEW's function pointers are all null. A test that
+constructed a `ShaderProgram` to check the no-GL path segfaulted on a jump to address 0 for
+exactly this reason, and had to be removed rather than fixed.
+
+**A screenshot reads the frame that has already been drawn.** Anything suppressed immediately
+before the shutter — a blinking caret, a tooltip — only takes effect from the *next* frame. This
+is invisible within one binary, where two runs are closely enough timed to agree, and reliable
+across two, where they are not: it was 15 pixels on `startup-ui` and 12,505 on `windowing`'s grown
+capture until the suppression moved to scene setup.
+
+**The UI is laid out at `m_size / m_displayDensity`, and the capture is the full pixel canvas.** A
+Retina Cocoa window therefore fits half as many logical units into the same PNG as an X11 one, and
+every macOS capture differs from every reference by widget layout rather than by anything a
+renderer did. Pinning the density to 1 for captures is a no-op everywhere it already is 1.
+
+**ARC and non-ARC cannot share a translation unit,** which a unity build will happily try to
+arrange. The Metal sources are compiled with `-fobjc-arc` and `cocoawindow.mm` is not, so they are
+excluded from unity inclusion and from the precompiled header — a PCH whose ARC state differs from
+the TU using it is a hard error, not a warning.
+
+**Metal validates a scissor rect; GL forgave one.** The compiler already clamps to the pass
+viewport, but an *enabled empty* scissor — the compiler's way of saying "this clip rect misses its
+target, so draw nothing" — is a zero-sized rect Metal rejects outright. It has no pixels either
+way, so the draw is dropped before it is encoded.
+
+**Frame rate carries information on this vehicle, and did not on the last one.** XQuartz
+advertises no swap-control extension, so Phase 3 measured both paths at an identical display-locked
+~121 fps. `CAMetalLayer.displaySyncEnabled` genuinely comes off: the same scene measures 320–400
+fps median on Metal. The two figures are not comparable to each other and never will be — one is a
+ceiling — but the Metal one is a cost.
+
+## Bugs found, and how
+
+Four defects, three of them pre-existing and latent for as long as the code has existed. None was
+found by reading it; each surfaced the moment something other than OpenGL tried to draw.
+
+**Every animation froze on frame 0.** `AnimatedTexture::update` gates the frame advance on
+`isEmpty()`, which asks whether the OpenGL name is zero. The gate exists so an animation does not
+run ahead of a texture nothing can draw; on a backend that creates no OpenGL textures the answer
+is "not yet" forever.
+
+**And would have frozen again one level up.** Phase 3 stopped a compiled frame re-compositing a
+retained target while the animation behind it advanced, by folding the native texture id into the
+pool's content hash. That signal is the same OpenGL name — constant here — so the defect returns by
+a different route. It also never covered `Texture::updatePixels` overwriting pixels in place, which
+Phase 3 recorded as a follow-up waiting for a streaming texture to reach a retained target.
+`Texture::getContentRevision` is the form of the question that has an answer on both paths.
+
+**No shader could be set at all.** `Painter` skipped building its four built-in programs without a
+GL context, so `getReplaceColorShader()` was null — and `DrawPool::setShaderProgram` guards on "is
+the current state's shader already the replace-colour one", against a state whose shader is null by
+default. Null compared equal to null, so the guard answered yes to every question and refused every
+shader. Painter now builds the programs unconditionally and lets them be inert: a draw records the
+material it wanted by naming the program it bound, and the replace-colour program is what every
+marked creature and highlighted item binds.
+
+**A texture uploaded by a non-GL backend was reloaded from disk on every frame it was drawn.**
+`Texture::create` keeps its CPU pixels when there is no GL context, deliberately, so a backend has
+something to upload — but nothing could then say it had. With `m_id` stuck at zero the garbage
+collector kept treating the texture as one that had never reached the GPU, freed the copy, and
+`create()` restored it from disk the next time it was drawn. Every frame.
+
+## Owner decisions recorded 2026-08-21
+
+- **Presentation belongs to the backend.** Recorded here as settled rather than as an option, and
+  the design document's open note is closed against it.
+
+## Deferred follow-ups
+
+None block Phase 5.
+
+**The online scenes have not been run.** They need the pinned fixture server and they are the only
+coverage of the MAP pool, the light overlay, the map-composition material and the map readback.
+Phase 3's last defect was found this way, after its handoff was drafted; this one should not close
+without the same check.
+
+**Module materials draw as plain geometry.** All 27 registered module programs, and therefore
+`shader-matrix`, `shader-matrix-outfits`, and the single Outline probe in two further scenes. This
+is the Phase 6 boundary and it is stated in the manifest rather than tolerated: two scenes carry
+`renderBackendComparable: false` with a reason, and two carry a measured
+`renderBackendTolerance`. All four entries name Phase 6 and say to remove them when it lands.
+
+**`ShaderManager` registers nothing without a GL context**, so a module program never reaches
+`PoolCompiler::materialOf` on this backend and the material-handle-to-MSL mapping is entirely
+unexercised. Phase 6 will be new territory rather than a filled-in table.
+
+**`IRenderBackend` still has no resource plane.** The Metal backend owns native objects now, which
+is the condition Phase 3 said the six virtuals were waiting for — but they would still only be
+called by the backend itself, since `Texture` and `FrameBuffer` continue to own the GL ones.
+Revisit when the legacy path goes, not before.
+
+**Deferred destruction is Metal's own.** A command buffer retains every resource it references
+until it completes, so a texture destroyed mid-flight is safe without a retirement queue. What the
+backend does own is eviction: cache entries whose client object has been destroyed are swept every
+600 frames, because handles are never reused and a dead entry is inert rather than dangerous.
+
+**The offscreen backbuffer costs one full-screen copy per frame.** It could be skipped in frames
+where no readback is pending, at the cost of the uniform treatment that makes `readPixels` work at
+all. Worth measuring before worth doing.
+
+## Reproduction commands
+
+Both configurations, which are different compile surfaces:
+
+```sh
+cmake --build build/macos-release --parallel 8   # XQuartz, the OpenGL reference vehicle
+cmake --build build/macos-cocoa   --parallel 8   # Cocoa/Metal, what CI gates
+ctest --test-dir build/macos-cocoa --output-on-failure
+```
+
+One scene, on Metal:
+
+```sh
+build/macos-cocoa/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC \
+  --renderer-baseline=startup-ui --renderer-baseline-output=metal-startup-ui.png
+```
+
+The cross-backend sweep, which needs both binaries because the two backends cannot coexist in one:
+
+```sh
+GL_RUN_PREFIX="env DISPLAY=:0 XAUTHORITY=$HOME/.Xauthority" \
+bash tools/compare_render_backends.sh \
+  build/macos-release/bin/otclient \
+  build/macos-cocoa/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC
+```
+
+Performance, where the frame rate now means something:
+
+```sh
+build/macos-cocoa/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC \
+  --renderer-baseline=startup-ui --renderer-baseline-output=bench.png --renderer-benchmark=20
+```
+
+## Commit ledger
+
+_Regenerated from `git log --format='%h %s' --reverse` at the checkpoint rather than appended to
+by hand._
+
+```text
+719d962 feat(macos): give the platform layer a typed presentation surface
+235f919 fix(graphics): let a texture say its pixels changed under a stable handle
+49aec81 fix(graphics): keep built-in shader identities without an OpenGL context
+2bcd90a feat(renderer): draw the client with Metal
+ec188da test(renderer): measure the Metal and OpenGL backends against each other
+9ce989c fix(renderer): clear a Metal target nobody has written yet
+```
+
+Note the shape: three of the six commits are fixes to shared code that had nothing to do with
+Metal, and every one of them was a place where the client asked whether something had reached the
+GPU by reading an OpenGL name. That is the phase's real finding.
+
+## What Phase 5 inherits
+
+Phase 5 is render targets and full composition on Metal — which, on inspection, is largely already
+running: retained targets, transient targets with nesting and both flips, `Keep` loads, hash-gated
+pass skipping and readback all work, because the frame model states them and the backend executes
+what it is given. What Phase 5 actually owes:
+
+- **Atlas layer targets.** The one part of the frame the compiler does not describe, and the reason
+  the CPU atlases are switched off here. It is also what unblocks deleting `Painter`, which
+  `TextureAtlas::flush` still drives.
+- **A macOS reference set.** The checked-in llvmpipe references are same-environment CI references,
+  not a cross-stack oracle for Metal. A macOS baseline has to be captured and frozen before any
+  gate can compare against it rather than against the OpenGL backend on another machine.
+- **The online scenes**, on Metal, against the fixture server — the MAP pool, the light overlay and
+  the map-composition material have never been drawn by this backend.
+- **The performance envelope, on a vehicle that can measure one.** Phase 3's figures are XQuartz
+  CPU time at a locked frame rate and are not comparable. Metal's are.

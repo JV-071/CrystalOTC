@@ -101,6 +101,23 @@ This is measurable: `outfit-masks` and `temporary-framebuffers` previously drift
 and 449 pixels per run against a 656-pixel budget, purely from the Outline pulse. Both are
 now **0 differing pixels**.
 
+**Pinned display density (added 2026-08-21, Phase 4).** The UI is laid out at
+`m_size / m_displayDensity` while a capture is the full pixel canvas, so a window whose
+density is not 1 fits half as many logical units into the same PNG. On X11 and on the
+llvmpipe runner the density already is 1 and this changes nothing; on a Retina Cocoa window
+it is the backing scale, and without the pin every macOS capture differed from every
+reference by widget layout rather than by anything a renderer did. `windowing` still varies
+it deliberately, which is what its `4-scaled` step measures.
+
+**Suppressed text carets (added 2026-08-21, Phase 4).** The login screen's email field owns
+keyboard focus and its caret blinks on a wall-clock timer. Two runs of one binary start
+closely enough to usually agree, which is why this survived Phase 0 unnoticed; two different
+binaries do not, and it showed up as a reliable 15-pixel column at x=456 on `startup-ui`.
+The suppression runs at **scene setup**, not at the shutter, and the distinction is the whole
+fix: a screenshot reads the frame that has already been drawn, so suppressing at the shutter
+only takes effect from the next frame. Moving it earlier took `windowing`'s grown capture
+from 12,505 differing pixels to 0.
+
 ## map-core
 
 Five consecutive captures against the live development world measured 0, 3, 752, 749 and 0
@@ -408,6 +425,55 @@ larger than the local one, and is: 1.33% against 1.17%. Both sit at well under h
 structural regression, such as a series not being drawn at all, moves the number well past 3%.
 
 Run it with `tools/compare_render_paths.sh <client-binary>`.
+
+## Metal versus OpenGL
+
+Added 2026-08-21 (Phase 4). This is a different comparison from every other one on this page:
+both sides consume the **same compiled `RenderFrame`**, so a difference is below the renderer
+boundary in one backend rather than anywhere above it. `tools/compare_render_backends.sh` runs
+it, and it forces the OpenGL side onto `--render-path=frame` for exactly that reason - left on
+the legacy path it would fold two differences together.
+
+It needs two binaries. The Cocoa window deliberately creates no OpenGL context and the XQuartz
+window creates no Metal layer, so the two backends cannot coexist in one process.
+
+Measured on an Apple M3 Pro, XQuartz 2.8.6 against Metal, out of 656,880 pixels:
+
+| Scene | Differing pixels | Cause |
+|---|---:|---|
+| `startup-ui` | 0 | - |
+| `ui-clipping-opacity` | 0 | - |
+| `text-matrix` | 0 | - |
+| `composition-all` | 0 | all six blend modes agree exactly |
+| `graph-lines` | 0 | both backends draw the same triangulated quads |
+| `atlas-resources` | 0 | - |
+| `particles-blends` | 22-540 | the scene's own bimodality, documented above |
+| `outfit-masks` | 579 | one Outline probe |
+| `temporary-framebuffers` | 521 | the same Outline probe |
+| `shader-matrix` | not compared | every cell is a module fragment program |
+| `shader-matrix-outfits` | not compared | all six cells are outfit programs |
+
+**Every difference in that table is a module fragment program**, with the single exception of
+`particles-blends`, which differs from itself on one binary by the same amount and for the reason
+recorded above. `ShaderManager` does not create GLSL programs without an OpenGL context, so none
+of the 27 registered module programs is available on the Metal backend and the geometry draws
+unshaded. The `.frag` to SPIR-V to MSL
+toolchain is Phase 6; the manifest records the two uncomparable scenes as
+`renderBackendComparable: false` and the two Outline probes as a measured
+`renderBackendTolerance`, and all four entries say to remove them when Phase 6 lands.
+
+The Outline diffs are worth looking at rather than reading: each is literally the outline of one
+creature and nothing else, on an otherwise black diff image.
+
+`windowing` is outside the sweep (`ciCapture: false`) and was compared by hand: all four captures
+match at 0 differing pixels, including the 840,000-pixel grown one and the one at HUD scale 2.
+
+Two things this comparison is **not**. It is not a reference gate - the checked-in llvmpipe PNGs
+are same-environment CI references, not a cross-stack oracle for Metal, and a macOS reference set
+still has to be captured and frozen. And it is not a performance comparison: XQuartz advertises no
+swap-control extension and is display-locked at ~121 fps, while `CAMetalLayer.displaySyncEnabled`
+genuinely comes off and the same scene measures 320-400 fps median on Metal. One of those numbers
+is a ceiling and the other is a cost.
 
 ## CI gating
 
