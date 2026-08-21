@@ -21,7 +21,8 @@ the XQuartz build resolves to OpenGL exactly as before. `--render-backend=` and
 
 At this checkpoint:
 
-- The Cocoa client draws the login UI, its panels, text, icons, clipping and translucency.
+- The Cocoa client draws the login UI and live gameplay — map tiles, creatures, name tags, the
+  minimap, the inventory and the chat panel — against the pinned fixture server.
 - Nine of eleven offline baseline scenes compare against the OpenGL backend consuming the
   **same compiled frames**; six match at exactly 0 differing pixels. The two that do not compare
   are the two made of module fragment programs, which Phase 6 owns.
@@ -84,9 +85,43 @@ captures match at **0 differing pixels**, including the one at 840,000 pixels ra
 and the one at HUD scale 2 — which between them are the only thing that exercises render-target
 recreation and `FrameAssembler::invalidateRetainedTargets`.
 
-The four **online** scenes are outside it too and are not yet run: they need the fixture server,
-and running them is the remaining verification step. Phase 3's experience is the reason to insist
-on it — its last defect was found by the online scenes after the handoff was drafted.
+The four **online** scenes are outside it too — they need the fixture server — and they were run by
+hand against the pinned `crystalserver` `f47f6e41`. They are the only coverage of the MAP pool, the
+light overlay, the map-composition material and the map readback, and Phase 3's last defect was found
+exactly there, after its handoff had been drafted.
+
+A live server cannot be frozen, so each scene is compared against **its own noise floor** rather than
+against zero — the criterion Phase 3 used:
+
+| Scene | within OpenGL | within Metal | across backends |
+|---|---|---|---|
+| `map-core` (656,880 px) | 175 px | 190 px | 34 / 166 / 197 / 305 px |
+| `map-screenshot` (168,960 px) | 0 px | 18 / 221 / 228 px | 316 / 327 px |
+| `lighting-overlap` (656,880 px) | 713 px | 851 px | 60 / 198 / 773 / 911 px |
+
+In every case the two backends differ by no more than each differs from itself, and two pairs — 34 px on
+`map-core`, 60 px on `lighting-overlap` — are close to identical. `map-screenshot`'s cross-backend
+difference is one creature standing a tile away plus two pixels of an animated floor sparkle: the
+62-pixel animated-decoration residual Phase 0 recorded, now that the animation actually advances.
+
+`lighting-overlap` is the most valuable of the three, because it is the only exercise the light overlay
+gets and it passes through the whole of it — the CPU light bitmap arriving as a `TextureUpdate`, staged
+into a buffer and blitted into a private texture inside the frame's own command buffer, then drawn as
+one multiply-blended quad. Three coloured torches with overlapping gradients render correctly.
+
+`shader-matrix-map` is the fourth, and it is **not comparable**, for the same reason its two offline
+siblings are not: all fourteen cells are map shaders, and every one reports "shader unavailable in this
+environment" on the Metal build because `ShaderManager` registers no GLSL without an OpenGL context. It
+was run anyway as a smoke test of the map-composition route and produced all fourteen captures without
+incident.
+
+**One capture of four was discarded, with evidence rather than by judgement.** An early `map-screenshot`
+run differed from every other by 90% of the frame at a small mean delta — alarming, and not a rendering
+difference: searching over whole-tile offsets showed it is another capture shifted by exactly (+64, −64),
+two tiles right and two tiles up, at which alignment 0.6% of pixels differ. The camera was two tiles off
+the anchor. It came from a batch of unspaced runs whose two siblings failed to reach the fixture at all;
+spacing the logins twelve seconds apart, so the server drops the previous session before the next one,
+made every later run land.
 
 ## Decisions that were not free
 
@@ -209,10 +244,11 @@ collector kept treating the texture as one that had never reached the GPU, freed
 
 None block Phase 5.
 
-**The online scenes have not been run.** They need the pinned fixture server and they are the only
-coverage of the MAP pool, the light overlay, the map-composition material and the map readback.
-Phase 3's last defect was found this way, after its handoff was drafted; this one should not close
-without the same check.
+**Online captures need spacing between logins.** Twelve seconds is enough. Without it the server still
+holds the previous session, the `!fixture` talkaction is swallowed, and the run either fails to reach the
+anchor at all or captures from two tiles away — which reads as a 90%-different frame and looks like a
+renderer defect until the shift is measured. Worth folding into the capture driver rather than the shell
+loop, if the online scenes are ever automated.
 
 **Module materials draw as plain geometry.** All 27 registered module programs, and therefore
 `shader-matrix`, `shader-matrix-outfits`, and the single Outline probe in two further scenes. This
@@ -302,7 +338,8 @@ what it is given. What Phase 5 actually owes:
 - **A macOS reference set.** The checked-in llvmpipe references are same-environment CI references,
   not a cross-stack oracle for Metal. A macOS baseline has to be captured and frozen before any
   gate can compare against it rather than against the OpenGL backend on another machine.
-- **The online scenes**, on Metal, against the fixture server — the MAP pool, the light overlay and
-  the map-composition material have never been drawn by this backend.
+- **The map-composition material**, which is the one part of the online coverage Phase 4 could not
+  measure: all fourteen `shader-matrix-map` cells are map shaders, and no module program resolves on
+  Metal until Phase 6. The route itself works — the scene captures — but nothing shaded comes out of it.
 - **The performance envelope, on a vehicle that can measure one.** Phase 3's figures are XQuartz
   CPU time at a locked frame rate and are not comparable. Metal's are.

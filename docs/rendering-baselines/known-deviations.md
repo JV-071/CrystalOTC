@@ -468,6 +468,30 @@ creature and nothing else, on an otherwise black diff image.
 `windowing` is outside the sweep (`ciCapture: false`) and was compared by hand: all four captures
 match at 0 differing pixels, including the 840,000-pixel grown one and the one at HUD scale 2.
 
+### The online scenes
+
+Outside the sweep (they need the fixture server) and compared by hand against `crystalserver`
+`f47f6e41`, three or four captures per backend. A live server cannot be frozen, so each scene is
+measured against **its own noise floor** rather than against zero:
+
+| Scene | within OpenGL | within Metal | across backends |
+|---|---|---|---|
+| `map-core` (656,880 px) | 175 px | 190 px | 34 / 166 / 197 / 305 px |
+| `map-screenshot` (168,960 px) | 0 px | 18 / 221 / 228 px | 316 / 327 px |
+| `lighting-overlap` (656,880 px) | 713 px | 851 px | 60 / 198 / 773 / 911 px |
+| `shader-matrix-map` | - | - | not comparable: all fourteen cells are map shaders |
+
+The two backends differ by no more than each differs from itself. `map-screenshot`'s residual is one
+creature a tile away plus two pixels of an animated floor sparkle - the 62-pixel animated-decoration
+residual Phase 0 recorded, now that the animation advances on both paths.
+
+**Online captures need spacing between logins.** Twelve seconds is enough for the server to drop the
+previous session. Without it the `!fixture` talkaction is swallowed and the run either never reaches the
+anchor or captures from two tiles away. One capture in this set did the latter and differed from its
+siblings across 90% of the frame - which looks like a renderer defect and is not: searching over
+whole-tile offsets showed it to be another capture shifted by exactly (+64, -64), at which alignment
+0.6% of pixels differ. Measure the shift before believing the percentage.
+
 Two things this comparison is **not**. It is not a reference gate - the checked-in llvmpipe PNGs
 are same-environment CI references, not a cross-stack oracle for Metal, and a macOS reference set
 still has to be captured and frozen. And it is not a performance comparison: XQuartz advertises no
