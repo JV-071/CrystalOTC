@@ -158,6 +158,26 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     std::vector<OpenSegment> stack;
     stack.push_back(std::move(root));
 
+    // Native texture identity, folded into the content hash at the end.
+    //
+    // A packet names its texture by LOGICAL handle, and for an AnimatedTexture that handle is
+    // deliberately stable across the animation's frames - it is one Texture object whose m_id is
+    // re-aimed at the current frame's GL name on every tick. Which is exactly the problem: the
+    // frame the target should now show is not the frame it shows, and nothing in the compiled
+    // output says so, so `FrameAssembler` finds the hash unchanged and re-composites a stale
+    // retained target instead of re-rendering it. The animation stops.
+    //
+    // Found by capturing map-screenshot down both paths: 24 pixels of a blue floor sparkle,
+    // identical across repeated runs of each path and different between them - a deterministic
+    // phase difference, not noise. map-core showed the same thing from the other side, its
+    // frame-path variance collapsing to 3 pixels where the legacy path varies by 2,719.
+    //
+    // The native id is the thing that actually changes when an animation advances, and the
+    // producer already resolved it (DrawPool::getState). It is used here ONLY as hash input -
+    // it does not enter a packet, and no backend sees it - so this is not a native id crossing
+    // the boundary.
+    size_t nativeTextureHash = 0;
+
     // Set by a BlendOff action and cleared by BlendOn - the exact scope the GL bracket has.
     bool blendDisabled = false;
 
@@ -215,6 +235,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         packet.alphaWrite = seg.alphaWrite;
 
         noteResidency(obj.state);
+        stdext::hash_combine(nativeTextureHash, obj.state.textureId);
     };
 
     for (const auto& obj : pool.m_objectsDraw[0]) {
@@ -363,7 +384,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     }
 
     // Content identity, computed once the passes are final.
-    size_t hash = 0;
+    size_t hash = nativeTextureHash;
     for (const auto& pass : out.passes) {
         stdext::hash_combine(hash, pass.target.id);
         stdext::hash_combine(hash, static_cast<uint32_t>(pass.load));
