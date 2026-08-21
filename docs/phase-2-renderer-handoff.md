@@ -67,7 +67,7 @@ An allocating registry would have destroyed it. The texture range works because 
 counter starts at `UINT16_MAX`, leaving everything below free; `texture.h` now names that seed so
 `renderhandles.h` can `static_assert` against it rather than trusting a comment.
 
-**`contentHash` is taken over the compiled output, not copied from `DrawHashController`.**
+**`contentHash` is taken over the compiled output, not copied from `DrawHashController`.** **Qualified 2026-08-21 (Phase 3, `ca825ac`): the native texture id had to be folded in as well.** An advancing `AnimatedTexture` compiles to byte-identical output, because its logical handle is stable by design — so the decision below held for everything except the one case where the compiled output does not describe what will actually be sampled.
 Identical output is a stronger justification for reusing a target than identical input, and it
 stays meaningful if the compiler later changes what it emits for the same objects.
 

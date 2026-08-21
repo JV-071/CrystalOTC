@@ -23,6 +23,8 @@ At this checkpoint:
 - All four CI jobs green on `2768b4d` — `Build - macOS (Cocoa)`, `Build - Windows`,
   `Renderer baseline - Linux llvmpipe`, `Tests - Lua`.
 - `ctest` 57/57, up from 53.
+- All four online scenes agree across paths within their own noise, measured against the pinned
+  fixture server `crystalserver` `f47f6e41`.
 - The eight reference-gated scenes still compare at **0 differing pixels** against their
   checked-in llvmpipe references, so the legacy path is provably unchanged by any of this.
 - The new legacy-versus-frame sweep passes all eleven offline scenes in **both** reference
@@ -62,6 +64,23 @@ retained target's contents without changing the objects that drew into them, whi
 the case a content hash cannot see. All four of its captures match at **0 differing pixels**,
 including the one at a different resolution entirely (840,000 px rather than 656,880), and its
 recorded window state is identical.
+
+The four **online** scenes are outside the sweep too — they need the fixture server — and they
+are the only ones that exercise the MAP pool, the light overlay, the map-shader composition
+material and the map readback at all. They were run by hand against `crystalserver` `f47f6e41`,
+three or four captures per path, and compared against each scene's own noise floor rather than
+against zero, because a live server cannot be frozen perfectly:
+
+| Scene | within legacy | across paths |
+|---|---|---|
+| `map-screenshot` | 0 px | **0 px**, every pair |
+| `shader-matrix-map` (14 map shaders) | worst 875 px | worst 927 px |
+| `lighting-overlap` | 836 / 836 / 0 px | 340 / 668 / **0** px |
+| `map-core` | 2,719 px | 2,160 px |
+
+In every case the paths differ by no more than the legacy path differs from itself, and two
+pairs match exactly. Doing this found the animated-texture defect below, which no static scene
+could have caught — worth repeating whenever target-reuse logic changes.
 
 **Why task 5 is not part of this gate.** The gate is *"legacy and new GL paths pixel-match"*.
 That requires both paths to exist; task 5 removes one. It is the step after the phase closes,
@@ -138,7 +157,7 @@ not come off, and both paths report an identical ~120 on a 120 Hz panel however 
 
 ## Bugs found, and how
 
-Four defects, all in code that had passed review, none found by reading it. Every one was
+Five defects, all in code that had passed review, none found by reading it. Every one was
 invisible until something *executed* the frame description rather than merely producing it —
 which is the argument for ordering Phase 3 before Phase 4, made concrete.
 
@@ -156,6 +175,16 @@ every Outline outfit.
 **Alpha writing was hardcoded true**, and the MAP target's **clear colour was assumed
 transparent** when `UIMap` passes `Color::black`. The clear colour travelled only inside the
 `prepare` callback, so a consumer that runs no callbacks could not learn it; it is declared now.
+
+**A compiled frame froze animated textures** — the fifth, found only once the online scenes ran.
+An `AnimatedTexture` is one Texture whose GL name is re-aimed at the current frame on every tick,
+while the logical handle a packet carries is deliberately stable, so a pool that published because
+an animation advanced compiled to a byte-identical program. The content hash matched and the
+retained target was re-composited rather than re-rendered. The *drawing* was never wrong; only the
+caching was, which is exactly why eleven static scenes all passed. `map-screenshot` gave it away:
+24 differing pixels, identical across repeated runs of each path and different between them, which
+enlarged are a blue floor sparkle at two phases. Fixed by folding the native texture id into the
+hash — the thing that does change when an animation advances — as hash input only.
 
 ## Owner decisions recorded 2026-08-21
 
@@ -188,6 +217,20 @@ without a scene noticing.
 at a display-locked frame rate. Nothing below roughly 15% is resolvable. It is an envelope for
 Phase 5's gate to sit inside, not a benchmark, and a Metal figure will not be comparable to it at
 all because it will not be measured through XQuartz.
+
+**A texture whose pixels change in place is still invisible to the content hash.** The
+animated-texture fix folds the native texture *id* in, which catches an animation advancing
+because the id changes with it. It does not catch `Texture::updatePixels` overwriting an
+already-resolved texture whose id stays the same. Nothing reaches it today — the only in-place
+updater is `LightView`, and the LIGHT pool has no retained target to reuse — but a future
+streaming texture drawn into the MAP or FOREGROUND target would, and would need a content
+revision on `Texture` rather than an id.
+
+**One map-core run died with SIGSEGV in `ProtocolGame::parseMessage`.** Network thread, no
+renderer frame in the stack, on the legacy path where the compiler does not run. It did not
+reproduce in four further attempts. Recorded rather than chased: it is a pre-existing flake in
+the online fixture path and Phase 3 is not the change that would explain it. Worth knowing if
+someone else meets it while running these scenes.
 
 **`RenderFrame::readbacks` is still produced by nobody.** `ReadbackRequest` is the parameter type
 of `readPixels`, not a queue the frame carries. Fine as it is; worth not mistaking for an
