@@ -151,6 +151,8 @@ void FrameAssembler::assemble(const Programs& programs, const AtlasPrograms& atl
         packet.textured = true;
         packet.texture = RenderHandles::targetTexture(program->compositionSource);
         packet.material = program->compositionMaterial;
+        for (size_t unit = 0; unit < program->compositionExtraTex.size(); ++unit)
+            packet.extraTex[unit] = program->compositionExtraTex[unit];
         packet.params = program->compositionMaterial.isDefault() ? nullptr : &params;
         packet.opacity = program->compositionOpacity;
         packet.blend = BlendMode::Normal;

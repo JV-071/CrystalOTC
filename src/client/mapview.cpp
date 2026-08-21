@@ -70,6 +70,7 @@ void MapView::declareCompositionMaterial() const
                           static_cast<float>(m_rectDimension.height()) };
 
     MaterialHandle material;
+    std::array<TextureHandle, 3> extraTex{};
     float opacity = 1.f;
 
     if (m_shader) {
@@ -91,6 +92,20 @@ void MapView::declareCompositionMaterial() const
 
         material = PoolCompiler::materialOf(m_shader.get());
 
+        // u_Tex1..3. GL binds these from inside Painter::drawArrays off the bound program, so
+        // the composition blit gets them for free there; a backend that does not share Painter
+        // has to be told, and this is the only site that can tell it - the composition packet is
+        // built by the frame assembler, which never sees a PainterShaderProgram. Fog and Snow
+        // are the two shaders that use them, and both are map shaders, so this is exactly the
+        // site that matters.
+        size_t unit = 0;
+        for (const auto& texture : m_shader->getMultiTextures()) {
+            if (unit >= extraTex.size())
+                break;
+            if (texture)
+                extraTex[unit++] = TextureHandle{ texture->getUniqueId() };
+        }
+
         // A read-only sample of the same fade ramp the callback computes. It deliberately does
         // NOT advance the switch: m_shader/m_nextShader/m_shaderSwitchDone stay the callback's
         // to mutate, so declaring changes nothing about what GL draws.
@@ -100,7 +115,7 @@ void MapView::declareCompositionMaterial() const
             opacity = std::min<float>(m_fadeTimer.timeElapsed() / m_fadeInTime, 1.f);
     }
 
-    g_drawPool.setCompositionMaterial(material, params, opacity);
+    g_drawPool.setCompositionMaterial(material, params, opacity, extraTex);
 }
 
 void MapView::registerEvents() {

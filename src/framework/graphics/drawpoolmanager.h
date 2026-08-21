@@ -92,8 +92,9 @@ public:
     { getCurrentPool()->addLightOverlay(texture, dest, src, tileSize, glAction); }
     void addTextureUpload(const TextureHandle texture, const Size& size, const uint8_t* pixels, const size_t byteCount) const
     { getCurrentPool()->addTextureUpload(texture, size, pixels, byteCount); }
-    void setCompositionMaterial(const MaterialHandle material, const MaterialParams& params, const float opacity) const
-    { getCurrentPool()->setCompositionMaterial(material, params, opacity); }
+    void setCompositionMaterial(const MaterialHandle material, const MaterialParams& params, const float opacity,
+                                const std::array<TextureHandle, 3>& extraTex = {}) const
+    { getCurrentPool()->setCompositionMaterial(material, params, opacity, extraTex); }
 
     // Registers the rect of UIMap's alpha-0 cutout as declared data (see DrawPool::m_mapHole).
     void setMapHole(const Rect& rect) const { getCurrentPool()->m_pendingMapHole = rect; }

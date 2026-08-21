@@ -88,6 +88,7 @@ struct PoolProgram
     bool compositionBlendEnabled{ true };
     bool compositionAlphaWrite{ true };
     MaterialHandle compositionMaterial;
+    std::array<TextureHandle, 3> compositionExtraTex{};
     MaterialParams compositionParams;
     float compositionOpacity{ 1.f };
 
@@ -128,6 +129,7 @@ struct PoolProgram
         compositionBlendEnabled = true;
         compositionAlphaWrite = true;
         compositionMaterial = {};
+        compositionExtraTex = {};
         compositionParams = {};
         compositionOpacity = 1.f;
         unsupported.clear();

@@ -320,6 +320,7 @@ void DrawPool::release() {
         m_uploads.swap(m_pendingUploads);
         m_pendingUploads.clear();
         m_compositionMaterial = m_pendingCompositionMaterial;
+        m_compositionExtraTex = m_pendingCompositionExtraTex;
         m_compositionParams = m_pendingCompositionParams;
         m_compositionOpacity = m_pendingCompositionOpacity;
         return;
@@ -339,6 +340,7 @@ void DrawPool::release() {
         m_uploads.swap(m_pendingUploads);
         m_pendingUploads.clear();
         m_compositionMaterial = m_pendingCompositionMaterial;
+        m_compositionExtraTex = m_pendingCompositionExtraTex;
         m_compositionParams = m_pendingCompositionParams;
         m_compositionOpacity = m_pendingCompositionOpacity;
 
@@ -451,6 +453,7 @@ void DrawPool::refreshCompiledComposition(PoolProgram& program) const
     program.compositionDest = m_fbDest.isValid() ? m_fbDest : full;
     program.compositionSrc = m_fbSrc.isValid() ? m_fbSrc : full;
     program.compositionMaterial = m_compositionMaterial;
+    program.compositionExtraTex = m_compositionExtraTex;
     program.compositionParams = m_compositionParams;
     program.compositionOpacity = m_compositionOpacity;
 }
@@ -649,11 +652,12 @@ void DrawPool::addLightOverlay(const TexturePtr& texture, const Rect& dest, cons
 }
 
 void DrawPool::setCompositionMaterial(const MaterialHandle material, const MaterialParams& params,
-                                      const float opacity)
+                                      const float opacity, const std::array<TextureHandle, 3>& extraTex)
 {
     m_pendingCompositionMaterial = material;
     m_pendingCompositionParams = params;
     m_pendingCompositionOpacity = opacity;
+    m_pendingCompositionExtraTex = extraTex;
 }
 
 void DrawPool::addAction(const std::function<void()>& action, size_t hash)

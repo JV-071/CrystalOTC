@@ -422,7 +422,8 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         // for FOREGROUND.
         out.compositionAlphaWrite = false;
         out.compositionMaterial = pool.m_compositionMaterial;
-        out.compositionParams = pool.m_compositionParams;
+        out.compositionExtraTex = pool.m_compositionExtraTex;
+    out.compositionParams = pool.m_compositionParams;
         out.compositionOpacity = pool.m_compositionOpacity;
     }
 

@@ -283,7 +283,12 @@ private:
                          uint16_t tileSize, const std::function<void()>& glAction);
 
     // Declares the material this pool's target blit is composited with (the map shader).
-    void setCompositionMaterial(MaterialHandle material, const MaterialParams& params, float opacity);
+    // `extraTex` is u_Tex1..3 for the composition material. It travels separately from the
+    // packet-building path because the composition packet is the FRAME ASSEMBLER's, not the
+    // compiler's - so PoolCompiler's multi-texture handling never sees it, and Fog and Snow are
+    // map shaders, which is exactly the site that goes through here.
+    void setCompositionMaterial(MaterialHandle material, const MaterialParams& params, float opacity,
+                                const std::array<TextureHandle, 3>& extraTex = {});
     void bindFrameBuffer(const Size& size, const Color& color = Color::white);
     void releaseFrameBuffer(const Rect& dest);
     void releaseFrameBuffer(const Rect& dest, uint8_t flipDirection);
@@ -522,10 +527,12 @@ private:
     // sub-frame difference in a fade, and declaring it here also removes the callback's
     // existing habit of mutating MapView state from the render thread.
     MaterialHandle m_pendingCompositionMaterial;
+    std::array<TextureHandle, 3> m_pendingCompositionExtraTex{};
     MaterialParams m_pendingCompositionParams;
     float m_pendingCompositionOpacity{ 1.f };
 
     MaterialHandle m_compositionMaterial;
+    std::array<TextureHandle, 3> m_compositionExtraTex{};
     MaterialParams m_compositionParams;
     float m_compositionOpacity{ 1.f };
 
