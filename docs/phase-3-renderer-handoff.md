@@ -25,6 +25,12 @@ At this checkpoint:
 - `ctest` 57/57, up from 53.
 - All four online scenes agree across paths within their own noise, measured against the pinned
   fixture server `crystalserver` `f47f6e41`.
+- No new compiler warnings. The macOS job reports the same eleven it reported before this phase
+  — eight deprecated OpenSSL `RSA_*` calls in `crypt.cpp`, an unhandled enumerator in
+  `protocolgameparse.cpp`, a braced scalar initializer in `textureatlas.cpp`, and a Homebrew tap
+  notice. Verified by diffing the annotation set of run `32476769555` against `32440662987`,
+  which predates Phase 3: identical warnings, identical counts. None of those three files is in
+  this phase's diff, and the `textureatlas.cpp` one dates to the initial commit.
 - The eight reference-gated scenes still compare at **0 differing pixels** against their
   checked-in llvmpipe references, so the legacy path is provably unchanged by any of this.
 - The new legacy-versus-frame sweep passes all eleven offline scenes in **both** reference
