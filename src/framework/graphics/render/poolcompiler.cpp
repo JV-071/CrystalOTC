@@ -23,6 +23,7 @@
 #include "poolcompiler.h"
 
 #include <framework/graphics/drawpool.h>
+#include <framework/graphics/painter.h>
 #include <framework/graphics/paintershaderprogram.h>
 
 namespace
@@ -38,6 +39,16 @@ namespace
         Color clearColor{ Color::alpha };
         LoadAction firstLoad{ LoadAction::Clear };
         bool flushedOnce{ false };
+
+        // Whether draws into this target write the alpha channel. GL keeps this as one global
+        // (glColorMask) that FrameBuffer::bind sets and release does NOT restore, so the live
+        // value leaks out of nested targets and out of atlas maintenance into whatever draws
+        // next. That leak cannot be modelled here even in principle: it crosses pool
+        // boundaries, and a pool is compiled alone, on a producer thread, before the frame is
+        // ordered. So this states the value each target is ENTERED with, which is the part
+        // that is well defined - and the part that matters, because the only place alpha is
+        // read back is a pool target sampled by its own composition draw.
+        bool alphaWrite{ true };
         std::string label;
         std::vector<DrawPacket> packets;
     };
@@ -94,8 +105,23 @@ MaterialHandle PoolCompiler::materialOf(const PainterShaderProgram* program)
     if (!program)
         return {};
 
-    // ShaderManager numbers programs from 0 as they register; offsetting by FirstModule keeps
-    // them clear of the built-ins forever.
+    // Painter's own built-in programs never go through ShaderManager::putShader, so they carry
+    // id 0 and are NOT module materials. One of them genuinely reaches pool state: the
+    // replace-colour program, which every marked or highlighted thing binds
+    // (creature.cpp, item.cpp). Mapping it through the module range produced a material handle
+    // no backend could resolve - and, before m_id was initialised, a different one per run.
+    if (program->getId() == 0) {
+        if (g_painter && g_painter->isReplaceColorShader(program))
+            return materialHandleOf(BuiltinMaterial::ReplaceColor);
+
+        // Any other unregistered program is one this compiler has no name for. The default
+        // material draws it as ordinary textured/solid geometry, which is a visible
+        // approximation rather than an unresolvable handle.
+        return {};
+    }
+
+    // ShaderManager numbers registered programs from 1; offsetting by FirstModule keeps them
+    // clear of the built-ins forever.
     return MaterialHandle{ static_cast<uint16_t>(
         static_cast<uint16_t>(BuiltinMaterial::FirstModule) + program->getId()) };
 }
@@ -114,14 +140,18 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     if (hasTarget) {
         root.target = RenderHandles::poolTarget(pool.m_type);
         root.viewport = Rect(0, 0, pool.m_framebuffer->getSize());
-        root.clearColor = Color::alpha;
+        root.clearColor = pool.m_fbClearColor;
         root.firstLoad = LoadAction::Clear;
+        root.alphaWrite = pool.m_framebuffer->hasAlphaWriting();
         root.label = "pool-target";
     } else {
         root.target = RenderTargetHandle{ RenderTargetHandle::BACKBUFFER };
         root.viewport = Rect(0, 0, viewportSize);
         // A pool with no target draws ON TOP of whatever is already on the backbuffer.
         root.firstLoad = LoadAction::Keep;
+        // DrawPoolManager::drawPool resets painter state before every target blit, and reset
+        // means alpha writing off - which is the state a pool without a target inherits.
+        root.alphaWrite = false;
         root.label = "pool-direct";
     }
 
@@ -144,6 +174,19 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         pass.packets.swap(seg.packets);
 
         seg.flushedOnce = true;
+    };
+
+    // A state that still carries a TexturePtr is one GL would resolve at draw time:
+    // PoolState::execute calls Texture::create() (a lazy upload) and then offers the texture to
+    // the pool's atlas. Neither can happen here - both are render-thread work - so the
+    // requirement travels as data. See PoolProgram::residency.
+    const auto noteResidency = [&out](const DrawPool::PoolState& state) {
+        if (!state.texture)
+            return;
+        // Run-length dedup only. Batching means repeats come in runs, and a duplicate costs
+        // nothing anyway: both create() and the atlas offer are idempotent.
+        if (out.residency.empty() || out.residency.back() != state.texture)
+            out.residency.push_back(state.texture);
     };
 
     const auto emitGeometry = [&](OpenSegment& seg, const DrawPool::DrawObject& obj) {
@@ -169,7 +212,9 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         packet.opacity = obj.state.opacity;
         packet.blend = blendModeOf(obj.state.compositionMode);
         packet.blendEnabled = !blendDisabled;
-        packet.alphaWrite = true;
+        packet.alphaWrite = seg.alphaWrite;
+
+        noteResidency(obj.state);
     };
 
     for (const auto& obj : pool.m_objectsDraw[0]) {
@@ -193,6 +238,8 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
             nested.viewport = Rect(0, 0, obj.fbSize);
             nested.clearColor = Color::alpha;
             nested.firstLoad = LoadAction::Clear;
+            // Temporary framebuffers keep FrameBuffer's default, m_useAlphaWriting = true.
+            nested.alphaWrite = true;
             nested.label = "transient";
             stack.push_back(std::move(nested));
             continue;
@@ -231,6 +278,18 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
             packet.opacity = obj.fbOpacity;
             packet.blend = BlendMode::Normal;
             packet.blendEnabled = !blendDisabled;
+            packet.alphaWrite = seg.alphaWrite;
+
+            // The blit runs under the OUTER state, which releaseFrameBuffer captures onto the
+            // object: GL applies it with drawState.execute() and only then does
+            // FrameBuffer::draw override the texture. Carrying only the opacity was a real
+            // omission - the `useFramebuffer` route exists precisely so that a shader applies
+            // AT the blit, so dropping the material silently un-shaded every Outline outfit.
+            packet.material = materialOf(obj.state.shaderProgram);
+            packet.color = obj.state.color;
+            packet.transform = obj.state.transformMatrix;
+            noteResidency(obj.state);
+
             const auto blitScissor = clampScissor(obj.state.clipRect, seg.viewport);
             packet.scissor = blitScissor.rect;
             packet.scissorEnabled = blitScissor.enabled;
@@ -289,10 +348,15 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         out.compositionDest = pool.m_fbDest.isValid() ? pool.m_fbDest : Rect(0, 0, pool.m_framebuffer->getSize());
         out.compositionSrc = pool.m_fbSrc.isValid() ? pool.m_fbSrc : Rect(0, 0, pool.m_framebuffer->getSize());
 
-        // The MAP target composites with blending OFF and no alpha write: its pixels replace
-        // rather than blend. Every other pool target composites normally.
+        // The MAP target composites with blending OFF: its pixels replace rather than blend.
+        // Every other pool target composites normally.
         out.compositionBlendEnabled = !pool.m_framebuffer->isBlendDisabled();
-        out.compositionAlphaWrite = pool.m_framebuffer->hasAlphaWriting();
+
+        // No composition draw writes alpha, whichever pool it belongs to: drawPool resets
+        // painter state immediately before the blit and FrameBuffer::draw never sets it back.
+        // This used to read hasAlphaWriting(), which is right for MAP by coincidence and wrong
+        // for FOREGROUND.
+        out.compositionAlphaWrite = false;
         out.compositionMaterial = pool.m_compositionMaterial;
         out.compositionParams = pool.m_compositionParams;
         out.compositionOpacity = pool.m_compositionOpacity;

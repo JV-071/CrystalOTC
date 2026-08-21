@@ -35,6 +35,11 @@ public:
     void clearRect(const Color& color, const Rect& rect);
 
     void drawCoords(const CoordsBuffer& coordsBuffer, DrawMode drawMode = DrawMode::TRIANGLES);
+
+    // The primitive drawCoords delegates to, taking geometry as two parallel float2 arrays
+    // rather than as a CoordsBuffer - which is the shape a compiled VertexArena slice has.
+    void drawArrays(const float* vertices, const float* texCoords, int vertexCount,
+                    bool hasTexCoords, DrawMode drawMode = DrawMode::TRIANGLES);
     void drawLine(const std::vector<float>& vertex, int size, int width) const;
 
     float getOpacity() const { return m_opacity; }

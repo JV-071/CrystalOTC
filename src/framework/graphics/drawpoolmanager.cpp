@@ -24,8 +24,15 @@
 
 #include "graphics.h"
 #include "painter.h"
+#include "paintershaderprogram.h"
 #include "textureatlas.h"
+#include "render/glbackend.h"
+#include "render/renderhandles.h"
+#include "render/resourceregistry.h"
+#include <framework/core/graphicalapplication.h>
 #include <framework/core/configmanager.h>
+
+#include <cstdlib>
 
 thread_local static uint8_t CURRENT_POOL = static_cast<uint8_t>(DrawPoolType::LAST);
 
@@ -35,10 +42,52 @@ void resetSelectedPool() {
 
 DrawPoolManager g_drawPool;
 
+namespace
+{
+    // Precedence, most specific first: a command-line flag, an environment variable, then
+    // config.ini. The first two exist because the renderer-baseline harness has to capture the
+    // same scene down both paths in one run of the same binary, and config.ini is a
+    // restart-scoped, user-owned file that a capture must not rewrite.
+    std::string requestedRenderPath()
+    {
+        static constexpr std::string_view FLAG = "--render-path=";
+
+        const auto& options = g_app.getStartupOptions();
+        if (const auto pos = options.find(FLAG); pos != std::string::npos) {
+            const auto value = options.substr(pos + FLAG.size());
+            return value.substr(0, value.find_first_of(" \t"));
+        }
+
+        if (const char* env = std::getenv("CRYSTALOTC_RENDER_PATH"); env && *env)
+            return env;
+
+        return g_configs.getPublicConfig().graphics.renderPath;
+    }
+}
+
 void DrawPoolManager::init(const uint16_t spriteSize)
 {
     if (spriteSize != 0)
         m_spriteSize = spriteSize;
+
+    if (const auto path = requestedRenderPath(); path == "frame") {
+        // Compiling has to be on before the first release(), or the first frames would find no
+        // program and draw nothing.
+        DrawPool::setCompileFrames(true);
+
+        auto backend = std::make_unique<GLBackend>();
+        if (backend->initialize()) {
+            m_backend = std::move(backend);
+            m_renderPath = RenderPath::Frame;
+            g_logger.info("[render] render path: frame (backend '{}')", m_backend->name());
+        } else {
+            DrawPool::setCompileFrames(false);
+            g_logger.warning("[render] frame render path requested but the backend refused to "
+                             "initialise; staying on the legacy path");
+        }
+    } else if (!path.empty() && path != "legacy") {
+        g_logger.warning("[render] unknown render path '{}' - using 'legacy'", path);
+    }
 
     auto mapAtlasSize = g_configs.getPublicConfig().graphics.mapAtlasSize;
     auto foregroundAtlasSize = g_configs.getPublicConfig().graphics.foregroundAtlasSize;
@@ -100,6 +149,17 @@ bool DrawPoolManager::shaderNeedFramebuffer() const { return getCurrentPool()->g
 
 void DrawPoolManager::draw()
 {
+    // One entry point, dispatching internally, so that the render loop above knows nothing
+    // about which renderer is running and a declined frame falls back within the same tick
+    // rather than being lost.
+    if (m_renderPath == RenderPath::Frame && drawFrame())
+        return;
+
+    drawLegacy();
+}
+
+void DrawPoolManager::drawLegacy()
+{
     if (m_size != g_graphics.getViewportSize()) {
         m_size = g_graphics.getViewportSize();
         m_transformMatrix = g_painter->getTransformMatrix(m_size);
@@ -108,6 +168,113 @@ void DrawPoolManager::draw()
 
     for (int8_t i = -1; ++i < static_cast<uint8_t>(DrawPoolType::LAST);) {
         drawPool(static_cast<DrawPoolType>(i));
+    }
+}
+
+bool DrawPoolManager::drawFrame()
+{
+    if (!m_backend)
+        return false;
+
+    if (m_size != g_graphics.getViewportSize()) {
+        m_size = g_graphics.getViewportSize();
+        m_transformMatrix = g_painter->getTransformMatrix(m_size);
+        g_painter->setResolution(m_size, m_transformMatrix);
+
+        // A resize invalidates every retained target's contents without changing the objects
+        // that drew into them, which is exactly the case a content hash cannot see.
+        m_frameAssembler.invalidateRetainedTargets();
+        m_backend->resize(m_size);
+    }
+
+    // Completeness is checked BEFORE anything is consumed. A program that could not express
+    // some idiom must not drive the backend, and the fallback needs the repaint flags intact -
+    // consuming first and then bailing would drop a frame's worth of published work.
+    for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+        auto* pool = get(static_cast<DrawPoolType>(i));
+        if (!pool->isEnabled() || pool->hasUsableProgram())
+            continue;
+
+        if (!m_loggedFrameFallback) {
+            m_loggedFrameFallback = true;
+            g_logger.warning("[render] pool {} compiled incompletely; this frame and any like it "
+                             "fall back to the legacy path", i);
+        }
+        return false;
+    }
+
+    FrameAssembler::Programs programs{};
+    for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+        auto* pool = get(static_cast<DrawPoolType>(i));
+        // A disabled pool is skipped without consuming, matching drawPool's early return.
+        if (pool->isEnabled())
+            programs[i] = pool->acquireProgram();
+    }
+
+    prepareResources(programs);
+
+    m_frameAssembler.assemble(programs, m_size, PainterShaderProgram::currentTime(), m_frame);
+    bindFrameTargets(m_frame);
+
+    return m_backend->render(m_frame);
+}
+
+void DrawPoolManager::prepareResources(const FrameAssembler::Programs& programs)
+{
+    // Residency and atlas maintenance for every pool, before any pass runs.
+    //
+    // The GL path interleaves both with drawing - PoolState::execute creates a texture and
+    // offers it to the atlas as each object is drawn, and the atlas is flushed after each
+    // pool's objects. Hoisting all of it in front of the frame is equivalent, and the reason is
+    // worth stating: a region created during frame N is not consulted until the PRODUCER runs
+    // for frame N+1, because it is DrawPool::add that translates a source rect into atlas
+    // coordinates. So nothing this frame draws can see a region this frame created, whichever
+    // order the two happen in - and the compositing writes land in shelf space no draw in this
+    // frame addresses.
+    for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+        auto* pool = get(static_cast<DrawPoolType>(i));
+
+        if (const auto* program = programs[i]) {
+            for (const auto& texture : program->residency) {
+                if (!texture)
+                    continue;
+
+                texture->create();
+
+                if (texture->canCacheInAtlas() && pool->m_atlas
+                    && !texture->getAtlasRegion(pool->m_atlas->getType()))
+                    pool->m_atlas->addTexture(texture);
+            }
+        }
+
+        if (pool->m_atlas)
+            pool->m_atlas->flush();
+    }
+}
+
+void DrawPoolManager::bindFrameTargets(const RenderFrame& frame)
+{
+    auto& registry = ResourceRegistry::instance();
+    registry.clearTargets();
+
+    // Every pool target, whether or not a pass writes to it this frame: a pool whose content
+    // was unchanged contributes no pass but its composition packet still samples the target.
+    for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+        const auto type = static_cast<DrawPoolType>(i);
+        registry.bindTarget(RenderHandles::poolTarget(type), get(type)->getFrameBuffer().get());
+    }
+
+    // Transient targets exist only where a pass names one. They are registered here but SIZED
+    // in the backend, at the moment each pass runs: one handle is a temporary slot at a nesting
+    // depth, and several passes can reuse that slot at different sizes within one frame.
+    for (const auto& pass : frame.passes) {
+        if (!RenderHandles::isTransientTarget(pass.target))
+            continue;
+
+        auto* pool = get(RenderHandles::poolOf(pass.target));
+        const auto depth = static_cast<uint8_t>(RenderHandles::transientDepthOf(pass.target));
+        if (const auto& target = pool->getTemporaryFrameBuffer(depth))
+            registry.bindTarget(pass.target, target.get());
     }
 }
 
@@ -213,6 +380,7 @@ void DrawPoolManager::preDraw(const DrawPoolType type, const std::function<void(
     // that does not run GL actions cannot recover them. Two Rect copies per frame.
     pool->m_pendingFbDest = dest;
     pool->m_pendingFbSrc = src;
+    pool->m_pendingFbClearColor = colorClear;
 
     pool->resetState();
 

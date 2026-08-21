@@ -146,6 +146,15 @@ void PainterShaderProgram::setFixedTime(const float seconds)
 void PainterShaderProgram::clearFixedTime() { g_shaderFixedTimeEnabled = false; }
 bool PainterShaderProgram::hasFixedTime() { return g_shaderFixedTimeEnabled; }
 
+float PainterShaderProgram::currentTime()
+{
+    // Note this is NOT what an unpinned program uploads: updateTime() subtracts the program's
+    // own m_startTime, so u_Time is per-program. A frame-global cannot reproduce that, and does
+    // not have to - the GL backend still uploads u_Time through updateTime(). What matters is
+    // that when the pin is on, everything agrees on one value.
+    return g_shaderFixedTimeEnabled ? g_shaderFixedTimeValue : g_clock.seconds();
+}
+
 void PainterShaderProgram::updateTime()
 {
     const float time = g_shaderFixedTimeEnabled ? g_shaderFixedTimeValue

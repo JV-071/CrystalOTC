@@ -306,6 +306,7 @@ void DrawPool::release() {
         SpinLock::Guard guard(m_threadLock);
         m_fbDest = m_pendingFbDest;
         m_fbSrc = m_pendingFbSrc;
+        m_fbClearColor = m_pendingFbClearColor;
         m_mapHole = m_pendingMapHole;
         m_uploads.swap(m_pendingUploads);
         m_pendingUploads.clear();
@@ -317,12 +318,14 @@ void DrawPool::release() {
 
     m_refreshTimer.restart();
 
+    {
     SpinLock::Guard guard(m_threadLock);
 
     // Publish the framebuffer dest/src for the Vulkan path - together with the object list,
     // under the same lock, so the feeder never sees rects from a different frame than the objects.
     m_fbDest = m_pendingFbDest;
     m_fbSrc = m_pendingFbSrc;
+    m_fbClearColor = m_pendingFbClearColor;
     m_mapHole = m_pendingMapHole;
     m_uploads.swap(m_pendingUploads);
     m_pendingUploads.clear();
@@ -371,18 +374,81 @@ void DrawPool::release() {
         }
     }
 
+    } // m_threadLock
+
+    // Compiled OUTSIDE the lock, deliberately. Phase 2 compiled inside it because the published
+    // list is what a consumer may swap away the instant the lock drops - but that is only true
+    // once m_shouldRepaint says so, and it does not yet. No consumer touches m_objectsDraw[0]
+    // while the flag is false, so this window is exclusively the producer's, and Phase 3 needs
+    // both paths live at once rather than a spinlock held for the length of a compile.
     compilePublishedObjects();
 
-    m_shouldRepaint.store(true, std::memory_order_relaxed);
+    {
+        SpinLock::Guard guard(m_threadLock);
+        m_programBuild.swap(m_programPublished);
+        m_shouldRepaint.store(true, std::memory_order_relaxed);
+    }
 }
 
-// Compiles what release() has just put in m_objectsDraw[0].
+// The render thread's counterpart to release(). Takes the newly published program if there is
+// one, and consumes the repaint flag exactly as DrawPoolManager::drawObjects does - which is
+// not optional: the map thread blocks in canDrawMap until the flag is consumed.
 //
-// This runs INSIDE release()'s lock, which is the honest trade rather than an oversight: the
-// published list is exactly what the consumer may swap away the moment the lock drops, so
-// compiling outside it would race. The cost is bounded by the frame's object count and is paid
-// only when compiling is switched on, which it is not by default. Phase 3, which needs both
-// paths live at once, should move this off the lock rather than inherit it.
+// Three program slots rather than two, for the same reason the object list has two buffers and
+// a publish slot: `build` is the producer's, `published` is the handover, `draw` is the
+// consumer's and stays valid until the consumer itself replaces it. With only two, a second
+// publish while the consumer was still reading would overwrite the object it was reading.
+const PoolProgram* DrawPool::acquireProgram()
+{
+    SpinLock::Guard guard(m_threadLock);
+
+    if (m_shouldRepaint.load(std::memory_order_relaxed)) {
+        m_objectsDraw[0].swap(m_objectsDraw[1]);
+        m_programPublished.swap(m_programDraw);
+        m_shouldRepaint.store(false, std::memory_order_relaxed);
+    }
+
+    if (m_programDraw)
+        refreshCompiledComposition(*m_programDraw);
+
+    return m_programDraw.get();
+}
+
+// Whether the program this pool would contribute can be executed faithfully. Peeks without
+// consuming, so a frame that has to fall back to the legacy path has not already eaten the
+// repaint flags the legacy path needs.
+bool DrawPool::hasUsableProgram()
+{
+    SpinLock::Guard guard(m_threadLock);
+
+    const PoolProgram* program = m_shouldRepaint.load(std::memory_order_relaxed)
+        ? m_programPublished.get()
+        : m_programDraw.get();
+
+    return program == nullptr || program->isComplete();
+}
+
+// The blit's dest, src, material and opacity can change while the CONTENT hash does not - a map
+// widget being dragged is the standing example - and in that case release() takes its early
+// return and never recompiles. GL has no equivalent problem because it reads them fresh from
+// prepare() on every draw. So the consumer refreshes them here, on the program it is about to
+// use, which it exclusively owns.
+void DrawPool::refreshCompiledComposition(PoolProgram& program) const
+{
+    if (!program.hasComposition || !m_framebuffer || !m_framebuffer->isValid())
+        return;
+
+    const Rect full(0, 0, m_framebuffer->getSize());
+    program.compositionDest = m_fbDest.isValid() ? m_fbDest : full;
+    program.compositionSrc = m_fbSrc.isValid() ? m_fbSrc : full;
+    program.compositionMaterial = m_compositionMaterial;
+    program.compositionParams = m_compositionParams;
+    program.compositionOpacity = m_compositionOpacity;
+}
+
+// Compiles what release() has just put in m_objectsDraw[0], into m_programBuild. The swap into
+// m_programPublished is the caller's, under the lock, together with the repaint flag - so that a
+// consumer never sees a program published ahead of the objects it describes.
 void DrawPool::compilePublishedObjects()
 {
     if (!s_compileFrames)
@@ -401,8 +467,6 @@ void DrawPool::compilePublishedObjects()
         for (const auto& reason : m_programBuild->unsupported)
             g_logger.warning("[render] pool {} could not be compiled: {}", static_cast<int>(m_type), reason);
     }
-
-    m_programBuild.swap(m_programPublished);
 }
 
 void DrawPool::flush()
@@ -685,6 +749,16 @@ void DrawPool::releaseFrameBuffer(const Rect& dest, uint8_t flipDirection)
     releaseObject.fbFlip = flipDirection;
     releaseObject.fbDest = dest;
     releaseObject.fbOpacity = getCurrentState().opacity;
+
+    // The whole outer state, not just its opacity. GL applies exactly this before the blit -
+    // it is the `drawState` the callback above captured - and the `useFramebuffer` shader
+    // route depends on it: the shader is bound OUTSIDE the temporary target so that it runs on
+    // the composited result. A consumer that reads only fbOpacity loses the material, the
+    // colour and the transform, which is how Outline outfits came out unshaded.
+    //
+    // Invisible to the Vulkan feeder, which continues past an fbMarker object before it ever
+    // looks at state.
+    releaseObject.state = getCurrentState();
 
     if (hasFrameBuffer() && !dest.isNull()) m_hashCtrl.put(dest.hash());
     --m_bindedFramebuffers;

@@ -513,6 +513,8 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/graphics/render/poolcompiler.cpp
           framework/graphics/render/frameassembler.cpp
           framework/graphics/render/recordingbackend.cpp
+          framework/graphics/render/resourceregistry.cpp
+          framework/graphics/render/glbackend.cpp
           framework/platform/win32window.cpp
           framework/platform/x11window.cpp
           # Renderer Vulkan: pliki kompiluja sie na kazdej platformie, ale ich TRESC jest

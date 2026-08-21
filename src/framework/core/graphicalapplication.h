@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <framework/graphics/render/irenderbackend.h>
+
 #include "application.h"
 
 #include <framework/core/inputevent.h>
@@ -137,6 +139,11 @@ public:
     void setDrawEvents(const ApplicationDrawEventsPtr& drawEvents) { m_drawEvents = drawEvents; }
     void doScreenshot(std::string file);
     void doMapScreenshot(std::string file);
+
+    // Encodes a completed readback to PNG off the render thread. Shared by the two screenshot
+    // entry points so that "how a readback becomes a file" is stated once - the backend has
+    // already delivered top-left pixels, so unlike the legacy sites this does NOT flip.
+    static void saveReadbackAsPng(ReadbackResult&& readback, std::string file);
 #ifdef __EMSCRIPTEN__
     void mainLoop();
 #endif

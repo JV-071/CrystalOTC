@@ -446,6 +446,21 @@ void GraphicalApplication::setLoadingAsyncTexture(bool v) {
         m_drawEvents->onLoadingAsyncTextureChanged(v);
 }
 
+void GraphicalApplication::saveReadbackAsPng(ReadbackResult&& readback, std::string file)
+{
+    g_asyncDispatcher.detach_task([readback = std::move(readback), file = std::move(file)] {
+        try {
+            Image image(readback.size, 4, readback.pixels.data());
+            // No flipVertically here, deliberately: IRenderBackend::readPixels delivers
+            // top-left origin. The legacy sites flip because they call glReadPixels themselves.
+            image.setOpacity(255);
+            image.savePNG(file);
+        } catch (stdext::exception& e) {
+            g_logger.error(std::string("Can't save screenshot: ") + e.what());
+        }
+    });
+}
+
 void GraphicalApplication::doScreenshot(std::string file)
 {
     if (file.empty()) {
@@ -453,6 +468,18 @@ void GraphicalApplication::doScreenshot(std::string file)
     }
 
     g_mainDispatcher.addEvent([file] {
+        // On the compiled path the readback is a request against the frame's backbuffer target,
+        // with the crop stated in top-left pixels. Same GL call underneath; the difference is
+        // that the coordinate convention is now the boundary's rather than each call site's.
+        if (auto* backend = g_drawPool.getBackend()) {
+            ReadbackResult readback;
+            if (backend->readPixels(ReadbackRequest{ {}, Rect(0, 0, g_graphics.getViewportSize()) }, readback)
+                && readback.ok) {
+                saveReadbackAsPng(std::move(readback), file);
+                return;
+            }
+        }
+
         auto resolution = g_graphics.getViewportSize();
         const int width = resolution.width();
         const int height = resolution.height();

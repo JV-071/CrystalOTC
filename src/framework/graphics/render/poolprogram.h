@@ -63,6 +63,21 @@ struct PoolProgram
     std::vector<RenderPass> passes;
     std::vector<TextureUpdate> uploads;
 
+    // Textures the render thread must make resident before these passes run, in first-use
+    // order. The GL path does this inline: PoolState::execute calls Texture::create() (a lazy
+    // upload) and then offers the texture to the pool's atlas. Both are render-thread work
+    // that a producer-thread compile cannot perform, so the requirement is stated instead.
+    //
+    // A texture appears here only when the producer left the state's TexturePtr unresolved.
+    // Textures already resolved to a native id are absent on purpose: offering one of those to
+    // the atlas would pack a texture GL had decided not to pack.
+    //
+    // Shared pointers rather than handles, for two reasons. The atlas takes a TexturePtr, and
+    // more importantly the program then keeps every texture it depends on alive until the frame
+    // that uses it is done - which a bare handle, resolved a frame later through a registry,
+    // could not promise.
+    std::vector<TexturePtr> residency;
+
     // --- composition -------------------------------------------------------------------
     // Set only for pools that own a retained target (MAP and FOREGROUND). The assembler turns
     // this into one textured packet on the backbuffer.
@@ -105,6 +120,7 @@ struct PoolProgram
         arena.clear();
         passes.clear();
         uploads.clear();
+        residency.clear();
         requiresAtlasMaintenance = false;
         hasComposition = false;
         compositionSource = {};

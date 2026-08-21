@@ -66,6 +66,20 @@ public:
     void doScreenshot(std::string file, uint16_t x = 0, uint16_t y = 0);
     Size getSize();
 
+    // --- explicit render-pass access -----------------------------------------------------
+    // bind() folds five decisions into one call: bind the FBO, maybe reset painter state,
+    // repoint the painter at this target, set alpha writing from this object, and maybe clear
+    // using a colour this object is carrying. A compiled render pass states all of those
+    // itself, per pass and per packet, so it needs the pieces separately rather than the
+    // policy. These three are verbatim slices of bind()/release(); no new behaviour.
+    void bindAsTarget();
+    void releaseAsTarget() const;
+
+    // The non-transparent half of bind()'s clear: a full-target quad in the current blend
+    // state, rather than a glClear. Kept as a draw because that is what it is - it blends,
+    // and it honours the colour mask.
+    void drawClearQuad(const Color& color);
+
 protected:
     Color m_colorClear{ Color::alpha };
 

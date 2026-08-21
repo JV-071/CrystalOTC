@@ -74,6 +74,11 @@ public:
     static void clearFixedTime();
     static bool hasFixedTime();
 
+    // The value u_Time would take right now, honouring the pin. The frame assembler needs it:
+    // MaterialParams::time is frame-global, and a frame captured at an unpinned phase cannot be
+    // compared with anything.
+    static float currentTime();
+
     void addMultiTexture(const std::string& file);
     void bindMultiTextures() const;
 
@@ -86,7 +91,12 @@ public:
     }
 
 private:
-    uint8_t m_id;
+    // Zero means "not registered with ShaderManager", which is the case for the four
+    // programs Painter builds itself - they never go through putShader. It was previously
+    // left uninitialised, and PoolCompiler::materialOf turned it into a module material id,
+    // so a marked creature or item (which binds the built-in replace-colour program) compiled
+    // to whatever garbage the byte held.
+    uint8_t m_id{ 0 };
 
     bool m_useFramebuffer{ false };
 

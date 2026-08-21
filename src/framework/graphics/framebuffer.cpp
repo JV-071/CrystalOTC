@@ -133,6 +133,29 @@ void FrameBuffer::draw()
     if (m_disableBlend) glEnable(GL_BLEND);
 }
 
+void FrameBuffer::bindAsTarget()
+{
+    internalBind();
+
+    m_oldSize = g_painter->getResolution();
+    m_oldTextureMatrix = g_painter->getProjectionMatrix();
+
+    g_painter->setResolution(getSize(), m_textureMatrix);
+}
+
+void FrameBuffer::releaseAsTarget() const
+{
+    internalRelease();
+    g_painter->setResolution(m_oldSize, m_oldTextureMatrix);
+}
+
+void FrameBuffer::drawClearQuad(const Color& color)
+{
+    g_painter->resetTexture();
+    g_painter->setColor(color);
+    g_painter->drawCoords(m_screenCoordsBuffer, DrawMode::TRIANGLE_STRIP);
+}
+
 void FrameBuffer::internalBind()
 {
     assert(boundFbo != m_fbo);

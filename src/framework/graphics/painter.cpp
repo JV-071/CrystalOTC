@@ -108,16 +108,30 @@ Painter::Painter()
     PainterShaderProgram::enableAttributeArray(PainterShaderProgram::TEXCOORD_ATTR);
 }
 
-void Painter::drawCoords(const CoordsBuffer& coordsBuffer, DrawMode drawMode)
+void Painter::drawCoords(const CoordsBuffer& coordsBuffer, const DrawMode drawMode)
 {
-    const int vertexCount = coordsBuffer.getVertexCount();
-    if (vertexCount == 0)
+    drawArrays(coordsBuffer.getVertexArray(), coordsBuffer.getTextureCoordArray(),
+               coordsBuffer.getVertexCount(), coordsBuffer.getTextureCoordCount() > 0, drawMode);
+}
+
+// The single draw primitive. drawCoords is the CoordsBuffer-shaped door onto it; GLBackend
+// comes in the other door, with a (positions, texCoords, count) slice of a compiled vertex
+// arena. Deliberately one implementation rather than two: the whole point of Phase 3 is that
+// the compiled path and the legacy path produce the same pixels, and two copies of the uniform
+// upload sequence would be two chances for them not to.
+void Painter::drawArrays(const float* vertices, const float* texCoords, const int vertexCount,
+                         const bool hasTexCoords, const DrawMode drawMode)
+{
+    if (vertexCount == 0 || !vertices)
         return;
 
-    if (coordsBuffer.getTextureCoordCount() > 0 && m_glTextureId == 0)
+    // Texture coordinates with nothing bound to sample: GL draws nothing rather than drawing
+    // the geometry untextured. Load-bearing - it is how a texture that is not resident yet
+    // simply misses a frame instead of appearing as a solid-colour rectangle.
+    if (hasTexCoords && m_glTextureId == 0)
         return;
 
-    const bool textured = coordsBuffer.getTextureCoordCount() > 0 && m_glTextureId > 0;
+    const bool textured = hasTexCoords && m_glTextureId > 0;
 
     m_drawProgram = m_shaderProgram ? m_shaderProgram : textured ? m_drawTexturedProgram.get() : m_drawSolidColorProgram.get();
 
@@ -134,12 +148,12 @@ void Painter::drawCoords(const CoordsBuffer& coordsBuffer, DrawMode drawMode)
     if (textured) {
         m_drawProgram->setTextureMatrix(m_textureMatrix);
         m_drawProgram->bindMultiTextures();
-        m_drawProgram->setAttributeArray(PainterShaderProgram::TEXCOORD_ATTR, coordsBuffer.getTextureCoordArray(), 2);
+        m_drawProgram->setAttributeArray(PainterShaderProgram::TEXCOORD_ATTR, texCoords, 2);
     } else
         PainterShaderProgram::disableAttributeArray(PainterShaderProgram::TEXCOORD_ATTR);
 
     // set vertex array
-    m_drawProgram->setAttributeArray(PainterShaderProgram::VERTEX_ATTR, coordsBuffer.getVertexArray(), 2);
+    m_drawProgram->setAttributeArray(PainterShaderProgram::VERTEX_ATTR, vertices, 2);
 
     // draw the element in coords buffers
     glDrawArrays(glPrimitiveOf(drawMode), 0, vertexCount);

@@ -84,4 +84,44 @@ namespace RenderHandles
     {
         return h.id != 0 && h.id < RENDER_TARGET_TEXTURE_LIMIT;
     }
+
+    // --- decoding ---------------------------------------------------------------------
+    // The inverse of the minting functions above. A backend gets a handle and has to find the
+    // object it names, and since the encoding is arithmetic rather than a lookup, so is the
+    // decoding. Kept here beside the encoders so the two can never drift apart.
+
+    [[nodiscard]] constexpr bool isPoolTarget(const RenderTargetHandle h)
+    {
+        return h.id >= POOL_TARGET_BASE && h.id < TRANSIENT_TARGET_BASE;
+    }
+
+    [[nodiscard]] constexpr bool isTransientTarget(const RenderTargetHandle h)
+    {
+        return h.id >= TRANSIENT_TARGET_BASE
+            && h.id < TRANSIENT_TARGET_BASE
+                          + static_cast<uint32_t>(DrawPoolType::LAST) * TRANSIENT_TARGETS_PER_POOL;
+    }
+
+    // Valid only when isPoolTarget(h) or isTransientTarget(h).
+    [[nodiscard]] constexpr DrawPoolType poolOf(const RenderTargetHandle h)
+    {
+        if (isTransientTarget(h))
+            return static_cast<DrawPoolType>((h.id - TRANSIENT_TARGET_BASE) / TRANSIENT_TARGETS_PER_POOL);
+
+        return static_cast<DrawPoolType>(h.id - POOL_TARGET_BASE);
+    }
+
+    // Valid only when isTransientTarget(h). This is the nesting depth the GL path indexes its
+    // temporary framebuffer vector with, which is why the two stay interchangeable.
+    [[nodiscard]] constexpr uint32_t transientDepthOf(const RenderTargetHandle h)
+    {
+        return (h.id - TRANSIENT_TARGET_BASE) % TRANSIENT_TARGETS_PER_POOL;
+    }
+
+    static_assert(isPoolTarget(poolTarget(DrawPoolType::MAP)));
+    static_assert(!isTransientTarget(poolTarget(DrawPoolType::MAP)));
+    static_assert(poolOf(poolTarget(DrawPoolType::FOREGROUND)) == DrawPoolType::FOREGROUND);
+    static_assert(isTransientTarget(transientTarget(DrawPoolType::FOREGROUND, 3)));
+    static_assert(poolOf(transientTarget(DrawPoolType::FOREGROUND, 3)) == DrawPoolType::FOREGROUND);
+    static_assert(transientDepthOf(transientTarget(DrawPoolType::FOREGROUND, 3)) == 3);
 }

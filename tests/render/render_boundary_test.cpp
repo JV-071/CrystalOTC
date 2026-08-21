@@ -711,6 +711,110 @@ namespace {
         EXPECT_TRUE(MaterialHandle{}.isDefault());       // 0 = the default built-in
     }
 
+    TEST(RenderBoundary, TargetHandlesDecodeBackToTheirPoolAndDepth)
+    {
+        // A backend gets a handle and has to find the object it names. The encoding is
+        // arithmetic, so the decoding is too - and the two have to agree for every pool, not
+        // just the one somebody happened to try.
+        for (int8_t i = -1; ++i < static_cast<int8_t>(DrawPoolType::LAST);) {
+            const auto type = static_cast<DrawPoolType>(i);
+
+            const auto pool = RenderHandles::poolTarget(type);
+            EXPECT_TRUE(RenderHandles::isPoolTarget(pool));
+            EXPECT_FALSE(RenderHandles::isTransientTarget(pool));
+            EXPECT_EQ(RenderHandles::poolOf(pool), type);
+
+            for (uint32_t depth = 0; depth < RenderHandles::TRANSIENT_TARGETS_PER_POOL; ++depth) {
+                const auto transient = RenderHandles::transientTarget(type, depth);
+                EXPECT_TRUE(RenderHandles::isTransientTarget(transient));
+                EXPECT_FALSE(RenderHandles::isPoolTarget(transient));
+                EXPECT_EQ(RenderHandles::poolOf(transient), type);
+                EXPECT_EQ(RenderHandles::transientDepthOf(transient), depth);
+            }
+        }
+
+        // The backbuffer is neither, which is what stops it being decoded into pool 0's target.
+        const RenderTargetHandle backbuffer;
+        EXPECT_FALSE(RenderHandles::isPoolTarget(backbuffer));
+        EXPECT_FALSE(RenderHandles::isTransientTarget(backbuffer));
+    }
+
+    TEST(RenderBoundary, BackbufferPacketsDoNotWriteAlphaButTransientOnesDo)
+    {
+        // GL keeps alpha writing in one global that FrameBuffer::bind sets and release never
+        // restores. What is well defined is the value each target is ENTERED with: a pool
+        // drawing straight to the backbuffer inherits drawPool's reset, which is off; a
+        // temporary framebuffer keeps FrameBuffer's default, which is on.
+        Pool pool;
+        pool.rect(Rect(0, 0, 10, 10));
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(32, 32));
+        pool.rect(Rect(0, 0, 8, 8));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(50, 50, 32, 32));
+
+        PoolProgram program;
+        pool.compile(program);
+
+        ASSERT_TRUE(program.isComplete());
+        ASSERT_EQ(program.passes.size(), 3u);
+
+        ASSERT_EQ(program.passes[0].packets.size(), 1u);
+        EXPECT_FALSE(program.passes[0].packets[0].alphaWrite);
+
+        ASSERT_EQ(program.passes[1].packets.size(), 1u);
+        EXPECT_TRUE(program.passes[1].packets[0].alphaWrite);
+
+        // The blit lands back on the backbuffer and takes that target's value, not the nested
+        // one it is sampling.
+        ASSERT_EQ(program.passes[2].packets.size(), 1u);
+        EXPECT_FALSE(program.passes[2].packets[0].alphaWrite);
+    }
+
+    TEST(RenderBoundary, FramebufferBlitCarriesTheOuterState)
+    {
+        // The `useFramebuffer` shader route exists so that a shader applies AT the blit rather
+        // than to each wrapped draw, and GL implements that by capturing the OUTER state and
+        // applying it before FrameBuffer::draw. A blit packet that carried only the opacity
+        // silently dropped the material, the colour and the clip - which is exactly what
+        // un-shaded every Outline outfit.
+        Pool pool;
+        DrawPoolTestAccess::setOpacity(*pool.p, 0.25f);
+        DrawPoolTestAccess::setClipRect(*pool.p, Rect(10, 10, 40, 40));
+
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(32, 32));
+        pool.rect(Rect(0, 0, 8, 8), Color::green);
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 32, 32));
+
+        PoolProgram program;
+        pool.compile(program);
+
+        ASSERT_TRUE(program.isComplete());
+        ASSERT_FALSE(program.passes.empty());
+
+        const auto& blitPass = program.passes.back();
+        ASSERT_EQ(blitPass.packets.size(), 1u);
+
+        const auto& blit = blitPass.packets[0];
+        EXPECT_TRUE(blit.textured);
+        EXPECT_FLOAT_EQ(blit.opacity, 0.25f);
+        EXPECT_TRUE(blit.scissorEnabled);
+        EXPECT_EQ(blit.scissor, Rect(10, 10, 40, 40));
+
+        // The nested draw itself is scoped to the temporary target and must NOT inherit the
+        // outer clip rect, which is in the outer target's coordinates.
+        const auto& nested = program.passes[program.passes.size() - 2];
+        ASSERT_EQ(nested.packets.size(), 1u);
+        EXPECT_FALSE(nested.packets[0].scissorEnabled);
+    }
+
+    TEST(RenderBoundary, UnregisteredShaderProgramsDoNotBecomeModuleMaterials)
+    {
+        // Painter's own built-in programs never reach ShaderManager, so they carry id 0. The
+        // replace-colour one genuinely reaches pool state - every marked creature and item binds
+        // it - and mapping it through the module range produced a handle no backend could
+        // resolve. A null program is still the default material.
+        EXPECT_TRUE(PoolCompiler::materialOf(nullptr).isDefault());
+    }
+
     TEST(RenderBoundary, RenderTargetTexturesCannotAliasRealTextures)
     {
         // The invariant is that no REAL texture's handle can land in the render-target range.
@@ -743,14 +847,14 @@ namespace {
     constexpr const char* GOLDEN_FRAME =
         "frame 800x600\n"
         "  pass[0] target=0 load=Keep clear=0 viewport=0,0,800x600 label=pool-direct\n"
-        "    packet[0] verts=6 geom=12345224582227486187 tex=0 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=1 opacity=1.0000 color=0:0:0:255 scissor=off\n"
-        "    packet[1] verts=6 geom=10406223313678849225 tex=0 texMat=0 mat=0 blend=Multiply blendOn=1 alphaW=1 opacity=1.0000 color=255:0:0:255 scissor=off\n"
+        "    packet[0] verts=6 geom=12345224582227486187 tex=0 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=0 opacity=1.0000 color=0:0:0:255 scissor=off\n"
+        "    packet[1] verts=6 geom=10406223313678849225 tex=0 texMat=0 mat=0 blend=Multiply blendOn=1 alphaW=0 opacity=1.0000 color=255:0:0:255 scissor=off\n"
         "  pass[1] target=96 load=Clear clear=0 viewport=0,0,32x32 label=transient\n"
         "    packet[0] verts=6 geom=12080383858203200517 tex=0 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=1 opacity=1.0000 color=0:255:0:255 scissor=off\n"
         "  pass[2] target=0 load=Keep clear=0 viewport=0,0,800x600 label=pool-direct\n"
-        "    packet[0] verts=6 geom=7678018406283462290 tex=96 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=1 opacity=1.0000 color=255:255:255:255 scissor=off\n"
-        "    packet[1] verts=6 geom=8811809492208675301 tex=0 texMat=0 mat=0 blend=Normal blendOn=0 alphaW=1 opacity=1.0000 color=0:0:0:0 scissor=off\n"
-        "    packet[2] verts=6 geom=2370055488363448093 tex=0 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=1 opacity=1.0000 color=255:255:255:255 scissor=400,400,100x100\n";
+        "    packet[0] verts=6 geom=7678018406283462290 tex=96 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=0 opacity=1.0000 color=255:255:255:255 scissor=off\n"
+        "    packet[1] verts=6 geom=8811809492208675301 tex=0 texMat=0 mat=0 blend=Normal blendOn=0 alphaW=0 opacity=1.0000 color=0:0:0:0 scissor=off\n"
+        "    packet[2] verts=6 geom=2370055488363448093 tex=0 texMat=0 mat=0 blend=Normal blendOn=1 alphaW=0 opacity=1.0000 color=255:255:255:255 scissor=400,400,100x100\n";
 
     std::string buildRepresentativeFrame(RenderFrame& frame, FrameAssembler& assembler,
                                          PoolProgram& program, Pool& pool)

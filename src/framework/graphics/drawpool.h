@@ -144,6 +144,13 @@ public:
     // published yet. Read on the consumer side under getThreadLock().
     const PoolProgram* getCompiledProgram() const { return m_programPublished.get(); }
 
+    // The render thread's counterpart to release(): takes the newly published program if there
+    // is one and consumes the repaint flag. See the definition for why there are three slots.
+    const PoolProgram* acquireProgram();
+
+    // Whether this pool's program can be executed faithfully, peeked without consuming.
+    bool hasUsableProgram();
+
 protected:
 
     enum class DrawMethodType
@@ -254,6 +261,7 @@ private:
                       const std::function<void()>& glAction);
 
     void compilePublishedObjects();
+    void refreshCompiledComposition(PoolProgram& program) const;
 
     // Declares a dynamic texture upload for this frame. LightView is the only producer: it
     // computes an RGBA bitmap of one texel per visible tile on the CPU and re-uploads it when
@@ -450,6 +458,10 @@ private:
     // pass in it points into its own arena.
     std::unique_ptr<PoolProgram> m_programBuild;
     std::unique_ptr<PoolProgram> m_programPublished;
+    // The consumer's slot. Held across frames, so a pool that publishes nothing new keeps
+    // contributing what it last drew - which is exactly what the GL path does by re-running
+    // m_objectsDraw[1].
+    std::unique_ptr<PoolProgram> m_programDraw;
 
     bool m_loggedUnsupported{ false };
     bool m_loggedUnbalancedRelease{ false };
@@ -470,6 +482,13 @@ private:
     Rect m_pendingFbSrc;
     Rect m_fbDest;
     Rect m_fbSrc;
+
+    // Declared clear colour for this pool's own target. It travelled only inside the
+    // PoolTargetPrepare callback (as FrameBuffer::m_colorClear), so a consumer that does not
+    // run callbacks could not learn it and assumed transparent. The MAP pool passes
+    // Color::black, so assuming transparent left the map target unpainted where nothing drew.
+    Color m_pendingFbClearColor{ Color::alpha };
+    Color m_fbClearColor{ Color::alpha };
 
     // Declared "map hole punch" rect: UIMap registers the rectangle of the alpha-0 window it cuts
     // over the game view, so a consumer only treats a shape MATCHING this rect as a hole.

@@ -33,6 +33,16 @@ struct GraphicsConfig
     // Render backend: "gl" (default, current path) or "vulkan" (new renderer,
     // under construction). With "vulkan" and a failed initialization the client falls back to "gl".
     std::string renderBackend = "gl";
+
+    // Which renderer executes a frame: "legacy" (default) or "frame".
+    //
+    // Orthogonal to renderBackend, which picks the GRAPHICS API. This picks how the frame
+    // reaches it: "legacy" replays DrawPool objects onto Painter, "frame" compiles them into an
+    // explicit RenderFrame and hands that to a backend. Both are OpenGL today, and they are
+    // meant to be pixel-identical - which is the whole reason both exist at once.
+    //
+    // Overridden, in order, by --render-path=<value> and CRYSTALOTC_RENDER_PATH.
+    std::string renderPath = "legacy";
 };
 
 struct FontConfig

@@ -21,6 +21,8 @@
  */
 
 #include "texture.h"
+
+#include "render/resourceregistry.h"
 #include "glutil.h"
 
 #include "drawpoolmanager.h"
@@ -75,11 +77,13 @@ size_t Texture::getDeletionBatchCount() { return g_deletionBatches.load(std::mem
 Texture::Texture() : m_uniqueId(UID.fetch_add(1)) {
     generateHash();
     g_stats.addTexture();
+    ResourceRegistry::instance().registerTexture(this);
 }
 Texture::Texture(const Size& size) : m_uniqueId(UID.fetch_add(1))
 {
     generateHash();
     g_stats.addTexture();
+    ResourceRegistry::instance().registerTexture(this);
     if (!setupSize(size))
         return;
 
@@ -99,6 +103,7 @@ Texture::Texture(const ImagePtr& image, const bool buildMipmaps, const bool comp
 {
     generateHash();
     g_stats.addTexture();
+    ResourceRegistry::instance().registerTexture(this);
 
     setProp(Prop::compress, compress);
     setProp(Prop::buildMipmaps, buildMipmaps);
@@ -117,6 +122,7 @@ Texture::~Texture()
         std::scoped_lock lock(g_pendingDeletionMutex);
         g_pendingDeletions.emplace_back(m_id, isSmooth());
     }
+    ResourceRegistry::instance().unregisterTexture(m_uniqueId);
     g_stats.removeTexture();
 }
 
