@@ -325,8 +325,10 @@ build/macos-cocoa/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC \
 
 ## Commit ledger
 
-_Regenerated from `git log --format='%h %s' --reverse` at the checkpoint rather than appended to
-by hand._
+_Regenerated from `git log --format='%h %s' --reverse 6076b37..aec105b` rather than appended to by
+hand. `6076b37` is the Phase 3 audit checkpoint this phase started from. The range ends at a named
+commit rather than at HEAD, because any later documentation commit - including the one that records
+this range - would otherwise leave the list permanently one entry short of itself._
 
 ```text
 719d962 feat(macos): give the platform layer a typed presentation surface
@@ -337,6 +339,8 @@ ec188da test(renderer): measure the Metal and OpenGL backends against each other
 9ce989c fix(renderer): clear a Metal target nobody has written yet
 3fd3b0f docs(renderer): correct what Phase 4 falsified across the migration set
 6dacace docs(renderer): record the online-scene evidence for the Metal backend
+a59d285 docs(renderer): close the Phase 4 audit's remaining loose ends
+aec105b docs(renderer): record the CI evidence for Phase 4
 ```
 
 Note the shape: three of the six code commits are fixes to shared code that had nothing to do with
