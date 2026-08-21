@@ -1,6 +1,6 @@
 # Phase 3 renderer handoff
 
-**Checkpoint:** `1693690` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
+**Checkpoint:** `c26763b` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
 
 **Date:** 2026-08-21
 
@@ -271,10 +271,9 @@ ctest --test-dir build/macos-release --output-on-failure
 
 ## Commit ledger
 
-Oldest first, regenerated from `git log --format='%h %s' --reverse afd88b5..1693690` rather than
+Oldest first, regenerated from `git log --format='%h %s' --reverse afd88b5..c26763b` rather than
 appended to by hand. `afd88b5` is the Phase 2 handoff this phase started from. 40 files,
-+2048/−111. Documentation-audit commits made after this checkpoint are not listed, following the
-same convention Phase 2's ledger used.
++2125/−117.
 
 ```text
 360c581 feat(renderer): run the OpenGL renderer on a compiled RenderFrame
@@ -284,7 +283,14 @@ same convention Phase 2's ledger used.
 48ccd40 docs(renderer): record the performance envelope Phase 0 deferred here
 c6c0acf docs(renderer): hand off Phase 3
 1693690 docs(renderer): record the one parity check the sweep cannot make
+23437a1 docs(renderer): close the contradictions the incremental corrections left
+ca825ac fix(renderer): stop a compiled frame freezing animated textures
+c26763b docs(renderer): record the online-scene evidence and the principle it qualified
 ```
+
+Note the shape of that list: the phase's last code change is its second-to-last commit. Running
+the online scenes was the final act of verification and it found a defect, which is the argument
+for running them at all - and for not treating a handoff as written until they have.
 
 ## What Phase 4 inherits
 
