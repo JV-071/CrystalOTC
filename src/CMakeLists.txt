@@ -514,6 +514,7 @@ if (TOGGLE_FRAMEWORK_GRAPHICS)
           framework/graphics/render/frameassembler.cpp
           framework/graphics/render/recordingbackend.cpp
           framework/graphics/render/resourceregistry.cpp
+          framework/graphics/render/materialregistry.cpp
           framework/graphics/render/glbackend.cpp
           framework/platform/win32window.cpp
           framework/platform/x11window.cpp
@@ -624,6 +625,38 @@ endif(TOGGLE_PRE_COMPILED_HEADER)
 # language, which would fold these files into one translation unit with the non-ARC window - and
 # ARC is a per-TU setting, so that cannot compile. The precompiled header is built from the same
 # non-ARC settings, and a PCH whose ARC state differs from the TU using it is a hard error.
+# The module shaders' Metal translation is CHECKED IN, not generated into the build tree, for
+# the same reason data/shaders/vulkan/*.spv are: the client has no GLSL compiler built into it and
+# should not acquire one, and a contributor cloning this repository must be able to build it
+# without glslang and SPIRV-Cross on their PATH. What the build does instead is verify - whenever
+# those two tools ARE present - that the committed header still matches what the .frag sources
+# translate to. That is the closed-set enforcement the migration plan asks for: a shader that
+# cannot be translated, or one added without being translated, fails here rather than rendering
+# unshaded on Metal and being noticed by a person.
+#
+# Regenerate with `tools/generate_metal_shaders.py --write`.
+find_program(CRYSTALOTC_GLSLANG NAMES glslang glslangValidator)
+find_program(CRYSTALOTC_SPIRV_CROSS NAMES spirv-cross)
+find_package(Python3 COMPONENTS Interpreter QUIET)
+
+if(CRYSTALOTC_GLSLANG AND CRYSTALOTC_SPIRV_CROSS AND Python3_Interpreter_FOUND)
+  add_custom_target(check_metal_shaders ALL
+    COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_metal_shaders.py"
+            --check
+            --glslang "${CRYSTALOTC_GLSLANG}"
+            --spirv-cross "${CRYSTALOTC_SPIRV_CROSS}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.."
+    COMMENT "Verifying the committed Metal translation of the module shaders"
+    VERBATIM
+  )
+  add_dependencies(otclient_core check_metal_shaders)
+else()
+  message(STATUS
+    "glslang/spirv-cross not found: the committed Metal shader translation will not be verified. "
+    "This is fine for building; CI checks it.")
+endif()
+
 if(APPLE AND TOGGLE_COCOA_WINDOW)
   set_source_files_properties(
     ${METAL_BACKEND_SOURCES}

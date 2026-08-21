@@ -21,6 +21,8 @@ on:
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
       - "tools/renderer_scenes.py"
+      - "tools/generate_metal_shaders.py"
+      - "tools/metal_materials.json"
       - "tests/**"
       - "vcpkg.json"
       - "CMakePresets.json"
@@ -39,6 +41,8 @@ on:
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
       - "tools/renderer_scenes.py"
+      - "tools/generate_metal_shaders.py"
+      - "tools/metal_materials.json"
       - "tests/**"
       - "vcpkg.json"
       - "CMakePresets.json"
@@ -101,6 +105,7 @@ jobs:
             libgl1-mesa-dev libglew-dev libglu1-mesa-dev \
             libx11-dev libxext-dev \
             libgl1-mesa-dri mesa-utils \
+            glslang-tools spirv-cross \
             python3 python3-pil \
             xauth xvfb
           rm -rf /var/lib/apt/lists/*
@@ -113,6 +118,23 @@ jobs:
       - name: Validate renderer scene manifest
         shell: bash
         run: python3 tools/renderer_scenes.py validate
+
+      # The Phase 6 shader toolchain, and the only place it runs in CI.
+      #
+      # It lives on THIS job rather than the macOS one for two reasons that happen to agree:
+      # `modules/**` is a path filter here and nowhere else, so a .frag change reaches this job
+      # and no other; and glslang plus spirv-cross are one apt line here against a brew install
+      # on a runner whose whole point is the Metal build. The output it verifies is consumed
+      # only on macOS, but whether the translation still SUCCEEDS is a property of the sources,
+      # not of the consumer.
+      #
+      # Failing here means one of two things: a .frag was changed without regenerating
+      # src/framework/graphics/render/metal/metalmodulematerials.h, or a .frag was added that
+      # tools/metal_materials.json does not account for. Both are "run
+      # tools/generate_metal_shaders.py --write and commit the result".
+      - name: Verify the Metal translation of the module shaders
+        shell: bash
+        run: python3 tools/generate_metal_shaders.py --check
 
       - name: Record environment fingerprint
         shell: bash

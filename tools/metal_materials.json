@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "note": "The closed set of module fragment shaders translated to Metal Shading Language by tools/generate_metal_shaders.py. A material resolves by the .frag BASENAME rather than by registered shader name, because several names share one file - Party/Radial Blur/Heat/Noise are each registered two or three times - and the file is what gets translated. Adding a .frag to the client means adding it here; the build fails on a shader this list does not cover only in the sense that it will render unshaded, while a shader listed here that cannot be translated fails the build outright.",
+  "excluded": [
+    {
+      "source": "modules/game_shaders/shaders/fragment/test.frag",
+      "reason": "Ships with no registration site anywhere in modules/ or mods/, and is pre-GLSL-1.20 fixed-function source: it reads gl_TexCoord[0] and declares a sampler literally named 'texture', which collides with the builtin function in any version SPIR-V can be generated from. Nothing can select it, so nothing needs it translated."
+    }
+  ],
+  "materials": [
+    { "key": "bloom", "source": "modules/game_shaders/shaders/fragment/bloom.frag" },
+    { "key": "cyclopedia", "source": "modules/game_shaders/shaders/fragment/cyclopedia.frag" },
+    { "key": "fog", "source": "modules/game_shaders/shaders/fragment/fog.frag" },
+    { "key": "forge", "source": "modules/game_shaders/shaders/fragment/forge.frag" },
+    { "key": "grayscale", "source": "modules/game_shaders/shaders/fragment/grayscale.frag" },
+    { "key": "heat", "source": "modules/game_shaders/shaders/fragment/heat.frag" },
+    { "key": "hover_desaturate", "source": "modules/game_shaders/shaders/fragment/hover_desaturate.frag" },
+    { "key": "noise", "source": "modules/game_shaders/shaders/fragment/noise.frag" },
+    { "key": "oldtv", "source": "modules/game_shaders/shaders/fragment/oldtv.frag" },
+    { "key": "outline", "source": "modules/game_shaders/shaders/fragment/outline.frag" },
+    { "key": "party", "source": "modules/game_shaders/shaders/fragment/party.frag" },
+    { "key": "pulse", "source": "modules/game_shaders/shaders/fragment/pulse.frag" },
+    { "key": "radialblur", "source": "modules/game_shaders/shaders/fragment/radialblur.frag" },
+    { "key": "rain", "source": "modules/game_shaders/shaders/fragment/rain.frag" },
+    { "key": "sepia", "source": "modules/game_shaders/shaders/fragment/sepia.frag" },
+    { "key": "snow", "source": "modules/game_shaders/shaders/fragment/snow.frag" },
+    { "key": "zomg", "source": "modules/game_shaders/shaders/fragment/zomg.frag" },
+    { "key": "blink_red", "source": "modules/game_exaltationforge/menu/shaders/blink_red.frag" },
+    { "key": "blink_white", "source": "modules/game_exaltationforge/menu/shaders/blink_white.frag" },
+    { "key": "fade_in_white", "source": "modules/game_exaltationforge/menu/shaders/fade_in_white.frag" },
+    { "key": "fade_out_red", "source": "modules/game_exaltationforge/menu/shaders/fade_out_red.frag" },
+    { "key": "fade_out_white", "source": "modules/game_exaltationforge/menu/shaders/fade_out_white.frag" },
+    { "key": "silhouette", "source": "modules/game_exaltationforge/menu/shaders/silhouette.frag" }
+  ]
+}

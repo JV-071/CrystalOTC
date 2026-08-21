@@ -22,6 +22,12 @@ on:
       # query-tool change has to re-run this job or the step silently attempts a stale list.
       - "docs/rendering-baselines/scenes.json"
       - "tools/renderer_scenes.py"
+      # Since Phase 6 the module .frag sources are translated to MSL and the result is
+      # compiled into this build, so a shader change alters what this job renders.
+      - "modules/game_shaders/**"
+      - "modules/game_exaltationforge/menu/shaders/**"
+      - "tools/generate_metal_shaders.py"
+      - "tools/metal_materials.json"
   pull_request:
     paths:
       - "src/**"
@@ -35,6 +41,12 @@ on:
       # query-tool change has to re-run this job or the step silently attempts a stale list.
       - "docs/rendering-baselines/scenes.json"
       - "tools/renderer_scenes.py"
+      # Since Phase 6 the module .frag sources are translated to MSL and the result is
+      # compiled into this build, so a shader change alters what this job renders.
+      - "modules/game_shaders/**"
+      - "modules/game_exaltationforge/menu/shaders/**"
+      - "tools/generate_metal_shaders.py"
+      - "tools/metal_materials.json"
 
 permissions:
   contents: read
