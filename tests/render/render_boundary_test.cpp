@@ -451,6 +451,33 @@ namespace {
         EXPECT_EQ(passesTargeting(f2, RenderHandles::poolTarget(DrawPoolType::FOREGROUND)), 1u);
     }
 
+    TEST(RenderBoundary, ReleaseCompilesOnlyWhenCompilingIsEnabled)
+    {
+        DrawPool::setCompileFrames(false);
+        {
+            Pool pool;
+            pool.rect(Rect(0, 0, 10, 10));
+            pool.p->release();
+            // Off by default: the GL path ships, does not read a PoolProgram, and must not
+            // pay for one.
+            EXPECT_EQ(pool.p->getCompiledProgram(), nullptr);
+        }
+
+        DrawPool::setCompileFrames(true);
+        {
+            Pool pool;
+            pool.rect(Rect(0, 0, 10, 10));
+            pool.p->release();
+
+            const auto* program = pool.p->getCompiledProgram();
+            ASSERT_NE(program, nullptr);
+            EXPECT_TRUE(program->isComplete());
+            ASSERT_FALSE(program->passes.empty());
+            EXPECT_EQ(program->passes[0].packets.size(), 1u);
+        }
+        DrawPool::setCompileFrames(false);
+    }
+
     TEST(RenderBoundary, ContentHashTracksTheCompiledOutput)
     {
         Pool same1, same2, different;

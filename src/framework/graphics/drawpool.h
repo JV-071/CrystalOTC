@@ -26,6 +26,9 @@
 #include "framebuffer.h"
 #include "render/renderdeclarations.h"
 #include "render/renderframe.h"
+#include "render/poolprogram.h"
+
+#include <memory>
 #include "framework/core/timer.h"
 
 #include "../stdext/storage.h"
@@ -129,6 +132,17 @@ public:
     void release();
 
     auto& getThreadLock() { return m_threadLock; }
+
+    // Compiling is OFF by default and costs nothing when off - the GL path is what ships, and
+    // it does not read a PoolProgram. Turning it on makes release() additionally compile the
+    // list it just published, so the two representations of one frame can be compared.
+    // Phase 3 replaces this switch with the `graphics.renderPath` config flag.
+    static void setCompileFrames(bool v) { s_compileFrames = v; }
+    static bool isCompilingFrames() { return s_compileFrames; }
+
+    // The most recently compiled program, or nullptr if compiling is off or nothing has been
+    // published yet. Read on the consumer side under getThreadLock().
+    const PoolProgram* getCompiledProgram() const { return m_programPublished.get(); }
 
 protected:
 
@@ -238,6 +252,8 @@ private:
                            PoolState&& state, std::shared_ptr<CoordsBuffer>&& coords, size_t hash = 0);
     void addLineStrip(const std::vector<Point>& points, uint16_t width, const Color& color,
                       const std::function<void()>& glAction);
+
+    void compilePublishedObjects();
 
     // Declares a dynamic texture upload for this frame. LightView is the only producer: it
     // computes an RGBA bitmap of one texel per visible tile on the CPU and re-uploads it when
@@ -410,6 +426,17 @@ private:
     std::atomic_bool m_shouldRepaint{ false };
 
     SpinLock m_threadLock;
+
+    // Double-buffered like the object list itself: release() compiles into one and swaps it
+    // into place under the same lock, so a consumer never reads a half-built program.
+    // unique_ptr rather than by value because PoolProgram is deliberately non-movable - every
+    // pass in it points into its own arena.
+    std::unique_ptr<PoolProgram> m_programBuild;
+    std::unique_ptr<PoolProgram> m_programPublished;
+
+    bool m_loggedUnsupported{ false };
+
+    static bool s_compileFrames;
 
     // Declared pool-framebuffer blit rects. A consumer that does not execute GL actions cannot
     // learn dest/src from m_framebuffer->prepare, so they travel to the drawing thread as data:

@@ -25,6 +25,10 @@
 #include "painter.h"
 #include "textureatlas.h"
 #include "render/linetriangulation.h"
+#include "render/poolcompiler.h"
+#include "graphics.h"
+
+bool DrawPool::s_compileFrames = false;
 
 DrawPool* DrawPool::create(const DrawPoolType type)
 {
@@ -367,7 +371,38 @@ void DrawPool::release() {
         }
     }
 
+    compilePublishedObjects();
+
     m_shouldRepaint.store(true, std::memory_order_relaxed);
+}
+
+// Compiles what release() has just put in m_objectsDraw[0].
+//
+// This runs INSIDE release()'s lock, which is the honest trade rather than an oversight: the
+// published list is exactly what the consumer may swap away the moment the lock drops, so
+// compiling outside it would race. The cost is bounded by the frame's object count and is paid
+// only when compiling is switched on, which it is not by default. Phase 3, which needs both
+// paths live at once, should move this off the lock rather than inherit it.
+void DrawPool::compilePublishedObjects()
+{
+    if (!s_compileFrames)
+        return;
+
+    if (!m_programBuild)
+        m_programBuild = std::make_unique<PoolProgram>();
+
+    PoolCompiler::compile(*this, g_graphics.getViewportSize(), *m_programBuild);
+
+    // A program that could not express something is not a usable description of the frame.
+    // Log it once per pool rather than per frame: if it happens at all it happens constantly,
+    // and the useful signal is WHICH idiom was met, not how many times.
+    if (!m_programBuild->isComplete() && !m_loggedUnsupported) {
+        m_loggedUnsupported = true;
+        for (const auto& reason : m_programBuild->unsupported)
+            g_logger.warning("[render] pool {} could not be compiled: {}", static_cast<int>(m_type), reason);
+    }
+
+    m_programBuild.swap(m_programPublished);
 }
 
 void DrawPool::flush()
