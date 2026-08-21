@@ -183,6 +183,18 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     m_atlases[Fw::TextureAtlasType::MAP] = atlasMap.get();
     m_atlases[Fw::TextureAtlasType::FOREGROUND] = atlasForeground.get();
 
+    // Stated in the log because it is otherwise invisible and it changes what every later
+    // measurement means: an atlas-backed draw and a standalone one produce the same picture but
+    // are not the same frame. It was also a per-backend policy until Phase 5, so a regression
+    // that quietly switched the atlases off again would look exactly like nothing happening.
+    const auto describeAtlas = [](const TextureAtlasPtr& atlas) {
+        if (!atlas)
+            return std::string{ "disabled" };
+        return std::to_string(atlas->getSize().width()) + "x" + std::to_string(atlas->getSize().height());
+    };
+    g_logger.info("[render] CPU atlases: map={} foreground={}",
+                  describeAtlas(atlasMap), describeAtlas(atlasForeground));
+
     // Create Pools
     for (int8_t i = -1; ++i < static_cast<uint8_t>(DrawPoolType::LAST);) {
         auto pool = m_pools[i] = DrawPool::create(static_cast<DrawPoolType>(i));

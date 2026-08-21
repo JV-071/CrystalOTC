@@ -18,6 +18,10 @@ on:
       - "vcpkg.json"
       - "tests/**"
       - ".github/workflows/build-macos.yml"
+      # The Metal capture step drives the scene list from the manifest, so a manifest or
+      # query-tool change has to re-run this job or the step silently attempts a stale list.
+      - "docs/rendering-baselines/scenes.json"
+      - "tools/renderer_scenes.py"
   pull_request:
     paths:
       - "src/**"
@@ -27,6 +31,10 @@ on:
       - "vcpkg.json"
       - "tests/**"
       - ".github/workflows/build-macos.yml"
+      # The Metal capture step drives the scene list from the manifest, so a manifest or
+      # query-tool change has to re-run this job or the step silently attempts a stale list.
+      - "docs/rendering-baselines/scenes.json"
+      - "tools/renderer_scenes.py"
 
 permissions:
   contents: read
@@ -204,11 +212,80 @@ jobs:
             exit 1
           fi
 
+          # Phase 5 made the CPU texture atlas backend-neutral and turned it back on under Metal.
+          # That is invisible in a capture - an atlas-backed draw and a standalone one produce
+          # the same picture - so a regression switching it off again would look exactly like
+          # nothing happening. Assert it here, where no window server is needed to see it.
+          if ! grep -q "CPU atlases: map=[0-9]" "$RUNNER_TEMP/smoke.log"; then
+            echo "::error::CPU atlases did not come up under Metal; see the smoke log above"
+            exit 1
+          fi
+
           if [ "$alive" -ne 1 ]; then
             echo "::error::client exited on its own during the smoke launch"
             exit 1
           fi
           echo "smoke launch OK"
+
+      # Deliberately NON-GATING, and the reason is the point of the step: nobody knows yet
+      # whether a hosted runner can produce a frame at all. The Metal backend renders into an
+      # offscreen target and only needs a drawable to PRESENT, so a capture - which reads that
+      # target between frames - has a real chance of working with no window server. If it does,
+      # Phase 7 gets a macOS image matrix for free; if it does not, this says so once instead of
+      # being rediscovered. Either way the step must not fail the build over an open question.
+      - name: Attempt Metal scene captures (non-gating)
+        if: always()
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          APP="build/macos-release/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC"
+          OUT="$RUNNER_TEMP/metal-captures"
+          mkdir -p "$OUT"
+
+          python3 tools/renderer_scenes.py ids --offline > "$RUNNER_TEMP/offline-scenes.txt"
+          scenes=()
+          while IFS= read -r line; do
+            [ -n "$line" ] && scenes+=("$line")
+          done < "$RUNNER_TEMP/offline-scenes.txt"
+
+          if [ "${#scenes[@]}" -eq 0 ]; then
+            echo "::warning::no offline scenes listed; nothing attempted"
+            exit 0
+          fi
+
+          # `ids --offline` already excludes the scenes a headless runner cannot produce at all
+          # (windowing is a desktop driver, not a capture), so no second filter is needed here -
+          # the manifest stays the single source of truth, exactly as the Linux job treats it.
+          captured=0
+          for scene in "${scenes[@]}"; do
+            log="$OUT/$scene.log"
+            read -r -a client_args <<< "$(python3 tools/renderer_scenes.py field "$scene" command)"
+            "$APP" "${client_args[@]}" > "$log" 2>&1 &
+            pid=$!
+            # The capture driver exits on its own; this only bounds a hang.
+            for _ in $(seq 1 90); do
+              kill -0 "$pid" 2>/dev/null || break
+              sleep 1
+            done
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+
+            src="$HOME/Library/Application Support/crystalotc-baseline/.crystalotc-baseline/render-baselines/$scene.png"
+            if [ -f "$src" ]; then
+              cp "$src" "$OUT/$scene.png"
+              captured=$((captured + 1))
+              echo "captured $scene"
+            else
+              echo "no capture for $scene (see $scene.log)"
+            fi
+          done
+
+          echo "metal captures produced: $captured"
+          if [ "$captured" -eq 0 ]; then
+            echo "::notice::a hosted macOS runner produced no Metal captures; the offscreen path needs a display after all"
+          else
+            echo "::notice::a hosted macOS runner produced $captured Metal captures without a window server"
+          fi
 
       - name: Upload build logs
         if: always()
@@ -218,5 +295,6 @@ jobs:
           path: |
             ${{ runner.temp }}/macos-env.txt
             ${{ runner.temp }}/smoke.log
+            ${{ runner.temp }}/metal-captures
           if-no-files-found: ignore
           retention-days: 7
