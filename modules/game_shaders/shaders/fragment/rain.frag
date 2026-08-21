@@ -12,7 +12,7 @@ float rainLayer(vec2 uv, float scale, float ttime)
   uv.y += ttime * 2.5 / scale;
   uv.x += sin(uv.y + ttime * .10) / scale;
   uv *= 1.2 * scale;
-  vec2 s = floor(uv), f = fract(uv), p;
+  vec2 s = floor(uv), f = fract(uv), p = vec2(0.0);
 
   float k = 3.0;
   float d = 0.0;
