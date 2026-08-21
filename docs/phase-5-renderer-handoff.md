@@ -205,6 +205,48 @@ Phase 7 gets a gateable macOS image matrix; if not, that is recorded once instea
 usage is three — but it is a cap where there was none, and hitting it degrades to unpacked textures
 rather than failing loudly. Widening it is one constant and a `static_assert`.
 
+**The whole UI renders at half resolution on a Retina Mac, and this is unowned rather than
+deferred.** Found while answering a question about `@2x` assets, not by any gate.
+
+`GraphicalApplication::resize` lays the UI out at `m_size / m_displayDensity` **and** sizes the
+FOREGROUND target at `m_size / m_displayDensity`; `UIManager::render` then blits that target into
+`{0, 0, g_graphics.getViewportSize()}` — the full physical viewport — through a `FrameBuffer` whose
+`m_smooth` defaults to true. On a window reporting a backing scale of 2, that composites the entire
+UI at 1x into a half-size intermediate target and bilinearly stretches it to 2x. Measured against a
+density-1 capture: high-frequency detail falls to about a third, and an even/odd column asymmetry
+appears from nothing (0.95 → 0.73), which is the fingerprint of a 2x upscale. Survey quirk 7 said
+the opposite until this phase re-corrected it.
+
+**Nothing about this is Metal.** It is shared framework code and `GLBackend` would do the same on
+the same window. It has been latent since Phase 1 for two compounding reasons: XQuartz reports
+density 1, so the OpenGL reference vehicle never sees it; and every baseline capture pins the
+density to 1 (`g_app.setHUDScale(1)` in the capture driver) so that macOS captures stay comparable
+with llvmpipe references. That pin is correct and should stay — but its side effect is that **the
+one configuration real users get is the one nothing measures.**
+
+Higher-resolution art does **not** fix this and would make it slightly worse: a 2x asset is sampled
+down to its logical size in the intermediate target and then upscaled again, so two resamples
+instead of one, for double the texture memory. The bottleneck is the target, not the source.
+
+Three separable parts, in order:
+
+1. Split device pixel ratio from user HUD scale. They are one variable today — `g_app.setHUDScale`
+   writes exactly what `getDisplayDensity` reads — which is what makes the layout and the target
+   size move together.
+2. Keep laying out in logical units, but size the FOREGROUND target in **physical** pixels and draw
+   into it with a scaled projection, so widgets rasterize at native resolution and the composition
+   blit becomes 1:1.
+3. Only then evaluate higher-resolution art — and keep game sprites `NEAREST`-filtered at integer
+   scale regardless, since 32x32 pixel art is meant to look crisp and blocky rather than resampled.
+
+**On the status:** this is recorded three times — the Phase 1 handoff, design open question 5, and
+the plan's Phase 1 task 2 — always as "a framework change, not a backend one", and once as "carry
+into Phase 4". Phase 4 honoured it as a constraint (mirroring `m_backingScale` separately) rather
+than as work. So it was classified out of scope and never scheduled, which reads like a deferral
+while assigning nothing to anyone. It belongs to no phase in this plan; Phase 6 is the shader
+toolchain and Phase 7's reliability matrix does not list it. Recorded here so it stops being an
+orphan, not because Phase 5 owns it.
+
 **`extractTexture` remains the one readback no non-GL backend can serve.** Unchanged since the
 survey first recorded it.
 
