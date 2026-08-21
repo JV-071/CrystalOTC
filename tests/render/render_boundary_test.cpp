@@ -1,18 +1,51 @@
 #include <gtest/gtest.h>
 
 // The producer API is private on DrawPool and reached through DrawPoolManager, which needs
-// initialised globals and a GL context. Tests drive the pool directly instead, using the same
-// access seam tests/map/map_spectators_test.cpp already uses.
-#define private public
-#define protected public
+// initialised globals and a GL context. Tests drive the pool directly through the
+// DrawPoolTestAccess friend declared in drawpool.h.
+//
+// NOT via `#define private public`, which is what this file used at first: it links on
+// Itanium-ABI toolchains and cannot link on MSVC, which encodes access specifiers into mangled
+// names, so the test emitted calls to `public:` symbols the library never defined.
 #include <framework/graphics/drawpool.h>
-#undef protected
-#undef private
 
 #include <framework/graphics/render/frameassembler.h>
 #include <framework/graphics/render/linetriangulation.h>
 #include <framework/graphics/render/poolcompiler.h>
 #include <framework/graphics/render/recordingbackend.h>
+
+// Must be at global scope: drawpool.h befriends ::DrawPoolTestAccess. Everything here is a
+// thin forward to DrawPool's producer API, so the tests exercise the real recording path
+// rather than a reimplementation of it.
+struct DrawPoolTestAccess
+{
+    static DrawPool* create(const DrawPoolType type) { return DrawPool::create(type); }
+
+    static void addRect(DrawPool& pool, const Rect& dest, const Color& color)
+    {
+        pool.add(color, nullptr, DrawPool::DrawMethod{
+            .type = DrawPool::DrawMethodType::RECT, .dest = dest });
+    }
+
+    static void addAction(DrawPool& pool, const std::function<void()>& action, const ActionIdiom idiom)
+    { pool.addAction(action, idiom); }
+
+    static void setClipRect(DrawPool& pool, const Rect& rect) { pool.setClipRect(rect); }
+    static void resetClipRect(DrawPool& pool) { pool.resetClipRect(); }
+
+    static void setOpacity(DrawPool& pool, const float opacity, const bool onlyOnce = false)
+    { pool.setOpacity(opacity, onlyOnce); }
+
+    static void setCompositionMode(DrawPool& pool, const CompositionMode mode, const bool onlyOnce = false)
+    { pool.setCompositionMode(mode, onlyOnce); }
+    static void resetCompositionMode(DrawPool& pool) { pool.resetCompositionMode(); }
+
+    static void bindFrameBuffer(DrawPool& pool, const Size& size) { pool.bindFrameBuffer(size); }
+
+    static void releaseFrameBuffer(DrawPool& pool, const Rect& dest) { pool.releaseFrameBuffer(dest); }
+    static void releaseFrameBuffer(DrawPool& pool, const Rect& dest, const uint8_t flip)
+    { pool.releaseFrameBuffer(dest, flip); }
+};
 
 namespace {
 
@@ -22,13 +55,12 @@ namespace {
     // GL, and no always-group batching to obscure which packet came from which draw.
     struct Pool
     {
-        DrawPool* p{ DrawPool::create(DrawPoolType::LIGHT) };
+        DrawPool* p{ DrawPoolTestAccess::create(DrawPoolType::LIGHT) };
         ~Pool() { delete p; }
 
         void rect(const Rect& dest, const Color& color = Color::white)
         {
-            p->add(color, nullptr, DrawPool::DrawMethod{
-                .type = DrawPool::DrawMethodType::RECT, .dest = dest });
+            DrawPoolTestAccess::addRect(*p, dest, color);
         }
 
         void compile(PoolProgram& out)
@@ -68,9 +100,9 @@ namespace {
     {
         Pool pool;
         pool.rect(Rect(0, 0, 10, 10));
-        pool.p->addAction([] {}, ActionIdiom::BlendOff);
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOff);
         pool.rect(Rect(20, 20, 10, 10), Color::alpha); // the map-hole punch
-        pool.p->addAction([] {}, ActionIdiom::BlendOn);
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOn);
         pool.rect(Rect(40, 40, 10, 10));
 
         PoolProgram program;
@@ -89,9 +121,9 @@ namespace {
     {
         Pool pool;
         pool.rect(Rect(0, 0, 10, 10));
-        pool.p->bindFrameBuffer(Size(64, 64));
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(64, 64));
         pool.rect(Rect(1, 1, 8, 8));
-        pool.p->releaseFrameBuffer(Rect(100, 100, 64, 64));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(100, 100, 64, 64));
         pool.rect(Rect(40, 40, 10, 10));
 
         PoolProgram program;
@@ -126,12 +158,12 @@ namespace {
     TEST(RenderBoundary, NestedTemporaryFramebuffersUseDistinctTargets)
     {
         Pool pool;
-        pool.p->bindFrameBuffer(Size(64, 64));
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(64, 64));
         pool.rect(Rect(0, 0, 8, 8));
-        pool.p->bindFrameBuffer(Size(32, 32));
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(32, 32));
         pool.rect(Rect(0, 0, 4, 4));
-        pool.p->releaseFrameBuffer(Rect(0, 0, 32, 32));
-        pool.p->releaseFrameBuffer(Rect(0, 0, 64, 64));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 32, 32));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 64, 64));
 
         PoolProgram program;
         pool.compile(program);
@@ -160,7 +192,7 @@ namespace {
         // fixed m_states array. macOS tolerated it silently; a Linux runner segfaulted on the
         // first test that ever tried it.
         Pool pool;
-        pool.p->releaseFrameBuffer(Rect(0, 0, 10, 10));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 10, 10));
         pool.rect(Rect(0, 0, 10, 10));
 
         PoolProgram program;
@@ -178,10 +210,10 @@ namespace {
         // than write past the end.
         Pool pool;
         for (int i = 0; i < 40; ++i)
-            pool.p->bindFrameBuffer(Size(8, 8));
+            DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(8, 8));
         pool.rect(Rect(0, 0, 4, 4));
         for (int i = 0; i < 40; ++i)
-            pool.p->releaseFrameBuffer(Rect(0, 0, 8, 8));
+            DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 8, 8));
 
         PoolProgram program;
         pool.compile(program);
@@ -203,7 +235,7 @@ namespace {
     {
         Pool pool;
         pool.rect(Rect(0, 0, 10, 10));
-        pool.p->addAction([] {}); // defaults to ActionIdiom::Opaque
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::Opaque); // the default
 
         PoolProgram program;
         pool.compile(program);
@@ -217,7 +249,7 @@ namespace {
     TEST(RenderBoundary, ScissorIsClampedToTheTarget)
     {
         Pool pool;
-        pool.p->setClipRect(Rect(-50, -50, 10000, 10000));
+        DrawPoolTestAccess::setClipRect(*pool.p, Rect(-50, -50, 10000, 10000));
         pool.rect(Rect(0, 0, 10, 10));
 
         PoolProgram program;
@@ -232,11 +264,11 @@ namespace {
     TEST(RenderBoundary, ClipRectThatMissesTheTargetClipsEverything)
     {
         Pool pool;
-        pool.p->bindFrameBuffer(Size(64, 64));
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(64, 64));
         // A clip rect entirely outside the target it is drawn into - a widget scrolled away.
-        pool.p->setClipRect(Rect(900, 900, 100, 50));
+        DrawPoolTestAccess::setClipRect(*pool.p, Rect(900, 900, 100, 50));
         pool.rect(Rect(0, 0, 10, 10));
-        pool.p->releaseFrameBuffer(Rect(0, 0, 64, 64));
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(0, 0, 64, 64));
 
         PoolProgram program;
         pool.compile(program);
@@ -256,9 +288,9 @@ namespace {
     TEST(RenderBoundary, OnlyOnceStateRestoresThePreviousValueNotTheDefault)
     {
         Pool pool;
-        pool.p->setOpacity(0.5f);              // a standing, non-default value
+        DrawPoolTestAccess::setOpacity(*pool.p, 0.5f);              // a standing, non-default value
         pool.rect(Rect(0, 0, 10, 10));
-        pool.p->setOpacity(0.25f, true);       // onlyOnce override
+        DrawPoolTestAccess::setOpacity(*pool.p, 0.25f, true);       // onlyOnce override
         pool.rect(Rect(20, 20, 10, 10));
         pool.rect(Rect(40, 40, 10, 10));       // must be back at 0.5, NOT at 1.0
 
@@ -277,7 +309,7 @@ namespace {
     TEST(RenderBoundary, OnlyOnceCompositionModeIsScopedToOneDraw)
     {
         Pool pool;
-        pool.p->setCompositionMode(CompositionMode::MULTIPLY, true);
+        DrawPoolTestAccess::setCompositionMode(*pool.p, CompositionMode::MULTIPLY, true);
         pool.rect(Rect(0, 0, 10, 10));
         pool.rect(Rect(20, 20, 10, 10));
 
@@ -558,7 +590,7 @@ namespace {
     TEST(RenderBoundary, MultiplyCompositionSurvivesCompilation)
     {
         Pool pool;
-        pool.p->setCompositionMode(CompositionMode::MULTIPLY);
+        DrawPoolTestAccess::setCompositionMode(*pool.p, CompositionMode::MULTIPLY);
         pool.rect(Rect(0, 0, 10, 10));
 
         PoolProgram program;
@@ -604,9 +636,9 @@ namespace {
     {
         const auto build = [](Pool& pool) {
             pool.rect(Rect(0, 0, 10, 10), Color::green);
-            pool.p->bindFrameBuffer(Size(16, 16));
+            DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(16, 16));
             pool.rect(Rect(1, 1, 4, 4));
-            pool.p->releaseFrameBuffer(Rect(2, 2, 16, 16), 1 /* horizontal flip */);
+            DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(2, 2, 16, 16), 1 /* horizontal flip */);
         };
 
         Pool a, b;
@@ -635,11 +667,11 @@ namespace {
     {
         Pool plain, flipped;
         for (auto* pool : { &plain, &flipped }) {
-            pool->p->bindFrameBuffer(Size(16, 16));
+            DrawPoolTestAccess::bindFrameBuffer(*pool->p, Size(16, 16));
             pool->rect(Rect(0, 0, 4, 4));
         }
-        plain.p->releaseFrameBuffer(Rect(0, 0, 16, 16), 0);
-        flipped.p->releaseFrameBuffer(Rect(0, 0, 16, 16), 2 /* vertical */);
+        DrawPoolTestAccess::releaseFrameBuffer(*plain.p, Rect(0, 0, 16, 16), 0);
+        DrawPoolTestAccess::releaseFrameBuffer(*flipped.p, Rect(0, 0, 16, 16), 2 /* vertical */);
 
         PoolProgram a, b;
         plain.compile(a);
@@ -724,18 +756,18 @@ namespace {
                                          PoolProgram& program, Pool& pool)
     {
         pool.rect(Rect(0, 0, 800, 600), Color::black);
-        pool.p->setCompositionMode(CompositionMode::MULTIPLY);
+        DrawPoolTestAccess::setCompositionMode(*pool.p, CompositionMode::MULTIPLY);
         pool.rect(Rect(10, 10, 100, 50), Color::red);
-        pool.p->resetCompositionMode();
-        pool.p->bindFrameBuffer(Size(32, 32));
+        DrawPoolTestAccess::resetCompositionMode(*pool.p);
+        DrawPoolTestAccess::bindFrameBuffer(*pool.p, Size(32, 32));
         pool.rect(Rect(0, 0, 32, 32), Color::green);
-        pool.p->releaseFrameBuffer(Rect(200, 100, 64, 64), 1 /* horizontal flip */);
-        pool.p->addAction([] {}, ActionIdiom::BlendOff);
+        DrawPoolTestAccess::releaseFrameBuffer(*pool.p, Rect(200, 100, 64, 64), 1 /* horizontal flip */);
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOff);
         pool.rect(Rect(300, 300, 40, 40), Color::alpha); // the map-hole punch
-        pool.p->addAction([] {}, ActionIdiom::BlendOn);
-        pool.p->setClipRect(Rect(400, 400, 100, 100));   // so the golden covers a live scissor
+        DrawPoolTestAccess::addAction(*pool.p, [] {}, ActionIdiom::BlendOn);
+        DrawPoolTestAccess::setClipRect(*pool.p, Rect(400, 400, 100, 100));   // so the golden covers a live scissor
         pool.rect(Rect(400, 400, 200, 200), Color::white);
-        pool.p->resetClipRect();
+        DrawPoolTestAccess::resetClipRect(*pool.p);
 
         pool.compile(program);
 

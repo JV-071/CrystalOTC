@@ -505,6 +505,16 @@ private:
     friend class DrawPoolManager;
     friend class VkDrawFeeder;
     friend class PoolCompiler;
+
+    // Test seam. tests/render/ drives a pool directly - it has no window, no GL context and no
+    // initialised DrawPoolManager - and reaches the producer API through this.
+    //
+    // Declared rather than reached with `#define private public`, which is how the suite first
+    // did it. That trick links on Itanium-ABI toolchains and CANNOT link on MSVC, which encodes
+    // access specifiers into mangled names: a translation unit that redefines `private` emits
+    // calls to `public:`-mangled symbols the library never defined. It cost a one-hour Windows
+    // job to discover, so it is worth not reintroducing.
+    friend struct DrawPoolTestAccess;
 };
 
 extern DrawPoolManager g_drawPool;
