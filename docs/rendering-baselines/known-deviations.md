@@ -380,10 +380,11 @@ neither wide nor smoothed lines, so `DrawPool::addLineStrip` triangulates the st
 record time and a compiled frame draws those instead. The two are meant to differ, and only at the
 edges: same vertices, same widths, same colours.
 
-Measured on XQuartz, one binary, both paths:
+Measured in both reference environments, one binary each, both paths:
 
 ```
-graph-lines  different=7660 of 656880 (1.17%)  max_channel_delta=235
+XQuartz    graph-lines  different=7660 of 656880 (1.17%)  max_channel_delta=235
+llvmpipe   graph-lines  different=8734 of 656880 (1.33%)  max_channel_delta=168   run 32452811177
 ```
 
 Every other offline scene matches at **exactly 0 differing pixels**, so this is the sole exception
@@ -392,9 +393,9 @@ separate from its reference tolerance, with the measurement and the reasoning re
 
 The limit is well above 1.17% on purpose. This same scene already disagrees by 1.52% *between GL
 stacks* (see the XQuartz-versus-llvmpipe section above) because llvmpipe antialiases wide lines
-where XQuartz rasterises them hard - so the CI figure for the path comparison is expected to be
-larger than the local one, and was still unmeasured when this was written. A structural regression,
-such as a series not being drawn at all, moves the number well past 3%.
+where XQuartz rasterises them hard - so the CI figure for the path comparison was expected to be
+larger than the local one, and is: 1.33% against 1.17%. Both sit at well under half the limit. A
+structural regression, such as a series not being drawn at all, moves the number well past 3%.
 
 Run it with `tools/compare_render_paths.sh <client-binary>`.
 
