@@ -16,6 +16,7 @@ on:
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
+      - "tests/**"
       - ".github/workflows/build-macos.yml"
   pull_request:
     paths:
@@ -24,6 +25,7 @@ on:
       - "CMakeLists.txt"
       - "CMakePresets.json"
       - "vcpkg.json"
+      - "tests/**"
       - ".github/workflows/build-macos.yml"
 
 permissions:

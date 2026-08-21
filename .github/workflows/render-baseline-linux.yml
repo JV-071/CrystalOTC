@@ -21,6 +21,7 @@ on:
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
       - "tools/renderer_scenes.py"
+      - "tests/**"
       - "vcpkg.json"
       - "CMakePresets.json"
       - "CMakeLists.txt"
@@ -38,6 +39,7 @@ on:
       - "docs/rendering-baselines/**"
       - "tools/compare_renderer_images.py"
       - "tools/renderer_scenes.py"
+      - "tests/**"
       - "vcpkg.json"
       - "CMakePresets.json"
       - "CMakeLists.txt"
@@ -193,6 +195,14 @@ jobs:
         if: always()
         shell: bash
         run: ccache --show-stats || true
+
+      # The renderer-boundary suite is GPU-less and its golden frame is meant to be
+      # byte-identical on every platform: fixed float formatting, and FNV-1a over float bits
+      # rather than std::hash, which is implementation-defined. That claim is only worth
+      # anything if a second toolchain actually checks it - this job is libstdc++/x86-64
+      # against macOS's libc++/arm64.
+      - name: Run unit tests
+        run: ctest --test-dir build/linux-release --output-on-failure
 
       - name: Capture offline client scenes with llvmpipe
         shell: bash

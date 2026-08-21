@@ -108,6 +108,14 @@ jobs:
           configurePreset: windows-release
           buildPreset: windows-release
 
+      # This job used to compile the test suite and never run it. The renderer-boundary
+      # golden frame is asserted to be byte-identical on every platform, and MSVC/x86-64 is
+      # the toolchain furthest from the one that produced the checked-in golden, so it is
+      # the one most worth running it on.
+      - name: Run unit tests
+        shell: pwsh
+        run: ctest --test-dir build/windows-release --output-on-failure
+
       - name: Prepare artifact folder
         shell: pwsh
         run: |
