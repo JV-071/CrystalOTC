@@ -313,13 +313,31 @@ there 2026-08-21**, and the deferral's premise held - the figure that carried in
 whole-process CPU at a display-locked frame rate, not a frame-time average. Numbers in
 `docs/metal-implementation-plan.md`, Phase 5's exit gate.
 
-**Survey quirk 7 was inaccurate as written and has been corrected** in
+~~**Survey quirk 7 was inaccurate as written and has been corrected** in
 `docs/metal-parity-survey.md`. The FOREGROUND framebuffer does not stretch.
 `GraphicalApplication::resize` sizes the UI and that framebuffer at `viewport/scale`, but the
 framebuffer is blitted 1:1 into a destination rect equal to its own size, inside a painter
 whose resolution is the full physical viewport. A scale change is therefore capturable as a
 genuine image difference rather than a rescale, which is what the `display-density` feature
-should freeze.
+should freeze.~~
+
+**That correction was itself wrong, and is re-corrected 2026-08-21 (Phase 5).** It read
+`FrameBuffer::prepare`, whose *default* dest is `Rect(0, 0, getSize())` and is genuinely 1:1,
+and did not read the caller. `UIManager::render` passes an explicit dest of
+`{0, 0, g_graphics.getViewportSize()}` - the full **physical** viewport - through the
+`preDraw(type, f, dest, src, colorClear)` overload, so the whole framebuffer texture is mapped
+onto the whole viewport and scaled by `m_displayDensity`, with `LINEAR` filtering. **It
+stretches.** A scale change is therefore *both* things: fewer logical units fit, and what does
+fit is resampled - so `display-density` freezes a combination rather than a pure layout
+difference, which does not change what the scene is worth but does change what it means.
+
+The consequence is larger than the quirk. On a window with a backing scale of 2 the client
+composites its entire UI at 1x into a half-size target and bilinearly upscales it. Measured
+against a density-1 capture of the same scene: high-frequency detail falls to roughly a third,
+and an even/odd column asymmetry appears from nothing (0.95 to 0.73), which is the fingerprint
+of a 2x upscale. It is shared framework code, not a backend behaviour, and the pinned density
+recorded above is why no automated scene can see it. Written up as a follow-up in
+`docs/phase-5-renderer-handoff.md`.
 
 Also relevant to the `windowing` scene, and the reason it is marked `ciCapture: false`:
 `focus` is **not observable in any captured image** -- `hasFocus()` has zero consumers
