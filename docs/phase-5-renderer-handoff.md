@@ -196,10 +196,41 @@ longer the blocker in principle — `compileMaintenance` is its described form a
 runs that — but `flush()` itself survives because the legacy path still calls it. That dependency
 now expires with the legacy path rather than ahead of it.
 
-**Whether a hosted macOS runner can capture a Metal frame is an open question with a probe.** The
-backend renders into an offscreen target and needs a drawable only to present, so a headless
-capture may work. The macOS job now attempts it non-gating and reports either way. If it works,
-Phase 7 gets a gateable macOS image matrix; if not, that is recorded once instead of rediscovered.
+**A hosted macOS runner CAN capture Metal frames, and they match the existing references.** The
+probe was added as an open question and answered on its first run (`13acc96`, run `32508823574`):
+**11 of 11** offline scenes captured, in about 73 seconds total, on a runner with no window server.
+The offscreen-backbuffer design is what makes it work — the backend needs a drawable only to
+*present*, and a capture reads the offscreen target instead.
+
+The result is better than "it captures". Those captures compare against the **checked-in llvmpipe
+OpenGL references** — the canonical set, produced by the *legacy* GL path on a completely different
+stack — as follows:
+
+| Scene | CI Metal vs llvmpipe reference | |
+|---|---:|---|
+| `startup-ui` | **0 px** | |
+| `ui-clipping-opacity` | **0 px** | |
+| `composition-all` | **0 px** | all six blend modes |
+| `atlas-resources` | **0 px** | atlas growth and smooth padding |
+| `text-matrix` | 1 px | |
+| `graph-lines` | 8,734 px | the documented line-triangulation difference — and *exactly* llvmpipe's own frame-versus-legacy figure |
+| `particles-blends` | 698 px | inside its documented bimodality |
+| `shader-matrix` | 154,018 px (23.4%) | module fragment programs; this is the number Phase 6 removes |
+
+Five of eight at effectively zero, and all three that differ are already-documented cases rather
+than new ones. `graph-lines` landing on llvmpipe's exact frame-versus-legacy figure is the strongest
+parity evidence in the project so far: it means the compiled frame path produces bit-identical
+output on llvmpipe-GL, XQuartz-GL and macOS-Metal alike.
+
+**What this retires:** the assumption, made in Phase 4 and repeated in Phase 5's own follow-up list,
+that gating macOS would need a frozen macOS reference set. It does not. The existing reference set
+already serves Metal. That in turn is what would let macOS UI work be gated on macOS rather than
+against a GL binary on another machine.
+
+**What it does not yet establish:** determinism. This is one run. Before any of it becomes a gate,
+the probe needs a second run compared against the first — a scene that captures is not the same as a
+scene that captures the *same thing twice*, which `particles-blends` and `windowing-2-grown` both
+demonstrate. That comparison is the next concrete step, and it costs one push.
 
 **The atlas layer count is capped at 32 per (atlas, filter group).** Ample — the largest observed
 usage is three — but it is a cap where there was none, and hitting it degrades to unpacked textures
