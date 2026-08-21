@@ -444,6 +444,7 @@ void Application::registerLuaFunctions()
     g_lua.registerSingletonClass("g_graphics");
     g_lua.bindSingletonFunction("g_graphics", "getRenderPath", &DrawPoolManager::getRenderPathName, &g_drawPool);
     g_lua.bindSingletonFunction("g_graphics", "getRenderBackend", &DrawPoolManager::getRenderBackendName, &g_drawPool);
+    g_lua.bindSingletonFunction("g_graphics", "getAvailableRenderBackends", &DrawPoolManager::getAvailableRenderBackends, &g_drawPool);
     g_lua.bindSingletonFunction("g_graphics", "getViewportSize", &Graphics::getViewportSize, &g_graphics);
     g_lua.bindSingletonFunction("g_graphics", "getVendor", &Graphics::getVendor, &g_graphics);
     g_lua.bindSingletonFunction("g_graphics", "getRenderer", &Graphics::getRenderer, &g_graphics);

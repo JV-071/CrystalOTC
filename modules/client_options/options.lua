@@ -233,11 +233,73 @@ function updateBigMouseCursorAvailability(panelsArg, useNativeMouseCursor)
 	end
 end
 
-local GRAPHICS_ENGINE_DISPLAY_NAMES = {
-	[0] = "DirectX 12",
-	"DirectX 12",
-	"OpenGL"
+-- The graphics-engine option, keyed by the STABLE id stored in the profile rather than by list
+-- position, so filtering the list per platform never renumbers a saved value.
+--
+-- id 1 was "DirectX 12" and is retired: no DirectX backend has ever existed in this codebase -
+-- the only trace is an unused CMake finder - yet it was offered on every platform, macOS
+-- included. Nothing may reuse id 1, or an old profile would silently select something else.
+local GRAPHICS_ENGINES = {
+	{ id = 0, backend = "auto",   label = "(auto-select)" },
+	{ id = 2, backend = "opengl", label = "OpenGL" },
+	{ id = 3, backend = "vulkan", label = "Vulkan (experimental)" },
+	{ id = 4, backend = "metal",  label = "Metal" }
 }
+
+local GRAPHICS_ENGINE_DISPLAY_NAMES = {}
+local GRAPHICS_ENGINE_BY_BACKEND = {}
+
+for _, engine in ipairs(GRAPHICS_ENGINES) do
+	GRAPHICS_ENGINE_DISPLAY_NAMES[engine.id] = engine.label
+	GRAPHICS_ENGINE_BY_BACKEND[engine.backend] = engine
+end
+
+-- "gl" is the built-in config default and the Vulkan feeder's "not vulkan" value; it means
+-- auto-select rather than a deliberate request for OpenGL, and the engine treats it that way.
+GRAPHICS_ENGINE_BY_BACKEND["gl"] = GRAPHICS_ENGINE_BY_BACKEND["auto"]
+
+-- Which engines this BINARY can provide, asked of the engine rather than hardcoded: the XQuartz
+-- build offers OpenGL, the Cocoa build offers Metal, and neither is offered something it would
+-- fail to create.
+local function availableGraphicsEngines()
+	local engines = { GRAPHICS_ENGINE_BY_BACKEND["auto"] }
+
+	if not g_graphics or not g_graphics.getAvailableRenderBackends then
+		table.insert(engines, GRAPHICS_ENGINE_BY_BACKEND["opengl"])
+
+		return engines
+	end
+
+	for _, backend in ipairs(g_graphics.getAvailableRenderBackends()) do
+		local engine = GRAPHICS_ENGINE_BY_BACKEND[backend]
+
+		if engine and engine.backend ~= "auto" then
+			table.insert(engines, engine)
+		end
+	end
+
+	return engines
+end
+
+local function graphicsEngineIsAvailable(id)
+	for _, engine in ipairs(availableGraphicsEngines()) do
+		if engine.id == id then
+			return true
+		end
+	end
+
+	return false
+end
+
+local function backendForGraphicsEngine(id)
+	for _, engine in ipairs(GRAPHICS_ENGINES) do
+		if engine.id == id then
+			return engine.backend
+		end
+	end
+
+	return "auto"
+end
 local GRAPHICS_ENGINE_HELP_BODY = tr("In general, the client will automatically select the best graphics engine for you. Select the graphics engine of your choice from the drop-down menu if you should experience problems with the pre-selected one. Note that a restart of the client is necessary for this change to take effect.")
 
 function updateGraphicsEngineHelpTooltip(panelsArg, engineValue)
@@ -721,13 +783,12 @@ local function setupComboBox()
 	if graphicsEngineCombobox then
 		-- Vulkan is our own renderer (under construction). The choice is saved to config.ini as
 		-- renderBackend, because the engine reads it at STARTUP - the change requires a client restart.
-		for k, t in ipairs({
-			"(auto-select)",
-			"DirectX 12",
-			"OpenGL",
-			"Vulkan (experimental)"
-		}) do
-			graphicsEngineCombobox:addOption(t, k - 1)
+		-- The list is built from what this BINARY can provide, not from a fixed literal, so no
+		-- platform is offered an engine it would fail to create.
+		graphicsEngineCombobox:clearOptions()
+
+		for _, engine in ipairs(availableGraphicsEngines()) do
+			graphicsEngineCombobox:addOption(engine.label, engine.id)
 		end
 
 		function graphicsEngineCombobox.onOptionChange(comboBox, option)
@@ -1946,10 +2007,16 @@ local function setup()
 		local backend = g_configs.getRenderBackend()
 		local engine = getOption("graphicsEngine")
 
-		if backend == "vulkan" and engine ~= 3 then
-			setOption("graphicsEngine", 3)
-		elseif backend ~= "vulkan" and engine == 3 then
-			setOption("graphicsEngine", 2)
+		local configured = GRAPHICS_ENGINE_BY_BACKEND[backend]
+
+		if configured and configured.id ~= engine then
+			-- config.ini is the source of truth: it is what the engine actually read at startup.
+			setOption("graphicsEngine", configured.id)
+		elseif not graphicsEngineIsAvailable(engine) then
+			-- A profile naming an engine this build cannot provide - a config copied between
+			-- machines, or the retired DirectX id - would otherwise show an engine that is not in
+			-- the list and cannot be selected back out of.
+			setOption("graphicsEngine", 0)
 		end
 	end
 
@@ -2314,8 +2381,7 @@ local function commitRenderBackendChange()
 		return
 	end
 
-	-- 3 = Vulkan, the rest = the existing path
-	g_configs.setRenderBackend(to == 3 and "vulkan" or "gl")
+	g_configs.setRenderBackend(backendForGraphicsEngine(to))
 
 	local function doRestart()
 		if g_app and g_app.restart then

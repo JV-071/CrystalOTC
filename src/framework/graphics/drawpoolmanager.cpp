@@ -84,13 +84,36 @@ namespace
 
         const auto& configured = g_configs.getPublicConfig().graphics.renderBackend;
 
-        // "gl" is the config default and also the Vulkan feeder's "not vulkan" value, so it is not
-        // evidence that anyone asked for OpenGL. Only an explicit "metal" is.
-        return configured == "metal" ? configured : std::string{ "auto" };
+        // "gl" is the config DEFAULT and also the Vulkan feeder's "not vulkan" value, so it is not
+        // evidence that anyone asked for OpenGL - it has to keep meaning "auto", or every machine
+        // that has never opened the options screen would be requesting a backend it may not have.
+        // "opengl" is the value the graphics-engine option writes when a user picks OpenGL
+        // deliberately, and "auto" when they pick auto-select, so both are honoured as stated.
+        if (configured == "metal" || configured == "opengl" || configured == "auto")
+            return configured;
+
+        return std::string{ "auto" };
     }
 
-    std::unique_ptr<IRenderBackend> createBackend(const std::string& requested)
+    std::unique_ptr<IRenderBackend> createBackend(const std::string& requestedName)
     {
+        // A named backend this build cannot provide is downgraded to "auto" rather than attempted.
+        // Without this, `--render-backend=gl` on a Cocoa window produced a client that drew
+        // NOTHING: GLBackend::initialize() fails with no GL context, createBackend returned null,
+        // the frame path was refused, and the legacy path it fell back to is the OpenGL renderer.
+        // Auto always resolves to something that exists.
+        std::string requested = requestedName;
+        const auto available = DrawPoolManager::availableRenderBackends();
+        if (requested != "auto"
+            && std::find(available.begin(), available.end(), requested) == available.end()) {
+            g_logger.warning("[render] backend '{}' is not available in this build; using auto",
+                             requested);
+            requested = "auto";
+        }
+
+        // "opengl" is a deliberate choice and is taken literally; "auto" resolves by capability,
+        // because a window that never created a GL context has a Metal layer to offer and nothing
+        // else, and a window that did has the opposite.
         const bool wantsMetal = requested == "metal"
             || (requested == "auto" && !g_window.hasGLContext());
 
@@ -113,6 +136,26 @@ namespace
 
         return nullptr;
     }
+}
+
+std::vector<std::string> DrawPoolManager::availableRenderBackends()
+{
+    std::vector<std::string> backends{ "auto" };
+
+#ifdef CRYSTALOTC_COCOA_WINDOW
+    // The Cocoa window creates no OpenGL context, so OpenGL is not merely unselected there - it
+    // cannot be provided at all, and offering it would hand the user a black client.
+    backends.emplace_back("metal");
+#else
+    backends.emplace_back("opengl");
+#ifdef WIN32
+    // Vulkan is not an IRenderBackend: VkDrawFeeder intercepts the published draw lists instead.
+    // It is still a graphics engine the user can select, and it is Windows-only.
+    backends.emplace_back("vulkan");
+#endif
+#endif
+
+    return backends;
 }
 
 void DrawPoolManager::init(const uint16_t spriteSize)

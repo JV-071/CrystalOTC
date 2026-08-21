@@ -61,6 +61,26 @@ public:
     { return m_renderPath == RenderPath::Frame ? "frame" : "legacy"; }
     [[nodiscard]] std::string getRenderBackendName() const
     { return m_backend ? m_backend->name() : "none"; }
+
+    // Which graphics APIs THIS BINARY can actually provide, most-preferred first, always
+    // beginning with "auto".
+    //
+    // Compile-time rather than runtime, deliberately. `hasGLContext()` answers what the window
+    // currently HAS, which is not the same question: a Windows client configured for Vulkan has
+    // no GL context but can still be switched back to OpenGL, and would drop that option from
+    // its own settings screen if this asked the window. What determines availability is which
+    // sources were compiled in.
+    //
+    // The options UI builds its graphics-engine list from this, so a backend absent here is one
+    // the user is never offered - which is the point. Before Phase 6 that list was a fixed
+    // literal offering "DirectX 12" and "Vulkan (experimental)" on macOS, where the first has
+    // never existed anywhere in this codebase and the second is Windows-only.
+    [[nodiscard]] static std::vector<std::string> availableRenderBackends();
+
+    // The same list, as an instance method, because the Lua singleton binding takes a
+    // pointer-to-member and cannot bind a static one.
+    [[nodiscard]] std::vector<std::string> getAvailableRenderBackends() const
+    { return availableRenderBackends(); }
     DrawPool* get(const DrawPoolType type) const { return m_pools[static_cast<uint8_t>(type)]; }
 
     void select(DrawPoolType type);
