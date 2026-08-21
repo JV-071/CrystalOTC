@@ -18,7 +18,11 @@ At this checkpoint:
 
 - `Build - macOS (Cocoa)` is green — run `32411659041`, 17/17 steps on `macos-15` /
   arm64 / macOS 15.7.7 / Xcode 16.4 / SDK 15.5.
-- `Build - Windows` is green for the full change set — run `32411659030`.
+- `Build - Windows` is green ~~for the full change set~~ at `7c16224` — run `32411659030`.
+  **Corrected 2026-08-21:** no CI ran on the checkpoint commit `9396b71` itself; `fdfb833`
+  and `9396b71` are macOS-only changes, the arm64 pin was verified locally with
+  `lipo -archs`, and the Windows run at `0535c96` was cancelled. Phase 2's run
+  `32440663105` at `b8458df` has since covered all of it, green, 54/54.
 - `Renderer baseline - Linux llvmpipe` is green — run `32411659065`.
 - `ctest` passes 22/22 on both the local XQuartz build and the macOS runner.
 - Six baseline scenes recapture at 0 differing pixels after every shared-code change.
@@ -96,6 +100,15 @@ renamed for the duration of the Apple includes. AppKit's umbrella also drags in 
 whose `GLhandleARB` disagrees with glew's — suppressed through Apple's own `__gl_h_` guards,
 since this translation unit wants no OpenGL.
 
+**Correction 2026-08-21 (Phase 2, `c8050f5`):** those guards are *not* sufficient on their
+own. `OpenGL.h`, `CGLDevice.h` and `CGLIOSurface.h` are not covered by
+`__gl_h_`/`__gltypes_h_` and they use `GLint`/`GLenum`/`GLsizei`/`GLuint`; glew was
+supplying those types for free through `platformwindow.h` → `declarations.h`. When
+`fa8656d` dropped `glutil.h` from `declarations.h`, the Cocoa build stopped compiling with
+15 `unknown type name 'GLint'`/`'GLenum'` errors from inside Apple's own headers (run
+`32432243243`). `cocoawindow.mm` now includes `framework/graphics/glutil.h` explicitly and
+first (`cocoawindow.mm:48`).
+
 **`PlatformWindow` declares no destructor**, so `~CocoaWindow()` cannot be an `override`.
 
 **System Events' accessibility `click at` never reaches a custom `NSView`.** The mouse path
@@ -124,7 +137,11 @@ current context; Apple's segfaults.
 `hasGLContext() == false` and runs the same two functions, so it had been relying on the
 same luck. This is the migration's first Windows-affecting *behaviour* change, and it is
 **unvalidated at runtime** — the Windows compile gate is green, but no local or CI check on
-this plan can reach it. Carry it into the next tester validation.
+this plan can reach it. ~~Carry it into the next tester validation.~~ **Superseded
+2026-08-21 (owner decision):** Windows Vulkan runtime validation is deferred
+**indefinitely**, until a Windows machine is available. The change stays unvalidated at
+runtime by choice — it is parked, not outstanding, and must not be listed as pending or as
+gating anything.
 
 **Modifier keys latched on permanently** (`fdfb833`), found by driving real `CGEvent`s at
 one of the three input paths the exit gate had recorded as implemented but unexercised.
@@ -148,8 +165,10 @@ sets `KeyboardAltModifier` (`0x100008` → `2`), and Option deliberately sets no
   No CI job is a *required* check and none can be until protection is enabled; every job
   gates by failing loudly rather than by blocking a merge. The macOS job is the one to
   promote first.
-- **The Windows Vulkan behaviour change is acknowledged and accepted**, to be exercised at
-  the next tester validation.
+- **The Windows Vulkan behaviour change is acknowledged and accepted**, ~~to be exercised at
+  the next tester validation~~. **Superseded 2026-08-21:** the owner deferred Windows Vulkan
+  runtime validation indefinitely, until a Windows machine is available. Accepted and
+  unvalidated; nothing is owed.
 
 Decisions 6 (macOS 14 minimum) and 7 (no notarization in the first milestone) remain
 assumptions, though 6 now has a concrete expression as the committed deployment-target

@@ -175,9 +175,22 @@ through; four remain deferred.
 `upload-artifact`, `download-artifact`) target the deprecated Node 20 runtime. GitHub
 currently force-runs them on Node 24 with a warning, so it is cosmetic until it is not. The
 bump was prepared and then deliberately reverted: it includes `actions/cache`, and changing
-that risks invalidating the warm vcpkg cache on a build whose median is around 60 minutes.
-It deserves its own commit and a cold build to verify, not a ride-along on an unrelated fix.
-The renderer-baseline workflow is already off Node 20, where there was no cache to lose.
+that ~~risks invalidating the warm vcpkg cache on a build whose median is around 60 minutes.
+It deserves its own commit and a cold build to verify, not a ride-along on an unrelated
+fix.~~ **Corrected 2026-08-21 (Phase 2, `11de064`):** there was no warm vcpkg cache to lose.
+`lukka/run-vcpkg` set `VCPKG_BINARY_SOURCES=clear;x-gha,readwrite` and vcpkg has removed the
+`x-gha` backend — `warning: The 'x-gha' binary caching backend has been removed` appears
+verbatim in run `32440663105` — so nothing was cached and every run rebuilt every port
+(~52 min of a 63-min job). `11de064` replaced the cached paths
+(`vcpkg/installed`+`buildtrees` → `.cache/vcpkg`+`vcpkg/downloads`) and pointed both
+variables at the workspace, as `build-macos.yml` and `render-baseline-linux.yml` already
+did. The Node 20 bump is still deferred — it deserves its own commit — but not for the
+cache reason.
+
+The renderer-baseline workflow is already off Node 20~~, where there was no cache to lose~~. **Corrected 2026-08-21:** that contrast no longer holds in either direction — it is
+on `actions/checkout@v5`, `actions/cache@v6` and `actions/upload-artifact@v7`, and it does
+cache, through the same file-based `VCPKG_BINARY_SOURCES`/`VCPKG_DEFAULT_BINARY_CACHE` pair
+that `11de064` gave the Windows job.
 
 ~~**`tests-lua.yml` tests nothing.**~~ **Resolved 2026-08-20 (post-handoff).** It now
 syntax-checks every tracked `.lua` file with LuaJIT - the parser the client actually embeds -
@@ -265,9 +278,12 @@ still v4 schema against a `@main` reference that had reached v7, so it was alrea
 merely at risk; it now uses the v5-and-later `changed-files`/`any-glob-to-any-file` form with
 explicit `permissions`.
 
-Deliberately still deferred, reasoning unchanged: the Node 20 bump in `build-windows.yml` (it
-drags `actions/cache` and needs a cold ~60-minute build to verify), Mesa version pinning, the
-`XZ_SANDBOX` port warning, and `map-screenshot`'s 62-pixel animated-decoration residual.
+Deliberately still deferred: the Node 20 bump in `build-windows.yml` (~~it drags
+`actions/cache` and needs a cold ~60-minute build to verify~~ — **corrected 2026-08-21:**
+that reason is void, see the follow-up above; `11de064` has already rewritten the job's cache
+paths, and the bump is deferred only because it deserves its own commit), Mesa version
+pinning, the `XZ_SANDBOX` port warning, and `map-screenshot`'s 62-pixel
+animated-decoration residual.
 
 ## Reproduction commands
 
