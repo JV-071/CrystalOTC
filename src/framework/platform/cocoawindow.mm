@@ -24,13 +24,20 @@
 
 // Include order in this file is load-bearing three times over.
 //
-// 1. The framework headers come first because platformwindow.h reaches glutil.h, which
-//    includes <GL/glew.h>, and glew hard-errors if any GL header was parsed before it.
+// 1. glutil.h comes first because it includes <GL/glew.h>, and glew hard-errors if any GL
+//    header was parsed before it. It is included EXPLICITLY here: this file used to get it
+//    for free through platformwindow.h -> declarations.h, and when declarations.h stopped
+//    dragging GL into every consumer that free ride ended and this file stopped compiling.
 //
 // 2. AppKit's umbrella drags in NSOpenGL.h and therefore Apple's own gl.h/gltypes.h,
 //    which define GLhandleARB as void* where glew defines it as unsigned int. This
-//    translation unit wants no OpenGL at all, so Apple's GL headers are switched off
-//    through their own include guards and glew keeps ownership of the GL types.
+//    translation unit wants no OpenGL at all, so Apple's gl.h and gltypes.h are switched
+//    off through their own include guards and glew keeps ownership of the GL types.
+//
+//    Note those two guards are not sufficient on their own, which is exactly how the
+//    implicit dependency above stayed invisible: OpenGL.h, CGLDevice.h and CGLIOSurface.h
+//    are NOT suppressed by them and they use GLint/GLenum/GLsizei/GLuint. Something must
+//    define those types, and glew is what does.
 //
 // 3. MacTypes.h, reached from any Apple umbrella header, defines Size, Point and Rect as
 //    global legacy Memory-Manager/QuickDraw types, and the framework defines all three as
@@ -38,6 +45,8 @@
 //    order that resolves that and no opt-out macro in the SDK, so Apple's spellings are
 //    renamed for the duration of the Apple includes. Nothing here uses the legacy types;
 //    NSPoint/NSRect/NSSize and CGPoint/CGRect/CGSize are distinct and untouched.
+#include <framework/graphics/glutil.h>
+
 #include "cocoawindow.h"
 
 #include <framework/core/eventdispatcher.h>
