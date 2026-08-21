@@ -369,6 +369,35 @@ at random and leaves the other one failing.
 The `particles-blends` row in the XQuartz-versus-llvmpipe table above (168 px, 0.026%, max delta 52)
 was measured in the low mode, and is reproducible only in the low mode.
 
+## `graph-lines` differs between the two render paths, by design
+
+Added 2026-08-21 (Phase 3). This is a deviation between the **legacy and compiled render paths**,
+which is a different axis from every other section here - same machine, same binary, same GL
+driver, same frame.
+
+`UIGraph` draws its series with `GL_LINE_STRIP`, `glLineWidth` and `GL_LINE_SMOOTH`. Metal has
+neither wide nor smoothed lines, so `DrawPool::addLineStrip` triangulates the strip into quads at
+record time and a compiled frame draws those instead. The two are meant to differ, and only at the
+edges: same vertices, same widths, same colours.
+
+Measured on XQuartz, one binary, both paths:
+
+```
+graph-lines  different=7660 of 656880 (1.17%)  max_channel_delta=235
+```
+
+Every other offline scene matches at **exactly 0 differing pixels**, so this is the sole exception
+rather than the largest of several. `scenes.json` gives the scene a `renderPathTolerance` of 0.03,
+separate from its reference tolerance, with the measurement and the reasoning recorded there.
+
+The limit is well above 1.17% on purpose. This same scene already disagrees by 1.52% *between GL
+stacks* (see the XQuartz-versus-llvmpipe section above) because llvmpipe antialiases wide lines
+where XQuartz rasterises them hard - so the CI figure for the path comparison is expected to be
+larger than the local one, and was still unmeasured when this was written. A structural regression,
+such as a series not being drawn at all, moves the number well past 3%.
+
+Run it with `tools/compare_render_paths.sh <client-binary>`.
+
 ## CI gating
 
 Three scenes are captured and archived but deliberately **not** gated against a reference:

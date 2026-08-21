@@ -73,8 +73,10 @@ stays meaningful if the compiler later changes what it emits for the same object
 
 **Compilation happens inside `release()`'s lock.** The published list is exactly what the
 consumer may swap away the instant the lock drops, so compiling outside it would race. The cost
-is bounded and paid only when compiling is on. **Phase 3 needs both paths live at once and should
-move this off the lock rather than inherit it.**
+is bounded and paid only when compiling is on. ~~**Phase 3 needs both paths live at once and should
+move this off the lock rather than inherit it.**~~ **Moved 2026-08-21 (`360c581`):** the consumer
+may only swap once the repaint flag says so, and it does not yet, so the compile window belongs to
+the producer alone.
 
 **`BlendMode` is separate from `CompositionMode`.** They are 1:1 today. Keeping them distinct lets
 the producer-facing names stay stable while the renderer-facing ones describe what the GPU
@@ -157,7 +159,7 @@ checking this repository had before Phase 2 added `ctest` to Windows and Linux.
 
 None block Phase 3.
 
-**`ResourceRegistry` — re-decided, not skipped.** Its two jobs separated under what Phase 2
+**`ResourceRegistry` — re-decided, not skipped. Built 2026-08-21 (`360c581`), resolution only.** Its two jobs separated under what Phase 2
 actually built. Allocation is obsolete (see the determinism decision above). Resolution and
 deferred destruction need a backend that owns native objects, and none exists: `RecordingBackend`
 only prints handles and the GL path never sees one. A table with no consumer would be untested
@@ -241,13 +243,14 @@ Phase 3 makes the OpenGL renderer consume `RenderFrame`. Five things from this p
 
 - **The compiler has a caller but no consumer.** `release()` compiles when switched on; nothing
   reads the result. Phase 3's first job is `graphics.renderPath = legacy | frame` and a
-  `GLBackend` that executes a frame.
+  `GLBackend` that executes a frame. **Discharged 2026-08-21 (`360c581`).**
 - **Move compilation off the pool lock.** Phase 2 compiles inside it deliberately; running both
-  paths live makes that the wrong trade.
+  paths live makes that the wrong trade. **Discharged 2026-08-21 (`360c581`).**
 - **Presentation ownership is still unresolved** between `CocoaWindow::swapBuffers` and
   `IRenderBackend::render`. Phase 1 raised it; Phase 2 did not settle it.
 - **The `u_Time` pin must survive into every backend.** Without it a GL-versus-Metal comparison
   captures two different animation phases and has nothing to compare.
 - **`RecordingBackend` is the triage instrument.** When two backends disagree visually, record the
   frame both consumed: matching recordings put the bug below the boundary, differing ones put it
-  in the compiler.
+  in the compiler. **Still true, and not yet needed:** Phase 3's four defects were all found by
+  comparing captured pixels between the paths, and three of the four were in the compiler.
