@@ -340,6 +340,25 @@ CI spuriously with no change to the client**. An independent four-run measuremen
 day put the cross-mode difference at 946 px (0.1440%), so the size of the excursion varies between
 sessions as well; both measurements land above the 0.001 limit against the reference.
 
+What it is NOT, established 2026-08-20 so the next attempt does not start here:
+
+- **Not a duplicated burst.** `ParticleEmitter::update` computes
+  `nextBurst = floor((elapsed - delay) * burstRate) + 1` and emits only bursts in
+  `[m_currentBurst, nextBurst)`. With `burst-rate: 1` that stays at 1 until a full second has
+  passed, and the emitter's `duration: 0.02` finishes it long before - so exactly one particle
+  is emitted, at any frame rate. A doubled particle was the attractive theory, because a second
+  identical opaque particle is invisible under NORMAL and MULTIPLY but glaring under
+  `(1-src, 1-src)`, which matches the symptom exactly. It is not what happens.
+- **Not a random size.** `ParticleEmitter::update` scales each particle by
+  `random_range(pRandomSizeMultiplier.x, pRandomSizeMultiplier.y)`, and `random_range` swaps its
+  arguments when min > max - so a default of `(1, 0)` would have produced a uniformly random
+  multiplier in [0,1]. The default is `PointF pRandomSizeMultiplier{ 1 }`, and `TPoint`'s
+  single-argument constructor sets both components, giving `(1, 1)`. The draw is deterministic
+  in size.
+- The particle definitions are otherwise fixed in position, velocity, duration and colour
+  (`renderer-baseline-particles.otps`), so the remaining candidates are in how the frame is
+  composed or when the shutter falls, not in what the emitter produces.
+
 Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
 preference order: find and remove the source of the bimodality in the emitter (it is a
 single-burst emitter, so a genuinely fixed frame should be reachable); or give the scene a
