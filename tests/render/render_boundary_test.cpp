@@ -12,11 +12,14 @@
 #include <framework/graphics/render/atlasprogram.h>
 #include <framework/graphics/render/frameassembler.h>
 #include <framework/graphics/render/linetriangulation.h>
+#include <framework/graphics/render/materialregistry.h>
+#include <framework/graphics/render/metal/metalmodulematerials.h>
 #include <framework/graphics/render/poolcompiler.h>
 #include <framework/graphics/render/recordingbackend.h>
 #include <framework/graphics/texture.h>
 
 #include <set>
+#include <string>
 
 // Must be at global scope: drawpool.h befriends ::DrawPoolTestAccess. Everything here is a
 // thin forward to DrawPool's producer API, so the tests exercise the real recording path
@@ -1145,7 +1148,128 @@ namespace {
         return RecordingBackend::record(frame);
     }
 
-    TEST(RenderGoldenFrame, RepresentativeFrameMatchesTheBaseline)
+    // ---------------------------------------------------------------------------------------
+// Phase 6: module materials
+//
+// None of these constructs a PainterShaderProgram, and none can. In a test process
+// X11Window inherits PlatformWindow::hasGLContext() == true while every GLEW entry point is
+// a null pointer, so ShaderProgram's constructor jumps to address 0 - recorded in the Phase 4
+// handoff and again in Phase 5 for TextureAtlas. What is testable without one is everything
+// the boundary itself carries: the registry that publishes what a handle names, the
+// parameter block the assembler supplies, and the shape of the generated MSL table.
+// ---------------------------------------------------------------------------------------
+
+TEST(RenderBoundary, MaterialRegistryPublishesWhatAHandleNames)
+{
+    auto& registry = MaterialRegistry::instance();
+    registry.clear();
+
+    const auto handle = materialHandleOf(BuiltinMaterial::FirstModule);
+    registry.registerMaterial(handle, MaterialDesc{ "Map - Fog", "fog" });
+
+    const auto* desc = registry.resolve(handle);
+    ASSERT_NE(desc, nullptr);
+    EXPECT_EQ(desc->name, "Map - Fog");
+    EXPECT_EQ(desc->sourceKey, "fog");
+
+    // A handle nothing registered resolves to nothing, which is how a backend knows to fall
+    // back to the default built-in rather than to guess.
+    EXPECT_EQ(registry.resolve(MaterialHandle{ 9999 }), nullptr);
+
+    // The default handle is not a material and must never occupy a slot.
+    registry.registerMaterial(MaterialHandle{}, MaterialDesc{ "nope", "nope" });
+    EXPECT_EQ(registry.resolve(MaterialHandle{}), nullptr);
+
+    registry.clear();
+    EXPECT_EQ(registry.resolve(handle), nullptr);
+}
+
+TEST(RenderBoundary, EveryMaterialPacketIsGivenParameters)
+{
+    // Until Phase 6 only the map-composition packet carried a MaterialParams block, which was
+    // invisible on OpenGL because Painter uploads u_Time and u_Resolution itself on every
+    // single draw. A backend with no Painter under it has no such side channel, so an outfit
+    // shader reading u_Time would have rendered at time zero for the life of the process.
+    PoolProgram program;
+    program.type = DrawPoolType::FOREGROUND;
+
+    auto& pass = program.passes.emplace_back();
+    pass.target = RenderHandles::poolTarget(DrawPoolType::FOREGROUND);
+    pass.viewport = Rect(0, 0, Size{ 320, 240 });
+    pass.load = LoadAction::Clear;
+
+    auto& shaded = pass.packets.emplace_back();
+    shaded.material = materialHandleOf(BuiltinMaterial::FirstModule);
+    auto& plain = pass.packets.emplace_back();
+    plain.material = MaterialHandle{};
+
+    program.bindArena();
+
+    FrameAssembler assembler;
+    FrameAssembler::Programs programs{};
+    programs[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &program;
+
+    RenderFrame frame;
+    assembler.assemble(programs, VIEWPORT, 2.f, frame);
+
+    ASSERT_EQ(frame.passes.size(), 1u);
+    ASSERT_EQ(frame.passes[0].packets.size(), 2u);
+
+    const auto& shadedOut = frame.passes[0].packets[0];
+    ASSERT_NE(shadedOut.params, nullptr);
+    EXPECT_FLOAT_EQ(shadedOut.params->time, 2.f);
+    // The resolution a material reads is the size of the TARGET being drawn into, which is
+    // what Painter reports on the GL side because FrameBuffer::bind sets it to exactly that.
+    EXPECT_FLOAT_EQ(shadedOut.params->resolution.x, 320.f);
+    EXPECT_FLOAT_EQ(shadedOut.params->resolution.y, 240.f);
+
+    // A packet with no material reads no parameters, so it is given none.
+    EXPECT_EQ(frame.passes[0].packets[1].params, nullptr);
+
+    // Both shaded packets in one pass share one block rather than each getting a copy.
+    auto& second = frame.passes[0].packets[1];
+    EXPECT_EQ(second.params, nullptr);
+}
+
+TEST(RenderBoundary, TranslatedModuleMaterialsAreWellFormed)
+{
+    // The generated header is plain C++ - string views, no Metal types - so this runs on every
+    // toolchain rather than only where the backend that consumes it is built. It is the closed
+    // set the Phase 6 toolchain enforces, and the thing most likely to rot is the agreement
+    // between a table entry and the MSL it points at.
+    EXPECT_FALSE(METAL_MODULE_MATERIALS.empty());
+
+    std::set<std::string_view> keys;
+    for (const auto& material : METAL_MODULE_MATERIALS) {
+        EXPECT_FALSE(material.key.empty());
+        EXPECT_TRUE(keys.insert(material.key).second) << "duplicate key " << material.key;
+
+        // A material resolves by .frag basename, and both entry points are derived from it, so
+        // a mismatch here means a table that names functions its own source does not define.
+        EXPECT_EQ(material.vertexEntry, std::string{ "crystalotc_vert_" } + std::string{ material.key });
+        EXPECT_EQ(material.fragmentEntry, std::string{ "crystalotc_frag_" } + std::string{ material.key });
+        EXPECT_NE(material.source.find(material.vertexEntry), std::string_view::npos);
+        EXPECT_NE(material.source.find(material.fragmentEntry), std::string_view::npos);
+
+        // The pinned bindings are the contract with MetalABI; --msl-decoration-binding turns
+        // the generator's GLSL binding numbers straight into these.
+        EXPECT_NE(material.source.find("[[buffer(2)]]"), std::string_view::npos)
+            << material.key << " has no vertex parameter block";
+    }
+}
+
+TEST(RenderBoundary, ModuleMaterialSourcesDeclareNoLegacyGlsl)
+{
+    // The shipped .frag sources are GLSL 1.10-era and SPIR-V accepts none of it. If any of
+    // these spellings survived into the MSL the translation silently did nothing.
+    for (const auto& material : METAL_MODULE_MATERIALS) {
+        EXPECT_EQ(material.source.find("gl_FragColor"), std::string_view::npos) << material.key;
+        EXPECT_EQ(material.source.find("texture2D("), std::string_view::npos) << material.key;
+        EXPECT_EQ(material.source.find("varying"), std::string_view::npos) << material.key;
+    }
+}
+
+TEST(RenderGoldenFrame, RepresentativeFrameMatchesTheBaseline)
     {
         Pool pool;
         PoolProgram program;
