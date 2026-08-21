@@ -811,13 +811,13 @@ Success criterion: the current Vulkan renderer runs in a native macOS window wit
 
 ## Phase 5: Render targets and full composition
 
-- Implement map and intermediate render targets.
-- Implement map scaling/cropping and framebuffer-derived textures.
-- Implement the light pass.
-- Complete composition and blend modes.
+- ~~Implement map and intermediate render targets.~~ **Done early, in Phase 4 (`2bcd90a`):** the backend creates, resizes and load-actions every target from what its pass states, retained and transient alike.
+- ~~Implement map scaling/cropping and framebuffer-derived textures.~~ **Done early, in Phase 4:** all seven temporary-framebuffer sites including nesting and both flips. `FrameBuffer::extractTexture` remains the one case no non-GL backend can serve, since it has no source pixels.
+- ~~Implement the light pass.~~ **Done 2026-08-21 (Phase 5):** it was already running; what this phase added is coverage — a unit regression that the CPU light bitmap compiles to a `TextureUpdate` plus one multiply-blended quad, and `tools/compare_online_backends.sh`, which measures `lighting-overlap` across the two backends against its own noise floor.
+- ~~Complete composition and blend modes.~~ **Done: all six blend descriptors shipped in Phase 4 (`metalpipelines.mm`), and the last piece of composition nothing could describe — CPU atlas layer maintenance — became explicit passes in Phase 5 (`83e81ac`).**
 - ~~Implement screenshots/readback.~~ **Done early, in Phase 4 (`2bcd90a`):** `MetalBackend::readPixels` blits into a shared buffer and returns a top-left `ReadbackResult`. It had to come early — it is the instrument every Phase 4 measurement was taken with.
 
-Success criterion: Metal output matches the established OpenGL reference scenes apart from documented tolerances.
+~~Success criterion: Metal output matches the established OpenGL reference scenes apart from documented tolerances.~~ **Met 2026-08-21**, against the *live* OpenGL backend rather than a frozen macOS reference set, which was found not to be needed: both sides consume an identical `RenderFrame`. Offline, six of nine comparable scenes at 0 differing pixels; online, every scene agreeing within its own noise, with `map-core` at 0 px of 656,880.
 
 ## Phase 6: Shader and material migration
 

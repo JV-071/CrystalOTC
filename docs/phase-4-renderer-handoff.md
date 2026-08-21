@@ -100,6 +100,12 @@ literally the outline and nothing else, on an otherwise black diff image.
 captures match at **0 differing pixels**, including the one at 840,000 pixels rather than 656,880
 and the one at HUD scale 2 — which between them are the only thing that exercises render-target
 recreation and `FrameAssembler::invalidateRetainedTargets`.
+**Qualified 2026-08-21 (Phase 5):** three of the four are stable and that result stands. The fourth,
+`windowing-2-grown`, is **bimodal on both backends** — OpenGL differs from itself by 12,505 px on it
+and Metal from itself by 157,428 px — so measuring it once per side, as this did, has a good chance
+of catching both sides in the same mode and reading 0. Same-mode captures do still compare at 0 px
+across the two backends, so the conclusion was right; the evidence was thinner than it looked. See
+`known-deviations.md`.
 
 The four **online** scenes are outside it too — they need the fixture server — and they were run by
 hand against the pinned `crystalserver` `f47f6e41`. They are the only coverage of the MAP pool, the

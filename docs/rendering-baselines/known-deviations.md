@@ -499,6 +499,137 @@ swap-control extension and is display-locked at ~121 fps, while `CAMetalLayer.di
 genuinely comes off and the same scene measures 320-400 fps median on Metal. One of those numbers
 is a ceiling and the other is a cost.
 
+## The CPU atlas under Metal, and the smooth-padding clamp
+
+Added 2026-08-21 (Phase 5). Phase 4 switched the CPU texture atlases **off** under Metal for two
+reasons, and recorded that `atlas-resources` matching cross-backend at 0 px therefore said nothing
+about Metal's clamp behaviour, because it was comparing atlas-backed geometry on the OpenGL side
+against standalone textures on the Metal side. Both reasons are gone:
+
+- A region was keyed on its occupant's **OpenGL name**, which is zero for every texture a non-GL
+  backend creates, so the whole client would have collided on one key. Regions are keyed on
+  `Texture::getUniqueId()` now.
+- `TextureAtlas::flush` was unguarded OpenGL from top to bottom. `compileMaintenance` is the
+  described form of the same work and the frame path runs that; `flush()` survives for the legacy
+  path only.
+
+A layer also had to stop being sampled through its framebuffer texture's unique id. That works on
+OpenGL only because an FBO's colour attachment *is* an ordinary GL texture; a layer is a render
+target, and it is named by a target handle now.
+
+**The comparison is therefore meaningful for the first time, and it passes.** `atlas-resources`
+exercises atlas growth and `SMOOTH_PADDING` through the production foreground atlas. Both backends
+report identical atlas state - `fg=size=2048x2048 cached=41`, nearest group one layer, **linear
+group grown to three layers**, one inactive size bucket after the release-and-reload - and the
+captures compare at **0 differing pixels** (max channel delta 1, inside the comparator's tolerance
+of 2), repeatably across the two sweeps that measured it.
+
+Read that against *`atlas-resources` has a small bounded variance in CI* above: this scene is known
+to vary by up to 158 px from APNG-frame timing in the llvmpipe job. The cross-backend figure here
+is not immune to that by construction - it is 0 because both captures landed on the same frame -
+so a future non-zero should be checked against that region before being read as a clamp difference.
+
+The padding draw deliberately samples outside the source texture, with a source rect of
+`{-pad, -pad, w+2p, h+2p}`, and relies on clamp-to-edge to smear the border outwards. It survives
+the translation because `GL_CLAMP_TO_EDGE` and `MTLSamplerAddressModeClampToEdge` are each the
+**non-repeat default** on their backend, and the sampler follows the source texture's own
+`hasRepeat()` on both. A texture with repeat set would wrap on both backends alike, so that is not
+a Metal-specific hazard either. The risk register's fallback - upload CPU-padded textures instead -
+is not needed.
+
+One thing this does **not** cover: the `MTLTextureType2DArray` sprite array the architecture note
+sketches for Metal. That is a different structure, it remains unbuilt, and nothing needs it.
+
+## Online scenes, Metal versus OpenGL
+
+Added 2026-08-21 (Phase 5), driven by `tools/compare_online_backends.sh`. The four online scenes
+are the only coverage of the MAP pool, the light overlay, the map-composition material and the map
+readback, and they were run by hand in Phases 3 and 4 - which is how both phases found a defect
+after their handoff had been drafted. Three of them have a harness now: `map-core`,
+`map-screenshot` and `lighting-overlap`. The fourth, `shader-matrix-map`, stays outside it because
+it is not comparable at all until Phase 6 - every one of its fourteen cells is a map shader - so it
+is captured by hand as a smoke test of the route rather than compared.
+
+A live server cannot be frozen, so each scene is compared against **its own noise floor** rather
+than against zero: three runs per backend, the within-backend spread reported beside the
+cross-backend one. A cross-backend difference no larger than a backend's own variance is agreement.
+
+What made this run worth doing at all is that turning the atlases on changed how the **map** is
+drawn under Metal - map sprites are atlas-backed there now, where before they were standalone -
+and no offline scene exercises the MAP pool.
+
+Measured against `crystalserver` `f47f6e41`, on an Apple M3 Pro. Two independent sweeps, three
+runs per backend per scene, kept separately rather than averaged - the spread *between* the sweeps
+is itself the most honest statement of how noisy a live server is:
+
+| Scene | sweep | within OpenGL | within Metal | across backends |
+|---|---|---:|---:|---|
+| `map-core` (656,880 px) | 1 | 0 / 1,936 px | 78 / 157 px | 63 / 172 / 1,920 px |
+| | 2 | 2,651 px | 4 / 23 px | **0** / 713 / 2,649 px |
+| `map-screenshot` (168,960 px) | 1 | 0 px | 24 px | 0 / 24 / 24 px |
+| | 2 | 0 / 24 px | 24 px | **0** / **0** / 24 px |
+| `lighting-overlap` (656,880 px) | 1 | 145 / 337 px | 13 / 191 px | 393 / 403 / 547 px |
+| | 2 | 138 / 153 px | **0** / **0** px | 182 / 44 / 29 px |
+
+Every cross-backend figure sits at or below the larger of the two floors for that scene, and five
+pairs matched exactly - including `map-core` at **0 differing pixels of 656,880** in sweep 2, which
+is the whole map scene agreeing across two graphics APIs. Note also that Metal was perfectly stable
+across all three `lighting-overlap` runs in sweep 2 while OpenGL was not; neither backend is
+consistently the quieter one.
+
+But the totals are the less informative half, because **where** the pixels are settles it:
+
+- On `lighting-overlap`, the settled runs differ only in `x[850..1005]` - the right-hand UI panel,
+  which is live battle-list and minimap content. **Zero pixels inside the map panel** (`x[177..843]`),
+  and each backend differs from *itself* in the same band by a comparable amount (206 px within
+  OpenGL, 192 px within Metal, over `x[876..1005]`). The light overlay and the map agree exactly.
+- On `map-core`, `GL3 vs Metal3` likewise has **zero** differing pixels inside the map panel. The 19
+  map-panel pixels in the run-2 pair appear identically in Metal's own run2-vs-run3 comparison, so
+  they are Metal's frame-to-frame variance rather than a systematic difference.
+
+That residual Metal-side variance is the animated floor decoration Phase 0 first recorded as a
+"62-pixel animated-decoration residual". `Thing:setAnimate(false)` stops a sprite advancing but
+leaves it on whatever phase it already held. Under OpenGL two runs happen to land on the same
+phase; under Metal they do not, because Phase 4 had to fix `AnimatedTexture::update` gating its
+frame advance on the OpenGL name. Same root cause as the 24-pixel `map-screenshot` residual.
+
+**Run 1 of each scene is an outlier and should be read as one.** It carries the largest spread in
+both `map-core` (1,936 px within OpenGL) and `lighting-overlap`, because the world state has not
+settled - creatures are still moving into position. The figures above keep it rather than dropping
+it, since a floor computed only from settled runs would understate the noise.
+
+## `windowing`'s grown capture is bimodal, on both backends
+
+Added 2026-08-21 (Phase 5). Phase 4 recorded all four `windowing` captures matching OpenGL against
+Metal at 0 differing pixels, including the grown one at 840,000 pixels. That measurement was taken
+once and it got lucky.
+
+Re-measured across two runs per backend:
+
+| Comparison | Differing pixels | Fraction |
+|---|---:|---:|
+| `windowing-1-initial`, `-3-restored`, `-4-scaled` — within OpenGL, and across backends | 0 | 0% |
+| `windowing-2-grown` — OpenGL run A vs run B | 12,505 | 1.49% |
+| `windowing-2-grown` — Metal run A vs run B | 157,428 | 18.7% |
+| `windowing-2-grown` — OpenGL vs Metal, same mode | **0** | 0% |
+| `windowing-2-grown` — OpenGL vs Metal, different modes | 12,505 / 166,582 | 1.5% / 19.8% |
+
+So the grown capture is **bimodal on both backends**, and when the two land in the same mode they
+agree exactly. It is a scene-determinism problem, not a renderer difference: nothing about it is
+specific to Metal, to the atlas, or to the render path.
+
+The 12,505 figure is not new either - it is the number Phase 4 recorded as the symptom of "a
+screenshot reads the frame that has already been drawn", which moving the capture suppression into
+scene setup was supposed to fix. It reduced how often this fires without eliminating it. The grown
+capture is the one shutter that fires immediately after a resize, so it is the one that can still
+read a frame from before the new size settled.
+
+**Do not compare `windowing-2-grown` across a single run per side.** Capture it at least twice per
+backend and compare same-mode figures, exactly as `particles-blends` requires. The other three
+captures are stable and remain the real evidence that render-target recreation and
+`FrameAssembler::invalidateRetainedTargets` work - `-4-scaled` at HUD scale 2 and `-2-grown` at a
+different resolution entirely are the only things in the whole suite that exercise them.
+
 ## CI gating
 
 Three scenes are captured and archived but deliberately **not** gated against a reference:

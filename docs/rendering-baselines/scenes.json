@@ -95,7 +95,7 @@
       "features": ["creature-preview", "outline-shader", "thing-framebuffer", "item-widget-flip-horizontal", "item-widget-flip-vertical", "effect-widget", "missile-widget", "spell-preview", "nested-fbo"],
       "command": "--renderer-baseline=temporary-framebuffers --renderer-baseline-output=temporary-framebuffers.png",
       "renderBackendTolerance": { "channelTolerance": 2, "maxDifferentFraction": 0.002 },
-      "renderBackendToleranceReason": "The same single Outline probe as outfit-masks, for the same reason: it is this scene's useFramebuffer case, and module programs are Phase 6 work. Measured at 521 differing pixels of 656,880 (0.079%), max channel delta 237, confined to the outline. All seven temporary framebuffer sites, both flips and the nesting case match exactly.",
+      "renderBackendToleranceReason": "The same single Outline probe as outfit-masks, for the same reason: it is this scene's useFramebuffer case, and module programs are Phase 6 work. Measured at 521 differing pixels of 656,880 (0.079%), max channel delta 237, confined to the outline. All seven temporary framebuffer sites, both flips and the nesting case match exactly. Restore the default when Phase 6 lands.",
       "ciGate": false,
       "ciGateReason": "Renders creature, item, effect and missile widget previews from data/things/*, which is gitignored. A CI runner has no game assets, so this scene captures empty previews there; gating it would freeze a blank image as the accepted reference. Captured and archived as an artifact only."
     },
@@ -125,7 +125,7 @@
       "features": ["outfit-shaders", "outline-framebuffer", "creature-preview-fbo", "pinned-shader-time"],
       "command": "--renderer-baseline=shader-matrix-outfits --renderer-baseline-output=shader-matrix-outfits.png",
       "renderBackendComparable": false,
-      "renderBackendComparableReason": "The same reason as shader-matrix, reached from the outfit route: all six cells carry an outfit fragment program, none of which the Metal backend can resolve until the Phase 6 toolchain translates them. Measured at 5,581 differing pixels of 656,880 (0.85%), all of them inside the six creature cells.",
+      "renderBackendComparableReason": "The same reason as shader-matrix, reached from the outfit route: all six cells carry an outfit fragment program, none of which the Metal backend can resolve until the Phase 6 toolchain translates them. Measured at 5,581 differing pixels of 656,880 (0.85%), all of them inside the six creature cells. Restore the default when Phase 6 lands.",
       "ciGate": false,
       "ciGateReason": "Renders UICreature previews from data/things/*, which is gitignored, so a CI runner draws them empty; gating it would freeze a blank image as the accepted reference. Split out of shader-matrix on 2026-08-20 precisely so the sixteen fragment cells could be gated without this dependency. Captured and archived as an artifact only.",
       "note": "Outfit - Outline is the only shader in the registry declaring useFramebuffer, so this scene is the only automated coverage of a shader applied at an offscreen blit. It shares the shader grid with shader-matrix, occupying row 0."
