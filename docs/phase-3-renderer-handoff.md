@@ -1,6 +1,6 @@
 # Phase 3 renderer handoff
 
-**Checkpoint:** `48ccd40` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
+**Checkpoint:** `1693690` on `main` (pushed to `origin`, the fork `aacruzgon/CrystalOTC`)
 
 **Date:** 2026-08-21
 
@@ -228,8 +228,10 @@ ctest --test-dir build/macos-release --output-on-failure
 
 ## Commit ledger
 
-Oldest first, regenerated from `git log --format='%h %s' --reverse afd88b5..HEAD`. `afd88b5` is
-the Phase 2 handoff this phase started from. 39 files, +1780/−111, plus this document.
+Oldest first, regenerated from `git log --format='%h %s' --reverse afd88b5..1693690` rather than
+appended to by hand. `afd88b5` is the Phase 2 handoff this phase started from. 40 files,
++2048/−111. Documentation-audit commits made after this checkpoint are not listed, following the
+same convention Phase 2's ledger used.
 
 ```text
 360c581 feat(renderer): run the OpenGL renderer on a compiled RenderFrame
@@ -237,6 +239,8 @@ the Phase 2 handoff this phase started from. 39 files, +1780/−111, plus this d
 2768b4d docs(renderer): correct what Phase 3's first half falsified
 8199692 test(renderer): measure the two render paths against each other
 48ccd40 docs(renderer): record the performance envelope Phase 0 deferred here
+c6c0acf docs(renderer): hand off Phase 3
+1693690 docs(renderer): record the one parity check the sweep cannot make
 ```
 
 ## What Phase 4 inherits

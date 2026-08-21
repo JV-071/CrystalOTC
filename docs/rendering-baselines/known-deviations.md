@@ -291,7 +291,10 @@ renderer either. The only release-available accessors are a **1 Hz integer** FPS
 also sleeps to cap itself at 60 FPS by default, so an uninstrumented FPS figure measures the
 cap rather than the renderer. A frame-time baseline needed a decision before it could be
 built, and that decision has since been taken: performance measurement is deferred to Phase
-3, where the legacy and RenderFrame paths can be compared in the same environment.
+3, where the legacy and RenderFrame paths can be compared in the same environment. **Measured
+there 2026-08-21**, and the deferral's premise held - the figure that carried information was
+whole-process CPU at a display-locked frame rate, not a frame-time average. Numbers in
+`docs/metal-implementation-plan.md`, Phase 5's exit gate.
 
 **Survey quirk 7 was inaccurate as written and has been corrected** in
 `docs/metal-parity-survey.md`. The FOREGROUND framebuffer does not stretch.
