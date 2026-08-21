@@ -190,13 +190,30 @@ std::string ShaderProgram::log() const
     return infoLog;
 }
 
-int ShaderProgram::getAttributeLocation(const char* name) const { return glGetAttribLocation(m_programId, name); }
+int ShaderProgram::getAttributeLocation(const char* name) const
+{
+    return hasGLProgram() ? glGetAttribLocation(m_programId, name) : -1;
+}
 
-void ShaderProgram::bindAttributeLocation(const int location, const char* name) const { return glBindAttribLocation(m_programId, location, name); }
+void ShaderProgram::bindAttributeLocation(const int location, const char* name) const
+{
+    if (hasGLProgram())
+        glBindAttribLocation(m_programId, location, name);
+}
 
 void ShaderProgram::bindUniformLocation(const int location, const char* name)
 {
-    assert(m_linked);
     assert(location >= 0 && location < MAX_UNIFORM_LOCATIONS);
+
+    // An inert program - one built with no GL context - has no locations to look up, and the
+    // GLEW entry point is a null pointer there rather than a function that fails politely. This
+    // became reachable in Phase 6: module shaders are now REGISTERED without a GL context so
+    // that they have a material identity, which means ShaderManager's setup*Shader calls run on
+    // programs that were never linked. Every location stays -1, which glUniform* ignores by
+    // specification, so a stray upload on such a program is a no-op rather than a corruption.
+    if (!hasGLProgram())
+        return;
+
+    assert(m_linked);
     m_uniformLocations[location] = glGetUniformLocation(m_programId, name);
 }

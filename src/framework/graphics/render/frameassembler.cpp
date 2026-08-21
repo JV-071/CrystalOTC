@@ -76,11 +76,6 @@ void FrameAssembler::assemble(const Programs& programs, const AtlasPrograms& atl
 
     m_arena.clear();
     m_params.clear();
-    // Packets hold RAW POINTERS into m_params, so a reallocation mid-loop would leave them
-    // dangling. At most one entry is appended per program, so reserving the program count is
-    // provably sufficient - asserted below rather than merely intended.
-    m_params.reserve(programs.size());
-    const auto paramsCapacity = m_params.capacity();
 
     // Uploads are applied before any pass, so a texture a pass samples already holds this
     // frame's pixels. LightView is the only producer today.
@@ -142,6 +137,12 @@ void FrameAssembler::assemble(const Programs& programs, const AtlasPrograms& atl
 
         auto& params = m_params.emplace_back(program->compositionParams);
         params.time = frameTime;
+        // MapView declares a resolution of its own, from the map's rect dimension. GL does not
+        // use it: Painter uploads u_Resolution from its own resolution on every draw, and at
+        // composition time the pool's framebuffer has been released, so that is the viewport.
+        // Matching GL is the point, so the viewport wins.
+        params.resolution = { static_cast<float>(drawableSize.width()),
+                              static_cast<float>(drawableSize.height()) };
 
         auto& pass = backbufferPass(out, drawableSize, m_arena);
         auto& packet = pass.packets.emplace_back();
@@ -157,8 +158,42 @@ void FrameAssembler::assemble(const Programs& programs, const AtlasPrograms& atl
         packet.alphaWrite = program->compositionAlphaWrite;
     }
 
+    supplyMaterialParams(out, frameTime);
+
     // Passes hold a pointer to the ARENA OBJECT, not to its storage, so growth during the loop
     // is harmless - positions() is resolved when a backend reads it. The pool passes carry
     // their own program's arena pointer, set by PoolProgram::bindArena.
-    assert(m_params.capacity() == paramsCapacity && "MaterialParams reallocated; packet pointers dangle");
+}
+
+void FrameAssembler::supplyMaterialParams(RenderFrame& out, const float frameTime)
+{
+    // Every packet that names a material needs a parameter block, and until now only the
+    // composition packet got one - which was invisible on OpenGL, because Painter uploads
+    // u_Time and u_Resolution itself from inside drawArrays on every single draw. A backend
+    // that does not share Painter has no such side channel, so an outfit shader reading u_Time
+    // would have rendered at time zero forever.
+    //
+    // Both values are properties of the frame and the pass rather than of the material, which
+    // is why the assembler supplies them and the compiler cannot: `time` is frame-global and
+    // must honour the process-wide pin, and `resolution` is the size of the target being drawn
+    // into - which is exactly what Painter reports, because FrameBuffer::bind sets the painter
+    // resolution to the target's size and the backend does the same per pass.
+    for (auto& pass : out.passes) {
+        const MaterialParams* passParams = nullptr;
+
+        for (auto& packet : pass.packets) {
+            if (packet.material.isDefault() || packet.params)
+                continue;
+
+            if (!passParams) {
+                auto& params = m_params.emplace_back();
+                params.time = frameTime;
+                params.resolution = { static_cast<float>(pass.viewport.width()),
+                                      static_cast<float>(pass.viewport.height()) };
+                passParams = &params;
+            }
+
+            packet.params = passParams;
+        }
+    }
 }

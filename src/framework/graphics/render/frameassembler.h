@@ -25,6 +25,8 @@
 #include "atlasprogram.h"
 #include "poolprogram.h"
 
+#include <deque>
+
 #include <array>
 
 /*
@@ -77,6 +79,11 @@ public:
     void invalidateRetainedTargets();
 
 private:
+    // Fills in the two fields no compiler can know: the frame-global shader time, and the
+    // resolution of the target each pass draws into. Runs after the passes are assembled,
+    // because until then there is no pass to take a resolution from.
+    void supplyMaterialParams(RenderFrame& out, float frameTime);
+
     // What each pool's retained target currently holds. A pool whose program compiles to the
     // same content is re-composited without re-rendering, which is the compiled equivalent of
     // the GL path skipping drawObjects when a framebuffer pool has nothing new to publish.
@@ -87,6 +94,9 @@ private:
     // the last assemble() stay valid until the next one.
     VertexArena m_arena;
 
-    // Materials on composition packets need somewhere stable to point their parameters.
-    std::vector<MaterialParams> m_params;
+    // Somewhere stable for a packet's MaterialParams pointer to aim at. A deque rather than a
+    // vector because entries are appended while packets already point into it - one per
+    // composition draw and one per pass - and a deque never invalidates a reference on growth,
+    // where a vector would need the count reasoned about in advance and asserted afterwards.
+    std::deque<MaterialParams> m_params;
 };

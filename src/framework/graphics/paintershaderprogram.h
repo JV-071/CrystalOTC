@@ -82,6 +82,20 @@ public:
     void addMultiTexture(const std::string& file);
     void bindMultiTextures() const;
 
+    // The extra textures u_Tex1..3 sample. GL binds them from inside Painter::drawArrays, which
+    // is why the compiled GL path gets them without the frame model carrying them; a backend
+    // that does not share Painter has to be told, so the compiler copies these handles into the
+    // packet. Written once at module load, on the main thread, immediately after the program is
+    // registered - a producer thread recording a draw in that window sees an empty list and the
+    // shader renders one frame without its extra texture, which is the same frame GL would have
+    // rendered before the texture finished loading.
+    const std::vector<TexturePtr>& getMultiTextures() const { return m_multiTextures; }
+
+    // The `.frag` basename this program was built from, or empty for one built from inline code
+    // or from no fragment source at all. It is what a non-OpenGL backend resolves a material by:
+    // the registered NAME is not the unit of translation, because several names share one file.
+    const std::string& getSourceKey() const { return m_sourceKey; }
+
     void setUseFramebuffer(const bool v) {
         m_useFramebuffer = v;
     }
@@ -99,6 +113,8 @@ private:
     uint8_t m_id{ 0 };
 
     bool m_useFramebuffer{ false };
+
+    std::string m_sourceKey;
 
     float m_startTime{ 0 };
     float m_opacity{ 1.f };

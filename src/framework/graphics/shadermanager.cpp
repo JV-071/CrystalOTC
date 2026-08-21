@@ -25,6 +25,7 @@
 #include "paintershaderprogram.h"
 #include "framework/core/eventdispatcher.h"
 #include "framework/core/resourcemanager.h"
+#include "render/materialregistry.h"
 #include "shader/shadersources.h"
 #include <framework/platform/platformwindow.h>
 
@@ -40,6 +41,17 @@ namespace
     source.append(second.data(), second.size());
     return source;
 }
+
+// The `.frag` basename, which is the unit the Metal translation works in: several registered
+// names share one file, so the file is what a material resolves to and the name is only a label.
+[[nodiscard]] std::string sourceKeyOf(const std::string& path)
+{
+    const auto slash = path.find_last_of("/\\");
+    auto name = slash == std::string::npos ? path : path.substr(slash + 1);
+    if (const auto dot = name.find_last_of('.'); dot != std::string::npos)
+        name.erase(dot);
+    return name;
+}
 }
 
 void ShaderManager::init() { PainterShaderProgram::release(); }
@@ -48,74 +60,78 @@ void ShaderManager::terminate() { clear(); }
 void ShaderManager::clear() {
     m_shaders.clear();
     m_shadersVector.clear();
+    MaterialRegistry::instance().clear();
 }
 
 void ShaderManager::putShader(std::string name, const PainterShaderProgramPtr& shader) {
-    if (m_shaders.try_emplace(std::move(name), shader).second) {
-        m_shadersVector.emplace_back(shader);
-        shader->m_id = m_shadersVector.size();
-    }
+    if (!m_shaders.try_emplace(name, shader).second)
+        return;
+
+    m_shadersVector.emplace_back(shader);
+    shader->m_id = m_shadersVector.size();
+
+    // Publish what this handle names, in a form a backend that is not OpenGL can read. The
+    // handle arithmetic is PoolCompiler::materialOf's, stated once here so the two cannot drift.
+    MaterialRegistry::instance().registerMaterial(
+        MaterialHandle{ static_cast<uint16_t>(
+            static_cast<uint16_t>(BuiltinMaterial::FirstModule) + shader->m_id) },
+        MaterialDesc{ std::move(name), shader->getSourceKey() });
 }
 
-// No GL context means no GLSL to compile: the Vulkan feeder ignores painter shader programs, and
-// the Metal backend has its own. Skipping creation here silences dozens of red "failed to compile
-// shader" lines at startup.
+// GLSL is compiled only where there is an OpenGL context to compile it for: the Vulkan feeder
+// ignores painter shader programs and the Metal backend has its own translated set, and
+// attempting it produces dozens of red "failed to compile shader" lines at startup.
 //
-// The consequence is worth stating rather than discovering. A module program that is never
-// registered has no id, so PoolCompiler maps every draw that wanted one to the default material
-// and a backend is never asked for it - which is why every difference the Metal-versus-OpenGL
-// sweep reports is a module shader, and why the two shader-matrix scenes are marked as not
-// comparable across backends rather than given a tolerance. Phase 6, which brings the .frag to
-// MSL toolchain, is what changes this.
-static bool skipGlShaders()
+// REGISTRATION IS NOT SKIPPED WITH IT, and that separation is the substance of Phase 6.
+// Registration is what assigns the program its id, and the id is what PoolCompiler turns into a
+// MaterialHandle - so skipping it meant every module draw on a non-GL backend compiled to the
+// default material and rendered unshaded. Splitting the two also removes a determinism hazard
+// that was there all along: putShader used to run only after a successful link, so one driver
+// rejecting one .frag renumbered every shader registered after it, and two machines could
+// disagree about which material a handle named.
+static bool canCompileGlShaders()
 {
     if (g_window.hasGLContext())
-        return false;
+        return true;
 
     static bool logged = false;
     if (!logged) {
         logged = true;
-        g_logger.info("no GL context: GLSL painter shaders are not compiled");
+        g_logger.info("no GL context: GLSL painter shaders are registered but not compiled");
     }
-    return true;
+    return false;
 }
 
 void ShaderManager::createShader(const std::string_view name, bool useFramebuffer)
 {
-    if (skipGlShaders())
-        return;
-
-    g_mainDispatcher.addEvent([this, name = name.data(), useFramebuffer] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }, useFramebuffer] {
         const auto& shader = std::make_shared<PainterShaderProgram>();
         shader->setUseFramebuffer(useFramebuffer);
         putShader(name, shader);
-        return shader;
     });
 }
 
 void ShaderManager::createFragmentShader(const std::string_view name, const std::string_view file, bool useFramebuffer)
 {
-    if (skipGlShaders())
-        return;
-
-    const auto& filePath = g_resources.resolvePath(file.data());
-    g_mainDispatcher.addEvent([this, name = name.data(), filePath, useFramebuffer] {
+    const auto& filePath = g_resources.resolvePath(std::string{ file });
+    g_mainDispatcher.addEvent([this, name = std::string{ name }, filePath, useFramebuffer] {
         const auto& shader = std::make_shared<PainterShaderProgram>();
         shader->setUseFramebuffer(useFramebuffer);
-        if (!shader)
-            return;
+        shader->m_sourceKey = sourceKeyOf(filePath);
 
-        const auto& path = g_resources.guessFilePath(filePath, "frag");
+        if (canCompileGlShaders()) {
+            const auto& path = g_resources.guessFilePath(filePath, "frag");
 
-        shader->addShaderFromSourceCode(ShaderType::VERTEX, joinManagerShaderSources(glslMainWithTexCoordsVertexShader, glslPositionOnlyVertexShader));
-        if (!shader->addShaderFromSourceFile(ShaderType::FRAGMENT, path)) {
-            g_logger.error("unable to load fragment shader '{}' from source file '{}'", name, path);
-            return;
-        }
+            shader->addShaderFromSourceCode(ShaderType::VERTEX, joinManagerShaderSources(glslMainWithTexCoordsVertexShader, glslPositionOnlyVertexShader));
+            if (!shader->addShaderFromSourceFile(ShaderType::FRAGMENT, path)) {
+                g_logger.error("unable to load fragment shader '{}' from source file '{}'", name, path);
+                return;
+            }
 
-        if (!shader->link()) {
-            g_logger.error("unable to link shader '{}' from file '{}'", name, path);
-            return;
+            if (!shader->link()) {
+                g_logger.error("unable to link shader '{}' from file '{}'", name, path);
+                return;
+            }
         }
 
         putShader(name, shader);
@@ -124,24 +140,24 @@ void ShaderManager::createFragmentShader(const std::string_view name, const std:
 
 void ShaderManager::createFragmentShaderFromCode(const std::string_view name, const std::string_view code, bool useFramebuffer)
 {
-    if (skipGlShaders())
-        return;
-
-    g_mainDispatcher.addEvent([this, name = name.data(), code = code.data(), useFramebuffer] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }, code = std::string{ code }, useFramebuffer] {
         const auto& shader = std::make_shared<PainterShaderProgram>();
         shader->setUseFramebuffer(useFramebuffer);
-        if (!shader)
-            return;
+        // Deliberately no source key: nothing was translated for a program that has no file, so
+        // a backend with no GLSL compiler draws it with the default built-in and says so once.
+        // This is the documented policy for runtime-supplied GLSL.
 
-        shader->addShaderFromSourceCode(ShaderType::VERTEX, joinManagerShaderSources(glslMainWithTexCoordsVertexShader, glslPositionOnlyVertexShader));
-        if (!shader->addShaderFromSourceCode(ShaderType::FRAGMENT, code)) {
-            g_logger.error("unable to load fragment shader '{}'", name);
-            return;
-        }
+        if (canCompileGlShaders()) {
+            shader->addShaderFromSourceCode(ShaderType::VERTEX, joinManagerShaderSources(glslMainWithTexCoordsVertexShader, glslPositionOnlyVertexShader));
+            if (!shader->addShaderFromSourceCode(ShaderType::FRAGMENT, code)) {
+                g_logger.error("unable to load fragment shader '{}'", name);
+                return;
+            }
 
-        if (!shader->link()) {
-            g_logger.error("unable to link shader '{}'", name);
-            return;
+            if (!shader->link()) {
+                g_logger.error("unable to link shader '{}'", name);
+                return;
+            }
         }
 
         putShader(name, shader);
@@ -150,7 +166,7 @@ void ShaderManager::createFragmentShaderFromCode(const std::string_view name, co
 
 void ShaderManager::setupItemShader(const std::string_view name)
 {
-    g_mainDispatcher.addEvent([&, name = name.data()] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->bindUniformLocation(ITEM_ID_UNIFORM, "u_ItemId");
@@ -159,7 +175,7 @@ void ShaderManager::setupItemShader(const std::string_view name)
 
 void ShaderManager::setupOutfitShader(const std::string_view name)
 {
-    g_mainDispatcher.addEvent([&, name = name.data()] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->bindUniformLocation(OUTFIT_ID_UNIFORM, "u_OutfitId");
@@ -168,7 +184,7 @@ void ShaderManager::setupOutfitShader(const std::string_view name)
 
 void ShaderManager::setupMountShader(const std::string_view name)
 {
-    g_mainDispatcher.addEvent([&, name = name.data()] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->bindUniformLocation(MOUNT_ID_UNIFORM, "u_MountId");
@@ -177,7 +193,7 @@ void ShaderManager::setupMountShader(const std::string_view name)
 
 void ShaderManager::setupMapShader(const std::string_view name)
 {
-    g_mainDispatcher.addEvent([&, name = name.data()] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->bindUniformLocation(MAP_CENTER_COORD, "u_MapCenterCoord");
@@ -189,7 +205,7 @@ void ShaderManager::setupMapShader(const std::string_view name)
 
 void ShaderManager::setupTextShader(const std::string_view name)
 {
-    g_mainDispatcher.addEvent([&, name = name.data()] {
+    g_mainDispatcher.addEvent([this, name = std::string{ name }] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->bindUniformLocation(TEXT_OFFSET_UNIFORM, "u_Offset");
@@ -199,8 +215,8 @@ void ShaderManager::setupTextShader(const std::string_view name)
 
 void ShaderManager::addMultiTexture(const std::string_view name, const std::string_view file)
 {
-    const auto& filePath = g_resources.resolvePath(file.data());
-    g_mainDispatcher.addEvent([&, name = name.data(), filePath] {
+    const auto& filePath = g_resources.resolvePath(std::string{ file });
+    g_mainDispatcher.addEvent([this, name = std::string{ name }, filePath] {
         const auto& shader = getShader(name);
         if (!shader) return;
         shader->addMultiTexture(filePath);
@@ -209,7 +225,7 @@ void ShaderManager::addMultiTexture(const std::string_view name, const std::stri
 
 PainterShaderProgramPtr ShaderManager::getShader(const std::string_view name)
 {
-    const auto it = m_shaders.find(name.data());
+    const auto it = m_shaders.find(std::string{ name });
     if (it != m_shaders.end())
         return it->second;
 

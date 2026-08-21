@@ -228,6 +228,28 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
             out.residency.push_back(state.texture);
     };
 
+    // u_Tex1..3. GL binds these from inside Painter::drawArrays, off the bound program, so the
+    // compiled GL path inherits them for free and the frame model never had to carry them. A
+    // backend that does not share Painter has no such route, and Fog and Snow - the only two
+    // shaders that use them - render as an unlit game screen without them.
+    const auto emitMultiTextures = [&out](DrawPacket& packet, const PainterShaderProgram* program) {
+        if (!program)
+            return;
+
+        size_t unit = 0;
+        for (const auto& texture : program->getMultiTextures()) {
+            if (unit >= std::size(packet.extraTex))
+                break;
+            if (!texture)
+                continue;
+            packet.extraTex[unit++] = TextureHandle{ texture->getUniqueId() };
+            // These never pass through PoolState, so noteResidency above cannot see them; a
+            // backend still has to be able to upload them before the packet samples one.
+            if (out.residency.empty() || out.residency.back() != texture)
+                out.residency.push_back(texture);
+        }
+    };
+
     const auto emitGeometry = [&](OpenSegment& seg, const DrawPool::DrawObject& obj) {
         if (!obj.coords)
             return;
@@ -243,6 +265,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         packet.texture = packet.textured ? obj.state.textureHandle : TextureHandle{};
         packet.textureMatrixId = obj.state.textureMatrixId;
         packet.material = materialOf(obj.state.shaderProgram);
+        emitMultiTextures(packet, obj.state.shaderProgram);
         packet.transform = obj.state.transformMatrix;
         const auto scissor = clampScissor(obj.state.clipRect, seg.viewport);
         packet.scissor = scissor.rect;
@@ -326,6 +349,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
             // omission - the `useFramebuffer` route exists precisely so that a shader applies
             // AT the blit, so dropping the material silently un-shaded every Outline outfit.
             packet.material = materialOf(obj.state.shaderProgram);
+            emitMultiTextures(packet, obj.state.shaderProgram);
             packet.color = obj.state.color;
             packet.transform = obj.state.transformMatrix;
             noteResidency(obj.state);

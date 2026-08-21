@@ -28,9 +28,20 @@
 class ShaderManager
 {
 public:
+    // The client extension of the framework's uniform-location space. ITEM_ID_UNIFORM used to
+    // be 10 - the same slot PainterShaderProgram::TRANSFORM_MATRIX_UNIFORM binds u_TransformMatrix
+    // to, and writes on every single draw - so an item shader binding u_ItemId would have had its
+    // uniform aliased by a matrix, and a backend uploading the parameter block onto these slots
+    // would have corrupted the transform. It was latent rather than live, because nothing in
+    // modules/ or mods/ ever called setupItemShader; it is retired here anyway, because a
+    // parameter block that cannot be uploaded in full is not a parameter block.
+    //
+    // 20 is chosen over renumbering 11-19: those are already bound by shipped shaders' setup
+    // calls, and moving them would change nothing while breaking any out-of-repo module that
+    // hardcoded one. MAX_UNIFORM_LOCATIONS is 30.
     enum
     {
-        ITEM_ID_UNIFORM = 10,
+        ITEM_ID_UNIFORM = 20,
         OUTFIT_ID_UNIFORM = 11,
         MOUNT_ID_UNIFORM = 12,
         SHADER_ID_UNIFORM = 13,

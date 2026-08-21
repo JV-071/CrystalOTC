@@ -176,13 +176,20 @@ void GLBackend::drawPacket(const RenderPass& pass, const DrawPacket& packet)
     }
     g_painter->setShaderProgram(program);
 
-    // The typed parameter block, mapped onto the legacy uniform slots. Only the map group is
-    // uploaded, and that is a decision rather than an omission: ShaderManager::ITEM_ID_UNIFORM
-    // is slot 10, which PainterShaderProgram already binds to u_TransformMatrix, so writing a
-    // float there would corrupt the transform on every subsequent draw. That collision is
-    // precisely what MaterialParams retires structurally; re-creating it here to upload six
-    // fields no shipped shader reads would be absurd. Phase 6 gives the GL side a real
-    // block-to-location mapping and can then upload all of it.
+    // The typed parameter block, mapped onto the legacy uniform slots.
+    //
+    // TIME AND RESOLUTION ARE DELIBERATELY NOT UPLOADED HERE. Painter writes both on every draw
+    // from inside drawArrays - u_Time through updateTime(), which subtracts the program's own
+    // start time and so is per-program, and u_Resolution from the painter's current resolution.
+    // Uploading the frame-global values over the top would change what the GL path renders,
+    // which is the one thing this backend exists not to do. The frame's copies of those two
+    // fields are for backends that have no Painter underneath them.
+    //
+    // Everything else is uploaded in full, which it could not be before Phase 6 moved
+    // ShaderManager::ITEM_ID_UNIFORM off slot 10. That slot is where PainterShaderProgram binds
+    // u_TransformMatrix and writes it on every draw, so a float landing there corrupted the
+    // transform for every subsequent draw - the collision MaterialParams retires structurally,
+    // reintroduced by hand at the only place that still speaks the old index space.
     if (program && packet.params) {
         program->bind();
         program->setUniformValue(ShaderManager::MAP_ZOOM, packet.params->mapZoom);
@@ -192,6 +199,17 @@ void GLBackend::drawPacket(const RenderPass& pass, const DrawPacket& packet)
                                  packet.params->mapCenterCoord.x, packet.params->mapCenterCoord.y);
         program->setUniformValue(ShaderManager::MAP_GLOBAL_COORD,
                                  packet.params->mapGlobalCoord.x, packet.params->mapGlobalCoord.y);
+        // The block stores these as floats because std140 has no integer-and-float mixing that
+        // survives a naturally written GLSL block; a shader declaring `uniform float u_ItemId`
+        // reads them correctly, and no shipped shader declares them at all.
+        program->setUniformValue(ShaderManager::ITEM_ID_UNIFORM, packet.params->itemId);
+        program->setUniformValue(ShaderManager::OUTFIT_ID_UNIFORM, packet.params->outfitId);
+        program->setUniformValue(ShaderManager::MOUNT_ID_UNIFORM, packet.params->mountId);
+        program->setUniformValue(ShaderManager::SHADER_ID_UNIFORM, packet.params->shaderId);
+        program->setUniformValue(ShaderManager::TEXT_OFFSET_UNIFORM,
+                                 packet.params->textOffset.x, packet.params->textOffset.y);
+        program->setUniformValue(ShaderManager::TEXT_CENTER_UNIFORM,
+                                 packet.params->textCenter.x, packet.params->textCenter.y);
     }
 
     g_painter->setTexture(glTextureId, textureMatrixId);
