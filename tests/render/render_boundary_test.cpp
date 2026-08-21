@@ -298,6 +298,176 @@ namespace {
             EXPECT_LE(packet.vertexOffset + packet.vertexCount, compositionPass->arena->vertexCount());
     }
 
+    // Builds a program that owns a retained target, the way MAP and FOREGROUND do.
+    void makeComposited(PoolProgram& program, const size_t contentHash, const DrawPoolType type)
+    {
+        program.type = type;
+        program.contentHash = contentHash;
+        program.hasComposition = true;
+        program.compositionSource = RenderHandles::poolTarget(type);
+        program.compositionDest = Rect(0, 0, 800, 600);
+        program.compositionSrc = Rect(0, 0, 800, 600);
+
+        auto& pass = program.passes.emplace_back();
+        pass.target = program.compositionSource;
+        pass.load = LoadAction::Clear;
+        pass.viewport = Rect(0, 0, 800, 600);
+        pass.label = "pool-target";
+        pass.packets.emplace_back();
+        program.bindArena();
+    }
+
+    size_t passesTargeting(const RenderFrame& frame, const RenderTargetHandle target)
+    {
+        size_t n = 0;
+        for (const auto& pass : frame.passes)
+            n += (pass.target.id == target.id);
+        return n;
+    }
+
+    TEST(RenderBoundary, UnchangedPoolIsRecompositedWithoutBeingRedrawn)
+    {
+        PoolProgram program;
+        makeComposited(program, 0xABCD, DrawPoolType::FOREGROUND);
+
+        FrameAssembler assembler;
+        FrameAssembler::Programs programs{};
+        programs[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &program;
+
+        RenderFrame first, second;
+        assembler.assemble(programs, VIEWPORT, 0.f, first);
+        assembler.assemble(programs, VIEWPORT, 0.f, second);
+
+        const auto target = RenderHandles::poolTarget(DrawPoolType::FOREGROUND);
+
+        // First frame renders the target and composites it.
+        EXPECT_EQ(passesTargeting(first, target), 1u);
+        // Second frame must NOT re-render it - this caching is what carries the client's
+        // performance, and a clear-and-redraw-every-frame model would destroy it.
+        EXPECT_EQ(passesTargeting(second, target), 0u);
+
+        // ...but the composition still happens, or the pool would vanish from the frame.
+        size_t composites = 0;
+        for (const auto& pass : second.passes)
+            for (const auto& packet : pass.packets)
+                composites += (packet.texture.id == target.id);
+        EXPECT_EQ(composites, 1u);
+    }
+
+    TEST(RenderBoundary, ChangedContentRedrawsTheTarget)
+    {
+        PoolProgram first, second;
+        makeComposited(first, 0x1111, DrawPoolType::FOREGROUND);
+        makeComposited(second, 0x2222, DrawPoolType::FOREGROUND);
+
+        FrameAssembler assembler;
+        FrameAssembler::Programs a{}, b{};
+        a[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &first;
+        b[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &second;
+
+        RenderFrame f1, f2;
+        assembler.assemble(a, VIEWPORT, 0.f, f1);
+        assembler.assemble(b, VIEWPORT, 0.f, f2);
+
+        const auto target = RenderHandles::poolTarget(DrawPoolType::FOREGROUND);
+        EXPECT_EQ(passesTargeting(f2, target), 1u);
+    }
+
+    TEST(RenderBoundary, InvalidatingRetainedTargetsForcesARedraw)
+    {
+        PoolProgram program;
+        makeComposited(program, 0xABCD, DrawPoolType::FOREGROUND);
+
+        FrameAssembler assembler;
+        FrameAssembler::Programs programs{};
+        programs[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &program;
+
+        RenderFrame f1, f2, f3;
+        assembler.assemble(programs, VIEWPORT, 0.f, f1);
+        assembler.assemble(programs, VIEWPORT, 0.f, f2);
+        // A resize or a device loss leaves the target holding the wrong pixels while the
+        // objects that drew into it are unchanged, so the hash alone cannot notice.
+        assembler.invalidateRetainedTargets();
+        assembler.assemble(programs, VIEWPORT, 0.f, f3);
+
+        const auto target = RenderHandles::poolTarget(DrawPoolType::FOREGROUND);
+        EXPECT_EQ(passesTargeting(f2, target), 0u);
+        EXPECT_EQ(passesTargeting(f3, target), 1u);
+    }
+
+    TEST(RenderBoundary, PoolsDrawingStraightToTheBackbufferAreNeverSkipped)
+    {
+        // No retained target holds their result, so skipping them would simply not draw them.
+        Pool pool;
+        pool.rect(Rect(0, 0, 10, 10));
+
+        PoolProgram program;
+        pool.compile(program);
+        ASSERT_FALSE(program.hasComposition);
+
+        FrameAssembler assembler;
+        FrameAssembler::Programs programs{};
+        programs[static_cast<size_t>(DrawPoolType::LIGHT)] = &program;
+
+        RenderFrame f1, f2;
+        assembler.assemble(programs, VIEWPORT, 0.f, f1);
+        assembler.assemble(programs, VIEWPORT, 0.f, f2);
+
+        EXPECT_EQ(f1.packetCount(), 1u);
+        EXPECT_EQ(f2.packetCount(), 1u);
+    }
+
+    TEST(RenderBoundary, APoolThatGainsATargetRendersItBeforeCompositingIt)
+    {
+        // A pool can acquire a framebuffer at runtime (DrawPool::setFramebuffer). If the
+        // assembler had recorded a content hash for it while it was still drawing straight to
+        // the backbuffer, an unchanged hash would let the very first composition skip
+        // rendering a target that has never been drawn into - compositing a blank texture.
+        constexpr size_t SAME_CONTENT = 0x5150;
+
+        PoolProgram direct;
+        direct.type = DrawPoolType::FOREGROUND;
+        direct.contentHash = SAME_CONTENT;
+        {
+            auto& pass = direct.passes.emplace_back();
+            pass.target = RenderTargetHandle{ RenderTargetHandle::BACKBUFFER };
+            pass.load = LoadAction::Keep;
+            pass.packets.emplace_back();
+            direct.bindArena();
+        }
+
+        PoolProgram composited;
+        makeComposited(composited, SAME_CONTENT, DrawPoolType::FOREGROUND);
+
+        FrameAssembler assembler;
+        FrameAssembler::Programs a{}, b{};
+        a[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &direct;
+        b[static_cast<size_t>(DrawPoolType::FOREGROUND)] = &composited;
+
+        RenderFrame f1, f2;
+        assembler.assemble(a, VIEWPORT, 0.f, f1);   // no target yet
+        assembler.assemble(b, VIEWPORT, 0.f, f2);   // target appears, same content hash
+
+        EXPECT_EQ(passesTargeting(f2, RenderHandles::poolTarget(DrawPoolType::FOREGROUND)), 1u);
+    }
+
+    TEST(RenderBoundary, ContentHashTracksTheCompiledOutput)
+    {
+        Pool same1, same2, different;
+        same1.rect(Rect(0, 0, 10, 10), Color::red);
+        same2.rect(Rect(0, 0, 10, 10), Color::red);
+        different.rect(Rect(0, 0, 10, 10), Color::green);
+
+        PoolProgram a, b, c;
+        same1.compile(a);
+        same2.compile(b);
+        different.compile(c);
+
+        EXPECT_EQ(a.contentHash, b.contentHash);
+        EXPECT_NE(a.contentHash, c.contentHash);
+        EXPECT_NE(a.contentHash, 0u);
+    }
+
     TEST(RenderBoundary, CompositionModeMapsToTheSurveyedBlendFormula)
     {
         // ADD is NOT classic additive - it is (1-src, 1-src), and particles depend on it.

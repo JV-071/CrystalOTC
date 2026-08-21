@@ -53,6 +53,12 @@ namespace
     }
 }
 
+void FrameAssembler::invalidateRetainedTargets()
+{
+    m_targetValid.fill(false);
+    m_targetContent.fill(0);
+}
+
 bool FrameAssembler::isComplete(const Programs& programs)
 {
     for (const auto* program : programs) {
@@ -90,11 +96,27 @@ void FrameAssembler::assemble(const Programs& programs, const Size& drawableSize
         if (!program)
             continue;
 
-        // The pool's own passes: its retained target plus any nested transient targets. A
-        // pool whose content hash did not change contributes NO passes here and still
-        // composites below, which is exactly how the GL path reuses an unchanged target.
-        for (const auto& pass : program->passes)
-            out.passes.push_back(pass);
+        // A pool that draws STRAIGHT to the backbuffer is never skipped: there is no retained
+        // target holding its result, so not emitting its passes would simply not draw it. The
+        // GL path makes the same distinction - drawObjects' early return is gated on the pool
+        // having a framebuffer.
+        const auto poolIndex = static_cast<size_t>(program->type);
+        const bool canReuseTarget =
+            program->hasComposition &&
+            poolIndex < m_targetValid.size() &&
+            m_targetValid[poolIndex] &&
+            m_targetContent[poolIndex] == program->contentHash;
+
+        if (!canReuseTarget) {
+            // The pool's own passes: its retained target plus any nested transient targets.
+            for (const auto& pass : program->passes)
+                out.passes.push_back(pass);
+
+            if (program->hasComposition && poolIndex < m_targetValid.size()) {
+                m_targetContent[poolIndex] = program->contentHash;
+                m_targetValid[poolIndex] = true;
+            }
+        }
 
         if (!program->hasComposition)
             continue;

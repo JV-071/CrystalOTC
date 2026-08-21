@@ -49,6 +49,16 @@ struct PoolProgram
 
     DrawPoolType type{ DrawPoolType::LAST };
 
+    // Identity of what this program DRAWS, over the packets and geometry it compiled to.
+    // The frame assembler uses it to decide whether a retained target still holds the right
+    // picture and can simply be re-composited.
+    //
+    // This is deliberately a hash of the COMPILED OUTPUT rather than a copy of the producer's
+    // DrawHashController state. Identical output is a stronger justification for reuse than
+    // identical input, and it stays meaningful if the compiler itself changes what it emits
+    // for the same objects.
+    size_t contentHash{ 0 };
+
     VertexArena arena;
     std::vector<RenderPass> passes;
     std::vector<TextureUpdate> uploads;
@@ -76,6 +86,7 @@ struct PoolProgram
 
     void clear()
     {
+        contentHash = 0;
         arena.clear();
         passes.clear();
         uploads.clear();

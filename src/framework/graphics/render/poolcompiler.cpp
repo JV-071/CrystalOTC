@@ -48,6 +48,32 @@ namespace
         bool enabled{ false };
     };
 
+    // Folds a packet into the program's content identity. Everything that could change what
+    // the target ends up looking like has to go in - including the geometry, via the slice,
+    // since two packets can share state and draw different things.
+    void foldPacket(size_t& hash, const DrawPacket& p, const VertexArena& arena)
+    {
+        stdext::hash_combine(hash, p.vertexOffset);
+        stdext::hash_combine(hash, p.vertexCount);
+        stdext::hash_combine(hash, p.texture.id);
+        stdext::hash_combine(hash, p.textureMatrixId);
+        stdext::hash_combine(hash, p.material.id);
+        stdext::hash_combine(hash, static_cast<uint32_t>(p.blend));
+        stdext::hash_combine(hash, static_cast<uint32_t>(p.blendEnabled));
+        stdext::hash_combine(hash, static_cast<uint32_t>(p.alphaWrite));
+        stdext::hash_combine(hash, static_cast<uint32_t>(p.textured));
+        stdext::hash_combine(hash, p.opacity);
+        stdext::hash_union(hash, p.color.hash());
+        if (p.scissorEnabled)
+            stdext::hash_union(hash, p.scissor.isValid() ? p.scissor.hash() : size_t{ 1 });
+        if (p.transform != DEFAULT_MATRIX3)
+            stdext::hash_union(hash, p.transform.hash());
+
+        const float* pos = arena.positions();
+        for (uint32_t i = 0; i < p.vertexCount * 2; ++i)
+            stdext::hash_combine(hash, pos[static_cast<size_t>(p.vertexOffset) * 2 + i]);
+    }
+
     // Scissor rects arrive from the producer unclamped. GL forgave out-of-bounds ones; Metal
     // validates and kills the encoder. Clamping here means neither backend has to care.
     ClampedScissor clampScissor(const Rect& scissor, const Rect& viewport)
@@ -270,6 +296,16 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         out.compositionParams = pool.m_compositionParams;
         out.compositionOpacity = pool.m_compositionOpacity;
     }
+
+    // Content identity, computed once the passes are final.
+    size_t hash = 0;
+    for (const auto& pass : out.passes) {
+        stdext::hash_combine(hash, pass.target.id);
+        stdext::hash_combine(hash, static_cast<uint32_t>(pass.load));
+        for (const auto& packet : pass.packets)
+            foldPacket(hash, packet, out.arena);
+    }
+    out.contentHash = hash;
 
     out.bindArena();
 }

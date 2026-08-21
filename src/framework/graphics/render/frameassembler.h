@@ -57,7 +57,19 @@ public:
     // incomplete program describes less than the client asked for and must not be rendered.
     [[nodiscard]] static bool isComplete(const Programs& programs);
 
+    // Forgets what every pool last drew, so the next frame re-renders every retained target
+    // instead of trusting a stale content hash. Call after anything that can invalidate a
+    // target's contents without changing the objects that drew into it - a resize, a scale
+    // change, or a device loss.
+    void invalidateRetainedTargets();
+
 private:
+    // What each pool's retained target currently holds. A pool whose program compiles to the
+    // same content is re-composited without re-rendering, which is the compiled equivalent of
+    // the GL path skipping drawObjects when a framebuffer pool has nothing new to publish.
+    std::array<size_t, static_cast<size_t>(DrawPoolType::LAST)> m_targetContent{};
+    std::array<bool, static_cast<size_t>(DrawPoolType::LAST)> m_targetValid{};
+
     // Geometry for the composition quads. Persists across frames so the passes handed out by
     // the last assemble() stay valid until the next one.
     VertexArena m_arena;
