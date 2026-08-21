@@ -24,6 +24,7 @@
 
 #include "drawpoolmanager.h"
 #include "framework/core/eventdispatcher.h"
+#include <framework/platform/platformwindow.h>
 
 AnimatedTexture::AnimatedTexture(const Size& size, const std::vector<ImagePtr>& frames, std::vector<uint16_t> framesDelay, const uint16_t numPlays, bool buildMipmaps, bool compress)
 {
@@ -103,7 +104,12 @@ void AnimatedTexture::update()
     if (!m_animTimer.running())
         return;
 
-    if (!isEmpty()) {
+    // `isEmpty()` asks whether m_id is zero - the GL name - and what it is really asking is
+    // whether the frames have reached the GPU yet, so that the animation does not run ahead of
+    // a texture nothing can draw. Under a backend that creates no GL textures the name is zero
+    // forever, so this gate held the animation on frame 0 permanently. The question has to be
+    // asked in a way that has an answer on both paths.
+    if (!isEmpty() || !g_window.hasGLContext()) {
         if (m_animTimer.ticksElapsed() < m_framesDelay[m_currentFrame])
             return;
 
@@ -114,6 +120,11 @@ void AnimatedTexture::update()
             if (m_numPlays > 0 && ++m_currentPlay == m_numPlays)
                 m_animTimer.stop();
         }
+
+        // The frame a sampler would read has changed while the handle a packet carries has
+        // not - deliberately, since an AnimatedTexture is one Texture object. Say so, or a
+        // retained target holding the previous frame looks unchanged and is re-composited.
+        bumpContentRevision();
     }
 
     m_id = getCurrentFrame()->getId();

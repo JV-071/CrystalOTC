@@ -176,7 +176,21 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     // producer already resolved it (DrawPool::getState). It is used here ONLY as hash input -
     // it does not enter a packet, and no backend sees it - so this is not a native id crossing
     // the boundary.
+    //
+    // It is not the WHOLE signal, though, and Phase 4 is where that became load-bearing. A
+    // backend that creates no GL textures leaves every native id at zero, so under one of those
+    // this term is constant and the animation freezes again - the same defect, reached from the
+    // other side. `Texture::getContentRevision()` is the backend-independent form of the same
+    // question, and it additionally covers pixels overwritten in place, which no native id ever
+    // did. Both are folded: the id because it is free and already resolved, the revision because
+    // it is the one that is always true.
     size_t nativeTextureHash = 0;
+
+    const auto foldTextureIdentity = [&nativeTextureHash](const DrawPool::PoolState& state) {
+        stdext::hash_combine(nativeTextureHash, state.textureId);
+        if (state.texture)
+            stdext::hash_combine(nativeTextureHash, state.texture->getContentRevision());
+    };
 
     // Set by a BlendOff action and cleared by BlendOn - the exact scope the GL bracket has.
     bool blendDisabled = false;
@@ -235,7 +249,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         packet.alphaWrite = seg.alphaWrite;
 
         noteResidency(obj.state);
-        stdext::hash_combine(nativeTextureHash, obj.state.textureId);
+        foldTextureIdentity(obj.state);
     };
 
     for (const auto& obj : pool.m_objectsDraw[0]) {

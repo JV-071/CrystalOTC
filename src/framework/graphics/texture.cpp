@@ -175,7 +175,10 @@ void Texture::create()
     // exclusively for textures that never made it into GL (m_id == 0) and thus were never
     // drawn. Since we know the source file, we load it back at exactly the moment of the first
     // draw. Thanks to this, freeing the pixels CANNOT end up as a blank graphic.
-    if (!m_image && m_id == 0 && !m_source.empty())
+    // `isUploaded()` is the non-GL equivalent of `m_id != 0`: a backend that owns its own GPU
+    // copy already has these pixels, so re-reading the file would be pure waste - and, since
+    // this runs once per frame per drawn texture, perpetual waste.
+    if (!m_image && m_id == 0 && !m_source.empty() && !isUploaded())
         m_image = Image::load(m_source);
 
     // Pure Vulkan/Metal mode: the same reasoning as the constructor a hundred lines up,
@@ -193,9 +196,15 @@ void Texture::create()
     }
 }
 
-void Texture::updateImage(const ImagePtr& image) { m_image = image; setupSize(image->getSize()); }
+void Texture::updateImage(const ImagePtr& image) { m_image = image; setupSize(image->getSize()); bumpContentRevision(); }
 
 void Texture::updatePixels(uint8_t* pixels, const int level, const int channels, const bool compress) {
+    // The pixels change while the handle does not, which is exactly what a content hash cannot
+    // otherwise see. Today only LightView takes this route and its pool owns no retained target,
+    // so nothing depends on it yet - which is the reason to record it now rather than after a
+    // streaming texture lands in the MAP target and quietly stops updating.
+    bumpContentRevision();
+
     bind();
 
     // glTexImage2D reallocates the whole texture on every call, and LightView refreshes its own

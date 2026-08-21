@@ -13,6 +13,7 @@
 #include <framework/graphics/render/linetriangulation.h>
 #include <framework/graphics/render/poolcompiler.h>
 #include <framework/graphics/render/recordingbackend.h>
+#include <framework/graphics/texture.h>
 
 // Must be at global scope: drawpool.h befriends ::DrawPoolTestAccess. Everything here is a
 // thin forward to DrawPool's producer API, so the tests exercise the real recording path
@@ -25,6 +26,12 @@ struct DrawPoolTestAccess
     {
         pool.add(color, nullptr, DrawPool::DrawMethod{
             .type = DrawPool::DrawMethodType::RECT, .dest = dest });
+    }
+
+    static void addTexturedRect(DrawPool& pool, const Rect& dest, const Rect& src, const TexturePtr& texture)
+    {
+        pool.add(Color::white, texture, DrawPool::DrawMethod{
+            .type = DrawPool::DrawMethodType::RECT, .dest = dest, .src = src });
     }
 
     static void addAction(DrawPool& pool, const std::function<void()>& action, const ActionIdiom idiom)
@@ -61,6 +68,11 @@ namespace {
         void rect(const Rect& dest, const Color& color = Color::white)
         {
             DrawPoolTestAccess::addRect(*p, dest, color);
+        }
+
+        void texturedRect(const Rect& dest, const Rect& src, const TexturePtr& texture)
+        {
+            DrawPoolTestAccess::addTexturedRect(*p, dest, src, texture);
         }
 
         void compile(PoolProgram& out)
@@ -574,6 +586,45 @@ namespace {
         EXPECT_EQ(a.contentHash, b.contentHash);
         EXPECT_NE(a.contentHash, c.contentHash);
         EXPECT_NE(a.contentHash, 0u);
+    }
+
+    TEST(RenderBoundary, ContentHashSeesPixelsThatChangedUnderAStableHandle)
+    {
+        // The one thing a hash of the compiled output cannot see by itself.
+        //
+        // An AnimatedTexture is a single Texture whose logical handle stays deliberately stable
+        // while the pixels behind it advance every tick; an in-place updatePixels does the same
+        // with no motion at all. Either way the program compiles to byte-identical output, so a
+        // retained target still holding the previous frame looks current and is re-composited
+        // instead of re-rendered - and the animation stops on screen.
+        //
+        // Phase 3 caught the OpenGL half of this by folding in the native texture id, which an
+        // AnimatedTexture re-aims as it advances. A backend that creates no GL textures leaves
+        // that id at zero for every texture in the client, so the term is constant and the defect
+        // returns. Texture::getContentRevision is the signal that exists on both.
+        const auto texture = std::make_shared<Texture>();
+        const Rect dest(0, 0, 16, 16);
+        const Rect src(0, 0, 16, 16);
+
+        Pool before, unchanged, after;
+        before.texturedRect(dest, src, texture);
+        unchanged.texturedRect(dest, src, texture);
+
+        PoolProgram a, b, c;
+        before.compile(a);
+        unchanged.compile(b);
+        EXPECT_EQ(a.contentHash, b.contentHash);
+
+        texture->bumpContentRevision();
+        after.texturedRect(dest, src, texture);
+        after.compile(c);
+
+        // Same handle, same geometry, same state - and the compiled packets really are identical,
+        // which is exactly why the hash has to be told about the pixels.
+        ASSERT_EQ(a.passes.size(), c.passes.size());
+        ASSERT_EQ(a.passes[0].packets.size(), c.passes[0].packets.size());
+        EXPECT_EQ(a.passes[0].packets[0].texture, c.passes[0].packets[0].texture);
+        EXPECT_NE(a.contentHash, c.contentHash);
     }
 
     TEST(RenderBoundary, CompositionModeMapsToTheSurveyedBlendFormula)
