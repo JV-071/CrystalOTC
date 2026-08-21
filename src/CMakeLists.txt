@@ -552,6 +552,17 @@ if(APPLE AND TOGGLE_COCOA_WINDOW)
   set(SOURCE_FILES ${SOURCE_FILES}
           framework/platform/cocoawindow.mm
   )
+
+  # The Metal backend: the second consumer of a RenderFrame, and the first to own native GPU
+  # objects. Guarded internally on CRYSTALOTC_COCOA_WINDOW as well, so the files are inert if
+  # they ever reach another configuration.
+  set(METAL_BACKEND_SOURCES
+          framework/graphics/render/metal/metalcontext.mm
+          framework/graphics/render/metal/metalresources.mm
+          framework/graphics/render/metal/metalpipelines.mm
+          framework/graphics/render/metal/metalbackend.mm
+  )
+  set(SOURCE_FILES ${SOURCE_FILES} ${METAL_BACKEND_SOURCES})
 endif()
 
 if (TOGGLE_FRAMEWORK_SOUND)
@@ -601,6 +612,27 @@ if(TOGGLE_PRE_COMPILED_HEADER)
 else()
   message(STATUS "Use precompiled header: OFF")
 endif(TOGGLE_PRE_COMPILED_HEADER)
+
+# The Metal backend is compiled with ARC, and the window it sits behind is not.
+#
+# ARC is what lets a texture cache, a pipeline cache and a per-frame retirement queue hold Metal
+# objects in ordinary C++ containers with the container's own lifetime; writing that bookkeeping by
+# hand is exactly the class of work ARC removes. cocoawindow.mm stays manually reference-counted
+# because it was written that way and rewriting it is not this phase's business.
+#
+# The two consequences are enforced rather than hoped for. A unity build buckets sources by
+# language, which would fold these files into one translation unit with the non-ARC window - and
+# ARC is a per-TU setting, so that cannot compile. The precompiled header is built from the same
+# non-ARC settings, and a PCH whose ARC state differs from the TU using it is a hard error.
+if(APPLE AND TOGGLE_COCOA_WINDOW)
+  set_source_files_properties(
+    ${METAL_BACKEND_SOURCES}
+    PROPERTIES
+      COMPILE_OPTIONS "-fobjc-arc"
+      SKIP_PRECOMPILE_HEADERS ON
+      SKIP_UNITY_BUILD_INCLUSION ON
+  )
+endif()
 
 # Exclude vendored minizip C files from PCH and unity build (Android only, C files cannot use C++ PCH)
 if(ANDROID)

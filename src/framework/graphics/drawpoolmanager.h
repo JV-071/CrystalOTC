@@ -51,6 +51,16 @@ public:
 
     [[nodiscard]] RenderPath getRenderPath() const { return m_renderPath; }
     [[nodiscard]] IRenderBackend* getBackend() const { return m_backend.get(); }
+
+    // What is ACTUALLY running, as opposed to what was asked for. Both are resolved rather than
+    // configured - a requested path falls back when no backend will initialise, and a window with
+    // no GL context has no legacy path to fall back to - so anything reporting on a run has to
+    // read them here rather than re-reading the flags. The renderer-baseline benchmark does
+    // exactly that, and reported `path=legacy` for a Metal frame until it did.
+    [[nodiscard]] std::string getRenderPathName() const
+    { return m_renderPath == RenderPath::Frame ? "frame" : "legacy"; }
+    [[nodiscard]] std::string getRenderBackendName() const
+    { return m_backend ? m_backend->name() : "none"; }
     DrawPool* get(const DrawPoolType type) const { return m_pools[static_cast<uint8_t>(type)]; }
 
     void select(DrawPoolType type);
@@ -164,7 +174,7 @@ private:
     void consumeAll();
 
     void init(uint16_t spriteSize);
-    void terminate() const;
+    void terminate();
     void drawObject(DrawPool* pool, const DrawPool::DrawObject& obj);
     void drawPool(DrawPoolType type);
     void drawObjects(DrawPool* pool);

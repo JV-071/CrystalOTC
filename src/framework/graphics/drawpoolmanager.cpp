@@ -27,10 +27,12 @@
 #include "paintershaderprogram.h"
 #include "textureatlas.h"
 #include "render/glbackend.h"
+#include "render/metal/metalbackend.h"
 #include "render/renderhandles.h"
 #include "render/resourceregistry.h"
 #include <framework/core/graphicalapplication.h>
 #include <framework/core/configmanager.h>
+#include <framework/platform/platformwindow.h>
 
 #include <cstdlib>
 
@@ -63,6 +65,54 @@ namespace
 
         return g_configs.getPublicConfig().graphics.renderPath;
     }
+
+    // Same precedence, for the graphics API underneath the frame path. `auto` is the default and
+    // resolves by capability rather than by name: a window that never created a GL context has a
+    // Metal layer to offer and nothing else, and a window that did has the opposite.
+    std::string requestedRenderBackend()
+    {
+        static constexpr std::string_view FLAG = "--render-backend=";
+
+        const auto& options = g_app.getStartupOptions();
+        if (const auto pos = options.find(FLAG); pos != std::string::npos) {
+            const auto value = options.substr(pos + FLAG.size());
+            return value.substr(0, value.find_first_of(" \t"));
+        }
+
+        if (const char* env = std::getenv("CRYSTALOTC_RENDER_BACKEND"); env && *env)
+            return env;
+
+        const auto& configured = g_configs.getPublicConfig().graphics.renderBackend;
+
+        // "gl" is the config default and also the Vulkan feeder's "not vulkan" value, so it is not
+        // evidence that anyone asked for OpenGL. Only an explicit "metal" is.
+        return configured == "metal" ? configured : std::string{ "auto" };
+    }
+
+    std::unique_ptr<IRenderBackend> createBackend(const std::string& requested)
+    {
+        const bool wantsMetal = requested == "metal"
+            || (requested == "auto" && !g_window.hasGLContext());
+
+#ifdef CRYSTALOTC_COCOA_WINDOW
+        if (wantsMetal) {
+            auto backend = std::make_unique<MetalBackend>();
+            if (backend->initialize())
+                return backend;
+
+            g_logger.warning("[render] the Metal backend refused to initialise");
+        }
+#else
+        if (wantsMetal)
+            g_logger.warning("[render] this build has no Metal backend");
+#endif
+
+        auto backend = std::make_unique<GLBackend>();
+        if (backend->initialize())
+            return backend;
+
+        return nullptr;
+    }
 }
 
 void DrawPoolManager::init(const uint16_t spriteSize)
@@ -70,23 +120,35 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     if (spriteSize != 0)
         m_spriteSize = spriteSize;
 
-    if (const auto path = requestedRenderPath(); path == "frame") {
+    auto path = requestedRenderPath();
+
+    if (!path.empty() && path != "frame" && path != "legacy") {
+        g_logger.warning("[render] unknown render path '{}' - using 'legacy'", path);
+        path = "legacy";
+    }
+
+    if (path != "frame" && !g_window.hasGLContext()) {
+        // The legacy path IS the OpenGL renderer - it replays object lists onto Painter. A window
+        // that deliberately creates no GL context has no such renderer to fall back to, so
+        // "legacy" would mean "draw nothing" there. On that window the frame path is not a
+        // preference, it is the only renderer there is.
+        path = "frame";
+    }
+
+    if (path == "frame") {
         // Compiling has to be on before the first release(), or the first frames would find no
         // program and draw nothing.
         DrawPool::setCompileFrames(true);
 
-        auto backend = std::make_unique<GLBackend>();
-        if (backend->initialize()) {
-            m_backend = std::move(backend);
+        m_backend = createBackend(requestedRenderBackend());
+        if (m_backend) {
             m_renderPath = RenderPath::Frame;
             g_logger.info("[render] render path: frame (backend '{}')", m_backend->name());
         } else {
             DrawPool::setCompileFrames(false);
-            g_logger.warning("[render] frame render path requested but the backend refused to "
+            g_logger.warning("[render] frame render path requested but no backend would "
                              "initialise; staying on the legacy path");
         }
-    } else if (!path.empty() && path != "legacy") {
-        g_logger.warning("[render] unknown render path '{}' - using 'legacy'", path);
     }
 
     auto mapAtlasSize = g_configs.getPublicConfig().graphics.mapAtlasSize;
@@ -104,7 +166,15 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     // snapshot renders as stale pixels of the old snapshot (e.g. cyclopedia satellite
     // tiles bleeding into UI panels after fast tab switching). The feeder keeps its own
     // array atlas on the GPU, so CPU-side double-atlasing buys nothing in Vulkan mode.
-    if (g_configs.getPublicConfig().graphics.renderBackend == "vulkan") {
+    //
+    // Metal joins that rule for a second reason, and a harder one. The atlas keys its regions on
+    // a texture's OpenGL name, and a backend that creates no GL textures leaves every one of those
+    // at zero - so every texture in the client would collide on key 0. TextureAtlas::flush is also
+    // unguarded OpenGL from top to bottom. Modelling atlas layers as explicit passes is Phase 5
+    // work; until then Metal draws from standalone textures, which is what the compiler already
+    // emits when no atlas claims a texture.
+    if (g_configs.getPublicConfig().graphics.renderBackend == "vulkan"
+        || (m_backend && std::string_view{ m_backend->name() } == "metal")) {
         mapAtlasSize = -1;
         foregroundAtlasSize = -1;
     }
@@ -132,8 +202,18 @@ void DrawPoolManager::init(const uint16_t spriteSize)
     }
 }
 
-void DrawPoolManager::terminate() const
+void DrawPoolManager::terminate()
 {
+    // The backend first, and explicitly rather than by letting the unique_ptr run at static
+    // destruction time. A backend that owns GPU objects has to drain its in-flight frames before
+    // releasing what they are reading, and it has to do that while the window it borrowed its
+    // surface from still exists - neither of which static destruction order promises.
+    if (m_backend) {
+        m_backend->shutdown();
+        m_backend.reset();
+    }
+    m_renderPath = RenderPath::Legacy;
+
     // Destroy Pools
     for (int_fast8_t i = -1; ++i < static_cast<uint8_t>(DrawPoolType::LAST);) {
         delete m_pools[i];
@@ -154,6 +234,15 @@ void DrawPoolManager::draw()
     // rather than being lost.
     if (m_renderPath == RenderPath::Frame && drawFrame())
         return;
+
+    // The fallback is the OpenGL renderer, so it is only a fallback where OpenGL exists. On a
+    // window with no GL context a declined frame has to consume the pools instead, or the map
+    // thread blocks in canDrawMap forever waiting for flags nobody took - the same obligation
+    // every non-drawing frame owes, stated in one more place.
+    if (!g_window.hasGLContext()) {
+        consumeAll();
+        return;
+    }
 
     drawLegacy();
 }

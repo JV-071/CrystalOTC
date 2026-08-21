@@ -114,7 +114,7 @@ ConfigPtr ConfigManager::load(const std::string& file)
 
 void ConfigManager::setRenderBackend(const std::string& backend)
 {
-    if (backend != "gl" && backend != "vulkan") {
+    if (backend != "gl" && backend != "vulkan" && backend != "metal") {
         g_logger.warning("[config] unknown render backend '{}' - ignoring", backend);
         return;
     }

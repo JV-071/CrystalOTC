@@ -30,8 +30,15 @@ struct GraphicsConfig
     int16_t  mapAtlasSize = 0;
     int16_t foregroundAtlasSize = 2048;
 
-    // Render backend: "gl" (default, current path) or "vulkan" (new renderer,
-    // under construction). With "vulkan" and a failed initialization the client falls back to "gl".
+    // Render backend: "gl" (default, current path), "vulkan" (the Windows feeder) or "metal"
+    // (macOS, and only with renderPath = "frame"). With "vulkan" and a failed initialization the
+    // client falls back to "gl"; with "metal" it falls back to "gl" too, which on a window that
+    // never created a GL context means it falls back to drawing nothing and says so.
+    //
+    // Leaving this at "gl" does NOT force OpenGL on the frame path: it is the default value and
+    // the Vulkan feeder's "not vulkan", so it carries no intent. The frame path resolves its
+    // backend by capability unless this says "metal" outright, or --render-backend= /
+    // CRYSTALOTC_RENDER_BACKEND does.
     std::string renderBackend = "gl";
 
     // Which renderer executes a frame: "legacy" (default) or "frame".
