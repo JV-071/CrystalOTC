@@ -617,13 +617,19 @@ void DrawPool::addAction(const std::function<void()>& action, const ActionIdiom 
 
 void DrawPool::bindFrameBuffer(const Size& size, const Color& color)
 {
-    ++m_bindedFramebuffers;
-    ++m_lastFramebufferId;
-
     if (color != Color::white)
         getCurrentState().color = color;
 
-    nextStateAndReset();
+    // Refuse rather than overflow the state array. Nesting this deep does not happen - the
+    // surveyed sites go one or two deep - but the array is fixed and the index is not checked
+    // anywhere else.
+    if (!nextStateAndReset()) {
+        ++m_refusedBinds;
+        return;
+    }
+
+    ++m_bindedFramebuffers;
+    ++m_lastFramebufferId;
 
     addAction([this, size, frameIndex = m_bindedFramebuffers] {
         static const PoolState state;
@@ -648,7 +654,23 @@ void DrawPool::releaseFrameBuffer(const Rect& dest)
 
 void DrawPool::releaseFrameBuffer(const Rect& dest, uint8_t flipDirection)
 {
-    backState();
+    // An unbalanced release has nothing to pop and nothing to blit. Returning here rather than
+    // underflowing the state stack turns an out-of-bounds read into a no-op - but a no-op is
+    // not the same as correct, so say so once. It is a caller bug either way.
+    // Pair with a bind that was refused, before touching the state stack at all.
+    if (m_refusedBinds > 0) {
+        --m_refusedBinds;
+        return;
+    }
+
+    if (!backState()) {
+        if (!m_loggedUnbalancedRelease) {
+            m_loggedUnbalancedRelease = true;
+            g_logger.warning("[render] pool {} released a framebuffer that was never bound",
+                             static_cast<int>(m_type));
+        }
+        return;
+    }
 
     addAction([this, dest, flipDirection, frameIndex = m_bindedFramebuffers, drawState = getCurrentState()] {
         const auto& frame = getTemporaryFrameBuffer(frameIndex);

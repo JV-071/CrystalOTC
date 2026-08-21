@@ -153,16 +153,50 @@ namespace {
         EXPECT_TRUE(sawDepth1);
     }
 
-    TEST(RenderBoundary, UnbalancedReleaseIsReportedNotSwallowed)
+    TEST(RenderBoundary, UnbalancedReleaseIsANoOpRatherThanMemoryCorruption)
     {
+        // This used to be undefined behaviour, not a no-op: the state-stack index is unsigned,
+        // so popping with nothing pushed wrapped it and the next read indexed far outside the
+        // fixed m_states array. macOS tolerated it silently; a Linux runner segfaulted on the
+        // first test that ever tried it.
         Pool pool;
         pool.p->releaseFrameBuffer(Rect(0, 0, 10, 10));
+        pool.rect(Rect(0, 0, 10, 10));
 
         PoolProgram program;
         pool.compile(program);
 
-        EXPECT_FALSE(program.isComplete());
-        EXPECT_FALSE(program.unsupported.empty());
+        // The stray release contributes nothing and does not disturb the draw that follows it.
+        EXPECT_TRUE(program.isComplete());
+        ASSERT_EQ(program.passes.size(), 1u);
+        EXPECT_EQ(program.passes[0].packets.size(), 1u);
+    }
+
+    TEST(RenderBoundary, FramebufferNestingCannotOverflowTheStateStack)
+    {
+        // The other end of the same fixed array. Binding past its depth must refuse rather
+        // than write past the end.
+        Pool pool;
+        for (int i = 0; i < 40; ++i)
+            pool.p->bindFrameBuffer(Size(8, 8));
+        pool.rect(Rect(0, 0, 4, 4));
+        for (int i = 0; i < 40; ++i)
+            pool.p->releaseFrameBuffer(Rect(0, 0, 8, 8));
+
+        PoolProgram program;
+        pool.compile(program);
+
+        EXPECT_TRUE(program.isComplete()) << (program.unsupported.empty() ? "" : program.unsupported[0]);
+        EXPECT_FALSE(program.passes.empty());
+
+        // Scope note, so this is not mistaken for more coverage than it is: what this asserts
+        // is that overflowing the stack neither crashes nor unbalances the marker stream. It
+        // does NOT discriminate the refused-bind/refused-release pairing in DrawPool - with a
+        // run of binds followed by a run of releases the surplus releases are stopped by the
+        // empty-stack guard anyway, so removing the pairing still passes. Pairing matters for
+        // interleaved nesting past depth 9, where a release would otherwise blit a state
+        // belonging to a different bind. That case is guarded but untested; the surveyed call
+        // sites nest one or two deep, so building a fixture for it was judged disproportionate.
     }
 
     TEST(RenderBoundary, UntaggedActionPoisonsTheProgram)

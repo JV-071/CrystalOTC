@@ -366,12 +366,29 @@ private:
         }
     }
 
-    void nextStateAndReset() {
+    // The state stack is a fixed array and both ends of it were unguarded. m_lastStateIndex is
+    // UNSIGNED, so a backState() with nothing pushed wrapped it to its maximum and the next
+    // getCurrentState() indexed far outside m_states; nextStateAndReset() would likewise run
+    // off the end past depth 9. Neither is reachable from the seven balanced bind/release call
+    // sites, which is why it went unnoticed - but "not reachable today" is not a memory-safety
+    // argument, and a Linux runner segfaulted on the first test that tried it while macOS had
+    // been silently tolerating the same out-of-bounds read.
+    static constexpr uint_fast8_t MAX_STATE_DEPTH = 10;
+
+    bool nextStateAndReset() {
+        if (m_lastStateIndex + 1 >= MAX_STATE_DEPTH)
+            return false;
+
         m_states[++m_lastStateIndex] = {};
+        return true;
     }
 
-    void backState() {
+    bool backState() {
+        if (m_lastStateIndex == 0)
+            return false;
+
         --m_lastStateIndex;
+        return true;
     }
 
     const FrameBufferPtr& getTemporaryFrameBuffer(uint8_t index);
@@ -393,7 +410,7 @@ private:
     PainterShaderProgram* m_previousShaderProgram{ nullptr };
     std::function<void()> m_previousShaderAction{ nullptr };
 
-    PoolState m_states[10];
+    PoolState m_states[MAX_STATE_DEPTH];
     uint_fast8_t m_lastStateIndex{ 0 };
 
     DrawPoolType m_type{ DrawPoolType::LAST };
@@ -435,6 +452,12 @@ private:
     std::unique_ptr<PoolProgram> m_programPublished;
 
     bool m_loggedUnsupported{ false };
+    bool m_loggedUnbalancedRelease{ false };
+
+    // Binds refused for want of state-stack depth. Their matching releases must be refused
+    // too, or each one would pop a state its bind never pushed and unbalance everything after
+    // it - turning a guard against corruption into a different corruption.
+    uint_fast8_t m_refusedBinds{ 0 };
 
     static bool s_compileFrames;
 
