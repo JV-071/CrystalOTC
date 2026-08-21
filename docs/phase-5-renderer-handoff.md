@@ -25,7 +25,15 @@ phase actually added is the part nothing described, plus the instruments to prov
 
 At this checkpoint:
 
-- `ctest` 63/63 on both macOS configurations, up from 58.
+- **All four CI jobs green on `13acc96`** — `Build - macOS (Cocoa)` (run `32508823574`),
+  `Build - Windows` (`32508823543`), `Renderer baseline - Linux llvmpipe` (`32508823547`),
+  `Tests - Lua` (`32508823523`).
+- `ctest` 63/63 on both macOS configurations and on Linux, 64/64 on Windows, up from 58/59.
+- The eight reference-gated scenes pass on llvmpipe with **seven at 0 differing pixels** and
+  `particles-blends` at 626 px inside its own bimodality — the proof that the atlas rework left the
+  legacy path untouched, which was this phase's main risk.
+- The llvmpipe legacy-versus-frame sweep passes all eleven, ten at 0 px and `graph-lines` at
+  exactly the 8,734 px Phase 3 recorded.
 - The legacy-versus-frame sweep is unmoved: ten offline scenes at **0 differing pixels** and
   `graph-lines` at exactly the 7,660 px Phase 3 recorded, so the OpenGL path is provably untouched.
 - The Metal-versus-OpenGL offline sweep is unmoved too — six of nine comparable scenes at **0 px**,
