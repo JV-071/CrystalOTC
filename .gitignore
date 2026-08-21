@@ -393,3 +393,6 @@ assets_crypto.py
 __pycache__/
 records/
 _wip_stance_icons/
+
+# Renderer parity artifacts (tools/compare_render_paths.sh, and the CI job that runs it)
+/artifacts/

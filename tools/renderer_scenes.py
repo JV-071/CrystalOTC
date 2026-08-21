@@ -70,7 +70,14 @@ DEFAULT_MAX_DIFFERENT_FRACTION = 0.001
 
 REQUIRED_MANIFEST_KEYS = ("schemaVersion", "canonicalBackend", "captureSize", "scenes")
 REQUIRED_SCENE_KEYS = ("id", "automation", "requiresOnlineGame", "features")
-SUPPORTED_FIELDS = ("captureSize", "channelTolerance", "maxDifferentFraction", "command")
+SUPPORTED_FIELDS = (
+    "captureSize",
+    "channelTolerance",
+    "maxDifferentFraction",
+    "command",
+    "renderPathChannelTolerance",
+    "renderPathMaxDifferentFraction",
+)
 
 BASELINE_FLAG = "--renderer-baseline="
 
@@ -184,6 +191,18 @@ def resolve_field(manifest: dict, scene: dict, key: str) -> str:
         if isinstance(defaults, dict) and key in defaults:
             fallback = defaults[key]
         return format_number(scene.get(key, fallback))
+
+    # The legacy-vs-frame comparison is a different question from the reference gate, and one
+    # scene answers it differently: UIGraph's lines are GL_LINE_STRIP with GL_LINE_SMOOTH on the
+    # legacy path and triangulated quads on the compiled one, because Metal has neither wide nor
+    # smoothed lines. The two are MEANT to differ there. A scene with no override answers both
+    # questions with the same numbers.
+    if key in ("renderPathChannelTolerance", "renderPathMaxDifferentFraction"):
+        base = key[len("renderPath")]. lower() + key[len("renderPath") + 1 :]
+        override = scene.get("renderPathTolerance")
+        if isinstance(override, dict) and base in override:
+            return format_number(override[base])
+        return resolve_field(manifest, scene, base)
 
     if key == "command":
         command = scene.get("command")

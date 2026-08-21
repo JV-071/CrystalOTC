@@ -369,6 +369,35 @@ jobs:
             exit 1
           fi
 
+      # The Phase 3 parity gate, and a different question from the one above. The reference
+      # comparison asks "does the renderer still look right"; this asks "do the legacy and
+      # compiled render paths draw the same thing", from one binary, in one environment, with no
+      # cross-stack noise. A difference here is a defect in the frame model, not in a GL driver.
+      #
+      # One xvfb server for the whole sweep rather than one per scene: the loop launches the
+      # client 22 times, and RUN_PREFIX cannot carry xvfb-run's quoted -s argument through word
+      # splitting anyway.
+      - name: Compare the legacy and compiled render paths
+        if: ${{ !inputs.refresh_references }}
+        shell: bash
+        env:
+          ARTIFACT_DIR: ${{ github.workspace }}/artifacts/render-paths
+          LIBGL_ALWAYS_SOFTWARE: 1
+          RUN_PREFIX: timeout 120s
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTIFACT_DIR"
+          xvfb-run -a -s "-screen 0 1020x644x24" \
+            bash tools/compare_render_paths.sh build/linux-release/bin/otclient
+
+      - name: Upload render-path comparison
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: renderer-render-paths-${{ github.sha }}
+          path: artifacts/render-paths
+          if-no-files-found: warn
+
       # Runs even when the build, capture or gate step failed: the PNGs, logs, diffs and
       # glxinfo output are exactly what a reviewer needs to triage that failure.
       - name: Upload canonical baseline candidate
