@@ -937,6 +937,55 @@ local function takeCapture(outputName, onComplete)
     exitEvent = scheduleEvent(waitForCapture, 100)
 end
 
+-- Frame-rate benchmark, sharing every scene the capture path already builds.
+--
+-- Phase 0 deferred performance measurement to Phase 3 for a specific reason: an uninstrumented
+-- figure measures the frame cap, and the instrumented counters (AUTO_STAT) are compiled out of
+-- every build this repository produces and would measure themselves if they were not. What
+-- Phase 3 can measure that Phase 0 could not is the only comparison that matters here - the same
+-- scene, the same binary, the same machine, down each render path - so this deliberately reports
+-- a RELATIVE figure and makes no claim to be an absolute one.
+local function runBenchmark(scene, seconds)
+    -- Two separate ceilings, and both have to go or the measurement reports a ceiling rather
+    -- than a cost. The client sleeps to hold 60 FPS; the driver then holds the swap to the
+    -- display's refresh, which showed up as both paths reporting an identical ~120 on a 120 Hz
+    -- panel - a number with no information in it.
+    g_app.setMaxFps(0)
+    g_app.resetTargetFps()
+    g_window.setVerticalSync(false)
+
+    local path = optionValue("render-path") or "legacy"
+    local samples = {}
+
+    -- getFps() is a 1 Hz integer counter, so one sample per second is all the resolution there
+    -- is. The first is discarded: it straddles the uncap taking effect and the scene's last
+    -- setup frames.
+    local function sample(remaining)
+        table.insert(samples, g_app.getFps())
+        if remaining > 0 then
+            captureEvent = scheduleEvent(function() sample(remaining - 1) end, 1000)
+            return
+        end
+
+        table.remove(samples, 1)
+        table.sort(samples)
+
+        local total = 0
+        for _, fps in ipairs(samples) do total = total + fps end
+
+        local median = samples[math.ceil(#samples / 2)] or 0
+        local mean = #samples > 0 and (total / #samples) or 0
+
+        g_logger.info(string.format(
+            "[renderer-benchmark] scene=%s path=%s samples=%d fps_min=%d fps_median=%d fps_mean=%.1f",
+            scene, path, #samples, samples[1] or 0, median, mean))
+
+        g_app.exit()
+    end
+
+    captureEvent = scheduleEvent(function() sample(seconds) end, 1000)
+end
+
 function RendererBaseline.captureScene(scene, delay)
     local outputName = optionValue("renderer-baseline-output") or (scene .. ".png")
 
@@ -953,7 +1002,12 @@ function RendererBaseline.captureScene(scene, delay)
         end
 
         captureEvent = scheduleEvent(function()
-            takeCapture(outputName, function() g_app.exit() end)
+            local benchmarkSeconds = tonumber(optionValue("renderer-benchmark"))
+            if benchmarkSeconds then
+                runBenchmark(scene, benchmarkSeconds)
+            else
+                takeCapture(outputName, function() g_app.exit() end)
+            end
         end, 250)
     end, delay)
 end

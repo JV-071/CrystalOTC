@@ -319,60 +319,60 @@ void DrawPool::release() {
     m_refreshTimer.restart();
 
     {
-    SpinLock::Guard guard(m_threadLock);
+        SpinLock::Guard guard(m_threadLock);
 
-    // Publish the framebuffer dest/src for the Vulkan path - together with the object list,
-    // under the same lock, so the feeder never sees rects from a different frame than the objects.
-    m_fbDest = m_pendingFbDest;
-    m_fbSrc = m_pendingFbSrc;
-    m_fbClearColor = m_pendingFbClearColor;
-    m_mapHole = m_pendingMapHole;
-    m_uploads.swap(m_pendingUploads);
-    m_pendingUploads.clear();
-    m_compositionMaterial = m_pendingCompositionMaterial;
-    m_compositionParams = m_pendingCompositionParams;
-    m_compositionOpacity = m_pendingCompositionOpacity;
+        // Publish the framebuffer dest/src for the Vulkan path - together with the object list,
+        // under the same lock, so the feeder never sees rects from a different frame than the objects.
+        m_fbDest = m_pendingFbDest;
+        m_fbSrc = m_pendingFbSrc;
+        m_fbClearColor = m_pendingFbClearColor;
+        m_mapHole = m_pendingMapHole;
+        m_uploads.swap(m_pendingUploads);
+        m_pendingUploads.clear();
+        m_compositionMaterial = m_pendingCompositionMaterial;
+        m_compositionParams = m_pendingCompositionParams;
+        m_compositionOpacity = m_pendingCompositionOpacity;
 
-    m_objectsDraw[0].clear();
-
-    if (!m_objectsFlushed.empty()) {
-        if (m_objectsDraw[0].size() < m_objectsFlushed.size())
-            m_objectsDraw[0].swap(m_objectsFlushed);
+        m_objectsDraw[0].clear();
 
         if (!m_objectsFlushed.empty()) {
-            m_objectsDraw[0].insert(
-                m_objectsDraw[0].end(),
-                std::make_move_iterator(m_objectsFlushed.begin()),
-                std::make_move_iterator(m_objectsFlushed.end()));
+            if (m_objectsDraw[0].size() < m_objectsFlushed.size())
+                m_objectsDraw[0].swap(m_objectsFlushed);
+
+            if (!m_objectsFlushed.empty()) {
+                m_objectsDraw[0].insert(
+                    m_objectsDraw[0].end(),
+                    std::make_move_iterator(m_objectsFlushed.begin()),
+                    std::make_move_iterator(m_objectsFlushed.end()));
+            }
+            m_objectsFlushed.clear();
         }
-        m_objectsFlushed.clear();
-    }
 
-    for (auto& objs : m_objects) {
-        if (m_objectsDraw[0].size() < objs.size())
-            m_objectsDraw[0].swap(objs);
+        for (auto& objs : m_objects) {
+            if (m_objectsDraw[0].size() < objs.size())
+                m_objectsDraw[0].swap(objs);
 
-        bool addFirst = true;
+            bool addFirst = true;
 
-        if (!m_objectsDraw[0].empty() && !objs.empty()) {
-            auto& last = m_objectsDraw[0].back();
-            auto& first = objs.front();
+            if (!m_objectsDraw[0].empty() && !objs.empty()) {
+                auto& last = m_objectsDraw[0].back();
+                auto& first = objs.front();
 
-            if (last.state == first.state && last.coords && first.coords
-                && !last.action && !first.action) {
-                last.coords->append(first.coords.get());
-                addFirst = false;
+                if (last.state == first.state && last.coords && first.coords
+                    && !last.action && !first.action) {
+                    last.coords->append(first.coords.get());
+                    addFirst = false;
+                }
+            }
+
+            if (!objs.empty()) {
+                m_objectsDraw[0].insert(
+                    m_objectsDraw[0].end(),
+                    std::make_move_iterator(objs.begin() + (addFirst ? 0 : 1)),
+                    std::make_move_iterator(objs.end()));
+                objs.clear();
             }
         }
-
-        if (!objs.empty()) {
-            m_objectsDraw[0].insert(
-                m_objectsDraw[0].end(),
-                std::make_move_iterator(objs.begin() + (addFirst ? 0 : 1)),
-                std::make_move_iterator(objs.end()));
-            objs.clear();
-        }
-    }
 
     } // m_threadLock
 

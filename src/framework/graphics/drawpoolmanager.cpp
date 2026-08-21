@@ -211,6 +211,19 @@ bool DrawPoolManager::drawFrame()
             programs[i] = pool->acquireProgram();
     }
 
+    // Re-checked after acquiring, not only before it. A producer can publish between the peek
+    // and the acquire, and falling back here is safe even though the flags are now consumed:
+    // the legacy path treats an already-consumed pool exactly as it treats one that did not
+    // repaint, which is a situation it is built for.
+    if (!FrameAssembler::isComplete(programs)) {
+        if (!m_loggedFrameFallback) {
+            m_loggedFrameFallback = true;
+            g_logger.warning("[render] a pool published an incomplete program mid-frame; "
+                             "falling back to the legacy path");
+        }
+        return false;
+    }
+
     prepareResources(programs);
 
     m_frameAssembler.assemble(programs, m_size, PainterShaderProgram::currentTime(), m_frame);
