@@ -24,6 +24,13 @@ permissions:
 env:
   CMAKE_BUILD_PARALLEL_LEVEL: 2
   MAKEFLAGS: "-j 2"
+  # run-vcpkg otherwise sets VCPKG_BINARY_SOURCES to 'clear;x-gha,readwrite'; that backend has
+  # been removed from vcpkg, so it warns and nothing is cached and every run rebuilds all of
+  # the ports from source. Point it at a directory actions/cache can restore, exactly as the
+  # macOS and Linux workflows already do. run-vcpkg also aims VCPKG_DEFAULT_BINARY_CACHE at a
+  # path outside the workspace, which actions/cache can never see.
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite"
 
 jobs:
   build:
@@ -71,12 +78,20 @@ jobs:
           $hash = [BitConverter]::ToString($hashBytes) -replace '-', ''
           "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-      - name: Cache vcpkg artifacts
+      # vcpkg aborts at startup when VCPKG_DEFAULT_BINARY_CACHE names a directory that does
+      # not exist, and actions/cache does not create it on a miss.
+      - name: Create binary cache directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+
+      # Caches the BINARY cache plus downloads, not installed/buildtrees. Restoring build trees
+      # does not stop a rebuild - vcpkg decides from ABI hashes and its binary cache - so the
+      # previous 3.5 GB restore bought nothing but the minute and a half it took.
+      - name: Cache vcpkg binaries and downloads
         uses: actions/cache@v4
         with:
           path: |
-            ${{ github.workspace }}/vcpkg/installed
-            ${{ github.workspace }}/vcpkg/buildtrees
+            ${{ github.workspace }}/.cache/vcpkg
             ${{ github.workspace }}/vcpkg/downloads
           key: vcpkg-windows-release-${{ steps.hash.outputs.hash }}
           restore-keys: |
