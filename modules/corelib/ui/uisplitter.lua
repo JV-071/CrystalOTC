@@ -12,20 +12,30 @@ function UISplitter.create()
 	return splitter
 end
 
-function UISplitter:onHoverChange(hovered)
-	local margin = self.vertical and self:getMarginBottom() or self:getMarginRight()
+-- A splitter that snaps to discrete stops answers a one-pixel request with the stop it is already
+-- sitting on, so the old +/-1 probe reported "nothing would change" and concluded the splitter was
+-- not draggable. Ask whether there is anywhere else to go at all instead: canUpdateMargin clamps
+-- and snaps, so a far-away request comes back as the furthest reachable position in that direction.
+local MARGIN_PROBE_RANGE = 4096
 
-	if hovered and (self:canUpdateMargin(margin + 1) ~= margin or self:canUpdateMargin(margin - 1) ~= margin) then
+function UISplitter:onHoverChange(hovered)
+	-- The axis has to be settled before anything reads it, and independently of whether the splitter
+	-- can currently move: UISplitter:onMouseMove picks which margin to write from self.vertical, so
+	-- leaving it nil made a horizontal splitter drag its RIGHT margin and the panel never moved.
+	if self:getWidth() > self:getHeight() then
+		self.vertical = true
+		self.cursortype = "vertical"
+	else
+		self.vertical = false
+		self.cursortype = "horizontal"
+	end
+
+	local margin = self.vertical and self:getMarginBottom() or self:getMarginRight()
+	local canMove = self:canUpdateMargin(margin + MARGIN_PROBE_RANGE) ~= margin or self:canUpdateMargin(margin - MARGIN_PROBE_RANGE) ~= margin
+
+	if hovered and canMove then
 		if g_mouse.isCursorChanged() or g_mouse.isPressed() then
 			return
-		end
-
-		if self:getWidth() > self:getHeight() then
-			self.vertical = true
-			self.cursortype = "vertical"
-		else
-			self.vertical = false
-			self.cursortype = "horizontal"
 		end
 
 		self.hovering = true
