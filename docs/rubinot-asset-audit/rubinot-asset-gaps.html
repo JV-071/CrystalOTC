@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An audit of every asset the RubinOT 2026 client tree references, checked against CrystalOTC - what is copyable, what is already here under another path, and what is sealed in the encrypted .rtc packs.">
+<title>RubinOT Asset Gaps</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    --paper:#f6f7f7; --surface:#ffffff; --surface-2:#eef1f1;
+    --ink:#13181a; --ink-2:#41504f; --ink-3:#6c7b7a;
+    --rule:#dde3e2; --rule-2:#c6d0cf;
+    --accent:#0f6e63; --accent-soft:#e2efec;
+    --have:#2f7d4f;  --have-soft:#e6f1ea;
+    --copy:#8a6410;  --copy-soft:#f6efdd;
+    --block:#a33a35; --block-soft:#f7e8e6;
+    --shadow:0 1px 2px rgba(19,24,26,.05), 0 8px 24px -16px rgba(19,24,26,.22);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0e1213; --surface:#161c1d; --surface-2:#1e2627;
+      --ink:#eaefee; --ink-2:#aebbb9; --ink-3:#7e8d8b;
+      --rule:#26302f; --rule-2:#38443f;
+      --accent:#4cc0ad; --accent-soft:#132b28;
+      --have:#63b585;  --have-soft:#12281c;
+      --copy:#d3a63f;  --copy-soft:#2a2213;
+      --block:#e07a72; --block-soft:#2c1917;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0e1213; --surface:#161c1d; --surface-2:#1e2627;
+    --ink:#eaefee; --ink-2:#aebbb9; --ink-3:#7e8d8b;
+    --rule:#26302f; --rule-2:#38443f;
+    --accent:#4cc0ad; --accent-soft:#132b28;
+    --have:#63b585;  --have-soft:#12281c;
+    --copy:#d3a63f;  --copy-soft:#2a2213;
+    --block:#e07a72; --block-soft:#2c1917;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px 96px}
+  code,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* ---------- masthead ---------- */
+  header.mast{border-bottom:1px solid var(--rule); background:var(--surface)}
+  .mast-in{max-width:1080px; margin:0 auto; padding:52px 28px 40px;
+           display:flex; flex-direction:column; gap:18px}
+  .eyebrow{font-family:"JetBrains Mono",monospace; font-size:11.5px; letter-spacing:.14em;
+           text-transform:uppercase; color:var(--accent); display:flex; gap:10px; flex-wrap:wrap}
+  .eyebrow span:not(:last-child)::after{content:"›"; margin-left:10px; color:var(--ink-3)}
+  h1{font-family:Archivo,system-ui,sans-serif; font-weight:700; font-size:clamp(34px,5.2vw,52px);
+     line-height:1.04; letter-spacing:-.022em; margin:0; text-wrap:balance}
+  .dek{font-size:18px; color:var(--ink-2); max-width:62ch; margin:0}
+  .dek b{color:var(--ink); font-weight:600}
+
+  /* ---------- stat row ---------- */
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+         gap:14px; margin:-28px 0 0; padding-top:0}
+  .stat{background:var(--surface); border:1px solid var(--rule); border-radius:3px;
+        padding:18px 18px 16px; box-shadow:var(--shadow); position:relative; overflow:hidden}
+  .stat::before{content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--tone,var(--rule-2))}
+  .stat .n{font-family:Archivo,sans-serif; font-weight:700; font-size:38px; line-height:1;
+           letter-spacing:-.03em; font-variant-numeric:tabular-nums; color:var(--tone,var(--ink))}
+  .stat .lbl{font-weight:600; font-size:14px; margin-top:7px}
+  .stat .sub{font-size:13px; color:var(--ink-3); margin-top:3px; line-height:1.45}
+  .t-have{--tone:var(--have)} .t-copy{--tone:var(--copy)}
+  .t-block{--tone:var(--block)} .t-ok{--tone:var(--accent)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:60px}
+  .shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+         padding-bottom:12px; border-bottom:2px solid var(--ink); margin-bottom:22px}
+  h2{font-family:Archivo,sans-serif; font-weight:700; font-size:26px; letter-spacing:-.018em;
+     margin:0; text-wrap:balance}
+  .chip{font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.09em;
+        text-transform:uppercase; padding:4px 9px; border-radius:2px; font-weight:500;
+        background:var(--chip-bg,var(--surface-2)); color:var(--chip-fg,var(--ink-2));
+        border:1px solid var(--chip-br,var(--rule))}
+  .c-have{--chip-bg:var(--have-soft);--chip-fg:var(--have);--chip-br:transparent}
+  .c-copy{--chip-bg:var(--copy-soft);--chip-fg:var(--copy);--chip-br:transparent}
+  .c-block{--chip-bg:var(--block-soft);--chip-fg:var(--block);--chip-br:transparent}
+  p{max-width:68ch}
+  .lede{font-size:17px; color:var(--ink-2)}
+
+  /* ---------- tables ---------- */
+  .scroll{overflow-x:auto; border:1px solid var(--rule); border-radius:3px;
+          background:var(--surface); box-shadow:var(--shadow)}
+  table{border-collapse:collapse; width:100%; font-size:14px; min-width:520px}
+  th{font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em;
+     text-transform:uppercase; color:var(--ink-3); font-weight:500; text-align:left;
+     padding:11px 16px; border-bottom:1px solid var(--rule-2); white-space:nowrap;
+     background:var(--surface-2)}
+  td{padding:10px 16px; border-bottom:1px solid var(--rule); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap;
+         font-family:"JetBrains Mono",monospace; font-size:13px}
+  td.path{font-family:"JetBrains Mono",monospace; font-size:12.5px; color:var(--ink)}
+  td.note{color:var(--ink-2); font-size:13.5px; line-height:1.5}
+  tbody tr:hover{background:var(--surface-2)}
+  .tcap{font-size:13px; color:var(--ink-3); margin:9px 2px 0}
+
+  /* ---------- callouts ---------- */
+  .note-box{border:1px solid var(--rule); border-left:3px solid var(--bx,var(--accent));
+            background:var(--surface); border-radius:3px; padding:16px 20px; margin:22px 0;
+            box-shadow:var(--shadow)}
+  .note-box h3{font-family:Archivo,sans-serif; font-size:15px; font-weight:600; margin:0 0 6px;
+               letter-spacing:-.005em}
+  .note-box p{margin:0; font-size:14.5px; color:var(--ink-2); max-width:none}
+  .note-box p + p{margin-top:8px}
+  .bx-block{--bx:var(--block)} .bx-copy{--bx:var(--copy)}
+
+  ul.tight{margin:14px 0; padding-left:0; list-style:none; max-width:70ch}
+  ul.tight li{padding:7px 0 7px 20px; position:relative; border-bottom:1px solid var(--rule);
+              font-size:15px; color:var(--ink-2)}
+  ul.tight li:last-child{border-bottom:none}
+  ul.tight li::before{content:""; position:absolute; left:2px; top:16px; width:6px; height:1px;
+                      background:var(--accent)}
+  ul.tight b{color:var(--ink); font-weight:600}
+
+  .hex{font-family:"JetBrains Mono",monospace; font-size:12.5px; line-height:1.75;
+       background:var(--surface-2); border:1px solid var(--rule); border-radius:3px;
+       padding:14px 16px; overflow-x:auto; color:var(--ink-2); margin:16px 0}
+  .hex b{color:var(--ink); font-weight:500}
+
+  footer{margin-top:72px; padding-top:22px; border-top:1px solid var(--rule);
+         font-size:13.5px; color:var(--ink-3)}
+  footer code{font-size:12.5px; color:var(--ink-2)}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="mast">
+  <div class="mast-in">
+    <div class="eyebrow"><span>rubinot-2026</span><span>CrystalOTC</span><span>asset audit</span></div>
+    <h1>RubinOT Asset Gaps</h1>
+    <p class="dek">Every asset the RubinOT client tree references, checked against your
+      CrystalOTC tree under real OTClient path resolution. <b>2,737 distinct references</b>
+      scanned across <code>mods/</code>, <code>modules/</code> and <code>data/</code> —
+      1,061 of them do not resolve in your client.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="stats" style="margin-top:28px">
+    <div class="stat t-ok">
+      <div class="n">1,676</div>
+      <div class="lbl">Already resolve</div>
+      <div class="sub">Nothing to do — the path works in CrystalOTC today.</div>
+    </div>
+    <div class="stat t-have">
+      <div class="n">87</div>
+      <div class="lbl">You have the file</div>
+      <div class="sub">Byte-identical copy sits at a different path. Rewrite the reference.</div>
+    </div>
+    <div class="stat t-copy">
+      <div class="n">242</div>
+      <div class="lbl">Copyable now</div>
+      <div class="sub">Ships loose in the RubinOT folder, absent from yours. 1.3 MB.</div>
+    </div>
+    <div class="stat t-block">
+      <div class="n">690</div>
+      <div class="lbl">Unavailable</div>
+      <div class="sub">Sealed inside the encrypted <code>.rtc</code> packs, or downloaded at runtime.</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <section>
+    <div class="shead">
+      <h2>What's actually missing</h2>
+      <span class="chip">summary</span>
+    </div>
+    <p class="lede">The gap splits three ways, and only two of them are work you can do.
+      RubinOT ships no <code>data/images</code> directory at all — its entire image tree lives
+      inside three encrypted archives — so the largest bucket is not recoverable from what you have.</p>
+
+    <ul class="tight">
+      <li><b>242 files you can copy today.</b> Cursor frame-sets, the legacy shader library,
+        the cyclopedia image tree, and seven fonts. Manifest written to
+        <code>docs/rubinot-asset-audit/MISSING-copyable.txt</code>.</li>
+      <li><b>87 references that only look broken.</b> The art is already in CrystalOTC — mostly
+        <code>data/images/game_cyclopedia/**</code> — but RubinOT addresses it as
+        <code>/game_cyclopedia/images/**</code>, which resolves to nothing. A path fix, not a copy.</li>
+      <li><b>690 references with no file in either tree.</b> Confirmed packed, not typos: 587 of
+        RubinOT's <code>images/**</code> refs resolve fine against your stock tree, so the
+        filenames are real — this is RubinOT-custom art you never had.</li>
+      <li><b>33 mods/modules absent outright</b>, plus 12 present under a different name
+        (<code>game_forge</code> → <code>game_exaltationforge</code>,
+        <code>game_dailyreward</code> → <code>game_rewardwall</code>, and ten more).</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <div class="shead">
+      <h2>Copy these now</h2>
+      <span class="chip c-copy">242 files · 1.3 MB</span>
+    </div>
+    <p>Present on disk in <code>rubinot- 2026/assets_rtc/</code>, with no counterpart anywhere
+      in CrystalOTC. Grouped by source directory.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Source directory</th><th>Files</th><th>Size</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="path">data/shaders/</td><td class="num">31</td><td class="num">24 KB</td>
+              <td class="note">The whole legacy shader library. Your <code>data/shaders/</code> holds only <code>vulkan/</code>.</td></tr>
+          <tr><td class="path">data/cursors/cursor-*/</td><td class="num">63</td><td class="num">21 KB</td>
+              <td class="note">Seven animated cursor frame-sets (attack, look, open, quick-loot, talk, use, walk). You ship flat single-frame PNGs only.</td></tr>
+          <tr><td class="path">mods/game_cyclopedia/images/ui/</td><td class="num">30</td><td class="num">155 KB</td>
+              <td class="note">Cyclopedia window chrome — buttons, panels, slot frames.</td></tr>
+          <tr><td class="path">mods/game_cyclopedia/styles/</td><td class="num">9</td><td class="num">304 KB</td>
+              <td class="note">Bestiary, bosstiary, charms, house and character stylesheets.</td></tr>
+          <tr><td class="path">mods/game_cyclopedia/images/icons/</td><td class="num">16</td><td class="num">19 KB</td>
+              <td class="note">Element icons <code>element_0…12</code>, star tiers, stat glyphs.</td></tr>
+          <tr><td class="path">data/cursors/ (top level)</td><td class="num">5</td><td class="num">7 KB</td>
+              <td class="note"><code>pointer.png</code> — target of 28 <code>cursor: pointer</code> sites — plus the five <code>cip-*</code> cursors.</td></tr>
+          <tr><td class="path">data/fonts/</td><td class="num">7</td><td class="num">278 KB</td>
+              <td class="note"><code>textmessageblue/red-13px_cp1252</code>, <code>Verdana Bold-9px-small</code>, <code>verdana-ttf</code> + its TTFs.</td></tr>
+          <tr><td class="path">modules/game_shaders/shaders/</td><td class="num">9</td><td class="num">8 KB</td>
+              <td class="note">Item and map effects: mirror, outline, rotate, heat distortion, halloween fog, winter.</td></tr>
+          <tr><td class="path">modules/game_actionbar/</td><td class="num">6</td><td class="num">24 KB</td>
+              <td class="note">Action bar layouts and equip-preset stylesheets.</td></tr>
+          <tr><td class="path">mods/game_forge/styles/</td><td class="num">5</td><td class="num">50 KB</td>
+              <td class="note">Fusion, transfer, conversion and history panels.</td></tr>
+          <tr><td class="path">… 56 further directories</td><td class="num">61</td><td class="num">467 KB</td>
+              <td class="note">One to four files each — <code>game_helper</code>, <code>game_trackers</code>, <code>game_analyser</code>, <code>game_stash</code>, <code>game_pvp_queue</code> and the rest.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap">Full per-file list: <code>docs/rubinot-asset-audit/MISSING-copyable.txt</code></p>
+
+    <div class="note-box bx-copy">
+      <h3>Two of these fix bugs you already have</h3>
+      <p><code>modules/game_wheel/styles/gemMenu.otui</code> and <code>fragmentMenu.otui</code>
+        ask for <code>image-shader: image_black_white</code>. Nothing in CrystalOTC registers
+        that shader and no <code>.frag</code> backs it — RubinOT's
+        <code>modules/game_shaders/shaders.lua:18</code> is where it comes from.</p>
+      <p><code>data/styles/0-vars.otui</code> declares <code>&amp;var-cip-font-small: Verdana Bold-9px-small</code>
+        and <code>&amp;var-cip-font-ttf: verdana-ttf</code>. Neither font exists in your tree.
+        Both are in the copy list above.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <div class="shead">
+      <h2>You already have these</h2>
+      <span class="chip c-have">87 references</span>
+    </div>
+    <p>Byte-identical (SHA-1 verified) files that CrystalOTC ships under a re-rooted path.
+      Copying would duplicate art you already own; the fix is the reference string.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>RubinOT reference</th><th>Refs</th><th>Lives in CrystalOTC at</th></tr></thead>
+        <tbody>
+          <tr><td class="path">/game_cyclopedia/images/ui/names/*</td><td class="num">24</td><td class="path">data/images/game_cyclopedia/ui/names/</td></tr>
+          <tr><td class="path">/game_cyclopedia/images/bestiary/icons/*</td><td class="num">23</td><td class="path">data/images/game_cyclopedia/bestiary/icons/</td></tr>
+          <tr><td class="path">/game_cyclopedia/images/ui/*</td><td class="num">8</td><td class="path">data/images/game_cyclopedia/ui/</td></tr>
+          <tr><td class="path">/game_cyclopedia/images/boss/*</td><td class="num">6</td><td class="path">data/images/game_cyclopedia/boss/</td></tr>
+          <tr><td class="path">/images/game/cyclopedia/icons/*</td><td class="num">5</td><td class="path">data/images/game/cyclopedia/icons/</td></tr>
+          <tr><td class="path">/images/icons/*</td><td class="num">7</td><td class="path">data/images/icons/, data/assets/images/icons/</td></tr>
+          <tr><td class="path">/images/game/proficiency/*</td><td class="num">3</td><td class="path">data/images/game_proficiency/</td></tr>
+          <tr><td class="path">… nine further mappings</td><td class="num">11</td><td class="path">data/images/**, data/assets/images/**</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap">Full mapping: <code>docs/rubinot-asset-audit/MISSING-already-have.txt</code></p>
+
+    <div class="note-box">
+      <h3>17 more resolve, but to the wrong art</h3>
+      <p>These are worse than missing, because nothing errors. The name matches, so the file
+        loads — but the sprite-sheet geometry doesn't. Verified by parsing PNG headers and
+        checking every sibling <code>image-clip</code> rectangle: 34 clip rectangles fall
+        outside the CrystalOTC image.</p>
+      <p><code>/images/ui/tabbutton_square</code> (yours 20×63, RubinOT clips to 96×22 — every
+        tab bar), <code>/images/ui/miniwindow_buttons</code> (yours 120×24, RubinOT clips at
+        x=127, y=29), <code>/images/game/slots/purse</code>, <code>/images/ui/checkbox</code>
+        and <code>checkboxcircle</code> (3-state vs 2-state sheets),
+        <code>/images/game/minimap/floor_up</code> and <code>floor_down</code>,
+        <code>/images/store/categorie-up</code> and <code>-down</code>,
+        <code>/images/ui/popupwindow</code>, and four fonts whose metrics differ
+        (<code>verdana-11px-monochrome</code> is height 14 in RubinOT, 16 in yours).</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <div class="shead">
+      <h2>Sealed in the .rtc packs</h2>
+      <span class="chip c-block">690 references</span>
+    </div>
+    <p>RubinOT has no <code>data/images</code> directory on disk. Its image tree is inside
+      <code>data/dat-01.rtc</code>, <code>dat-02.rtc</code> and <code>dat-03.rtc</code> — 141 MB
+      across 2,598 entries.</p>
+
+    <div class="hex">
+<b>RTC v3 header</b> — 32 bytes plaintext, everything after is ciphertext
+0x00  char[4]  magic        "RTC\0"
+0x04  u32      version      3
+0x08  u64      entryCount   5 / 9 / <b>2584</b>
+0x10  u64      indexOffset  == fileSize − indexSize   (index sits at EOF)
+0x18  u64      indexSize    == entryCount × 32
+    </div>
+
+    <div class="note-box bx-block">
+      <h3>Not extractable from what's in this folder</h3>
+      <p>Shannon entropy of the payload measures <b>8.0000 bits/byte</b> over 4 MB samples in
+        all three files, and the 82,688-byte index is encrypted too — 0 of 2,584 candidate u64
+        offsets fall in bounds, and monotonicity is exactly 50%. No filenames, offsets or sizes
+        survive in plaintext. Not a repeating-XOR keystream (period match rate 1/256 at every
+        stride tested), and no zstd, lz4, gzip or PNG magic anywhere in 141 MB.</p>
+      <p>The RubinOT executable isn't in the tree, so the key material is unavailable — the mount
+        and decrypt are entirely C++-side. CrystalOTC can't read them either: it has no custom
+        <code>PHYSFS_Archiver</code>, its own crypto is XChaCha20-Poly1305 (and compiled off),
+        and its packs are plain ZIPs from <code>build_pak.py</code>.</p>
+    </div>
+
+    <p>What's inside, by namespace — useful as a shopping list if you can source the art elsewhere:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Namespace</th><th>Refs</th><th>Feature</th></tr></thead>
+        <tbody>
+          <tr><td class="path">images/arcs/conditions/</td><td class="num">48</td><td class="note">Player state-flag arcs. You have no <code>data/images/arcs</code> at all.</td></tr>
+          <tr><td class="path">images/game/destiny_wheel/</td><td class="num">46</td><td class="note">Wheel border and slot art beyond what you ship.</td></tr>
+          <tr><td class="path">images/game/states/</td><td class="num">43</td><td class="note">Condition icons — rooted, feared, curse i–v, agony, magic shield. Your <code>game/states</code> holds 2 files.</td></tr>
+          <tr><td class="path">images/game/ranked-queue/</td><td class="num">34</td><td class="note">PvP queue: ranks, banners, cast HUD, map images.</td></tr>
+          <tr><td class="path">images/game/christmas-daily/</td><td class="num">17</td><td class="note">Christmas daily-reward cards.</td></tr>
+          <tr><td class="path">images/game/quickloot/</td><td class="num">14</td><td class="note">Quick-loot buttons. Yours exist under different names.</td></tr>
+          <tr><td class="path">images/game/battle/</td><td class="num">13</td><td class="note">Battle-list filters. You have these renamed — <code>icon-battlelist-druid.png</code> etc. A rename map, not a copy.</td></tr>
+          <tr><td class="path">images/game/castle/</td><td class="num">12</td><td class="note">Castle / siege UI.</td></tr>
+          <tr><td class="path">images/game/prey/</td><td class="num">11</td><td class="note">Prey cards and buttons; yours are <code>button-prey-*</code>, <code>card-prey-*</code>.</td></tr>
+          <tr><td class="path">images/game/combatmodes/</td><td class="num">10</td><td class="note">PvP and stand-mode toggles.</td></tr>
+          <tr><td class="path">images/game/battlepass/</td><td class="num">8</td><td class="note">Pairs with the missing <code>data/otcm/battlepass.otcm</code> (569 KB).</td></tr>
+          <tr><td class="path">images/shaders/</td><td class="num">25</td><td class="note">Shader input textures — monochrome, crystal, gold, snow, fog.</td></tr>
+          <tr><td class="path">… 40 further namespaces</td><td class="num">409</td><td class="note">UI chrome, store, bars, skills, blessings, forge, trackers, minimap, dailyreward.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tcap">Every reference with its call site: <code>docs/rubinot-asset-audit/MISSING-packed.txt</code></p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <div class="shead">
+      <h2>Whole subsystems you don't have</h2>
+      <span class="chip">data/ directories</span>
+    </div>
+    <p>Beyond individual references, these directories are near-total gaps.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Directory</th><th>Missing</th><th>Assessment</th></tr></thead>
+        <tbody>
+          <tr><td class="path">data/shaders/</td><td class="num">32 / 32</td>
+              <td class="note"><b>Architectural, not a copy job.</b> CrystalOTC moved to <code>modules/game_shaders/shaders/{fragment,vertex}/</code> plus a Metal material registry keyed on <code>.frag</code> basenames. Dropping RubinOT's files in won't register them.</td></tr>
+          <tr><td class="path">data/cursors/</td><td class="num">69 / 76</td>
+              <td class="note">RubinOT drives animated cursors via <code>frames: N</code> in <code>cursors.otml</code>, pointing at a directory of numbered PNGs. You have no equivalent for that.</td></tr>
+          <tr><td class="path">data/styles/</td><td class="num">10 / 42</td>
+              <td class="note"><code>40-renownwindow.otui</code> (29 KB), <code>40-hirelingwindow.otui</code> (20 KB), <code>40-inventory</code>, <code>40-minimap</code>, <code>40-windows</code>, <code>40-container</code>, <code>40-healthinfo</code>, <code>40-entergame</code>, <code>10-html</code>, <code>40-tilewidget</code>.</td></tr>
+          <tr><td class="path">data/fonts/</td><td class="num">12 / 76</td>
+              <td class="note">You ship 190 font files, so this is small — but two of the twelve are already broken references inside your own <code>0-vars.otui</code>.</td></tr>
+          <tr><td class="path">data/sounds/</td><td class="num">4 / 4</td>
+              <td class="note">Only the loose files: <code>sounds_catalog.json</code> (88 KB), <code>earthquake.ogg</code>, <code>frostreaper_roar.ogg</code>, <code>notify.ogg</code>. All 741 catalog sound references already resolve against your 2,450 hash-named oggs.</td></tr>
+          <tr><td class="path">data/otcm/</td><td class="num">1 / 1</td>
+              <td class="note"><code>battlepass.otcm</code>, 569 KB — the largest missing non-archive data file. You have no <code>otcm/</code> directory.</td></tr>
+          <tr><td class="path">data/otml/</td><td class="num">1 / 1</td>
+              <td class="note"><code>creatures.otml</code>, 1.7 KB.</td></tr>
+          <tr><td class="path">data/json/</td><td class="num">1 / 12</td>
+              <td class="note"><code>report-text.json</code> — pairs with the absent <code>mods/game_report</code>.</td></tr>
+          <tr><td class="path">data/locales/</td><td class="num">0 / 6</td>
+              <td class="note">Clean. All six locales present, and you additionally ship precompiled <code>.luac</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note-box">
+      <h3>25 of your module directories are empty stubs</h3>
+      <p>A name-level diff says you have <code>game_huntfinder</code>, <code>game_lootsplitter</code>
+        and <code>game_npctrade</code>. Each is a single <code>pakdisabled</code> file with no
+        implementation, so they're effectively absent — RubinOT ships 8, 4 and 5 real files
+        respectively, including <code>quicksell.otui</code> and <code>blacklist.otui</code>.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Scanned 2,737 distinct references across <code>.lua</code>, <code>.otui</code>,
+      <code>.otmod</code>, <code>.otml</code>, <code>.otfont</code> and <code>.json</code>,
+      resolved under OTClient's real PhysFS search-path model
+      (<code>src/framework/core/resourcemanager.cpp</code>) with <code>.png</code> extension
+      guessing. Extension-less table paths, concatenation prefixes, inline OTUI Lua,
+      <code>createShader</code> arguments, <code>.otfont</code> atlas keys and
+      <code>frames:</code> cursor fan-out are all included; format-string patterns
+      (<code>%s</code>/<code>%d</code>) and runtime-downloaded minimap regions are excluded.</p>
+    <p>Manifests: <code>CrystalOTC/docs/rubinot-asset-audit/</code></p>
+  </footer>
+</div>
+</body>
+</html>
