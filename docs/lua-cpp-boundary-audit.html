@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A verified audit of where CrystalOTC's C++/Lua boundary is drawn wrong - what to migrate, what to split, what to keep, and what to delete.">
+<title>The Lua Waterline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;600&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&display=swap">
+
+<style>
+/* --- standalone reset (the artifact host injects an equivalent at publish time) --- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0}
+h1,h2,h3,h4,p,figure,blockquote,dl,dd,ol,ul{margin:0}
+ol,ul{list-style:none;padding:0}
+img,picture,video,canvas,svg{display:block;max-width:100%}
+:root{
+  --ground:#F2F5F4;
+  --surface:#FFFFFF;
+  --surface-2:#EAEFED;
+  --ink:#10171A;
+  --ink-2:#33474A;
+  --muted:#5E7071;
+  --rule:#D2DEDA;
+  --rule-soft:#E2EAE7;
+
+  --down:#A6431C;
+  --down-bg:#F7EBE6;
+  --split:#8A6516;
+  --split-bg:#F7F1E2;
+  --stay:#1B6B5C;
+  --stay-bg:#E5F0EC;
+  --cut:#5A5470;
+  --cut-bg:#EDEBF1;
+
+  --accent:#1B6B5C;
+  --shadow:0 1px 2px rgba(16,23,26,.05), 0 8px 24px -16px rgba(16,23,26,.24);
+
+  --measure:68ch;
+  --step--1:.8125rem;
+  --step-0:1.0625rem;
+  --step-1:1.28rem;
+  --step-2:1.6rem;
+  --step-3:2.15rem;
+  --step-4:3.1rem;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#0E1416;
+    --surface:#151D1F;
+    --surface-2:#1B2528;
+    --ink:#E4EDEA;
+    --ink-2:#B4C6C2;    --muted:#87A09B;
+    --rule:#273534;
+    --rule-soft:#1F2B2B;
+
+    --down:#E08A5E;
+    --down-bg:#2A1A13;
+    --split:#D9AE55;
+    --split-bg:#271F11;
+    --stay:#5FBFA5;
+    --stay-bg:#122622;
+    --cut:#A8A0C4;
+    --cut-bg:#1D1A26;
+
+    --accent:#5FBFA5;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0E1416;
+  --surface:#151D1F;
+  --surface-2:#1B2528;
+  --ink:#E4EDEA;
+  --ink-2:#B4C6C2;
+  --muted:#87A09B;
+  --rule:#273534;
+  --rule-soft:#1F2B2B;
+
+  --down:#E08A5E;
+  --down-bg:#2A1A13;
+  --split:#D9AE55;
+  --split-bg:#271F11;
+  --stay:#5FBFA5;
+  --stay-bg:#122622;
+  --cut:#A8A0C4;
+  --cut-bg:#1D1A26;
+
+  --accent:#5FBFA5;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Source Sans 3","Helvetica Neue",Arial,sans-serif;
+  font-size:var(--step-0);
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 clamp(1.1rem,4vw,3rem)}
+.measure{max-width:var(--measure)}
+
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif;font-variation-settings:"SOFT" 0,"WONK" 0;text-wrap:balance;margin:0}
+h1{font-size:var(--step-4);font-weight:700;line-height:1.02;letter-spacing:-.022em}
+h2{font-size:var(--step-3);font-weight:600;line-height:1.12;letter-spacing:-.016em}
+h3{font-size:var(--step-1);font-weight:600;line-height:1.25}
+p{margin:0}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.86em;font-variant-ligatures:none}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+
+/* ---------- masthead ---------- */
+.mast{padding:clamp(3rem,8vw,5.5rem) 0 0}
+.eyebrow{
+  font-family:"JetBrains Mono",monospace;font-size:var(--step--1);
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;
+}
+.eyebrow::before{content:"";width:2.2rem;height:1px;background:var(--rule);display:block}
+.mast h1{margin-top:1.1rem}
+.dek{margin-top:1.35rem;font-size:var(--step-1);color:var(--ink-2);line-height:1.5;max-width:60ch}
+.dek em{font-style:italic;color:var(--ink)}
+
+.scale{
+  margin-top:2.6rem;display:grid;gap:1px;background:var(--rule);
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  border:1px solid var(--rule);
+}
+.scale div{background:var(--surface);padding:1rem 1.15rem}
+.scale dt{font-family:"JetBrains Mono",monospace;font-size:var(--step--1);color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.scale dd{margin:.3rem 0 0;font-family:Fraunces,serif;font-size:var(--step-2);font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.scale dd span{font-size:var(--step--1);font-family:"Source Sans 3",sans-serif;font-weight:400;color:var(--muted);letter-spacing:0}
+
+/* ---------- thesis ---------- */
+.thesis{
+  margin:clamp(3rem,7vw,4.5rem) 0;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  padding:clamp(1.8rem,4vw,2.6rem) 0;
+}
+.thesis h2{font-size:var(--step-2)}
+.thesis p{margin-top:1rem;color:var(--ink-2)}
+.thesis .measure + .measure{margin-top:.9rem}
+.pullquote{
+  margin-top:1.6rem;padding-left:1.2rem;border-left:3px solid var(--accent);
+  font-family:Fraunces,serif;font-size:var(--step-1);line-height:1.4;color:var(--ink);
+}
+
+/* ---------- verdict sections ---------- */
+.verdict{margin:clamp(3.2rem,7vw,5rem) 0;scroll-margin-top:1rem}
+.vhead{display:flex;gap:1.1rem;align-items:flex-start;padding-left:1.2rem;border-left:4px solid var(--vcolor)}
+.vhead .vmark{
+  font-family:"JetBrains Mono",monospace;font-size:var(--step--1);font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--vcolor);
+  padding:.28rem .6rem;background:var(--vbg);border-radius:2px;white-space:nowrap;margin-top:.42rem;
+}
+.vhead h2{flex:1;min-width:0}
+.vlede{margin-top:1.1rem;padding-left:1.55rem;color:var(--ink-2)}
+.verdict[data-v="down"]{--vcolor:var(--down);--vbg:var(--down-bg)}
+.verdict[data-v="split"]{--vcolor:var(--split);--vbg:var(--split-bg)}
+.verdict[data-v="stay"]{--vcolor:var(--stay);--vbg:var(--stay-bg)}
+.verdict[data-v="cut"]{--vcolor:var(--cut);--vbg:var(--cut-bg)}
+
+.cards{margin-top:2rem;display:grid;gap:1.15rem}
+.card{
+  background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--vcolor);
+  border-radius:3px;padding:1.35rem 1.5rem;box-shadow:var(--shadow);
+}
+.card h3{margin-bottom:.2rem}
+.card .where{
+  font-family:"JetBrains Mono",monospace;font-size:var(--step--1);color:var(--vcolor);
+  margin-bottom:.75rem;word-break:break-word;
+}
+.card p{color:var(--ink-2);max-width:74ch}
+.card p + p{margin-top:.7rem}
+.card .fix{
+  margin-top:.95rem;padding-top:.85rem;border-top:1px dashed var(--rule);
+  font-size:.95em;color:var(--ink-2);
+}
+.card .fix b{color:var(--ink);font-weight:600}
+.tags{display:flex;gap:.45rem;flex-wrap:wrap;margin-top:.95rem}
+.tag{
+  font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);border:1px solid var(--rule);border-radius:2px;padding:.16rem .45rem;
+}
+.tag.hot{color:var(--vcolor);border-color:var(--vcolor)}
+
+/* ---------- compact list ---------- */
+.also{margin-top:2rem;padding-left:1.55rem}
+.also > p:first-child{
+  font-family:"JetBrains Mono",monospace;font-size:var(--step--1);letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:.85rem;
+}
+.also ul{margin:0;padding:0;list-style:none;display:grid;gap:.7rem}
+.also li{padding-left:1.1rem;position:relative;color:var(--ink-2);max-width:78ch}
+.also li::before{content:"";position:absolute;left:0;top:.68em;width:.42rem;height:1px;background:var(--vcolor)}
+.also li b{color:var(--ink);font-weight:600}
+.also li code{color:var(--vcolor)}
+
+/* ---------- sequence ---------- */
+.order ol{margin:2rem 0 0;padding:0;list-style:none;counter-reset:s;display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.order li{
+  counter-increment:s;background:var(--surface);padding:1.15rem 1.3rem 1.15rem 3.6rem;position:relative;
+}
+.order li::before{
+  content:counter(s,decimal-leading-zero);position:absolute;left:1.3rem;top:1.22rem;
+  font-family:"JetBrains Mono",monospace;font-size:var(--step--1);font-weight:600;color:var(--accent);
+}
+.order li b{display:block;font-family:Fraunces,serif;font-size:var(--step-1);font-weight:600;letter-spacing:-.008em}
+.order li p{margin-top:.3rem;color:var(--ink-2);max-width:72ch}
+.order li .cost{
+  font-family:"JetBrains Mono",monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-top:.55rem;display:block;
+}
+
+/* ---------- footer ---------- */
+.method{
+  margin:clamp(3rem,7vw,4.5rem) 0 4rem;padding-top:1.6rem;border-top:1px solid var(--rule);
+  color:var(--muted);font-size:.95rem;
+}
+.method h3{font-size:var(--step-0);color:var(--ink);margin-bottom:.55rem}
+.method p{max-width:74ch}
+.method p + p{margin-top:.6rem}
+
+@media (max-width:620px){
+  .vhead{flex-direction:column;gap:.7rem}
+  .vhead .vmark{margin-top:0}
+  .vlede,.also{padding-left:1.2rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">CrystalOTC · engine boundary audit · Aug 2026</p>
+  <h1>The Lua Waterline</h1>
+  <p class="dek">Where the C++/Lua line sits in this client, where it's drawn wrong, and — mostly — where it's already right. <em>Most of the 236k lines of Lua should stay exactly where they are.</em></p>
+
+  <dl class="scale">
+    <div><dt>Lua</dt><dd>236,066 <span>lines / 259 files</span></dd></div>
+    <div><dt>C++</dt><dd>119,713 <span>lines / 439 files</span></dd></div>
+    <div><dt>Bindings</dt><dd>2,036 <span>bound methods</span></dd></div>
+    <div><dt>Net → Lua events</dt><dd>205 <span>callLuaField sites</span></dd></div>
+  </dl>
+</header>
+
+<section class="thesis">
+  <h2>One fact reframes the whole question</h2>
+  <p class="measure">There is no Lua on the render path. Searching <code>modules/</code> and <code>mods/</code> for <code>onDraw</code> or <code>onRender</code> handlers returns nothing, and <code>uiwidget.cpp</code> never calls into Lua during draw. The only per-frame Lua entry point in the entire client is <code>g_app.onFps</code>, once a second.</p>
+  <p class="measure">So Lua costs you in exactly three places: timer ticks, input events, and the ~205 network-driven <code>callLuaField</code> crossings out of <code>game.cpp</code> and <code>protocolgameparse.cpp</code>. That kills the usual argument for a bulk migration — a 26,000-line module that only runs when someone opens a window is not costing you anything, no matter how large it looks in a line count.</p>
+  <p class="pullquote">The highest-payoff C++ work in this repo is not in <code>modules/</code>. It's in <code>luaengine/</code> — making the crossings you already make cheaper.</p>
+</section>
+
+<!-- ============ MOVE DOWN ============ -->
+<section class="verdict" data-v="down">
+  <div class="vhead">
+    <span class="vmark">Move to C++</span>
+    <h2>Engine mechanics that leaked upward</h2>
+  </div>
+  <p class="vlede measure">Four of these are infrastructure, not game content — and two of them sit under <em>every</em> Lua call you make, so fixing them speeds up code you never touch.</p>
+
+  <div class="cards">
+
+    <article class="card">
+      <h3>Every property access builds a <code>std::string</code></h3>
+      <p class="where">src/framework/luaengine/luainterface.cpp:214, :262</p>
+      <p><code>luaObjectGetEvent</code> is the <code>__index</code> metamethod for every bound class — every <code>widget:getHeight()</code>, every <code>creature:getPosition()</code>, every field read in 236k lines of Lua lands here. It does <code>lua-&gt;getField("get_" + key)</code>, concatenating a fresh <code>std::string</code> per access. The write path does the same with <code>"set_" + key</code>. Names like <code>"get_setMarginTop"</code> blow past small-string optimisation and heap-allocate.</p>
+      <p>Worse, method calls — the common case by far — pay for two failed prefixed lookups before the method table is even consulted: metatable → fieldmethods → <code>get_</code>+key → <code>luaGetField</code> → metatable → methods → key.</p>
+      <p class="fix"><b>Fix:</b> precompute the <code>get_</code>/<code>set_</code> prefixed keys once at <code>registerClass</code> time, or intern them per class. No Lua-visible change — but the lookup <em>order</em> must be preserved exactly or styles that define both a field and a getter will silently flip behaviour.</p>
+      <div class="tags"><span class="tag hot">every crossing</span><span class="tag">high payoff</span><span class="tag">medium effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>The event gate is missing on the overload that needs it most</h3>
+      <p class="where">src/framework/luaengine/luaobject.h:207-216 vs :218-234</p>
+      <p>The <code>void</code> overload of <code>callLuaField</code> memoises "this object has no handler for this field" in <code>m_events</code> and returns early. The <code>R</code>-returning overload has no such check — and that's the one every input event uses: <code>onMouseMove</code>, <code>onKeyDown</code>, <code>onKeyPress</code>, <code>onMousePress</code>, <code>onDragMove</code>, <code>onMouseWheel</code>.</p>
+      <p><code>uimanager.cpp:178-180</code> walks the whole widget chain under the cursor calling <code>onMouseMove</code> on each. For a widget with no handler you still pay <code>asLuaObject()</code> (shared_from_this plus a try/catch frame), <code>pushObject</code>, a registry lookup, <code>getField</code>, a nil test and two pops. The game interface is typically 5–15 widgets deep. Almost none of them have a handler.</p>
+      <p class="fix"><b>Fix:</b> apply the same <code>m_events</code> gate to the templated overload. Note the existing cache is never invalidated when a handler is set to nil — that staleness is already present and you'd be inheriting it, so decide deliberately.</p>
+      <div class="tags"><span class="tag hot">per input event</span><span class="tag">high payoff</span><span class="tag">small effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>184 one-pixel widgets drawing a progress ring</h3>
+      <p class="where">modules/game_interface/widgets/statsbar.lua:2094-2112</p>
+      <p>The proficiency border is traced by creating one real <code>UIWidget</code> per perimeter pixel — <code>setSize({width=1,height=1})</code>, <code>breakAnchors()</code>, two anchors, a background colour, each — then showing or hiding them to animate progress. The file asserts the counts itself: <code>LARGE_BORDER_PIXEL_COUNT == 184</code>, <code>BORDER_SIZE == 54</code>.</p>
+      <p>Those 184 widgets live in the layout tree permanently and participate in anchor resolution on every geometry change of that panel.</p>
+      <p class="fix"><b>Fix:</b> <code>UIProgressArc</code> already exists and is already bound, including <code>setArcSlotCount</code> / <code>setArcFilledSlots</code> at <code>luafunctions.cpp:1356-1357</code> — the exact segmented-progress primitive this is hand-rolling. Everything else in statsbar (layouts, tooltip text, perk-highlight policy) stays in Lua.</p>
+      <div class="tags"><span class="tag hot">layout tree</span><span class="tag">high payoff</span><span class="tag">small effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>A relayout per anchor added</h3>
+      <p class="where">src/client/uimapanchorlayout.cpp:45-61</p>
+      <p><code>addPositionAnchor</code> ends with <code>update()</code> — "layout must be updated because a new anchor got in". <code>centerInPosition</code> calls it twice; <code>fillPosition</code> four times. Lua's minimap cross re-anchors on every camera move, and <code>UIMinimap::setCameraPosition</code> already calls <code>m_layout-&gt;update()</code> before firing <code>onCameraPositionChange</code> — so the relayouts are redundant on top of a relayout that already happened.</p>
+      <p class="fix"><b>Fix:</b> add <code>addPositionAnchors(span)</code> plus an explicit <code>commit()</code>, and early-out when an identical anchor already exists for that widget+edge.</p>
+      <div class="tags"><span class="tag hot">per player step</span><span class="tag">high payoff</span><span class="tag">small effort</span></div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ============ SPLIT ============ -->
+<section class="verdict" data-v="split">
+  <div class="vhead">
+    <span class="vmark">Split it</span>
+    <h2>Policy stays up, primitives go down</h2>
+  </div>
+  <p class="vlede measure">This is the most useful part of the answer. The automation and list code shouldn't move to C++ — the <em>rules</em> are exactly what users edit. What should move are the scan-and-filter primitives those rules call, so one crossing replaces hundreds.</p>
+
+  <div class="cards">
+
+    <article class="card">
+      <h3>Spectator scans, one getter at a time</h3>
+      <p class="where">modules/game_helper/helper_shooter.lua:654-688 · helper_heal_friend.lua:850 · helper_autoparty.lua:176</p>
+      <p><code>g_map.getSpectators</code> returns a fresh Lua table of userdata, then Lua loops it calling <code>isMonster</code>, <code>isDead</code>, <code>isNpc</code>, <code>getPosition</code>, <code>isSightClear</code> — a boundary crossing each, every one paying the <code>"get_"+key</code> concat above. Three helper modules each run their own scan on the same 50 ms tick. <code>helper_autoparty.lua:176</code> calls <code>getSpectators</code> <em>inside</em> a four-iteration loop.</p>
+      <p><code>battle.lua:1252</code> shows the same shape in the UI: <code>doCreatureFitFilters</code> does ~15 crossings per creature, calls <code>getLocalPlayer()</code> twice per creature, and allocates two closures per iteration from the inline <code>(function() … end)()</code> blocks at lines 1293 and 1298.</p>
+      <p class="fix"><b>Boundary:</b> <code>g_map.queryCreatures(centerPos, opts) → flat array</code> with <code>opts = {minDist, maxDist, sameFloorOnly, requireSightClear, kind, excludeIds, withPositions}</code>, returning plain records <code>{id, x, y, z, hpPercent, distance}</code>. One crossing, no per-creature userdata. Every threshold, priority and rule stays in Lua.</p>
+      <div class="tags"><span class="tag hot">50 ms tick</span><span class="tag">high payoff</span><span class="tag">medium effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Area-of-effect tile search in Lua</h3>
+      <p class="where">modules/game_helper/helper_shooter.lua:1259-1329</p>
+      <p><code>findBestTileForRune</code> nests <code>for each creature → for dy → for dx</code>, and each candidate allocates a <code>{x,y,z}</code> table plus <code>seen</code> column tables, then calls <code>g_map.isSightClear</code> and <code>countAttackableCreatures</code> — which loops the area offsets and calls <code>isSightClear</code> again per occupied tile. It's an O(creatures × area²) spatial search running in the scripting layer.</p>
+      <p class="fix"><b>Boundary:</b> <code>g_map.findBestAreaTile(fromPos, areaOffsets, opts) → {pos, hits}</code>, returning the top N so the Lua rule keeps the final say. Lua still owns the spell's area shape and direction rotation, which it already caches.</p>
+      <div class="tags"><span class="tag hot">50 ms tick</span><span class="tag">high payoff</span><span class="tag">medium effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>5,918 minimap markers re-scanned on every step</h3>
+      <p class="where">modules/gamelib/ui/uiminimap.lua:569-617 · data/json/markers.json (549 KB)</p>
+      <p><code>refreshBundledFlags</code> builds a cache key from the visible tile bounds — which change on <em>every</em> player step, so the early-out never fires while walking — then linearly scans that floor's whole marker array, allocating <code>needed</code> and <code>createQueue</code> tables each pass. Floor 7 alone holds 1,186 markers.</p>
+      <p class="fix"><b>Boundary:</b> <code>UIMinimap::setMarkerLayer(vector&lt;Marker&gt;)</code> stored in a per-floor spatial bucket and drawn in <code>drawSelf</code>, plus <code>setMarkerHidden</code> and <code>getMarkerAt(point)</code> for hit-testing. Lua keeps parsing the JSON, the hidden-set persistence, the right-click menu, and all user-created flags as real widgets.</p>
+      <div class="tags"><span class="tag hot">per player step</span><span class="tag">high payoff</span><span class="tag">large effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Battle list: full teardown and re-sort on movement</h3>
+      <p class="where">modules/game_battle/battle.lua:1220-1249, :2576-2618</p>
+      <p><code>checkCreatures</code> calls <code>removeAllCreatures()</code> and re-adds every spectator from scratch. <code>onCreaturePositionChange</code> fires per creature step; on the local player's own step it recomputes distance across the whole list and runs a Lua <code>table.sort</code> with a comparator closure, then <code>correctBattleButtons()</code>.</p>
+      <p class="fix"><b>Boundary:</b> <code>UIMap:getSpectatorsSorted(sortType, ascending, filterMask)</code> returning an already-sorted vector plus a parallel array of sort keys, in one crossing. Filters stay meaningful in Lua — pass a bitmask rebuilt only when a checkbox changes. All widget creation, styling, context menus and multi-window management stay in Lua.</p>
+      <div class="tags"><span class="tag hot">per creature step</span><span class="tag">high payoff</span><span class="tag">large effort</span></div>
+    </article>
+
+  </div>
+
+  <div class="also">
+    <p>Smaller splits worth doing</p>
+    <ul>
+      <li><b>Point/Size marshalling</b> — <code>luavaluecasts.cpp:166</code> allocates a fresh 2-slot Lua table per coordinate. Two per widget per mouse-move, over a ~10-deep cursor chain, at 125 Hz polling. Adding scalar accessors (<code>g_window.getMouseX/getMouseY</code>) is the cheap half.</li>
+      <li><b><code>UIWidget::getChildren()</code> returns <code>m_children</code> by value</b> (<code>uiwidget.h:734</code>) — a vector copy plus a refcount bump per child, then a Lua table. <code>uiminiwindow.lua</code> calls it four times per mouse-move while dragging. Expose <code>getChildCount()</code>/<code>getChildByIndex()</code>.</li>
+      <li><b>Key combo descriptors</b> — <code>keyboard.lua</code> rebuilds 2–4 strings per key event, ~33 Hz per held key, for a pure function of two small integers. Memoise in Lua or expose <code>g_window.getKeyComboDesc</code>.</li>
+      <li><b>Mini-window container layout</b> — <code>uiminiwindowcontainer.lua</code>'s <code>fitAll</code> is constraint-based vertical space distribution with per-child min/max. That's engine layout, and there is no C++ <code>UIScrollBar</code> or container layout to fall back on.</li>
+      <li><b>Cyclopedia item index</b> — <code>items.lua</code> marshals the whole item catalogue one userdata at a time and sorts in Lua. The 300-per-frame chunking is in-repo evidence the synchronous version stalled. <code>ThingTypeManager</code> already holds every field it needs.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ STAY ============ -->
+<section class="verdict" data-v="stay">
+  <div class="vhead">
+    <span class="vmark">Keep in Lua</span>
+    <h2>Roughly 200,000 lines, correctly placed</h2>
+  </div>
+  <p class="vlede measure">Listing these explicitly so a line-count heuristic doesn't sweep them up later. Several are the obvious migration targets that turn out not to be.</p>
+
+  <div class="cards">
+
+    <article class="card">
+      <h3>The protocol boundary is already right</h3>
+      <p class="where">src/client/protocolgameparse.cpp → modules/gamelib/protocolgame.lua</p>
+      <p>Lua does no wire parsing anywhere. Every byte is read by bounds-checked C++ and Lua only ever sees typed arguments. This is the security-sensitive path and it's in the right language — there is nothing to pull out and no argument for pushing more in.</p>
+      <p>One structural hazard worth knowing: because a Lua handler can consume bytes and return true, a handler that under-reads leaves the stream mid-opcode. That's a design property, not a bug in any one file.</p>
+      <div class="tags"><span class="tag hot">already correct</span></div>
+    </article>
+
+    <article class="card">
+      <h3>There is no pathfinding in Lua to migrate</h3>
+      <p class="where">modules/game_walk/walk.lua</p>
+      <p>The single most obvious C++ candidate isn't one. Path search is already entirely in <code>Map::findPath</code>; Lua only supplies a destination. What remains runs per keystroke and does 1–3 <code>g_map.getTile</code> calls — bounded by human finger speed.</p>
+      <p>The logic it does hold — smart-walk diagonal preference, the always-walk rules — is exactly the server-specific behaviour owners tune.</p>
+      <div class="tags"><span class="tag hot">already correct</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Big files that are just data</h3>
+      <p class="where">gamelib/spells.lua · gamelib/wheeldestiny.lua · game_cyclopedia/** · data/locales/**</p>
+      <p><code>spells.lua</code> is ~94% static table. <code>wheeldestiny.lua</code> is 100% content expressed as builder calls, evaluated once at load — no hidden tick loop. <code>game_cyclopedia</code> is 26,029 lines of content tables and open-a-window UI that sits idle until a player opens a tab.</p>
+      <p>The scariest-looking accessors — <code>getSpellByIcon</code> and friends doing nested <code>pairs</code> scans — traverse about 160 entries on a cooldown packet. Sub-microsecond. Moving any of this to C++ would freeze taxonomies that differ per server and buy nothing anyone can perceive.</p>
+      <div class="tags"><span class="tag hot">content, not engine</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Automation rules — the policy half</h3>
+      <p class="where">modules/game_helper/**</p>
+      <p>Spell ids, rune ids, race priorities, HP thresholds, vocation gating, stance ordering: all server-specific content that users edit live through the UI and expect to hot-reload. The schema visibly still churns (harmony, forceCast, <code>useTo=bestTile</code> read as recent additions) — freezing it in C++ now would be premature.</p>
+      <p>What these modules need isn't migration, it's memoisation. The healer rebuilds and sorts its entry list three times per 50 ms tick for an ordering that only changes when the user edits config. <code>helper_target</code> rebuilds a priority index twice per creature per tick. <code>helper_heal_friend</code> does ~480 string allocations per tick normalising names that are constant. All three fixes are pure Lua, and this codebase already knows the pattern — <code>helper_conditions.lua:783</code> and <code>helper_tools.lua:1720</code> both cache correctly.</p>
+      <div class="tags"><span class="tag hot">user policy</span><span class="tag">fix in Lua</span></div>
+    </article>
+
+    <article class="card">
+      <h3>The model of what the split should look like</h3>
+      <p class="where">modules/game_creatureinformation/ · modules/game_attachedeffects/</p>
+      <p>Per-frame per-creature drawing was already moved into C++ and the Lua version demoted to a warned-about fallback. <code>game_attachedeffects</code> is pure declarative config — effect id to sprite, offset, duration — over a C++ effect system that does all the per-frame work.</p>
+      <p>This is the direction of travel the rest of the recommendations follow: draw and scan in C++, decide in Lua.</p>
+      <div class="tags"><span class="tag hot">reference pattern</span></div>
+    </article>
+
+  </div>
+
+  <div class="also">
+    <p>Also correctly placed</p>
+    <ul>
+      <li><b><code>corelib/keybind.lua</code></b> (1,187 lines) — it only <em>binds</em>. Key dispatch is not happening in Lua per keypress; callbacks fire once per press.</li>
+      <li><b><code>modulelib/controller.lua</code></b> — not a hot dispatch layer and adds zero crossings per event. Handlers are installed on the widget and invoked directly by C++. Lifecycle glue that mods extend.</li>
+      <li><b><code>client_options/**</code></b> (12,341 lines) — config plumbing. <code>setOption</code> runs on user interaction only. The option set is precisely what server owners extend.</li>
+      <li><b><code>gamelib/creature_list.lua</code></b> — the spatial query stays in C++ where it belongs; this is per-event UI policy over it. Not a re-derived spectator query.</li>
+      <li><b><code>gamelib/player.lua</code></b> food regen — a 5,000 ms cycle doing two nil-guarded calls and a subtraction. It also stores a timestamp and derives on demand rather than decrementing per tick, which is the robust shape already.</li>
+      <li><b><code>gamelib/engine_compat.lua</code></b> — <code>install</code> is self-disabling, so each shim evaporates when the real binding lands. Zero runtime cost. Worth auditing the entries that fabricate data, not the mechanism.</li>
+      <li><b>The big mods</b> — <code>proficiency.lua</code> (3,655 L) and <code>t_market.lua</code> (3,625 L) have no recurring timer and no per-frame handler between them.</li>
+      <li><b><code>game_interface</code> sidebar and <code>game_console</code></b> — already coalesce layout into one <code>addEvent</code> per frame, cap the console at 100 recycled labels, and batch with <code>disableUpdateTemporarily</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CUT ============ -->
+<section class="verdict" data-v="cut">
+  <div class="vhead">
+    <span class="vmark">Delete</span>
+    <h2>Duplicated work, in both directions</h2>
+  </div>
+  <p class="vlede measure">The clearest wins in the whole audit, because nothing has to be designed — one of the two copies just goes away.</p>
+
+  <div class="cards">
+
+    <article class="card">
+      <h3>Two complete HTML/CSS engines, and the C++ one is unreachable</h3>
+      <p class="where">src/framework/html/** (5,075 L, compiled &amp; bound) vs modules/modulelib/htmlcssparser/** (1,575 L, live)</p>
+      <p><code>g_html</code> is registered at <code>luafunctions.cpp:482-487</code> with <code>load</code>, <code>createWidgetFromHTML</code>, <code>addGlobalStyle</code> and <code>getRootWidget</code>. It has <strong>zero call sites</strong> across every <code>.lua</code> file in the repo. Meanwhile <code>Controller:loadHtml</code> routes through the pure-Lua <code>HtmlParser</code>, and that's what <code>game_prey_html</code>, <code>game_npctrader_html</code>, <code>game_blessing</code> and <code>game_htmlsample</code> actually use.</p>
+      <p>The Lua loader also implements reactive attribute binding by <em>polling</em>: <code>htmlloader.lua:3</code> sets <code>WATCH_CYCLE_CHECK_MS = 50</code> and re-evaluates the watch list 20 times a second.</p>
+      <p class="fix"><b>Decide which one lives.</b> Parsing is infrastructure and malformed-input handling matters, so the C++ engine is the better home — but it has never been exercised, so treat "switch to it" as a real project, not a flag flip. What isn't defensible is carrying both.</p>
+      <div class="tags"><span class="tag hot">4,500+ lines duplicated</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Cooldown sweeps that C++ already animates</h3>
+      <p class="where">modules/game_actionbar/game_actionbar.lua:8045-8072</p>
+      <p><code>updateCooldown</code> re-schedules itself every 100 ms per active cooldown: one closure and one <code>ScheduledEvent</code> per tick, 2–4 crossings, and a <code>string.format</code> allocating a fresh string each time. A spell burst across a full nine-bar layout puts dozens of these chains in flight at once.</p>
+      <p><code>UIProgressRect</code> already does this natively — <code>uiprogressrect.cpp</code>'s <code>start()</code> tracks <code>m_startTime</code>, <code>m_duration</code> and <code>m_timeElapsed</code> and fires <code>onProgressFinish</code> — and <code>setDuration</code>, <code>start</code>, <code>stop</code> and <code>showTime</code> are all bound at <code>luafunctions.cpp:1334-1342</code>.</p>
+      <p class="fix"><b>Fix:</b> call <code>setDuration(ms)</code> + <code>start()</code> and handle <code>onProgressFinish</code>. Delete the ticker.</p>
+      <div class="tags"><span class="tag hot">100 ms per cooldown</span><span class="tag">high payoff</span><span class="tag">small effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>Dead debug machinery that every event still pays for</h3>
+      <p class="where">modules/corelib/globals.lua:8-13, :132-160</p>
+      <p>The wrappers capture <code>g_dispatcher.setNextEventSource</code>, <code>hasNextEventSource</code> and <code>setActiveEventSource</code>. None of those exist anywhere in <code>src/</code> — all three resolve to <code>nil</code>, so the ~120 lines of <code>debug.getinfo</code> stack-walking they feed is unreachable.</p>
+      <p>But <code>_wrapEventCallback</code> still runs unconditionally: it allocates a <strong>new closure per scheduled event</strong> and wraps every fire in a <code>pcall</code> frame, purely to service hooks that aren't there. There are ~473 <code>addEvent</code>/<code>scheduleEvent</code>/<code>cycleEvent</code> call sites.</p>
+      <p class="fix"><b>Fix:</b> either implement the C++ side or delete the wrappers and restore the native functions. Right now you have the cost without the feature.</p>
+      <div class="tags"><span class="tag hot">every scheduled event</span><span class="tag">small effort</span></div>
+    </article>
+
+    <article class="card">
+      <h3>A guard that never fires</h3>
+      <p class="where">modules/corelib/ui/tooltip.lua:274, :301</p>
+      <p><code>local function moveToolTip(first)</code> opens with <code>if not first and (not toolTipLabel:isVisible() …) then return end</code>. Connected as <code>onMouseMove</code>, the signal passes <code>(widget, mousePos, mouseMoved)</code> — so <code>first</code> receives the widget, is always truthy, and the early-out is dead. The full position math (three Lua tables allocated: mouse position, window size, label size) runs on every mouse-move for the rest of the session once any tooltip has been shown.</p>
+      <p class="fix"><b>Fix:</b> one character — <code>function moveToolTip(_, first)</code> — or check visibility unconditionally.</p>
+      <div class="tags"><span class="tag hot">every mouse move</span><span class="tag">small effort</span></div>
+    </article>
+
+  </div>
+
+  <div class="also">
+    <p>Straightforward removals</p>
+    <ul>
+      <li><b><code>corelib/struct.lua</code></b> — 203 lines of pure-Lua binary pack/unpack with zero call sites, parsed at every client start. Worse than useless: it sits beside the code that handles binary data and invites someone to use it for protocol work that must stay in C++.</li>
+      <li><b><code>battle.lua</code> duplicating <code>creature_list.lua</code></b> — ~800 lines of parallel list machinery, both loaded every session. Guarantees drift: a sort-stability fix applied to one won't reach the other, and the battle list and party list will disagree.</li>
+      <li><b>Two copies of <code>canBeSeen</code></b> — <code>creature_list.lua:74</code> and <code>battle.lua:2315</code>, the latter a bare global. Whichever loads last wins if they ever diverge. Nearby, <code>table.remove(queue, 1)</code> in a drain loop is an accidental O(n²) inside batching that exists to avoid a frame spike.</li>
+      <li><b>Container slot decorations</b> — count and duration rendering in <code>containers.lua</code> duplicates <code>uiitem.cpp</code> down to the format strings, and adds ~5 extra widgets per slot (a 36-slot backpack becomes ~250 widgets).</li>
+      <li><b>Empty tombstones</b> — <code>mods/game_bot</code>, <code>game_walker</code>, <code>game_huntfinder</code>, <code>mods/game_helper</code> and <code>modules/game_analyser</code> contain no Lua at all. They shadow the real modules (<code>modules/game_helper</code>, <code>modules/game_analysers</code>) and mislead anyone grepping.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ ORDER ============ -->
+<section class="verdict order" data-v="down" style="--vcolor:var(--accent);--vbg:var(--stay-bg)">
+  <div class="vhead">
+    <span class="vmark">Sequence</span>
+    <h2>If you do one thing, then the next</h2>
+  </div>
+  <p class="vlede measure">Ordered by payoff per unit of risk. The first three are hours, not weeks, and two of them speed up code you never touch.</p>
+
+  <ol>
+    <li>
+      <b>Fix the four cheap defects</b>
+      <p>The tooltip guard, the dead event-source wrappers, <code>struct.lua</code>, and the empty mod stubs. No design decisions, no API surface, immediately measurable.</p>
+      <span class="cost">hours · zero risk</span>
+    </li>
+    <li>
+      <b>Gate the templated <code>callLuaField</code></b>
+      <p>One overload in <code>luaobject.h</code>. Every widget in every cursor chain stops paying for handlers that don't exist. Decide the nil-invalidation question deliberately while you're in there.</p>
+      <span class="cost">small · touches every input event</span>
+    </li>
+    <li>
+      <b>Kill the <code>"get_" + key</code> concatenation</b>
+      <p>Precompute prefixed keys at <code>registerClass</code> time. This is the one change that makes all 236k lines of Lua faster without editing any of it. Preserve lookup order exactly.</p>
+      <span class="cost">medium · highest leverage in the repo</span>
+    </li>
+    <li>
+      <b>Retire the two duplicated animations</b>
+      <p>Actionbar cooldowns onto <code>UIProgressRect::start()</code>, the proficiency ring onto <code>UIProgressArc</code>. Both C++ widgets exist and are already bound — this is deletion, not migration.</p>
+      <span class="cost">small · high payoff</span>
+    </li>
+    <li>
+      <b>Add <code>g_map.queryCreatures</code></b>
+      <p>One flat-array spectator query with filter options. Then port <code>helper_shooter</code>, <code>helper_heal_friend</code>, <code>helper_autoparty</code> and <code>battle.lua</code> onto it one at a time. Rules stay in Lua throughout.</p>
+      <span class="cost">medium · unblocks four call sites</span>
+    </li>
+    <li>
+      <b>Memoise inside game_helper</b>
+      <p>Cache the healer's sorted lists, the target priority index, and the normalised party names. Pure Lua, no boundary work, and the codebase already has the pattern in <code>helper_conditions</code> and <code>helper_tools</code>.</p>
+      <span class="cost">small · no C++ needed</span>
+    </li>
+    <li>
+      <b>Decide the HTML engine question</b>
+      <p>5,075 lines of C++ or 1,575 lines of Lua — pick one and delete the other. The C++ path is the better home for a parser but has never been exercised, so scope it as a project.</p>
+      <span class="cost">large · mostly a decision</span>
+    </li>
+    <li>
+      <b>Then the big spatial ones</b>
+      <p>Minimap marker layer and the battle-list sorted query. Real design work, real payoff, but only worth starting once the cheap leverage above is banked.</p>
+      <span class="cost">large</span>
+    </li>
+  </ol>
+</section>
+
+<footer class="method">
+  <h3>How this was checked</h3>
+  <p>Four agents read disjoint slices of the Lua surface — corelib and the input path, gamelib and protocol, the game_helper automation stack, and the large UI modules plus the binding surface. Every finding above was then re-verified directly against the source: the string concatenation in <code>luainterface.cpp</code>, the missing gate in <code>luaobject.h</code>, the 184 pixel widgets, the <code>UIProgressRect</code> and <code>UIProgressArc</code> bindings, the zero <code>g_html</code> call sites, the marker count in <code>markers.json</code>, the dead dispatcher hooks, and the tooltip signature.</p>
+  <p>Two claims that came back were corrected in the process. The <code>game_helper</code> tick allocating a four-field table 20 times a second is not a migration argument — that's negligible on LuaJIT, and it's listed under memoisation instead. And <code>globals.lua</code>'s wrappers aren't built on missing dispatcher functions; <code>addEvent</code>, <code>scheduleEvent</code> and <code>cycleEvent</code> are all bound. It's the three <em>event-source debug</em> hooks that don't exist.</p>
+  <p>Also worth knowing while you weigh any of this: <code>GarbageCollection::poll</code> runs a full <code>LUA_GCCOLLECT</code> — twice, back to back — every 60 seconds, with the source comment noting it "costs a few ms". That stall scales with the size of the Lua heap, which is the one place where total Lua volume, rather than Lua hotness, actually shows up.</p>
+</footer>
+
+</div>
+</body>
+</html>
