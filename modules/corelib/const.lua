@@ -362,3 +362,10 @@ SoundChannels = {
 	Music = 1,
 	Effect = 3
 }
+
+-- Soundbank effect ids of type NUMERIC_SOUND_TYPE_UI (12). Playing these through
+-- g_sounds.playSoundEffect keeps them subject to the "uiInteractions" option.
+UISoundEffects = {
+	Click = 2774,
+	ClickAlternate = 2775
+}

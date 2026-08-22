@@ -587,3 +587,12 @@ local combatNames = {
 function getCombatName(combatId)
 	return combatNames[combatId] or "Unknown"
 end
+
+
+-- Plays the shared UI interaction click. Safe to call before the soundbank is
+-- loaded: playSoundEffect resolves nothing and returns quietly in that case.
+function playUIClickSound(effectId)
+	if g_sounds and g_sounds.playSoundEffect then
+		g_sounds.playSoundEffect(effectId or UISoundEffects.Click)
+	end
+end
