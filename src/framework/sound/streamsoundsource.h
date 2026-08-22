@@ -44,7 +44,6 @@ public:
     void setLooping(bool looping) override;
 
     bool isPlaying() override { return m_playing; }
-    bool isLooping() const override { return m_looping; }
 
     void setSoundFile(const SoundFilePtr& soundFile);
 
@@ -65,7 +64,6 @@ private:
     // will accept
     std::vector<uint32_t> m_freeBuffers;
     DownMix m_downMix;
-    bool m_looping{ false };
     bool m_playing{ false };
     bool m_eof{ false };
     bool m_waitingFile{ false };

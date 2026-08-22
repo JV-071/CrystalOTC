@@ -103,7 +103,9 @@ void StreamSoundSource::stop()
 void StreamSoundSource::setLooping(const bool looping)
 {
     // Streaming sources queue multiple OpenAL buffers, so AL_LOOPING cannot be
-    // used. Rewind the stream in fillBufferAndQueue() instead.
+    // used. Record the flag for isLooping() and rewind the stream in
+    // fillBufferAndQueue() instead - deliberately without SoundSource::setLooping,
+    // which would set AL_LOOPING on the queue.
     m_looping = looping;
 }
 

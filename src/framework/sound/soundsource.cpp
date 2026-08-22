@@ -86,6 +86,10 @@ void SoundSource::setBuffer(const SoundBufferPtr& buffer)
 
 void SoundSource::setLooping(const bool looping)
 {
+    // recorded before the guard: a source whose alGenSources failed, and
+    // CombinedSoundSource, both carry id 0 and would otherwise never remember it
+    m_looping = looping;
+
     if (m_sourceId == 0) return;
     alSourcei(m_sourceId, AL_LOOPING, looping ? AL_TRUE : AL_FALSE);
 }

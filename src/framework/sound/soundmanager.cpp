@@ -292,18 +292,30 @@ SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, f
 
     ensureContext();
 
-    // Enforce the source limit before creating new ones. Looping sources are
-    // exempt: music and ambience are long-lived, so they are always the oldest
-    // entries and a plain front-eviction would silence them the moment enough
-    // effects are in flight.
-    static constexpr size_t MAX_SOURCES = 16;
+    // Enforce the source limit before creating new ones. Whatever the channels
+    // are playing is exempt: music and ambience are long-lived, so they are
+    // always the oldest entries and a plain front-eviction would silence them
+    // the moment enough effects are in flight. Testing the channels rather than
+    // isLooping() matters because a one-shot effect can be looping too.
+    const auto ownedByChannel = [this](const SoundSourcePtr& source) {
+        for (const auto& [id, channel] : m_channels) {
+            if (channel && channel->m_currentSource == source)
+                return true;
+        }
+        return false;
+    };
+
+    // Raised from 16 when item ambients arrived: the exempt set used to be
+    // music and ambience alone, and can now be nine or more, which would have
+    // left effects fighting over the remainder.
+    static constexpr size_t MAX_SOURCES = 24;
     while (m_sources.size() >= MAX_SOURCES) {
         auto it = m_sources.begin();
-        while (it != m_sources.end() && (*it)->isLooping())
+        while (it != m_sources.end() && ownedByChannel(*it))
             ++it;
 
         if (it == m_sources.end())
-            break; // every live source loops; let this one exceed the limit
+            break; // every live source belongs to a channel; let this one through
 
         (*it)->stop();
         m_sources.erase(it);
