@@ -27,7 +27,15 @@
 
 using DelayedSoundEffect = std::pair<uint32_t, uint32_t>;
 using DelayedSoundEffects = std::vector<DelayedSoundEffect>;
-using ItemCountSoundEffect = std::pair<uint32_t, uint32_t>;
+// "once this many are on screen, loop this file". Deliberately a named struct:
+// as a pair it was declared count-first and filled sound-id-first, and the
+// thresholds are large enough (624, 786) to look like plausible counts, so the
+// inversion would have gone unnoticed.
+struct ItemCountSoundEffect
+{
+    uint32_t count;
+    uint32_t loopingAudioFileId;
+};
 using ItemCountSoundEffects = std::vector<ItemCountSoundEffect>;
 
 class StreamSoundSource;
@@ -110,6 +118,16 @@ struct ClientSoundEffect
 };
 
 // client location ambient parsed from the protobuf file
+// an entry of the soundbank's audio file table
+struct ClientSoundFile
+{
+    std::string filename;
+    // the bank's own answer to "is this too long to hold in memory". Without it
+    // preload() decodes a multi-megabyte track in full only to throw it away for
+    // exceeding MAX_CACHE_SIZE.
+    bool isStream;
+};
+
 struct ClientLocationAmbient
 {
     uint32_t clientId;
@@ -134,7 +152,15 @@ struct ClientItemAmbient
     // 5 -> 625
     // means that when there is one item on the screen, an audio file number 630 should play
     // once there are 5 of them, the client should play an audio file number 625
+    //
+    // The bank does NOT store these in ascending order - one entry lists 5
+    // before 1 - so they are sorted at load time and selection takes the
+    // highest threshold that the count reaches.
     ItemCountSoundEffects itemCountSoundEffects;
+
+    // how near the player an item has to be to count, in tiles. 0 means the
+    // whole screen.
+    uint32_t maxSoundDistance{ 0 };
 };
 
 struct ClientMusic
@@ -184,6 +210,20 @@ public:
     void setUiSoundEffect(const uint32_t effectId) { m_uiSoundEffectId = effectId; }
     void playUiSoundEffect() { if (m_uiSoundEffectId != 0) playSoundEffect(m_uiSoundEffectId); }
     void playAmbienceSound(uint32_t ambienceId);
+
+    // Item ambients: a waterfall or campfire loops while enough of its items are
+    // on screen. The client counts them - only it can see the map - and the
+    // framework decides what that means and plays it.
+    struct ItemAmbientQuery
+    {
+        std::vector<uint16_t> clientIds; // item client ids that count
+        uint32_t maxDistance;            // in tiles, 0 = the whole screen
+    };
+    const std::vector<ItemAmbientQuery>& getItemAmbientQueries() const { return m_itemAmbientQueries; }
+    // bumped whenever the queries are rebuilt, so a cached index can tell that
+    // a different soundbank loaded even if it happens to hold as many entries
+    uint32_t getItemAmbientGeneration() const { return m_itemAmbientGeneration; }
+    void setItemAmbientCounts(const std::vector<uint16_t>& counts);
     void playMusic(uint32_t musicId);
     void stopAmbienceSound();
     void stopMusic();
@@ -198,6 +238,9 @@ private:
     bool loadFromProtobuf(const std::string& directory, const std::string& fileName);
 
     bool isFilterEnabled(std::string_view category) const;
+    void updateAmbientDelayedEffects();
+    void buildItemAmbientQueries();
+    void stopItemAmbients();
     void subscribeDeviceEvents();
     void unsubscribeDeviceEvents();
     void followDefaultDevice();
@@ -216,7 +259,7 @@ private:
 
     // soundbanks for protocol 13 and newer
     std::string m_soundDirectory;
-    std::map<uint32_t, std::string> m_clientSoundFiles;
+    std::map<uint32_t, ClientSoundFile> m_clientSoundFiles;
     std::map<uint32_t, ClientSoundEffect> m_clientSoundEffects;
 
     // the music track currently playing, so a repeated anthem packet does not
@@ -226,6 +269,27 @@ private:
     // the location ambience currently playing, for the same reason - and so a
     // repeat does not keep resetting the timers below
     uint32_t m_currentAmbienceId{ 0 };
+
+    // The effects the bank pairs with the current location ambience: a bird
+    // call, a distant splash, each on its own period.
+    struct PendingAmbientEffect
+    {
+        uint32_t effectId;
+        ticks_t period;
+        ticks_t nextPlay;
+    };
+    std::vector<PendingAmbientEffect> m_ambientDelayedEffects;
+
+    // built once per soundbank load, in the order setItemAmbientCounts expects
+    std::vector<ItemAmbientQuery> m_itemAmbientQueries;
+    std::vector<uint32_t> m_itemAmbientEffectIds; // parallel to the queries
+    uint32_t m_itemAmbientGeneration{ 0 };
+
+    // audio file id -> the channel looping it. Keyed on the FILE, not the
+    // effect: two effects can select the same file at once and it must not be
+    // started twice at double volume.
+    std::unordered_map<uint32_t, int> m_itemAmbientChannels;
+    std::vector<int> m_freeItemAmbientChannels;
 
     uint32_t m_uiSoundEffectId{ 0 };
     std::map<uint32_t, ClientLocationAmbient> m_clientAmbientEffects;

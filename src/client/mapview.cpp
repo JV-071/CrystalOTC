@@ -25,6 +25,7 @@
 #include <framework/graphics/render/poolcompiler.h>
 
 #include <framework/graphics/drawpoolmanager.h>
+#include <framework/sound/soundmanager.h>
 
 #include "animatedtext.h"
 #include "creature.h"
@@ -179,6 +180,62 @@ void MapView::preLoad() {
     }
 
     g_map.updateAttachedWidgets(static_self_cast<MapView>());
+
+    updateItemAmbientSounds();
+}
+
+// A waterfall or a campfire loops while enough of its items are on screen. The
+// soundbank says which item ids count and how many are needed; only the map can
+// answer how many there are, so the count happens here.
+void MapView::updateItemAmbientSounds()
+{
+    const auto& queries = g_sounds.getItemAmbientQueries();
+    if (queries.empty())
+        return;
+
+    // The answer only moves when items or the camera do, and either way a
+    // fraction of a second late is inaudible - so this is throttled rather than
+    // hung off every tile update.
+    if (m_itemAmbientTimer.ticksElapsed() < 250)
+        return;
+
+    m_itemAmbientTimer.restart();
+
+    if (m_itemAmbientGeneration != g_sounds.getItemAmbientGeneration()) {
+        m_itemAmbientGeneration = g_sounds.getItemAmbientGeneration();
+        m_itemAmbientIndex.clear();
+        for (size_t i = 0; i < queries.size(); ++i) {
+            for (const uint16_t clientId : queries[i].clientIds)
+                m_itemAmbientIndex[clientId].push_back(static_cast<uint8_t>(i));
+        }
+    }
+
+    m_itemAmbientCounts.assign(queries.size(), 0);
+
+    const auto& cameraPosition = m_posInfo.camera;
+    for (int_fast8_t z = m_floorMax; z >= m_floorMin; --z) {
+        for (const auto& tile : m_floors[z].cachedVisibleTiles.tiles) {
+            const auto& tilePosition = tile->getPosition();
+            for (const auto& thing : tile->getThings()) {
+                // creatures share this vector and override getId(), so ask for
+                // the client id directly and skip anything that is not an item
+                if (!thing->isItem())
+                    continue;
+
+                const auto entry = m_itemAmbientIndex.find(thing->getClientId());
+                if (entry == m_itemAmbientIndex.end())
+                    continue;
+
+                for (const uint8_t query : entry->second) {
+                    const uint32_t maxDistance = queries[query].maxDistance;
+                    if (maxDistance == 0 || cameraPosition.isInRange(tilePosition, maxDistance, maxDistance, true))
+                        ++m_itemAmbientCounts[query];
+                }
+            }
+        }
+    }
+
+    g_sounds.setItemAmbientCounts(m_itemAmbientCounts);
 }
 
 void MapView::drawFloor()

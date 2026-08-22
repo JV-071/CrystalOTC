@@ -39,6 +39,7 @@ public:
     void drawForeground(const Rect& rect);
     void drawCreatureInformation();
     void preLoad();
+    void updateItemAmbientSounds();
 
     // floor visibility related
     uint8_t getLockedFirstVisibleFloor() const { return m_lockedFirstVisibleFloor; }
@@ -313,6 +314,14 @@ private:
     Otc::AntialiasingMode m_antiAliasingMode{ Otc::ANTIALIASING_DISABLED };
 
     std::vector<FloorData> m_floors;
+
+    // Item ambients: item client id -> the soundbank entries it feeds. Only the
+    // map knows what is on screen, so the counting happens here and the sound
+    // framework is handed nothing but numbers.
+    stdext::map<uint16_t, std::vector<uint8_t>> m_itemAmbientIndex;
+    std::vector<uint16_t> m_itemAmbientCounts;
+    uint32_t m_itemAmbientGeneration{ 0 };
+    Timer m_itemAmbientTimer;
     std::vector<std::vector<FloorData>> m_floorThreads;
 
     std::vector<TilePtr> m_foregroundTiles;

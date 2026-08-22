@@ -240,6 +240,8 @@ void SoundManager::poll()
         it.second->update();
     }
 
+    updateAmbientDelayedEffects();
+
     if (m_context) {
         alcProcessContext(m_context);
     }
@@ -383,6 +385,9 @@ void SoundManager::stopAll()
     }
 
     m_currentMusicId = 0;
+    m_currentAmbienceId = 0;
+    m_ambientDelayedEffects.clear();
+    stopItemAmbients();
 }
 
 SoundSourcePtr SoundManager::createSoundSource(const std::string& name)
@@ -582,7 +587,10 @@ bool SoundManager::loadFromProtobuf(const std::string& directory, const std::str
 
         // deserialize audio files
         for (const auto& protobufAudioFile : protobufSounds.sound()) {
-            m_clientSoundFiles[protobufAudioFile.id()] = protobufAudioFile.filename();
+            m_clientSoundFiles[protobufAudioFile.id()] = ClientSoundFile{
+                protobufAudioFile.filename(),
+                protobufAudioFile.is_stream()
+            };
         }
 
         // deserialize sound effects
@@ -633,14 +641,20 @@ bool SoundManager::loadFromProtobuf(const std::string& directory, const std::str
 
             ItemCountSoundEffects soundEffects = {};
             for (const auto& soundEffect : protobufItemAmbient.sound_effects()) {
-                soundEffects.push_back({ soundEffect.looping_sound_id(), soundEffect.count() });
+                soundEffects.push_back({ soundEffect.count(), soundEffect.looping_sound_id() });
             }
+
+            // the bank stores these unordered; selection wants the highest
+            // threshold the count reaches
+            std::sort(soundEffects.begin(), soundEffects.end(),
+                      [](const ItemCountSoundEffect& a, const ItemCountSoundEffect& b) { return a.count < b.count; });
 
             uint32_t effectId = protobufItemAmbient.id();
             m_clientItemAmbientEffects.emplace(effectId, ClientItemAmbient{
                 effectId,
                 std::move(itemClientIds),
-                std::move(soundEffects)
+                std::move(soundEffects),
+                protobufItemAmbient.max_sound_distance()
             });
         }
 
@@ -669,6 +683,11 @@ bool SoundManager::loadClientFiles(const std::string& directory)
     // between a broken soundbank and every effect silently missing its lookup.
     m_soundDirectory.clear();
     m_currentMusicId = 0;
+    m_currentAmbienceId = 0;
+    m_ambientDelayedEffects.clear();
+    stopItemAmbients();
+    m_itemAmbientQueries.clear();
+    m_itemAmbientEffectIds.clear();
     m_clientSoundFiles.clear();
     m_clientSoundEffects.clear();
     m_clientAmbientEffects.clear();
@@ -689,6 +708,7 @@ bool SoundManager::loadClientFiles(const std::string& directory)
 
         if (loaded) {
             m_soundDirectory = directory;
+            buildItemAmbientQueries();
         }
         else
             g_logger.warning("no soundbank was loaded from '{}': the client has no effects, ambience or music", directory);
@@ -706,7 +726,7 @@ bool SoundManager::loadClientFiles(const std::string& directory)
 std::string SoundManager::getAudioFileNameById(int32_t audioFileId)
 {
     if (m_clientSoundFiles.contains(audioFileId)) {
-        return m_clientSoundFiles[audioFileId];
+        return m_clientSoundFiles[audioFileId].filename;
     }
 
     return "";
@@ -874,7 +894,7 @@ void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
     if (fileIt == m_clientSoundFiles.end())
         return;
 
-    const std::string filename = m_soundDirectory + fileIt->second;
+    const std::string filename = m_soundDirectory + fileIt->second.filename;
 
     // throttle: skip if same sound was played less than 150ms ago
     auto& lastTime = m_lastPlayTime[filename];
@@ -882,9 +902,12 @@ void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
         return;
     lastTime = now;
 
-    // preload short sound effects as buffers for efficient playback
-    // (avoids creating 2 streaming sources per effect on Linux)
-    preload(filename);
+    // Cache short effects as buffers for efficient playback (and to avoid
+    // creating 2 streaming sources per effect on Linux). Files the bank flags as
+    // streams are skipped: preload would decode them in full only to discard
+    // them for exceeding MAX_CACHE_SIZE.
+    if (!fileIt->second.isStream)
+        preload(filename);
 
     // randomize pitch and volume
     float pitch = 1.0f;
@@ -933,20 +956,188 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
         return;
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
-    if (fileIt == m_clientSoundFiles.end())
+    if (fileIt == m_clientSoundFiles.end()) {
+        g_logger.traceError("ambience id {} names audio file {}, which the soundbank does not have", ambienceId, audioFileId);
+        return;
+    }
+
+    const std::string filename = m_soundDirectory + fileIt->second.filename;
+
+    const auto& channel = getChannel(SOUND_CHANNEL_AMBIENT);
+    if (!channel)
         return;
 
-    const std::string filename = m_soundDirectory + fileIt->second;
+    channel->stop(3.0f);
+    // A location ambience loops, and saying so lets the stream recover from an
+    // underrun instead of leaving the channel wedged on a source that stopped
+    // but still claims to be playing.
+    channel->enqueue(filename, 3.0f, 1.0f, 1.0f, true);
 
-    const auto& channel = getChannel(2); // SoundChannels.Ambient
-    if (channel) {
-        channel->stop(3.0f);
-        channel->enqueue(filename, 3.0f);
+    m_currentAmbienceId = ambienceId;
+
+    // Arm the effects that punctuate this ambience. delay_seconds is read as a
+    // period rather than a one-shot deadline: streams pair several effects with
+    // the same delay, which as deadlines would fire them all on the same tick
+    // and then never again. For that same reason the first play of each is
+    // placed at a random point inside its own window, so identical periods do
+    // not stack up on one another.
+    m_ambientDelayedEffects.clear();
+    const ticks_t now = g_clock.millis();
+    for (const auto& [delayedEffectId, delaySeconds] : ambient.delayedSoundEffects) {
+        if (delaySeconds == 0)
+            continue;
+
+        const ticks_t period = static_cast<ticks_t>(delaySeconds) * 1000;
+        m_ambientDelayedEffects.emplace_back(delayedEffectId, period, now + (rand() % period));
+    }
+}
+
+void SoundManager::updateAmbientDelayedEffects()
+{
+    if (m_ambientDelayedEffects.empty())
+        return;
+
+    const ticks_t now = g_clock.millis();
+    for (auto& pending : m_ambientDelayedEffects) {
+        if (now < pending.nextPlay)
+            continue;
+
+        // These carry NUMERIC_SOUND_TYPE_AMBIENCE_STREAM, so playSoundEffect
+        // routes them to the ambience channel and they follow its slider.
+        playSoundEffect(pending.effectId);
+        pending.nextPlay = now + pending.period;
+    }
+}
+
+void SoundManager::buildItemAmbientQueries()
+{
+    m_itemAmbientQueries.clear();
+    m_itemAmbientEffectIds.clear();
+    ++m_itemAmbientGeneration;
+
+    for (const auto& [effectId, ambient] : m_clientItemAmbientEffects) {
+        if (ambient.clientIds.empty() || ambient.itemCountSoundEffects.empty())
+            continue;
+
+        auto ids = ambient.clientIds;
+        std::sort(ids.begin(), ids.end());
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+
+        std::vector<uint16_t> clientIds;
+        clientIds.reserve(ids.size());
+        for (const uint32_t id : ids) {
+            // map thing ids are 16 bit; anything wider could never match one
+            if (id <= std::numeric_limits<uint16_t>::max())
+                clientIds.push_back(static_cast<uint16_t>(id));
+        }
+
+        if (clientIds.empty())
+            continue;
+
+        m_itemAmbientQueries.emplace_back(std::move(clientIds), ambient.maxSoundDistance);
+        m_itemAmbientEffectIds.push_back(effectId);
+    }
+}
+
+void SoundManager::stopItemAmbients()
+{
+    for (const auto& [audioFileId, channelId] : m_itemAmbientChannels) {
+        if (const auto& channel = getChannel(channelId))
+            channel->stop(1.0f);
+    }
+
+    m_itemAmbientChannels.clear();
+    m_freeItemAmbientChannels.clear();
+}
+
+// Called by the client with one count per query, in query order: how many of
+// that entry's items are currently on screen (and near enough, where the entry
+// asks for that).
+void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
+{
+    if (counts.size() != m_itemAmbientQueries.size())
+        return;
+
+    if (!isAudioEnabled() || m_soundDirectory.empty()) {
+        stopItemAmbients();
+        return;
+    }
+
+    // Which files should be looping now. Deduped by file: two entries can
+    // select the same one, and starting it twice would just double its volume.
+    std::vector<uint32_t> wanted;
+    for (size_t i = 0; i < counts.size(); ++i) {
+        const auto it = m_clientItemAmbientEffects.find(m_itemAmbientEffectIds[i]);
+        if (it == m_clientItemAmbientEffects.end())
+            continue;
+
+        // highest threshold the count reaches; none qualifying means silence,
+        // which is the normal state at zero and below an entry's first step
+        uint32_t audioFileId = 0;
+        for (const auto& [threshold, loopingAudioFileId] : it->second.itemCountSoundEffects) {
+            if (counts[i] >= threshold)
+                audioFileId = loopingAudioFileId;
+        }
+
+        if (audioFileId != 0 && std::ranges::find(wanted, audioFileId) == wanted.end())
+            wanted.push_back(audioFileId);
+    }
+
+    // stop what is no longer wanted, freeing its channel
+    for (auto it = m_itemAmbientChannels.begin(); it != m_itemAmbientChannels.end();) {
+        if (std::ranges::find(wanted, it->first) != wanted.end()) {
+            ++it;
+            continue;
+        }
+
+        if (const auto& channel = getChannel(it->second))
+            channel->stop(1.0f);
+
+        m_freeItemAmbientChannels.push_back(it->second);
+        it = m_itemAmbientChannels.erase(it);
+    }
+
+    // item ambients are ambience, so they track that slider
+    const auto& ambientChannel = getChannel(SOUND_CHANNEL_AMBIENT);
+    const float gain = ambientChannel ? ambientChannel->getGain() : 1.0f;
+
+    for (const uint32_t audioFileId : wanted) {
+        if (const auto existing = m_itemAmbientChannels.find(audioFileId); existing != m_itemAmbientChannels.end()) {
+            if (const auto& channel = getChannel(existing->second))
+                channel->setGain(gain);
+            continue;
+        }
+
+        const auto fileIt = m_clientSoundFiles.find(audioFileId);
+        if (fileIt == m_clientSoundFiles.end()) {
+            g_logger.traceError("item ambient names audio file {}, which the soundbank does not have", audioFileId);
+            continue;
+        }
+
+        int channelId;
+        if (!m_freeItemAmbientChannels.empty()) {
+            channelId = m_freeItemAmbientChannels.back();
+            m_freeItemAmbientChannels.pop_back();
+        } else {
+            channelId = SOUND_CHANNEL_ITEM_AMBIENT_FIRST + static_cast<int>(m_itemAmbientChannels.size());
+            if (channelId > SOUND_CHANNEL_ITEM_AMBIENT_LAST)
+                continue; // more at once than the bank was ever meant to need
+        }
+
+        const auto& channel = getChannel(channelId);
+        if (!channel)
+            continue;
+
+        channel->setGain(gain);
+        channel->play(m_soundDirectory + fileIt->second.filename, 1.0f, 1.0f, 1.0f, true);
+        m_itemAmbientChannels[audioFileId] = channelId;
     }
 }
 
 void SoundManager::stopAmbienceSound()
 {
+    m_currentAmbienceId = 0;
+    m_ambientDelayedEffects.clear();
 
     const auto& channel = getChannel(SOUND_CHANNEL_AMBIENT);
     if (channel)
@@ -991,7 +1182,7 @@ void SoundManager::playMusic(uint32_t musicId)
     if (fileIt == m_clientSoundFiles.end())
         return;
 
-    const std::string filename = m_soundDirectory + fileIt->second;
+    const std::string filename = m_soundDirectory + fileIt->second.filename;
 
     const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
     if (!channel)
