@@ -82,6 +82,23 @@ bool FrameBuffer::resize(const Size& size)
     const GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (status != GL_FRAMEBUFFER_COMPLETE)
         g_logger.warning("Unable to setup framebuffer object");
+    else {
+        // Texture::setupPixels allocates with a null data pointer, so a newly attached texture holds
+        // whatever happened to be in that memory. Anything sampling it before the pool has drawn a
+        // full frame into it - a resize still in flight, or a linear filter reaching a texel past
+        // the drawn region - reads uninitialised bytes and paints them on screen as coloured
+        // streaks. Start it defined; the worst a transient can then look is empty.
+        // glClear obeys the scissor test, which Painter leaves enabled while clipping.
+        const auto scissorWasEnabled = glIsEnabled(GL_SCISSOR_TEST);
+        if (scissorWasEnabled)
+            glDisable(GL_SCISSOR_TEST);
+
+        glClearColor(0.f, 0.f, 0.f, 0.f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        if (scissorWasEnabled)
+            glEnable(GL_SCISSOR_TEST);
+    }
 
     internalRelease();
 
