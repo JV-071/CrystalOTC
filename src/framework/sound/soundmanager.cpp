@@ -285,7 +285,7 @@ void SoundManager::preload(std::string filename)
         m_buffers[filename] = buffer;
 }
 
-SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, float gain, float pitch)
+SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, const float gain, const float pitch)
 {
     if (!m_audioEnabled)
         return nullptr;
@@ -320,12 +320,6 @@ SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, f
         (*it)->stop();
         m_sources.erase(it);
     }
-
-    if (gain == 0)
-        gain = 1.0f;
-
-    if (pitch == 0)
-        pitch = 1.0f;
 
     const std::string& filename = resolveSoundFile(fn);
     const auto& soundSource = createSoundSource(filename);
@@ -908,9 +902,14 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
         return;
     }
 
+    if (ambienceId == m_currentAmbienceId)
+        return; // already playing; restarting would clip it and reset its timers
+
     const auto it = m_clientAmbientEffects.find(ambienceId);
-    if (it == m_clientAmbientEffects.end())
+    if (it == m_clientAmbientEffects.end()) {
+        g_logger.traceError("unknown client ambience id {}", ambienceId);
         return;
+    }
 
     const auto& ambient = it->second;
     const uint32_t audioFileId = ambient.loopedAudioFileId;
@@ -932,7 +931,8 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
 
 void SoundManager::stopAmbienceSound()
 {
-    const auto& channel = getChannel(2);
+
+    const auto& channel = getChannel(SOUND_CHANNEL_AMBIENT);
     if (channel)
         channel->stop(3.0f);
 }
@@ -981,16 +981,22 @@ void SoundManager::playMusic(uint32_t musicId)
     if (!channel)
         return;
 
-    m_currentMusicId = musicId;
-
     // MUSIC_IMMEDIATE is meant to cut in without a crossfade.
     const float fadetime = music.musicType == MUSIC_TYPE_MUSIC_IMMEDIATE ? 0.0f : 3.0f;
 
     // play() rather than enqueue(): a looping source never reaches EOF, so the
     // channel queue would never cycle it anyway, and looping the stream itself
     // is gapless where a queue restart is not.
-    if (const auto& source = channel->play(filename, fadetime))
-        source->setLooping(true);
+    const auto& source = channel->play(filename, fadetime, 1.0f, 1.0f, true);
+    if (!source) {
+        // The channel turned it down - muted, or audio off. Claiming the track
+        // as current here would make every later anthem carrying the same id
+        // return early, so it would never be heard again this session.
+        g_logger.traceError("music id {} was refused by the music channel", musicId);
+        return;
+    }
+
+    m_currentMusicId = musicId;
 }
 
 void SoundManager::stopMusic()

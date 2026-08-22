@@ -24,6 +24,7 @@
 
 #include "declarations.h"
 #include "framework/luaengine/luaobject.h"
+#include <optional>
 
  // @bindclass
 class SoundChannel final : public LuaObject
@@ -32,9 +33,9 @@ public:
     SoundChannel(const int id) : m_id(id)
     {}
 
-    SoundSourcePtr play(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f);
+    SoundSourcePtr play(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f, bool looping = false);
     void stop(float fadetime = 0);
-    void enqueue(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f);
+    void enqueue(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f, bool looping = false);
     void enable() { setEnabled(true); }
     void disable() { setEnabled(false); }
 
@@ -59,14 +60,19 @@ protected:
 private:
     struct QueueEntry
     {
-        QueueEntry(std::string fn, const float ft, const float g, const float p) : filename(std::move(fn)), fadetime(ft), gain(g), pitch(p) {};
+        QueueEntry(std::string fn, const float ft, const float g, const float p, const bool l) : filename(std::move(fn)), fadetime(ft), gain(g), pitch(p), looping(l) {};
 
         std::string filename;
         float fadetime;
         float gain;
         float pitch;
+        bool looping;
     };
     std::deque<QueueEntry> m_queue;
+    // what play() last started, so a channel muted and unmuted mid-track can
+    // bring it back: playMusic uses play() rather than the queue, so m_queue is
+    // empty there and update() alone could never restart it
+    std::optional<QueueEntry> m_lastPlayed;
     SoundSourcePtr m_currentSource;
     bool m_enabled{ true };
     int m_id;

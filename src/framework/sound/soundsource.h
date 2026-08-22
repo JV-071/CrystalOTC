@@ -48,6 +48,7 @@ public:
     virtual void setRelative(bool relative);
     virtual void setReferenceDistance(float distance);
     virtual void setGain(float gain);
+    void setTargetGain(float gain);
     virtual void setPitch(float pitch);
     virtual void setPosition(const Point& pos);
     virtual void setVelocity(const Point& velocity);

@@ -5968,8 +5968,9 @@ SoundChannel = {}
 ---@param fadeTime? number 0.0
 ---@param gain? number 1.0
 ---@param pitch? number 1.0
+---@param looping? boolean false
 ---@return SoundSource
-function SoundChannel:play(fileName, fadeTime, gain, pitch) end
+function SoundChannel:play(fileName, fadeTime, gain, pitch, looping) end
 
 ---@param fadeTime? number 0.0
 function SoundChannel:stop(fadeTime) end
@@ -5978,7 +5979,8 @@ function SoundChannel:stop(fadeTime) end
 ---@param fadeTime? number 0.0
 ---@param gain? number 1.0
 ---@param pitch? number 1.0
-function SoundChannel:enqueue(fileName, fadeTime, gain, pitch) end
+---@param looping? boolean false
+function SoundChannel:enqueue(fileName, fadeTime, gain, pitch, looping) end
 
 function SoundChannel:enable() end
 

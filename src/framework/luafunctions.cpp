@@ -1102,7 +1102,13 @@ void Application::registerLuaFunctions()
     // SoundManager
     g_lua.registerSingletonClass("g_sounds");
     g_lua.bindSingletonFunction("g_sounds", "preload", &SoundManager::preload, &g_sounds);
-    g_lua.bindSingletonFunction("g_sounds", "play", &SoundManager::play, &g_sounds);
+    // Bound through a lambda rather than directly: the binder hands 0 for any
+    // argument a Lua caller left out, and SoundManager::play has to keep reading
+    // a gain of 0 as silence so a slider at 0% stays silent.
+    g_lua.bindClassStaticFunction("g_sounds", "play",
+                                  [](const std::string& filename, const float fadetime, const float gain, const float pitch) {
+        return g_sounds.play(filename, fadetime, gain == 0 ? 1.0f : gain, pitch == 0 ? 1.0f : pitch);
+    });
     g_lua.bindSingletonFunction("g_sounds", "getChannel", &SoundManager::getChannel, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "setClientSoundVolume", &SoundManager::setClientSoundVolume, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "setMasterVolume", &SoundManager::setMasterVolume, &g_sounds);

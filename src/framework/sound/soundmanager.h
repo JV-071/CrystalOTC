@@ -168,7 +168,7 @@ public:
     std::string getAudioFileNameById(int32_t audioFileId);
 
     void preload(std::string filename);
-    SoundSourcePtr play(const std::string& filename, float fadetime = 0, float gain = 0, float pitch = 0);
+    SoundSourcePtr play(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f);
     SoundChannelPtr getChannel(int channel);
     void setClientSoundVolume(int channel, float volume);
     void setMasterVolume(float volume);
@@ -222,6 +222,10 @@ private:
     // the music track currently playing, so a repeated anthem packet does not
     // restart it from the beginning
     uint32_t m_currentMusicId{ 0 };
+
+    // the location ambience currently playing, for the same reason - and so a
+    // repeat does not keep resetting the timers below
+    uint32_t m_currentAmbienceId{ 0 };
 
     uint32_t m_uiSoundEffectId{ 0 };
     std::map<uint32_t, ClientLocationAmbient> m_clientAmbientEffects;

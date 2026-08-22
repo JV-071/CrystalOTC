@@ -121,6 +121,22 @@ void SoundSource::setGain(const float gain)
     m_gain = gain;
 }
 
+// Moves the level the source is heading for. Writing the gain outright during a
+// fade would be overwritten by the next update(), so a volume change mid-fade
+// has to move the fade's target instead of the current value.
+void SoundSource::setTargetGain(const float gain)
+{
+    // A source on its way out is headed for silence anyway, and rescaling the
+    // ramp it is already partway down would step the level audibly.
+    if (m_fadeState == FadingOff)
+        return;
+
+    if (m_fadeState == FadingOn)
+        m_fadeGain = gain;
+    else
+        setGain(gain);
+}
+
 void SoundSource::setPitch(const float pitch)
 {
     if (m_sourceId == 0) return;
