@@ -1,0 +1,1266 @@
+# Referenced by rubinot code but present in NEITHER tree on disk.
+# These live inside data/dat-01..03.rtc (encrypted) or are server-downloaded.
+# 690 distinct references.
+
+== images/arcs/conditions  (48)
+   /images/arcs/conditions/player-state-flags-00                 mods/client_settings/classes/conditions.lua:5
+   /images/arcs/conditions/player-state-flags-01                 mods/client_settings/classes/conditions.lua:18
+   /images/arcs/conditions/player-state-flags-02                 mods/client_settings/classes/conditions.lua:30
+   /images/arcs/conditions/player-state-flags-03                 mods/client_settings/classes/conditions.lua:102
+   /images/arcs/conditions/player-state-flags-05                 mods/client_settings/classes/conditions.lua:126
+   /images/arcs/conditions/player-state-flags-06                 mods/client_settings/classes/conditions.lua:138
+   /images/arcs/conditions/player-state-flags-07                 mods/client_settings/classes/conditions.lua:150
+   /images/arcs/conditions/player-state-flags-08                 mods/client_settings/classes/conditions.lua:163
+   /images/arcs/conditions/player-state-flags-09                 mods/client_settings/classes/conditions.lua:174
+   /images/arcs/conditions/player-state-flags-10                 mods/client_settings/classes/conditions.lua:186
+   /images/arcs/conditions/player-state-flags-11                 mods/client_settings/classes/conditions.lua:198
+   /images/arcs/conditions/player-state-flags-12                 mods/client_settings/classes/conditions.lua:222
+   /images/arcs/conditions/player-state-flags-13                 mods/client_settings/classes/conditions.lua:234
+   /images/arcs/conditions/player-state-flags-14                 mods/client_settings/classes/conditions.lua:246
+   /images/arcs/conditions/player-state-flags-15                 mods/client_settings/classes/conditions.lua:42
+   /images/arcs/conditions/player-state-flags-16                 mods/client_settings/classes/conditions.lua:270
+   /images/arcs/conditions/player-state-flags-17                 mods/client_settings/classes/conditions.lua:282
+   /images/arcs/conditions/player-state-flags-18                 mods/client_settings/classes/conditions.lua:294
+   /images/arcs/conditions/player-state-flags-19                 mods/client_settings/classes/conditions.lua:79
+   /images/arcs/conditions/player-state-flags-20                 mods/client_settings/classes/conditions.lua:91
+   /images/arcs/conditions/player-state-flags-21                 mods/client_settings/classes/conditions.lua:799
+   /images/arcs/conditions/player-state-flags-22                 mods/client_settings/classes/conditions.lua:800
+   /images/arcs/conditions/player-state-flags-23                 mods/client_settings/classes/conditions.lua:801
+   /images/arcs/conditions/player-state-flags-24                 mods/client_settings/classes/conditions.lua:802
+   /images/arcs/conditions/player-state-flags-25                 mods/client_settings/classes/conditions.lua:306
+   /images/arcs/conditions/player-state-flags-26                 mods/client_settings/classes/conditions.lua:115
+   /images/arcs/conditions/player-state-flags-27                 mods/client_settings/classes/conditions.lua:54
+   /images/arcs/conditions/player-state-flags-28                 mods/client_settings/classes/conditions.lua:67
+   /images/arcs/conditions/player-state-flags-29                 mods/client_settings/classes/conditions.lua:210
+   /images/arcs/conditions/player-state-flags-client-00          mods/client_settings/classes/conditions.lua:258
+   /images/arcs/conditions/player-state-flags-client-01          mods/client_settings/classes/conditions.lua:1124
+   /images/arcs/conditions/player-state-flags-client-02          mods/client_settings/classes/conditions.lua:414
+   /images/arcs/conditions/player-state-flags-rotten-blood-00    mods/client_settings/classes/conditions.lua:823
+   /images/arcs/conditions/player-state-flags-rotten-blood-01    mods/client_settings/classes/conditions.lua:824
+   /images/arcs/conditions/player-state-flags-rotten-blood-02    mods/client_settings/classes/conditions.lua:825
+   /images/arcs/conditions/player-state-flags-rotten-blood-03    mods/client_settings/classes/conditions.lua:826
+   /images/arcs/conditions/player-state-flags-rotten-blood-04    mods/client_settings/classes/conditions.lua:827
+   /images/arcs/conditions/player-state-flags-rotten-blood-05    mods/client_settings/classes/conditions.lua:828
+   /images/arcs/conditions/player-state-flags-rotten-blood-06    mods/client_settings/classes/conditions.lua:829
+   /images/arcs/conditions/player-state-flags-rotten-blood-07    mods/client_settings/classes/conditions.lua:830
+   /images/arcs/conditions/player-state-flags-rotten-blood-08    mods/client_settings/classes/conditions.lua:318
+   /images/arcs/conditions/player-state-guildwar-flag            mods/client_settings/classes/conditions.lua:401
+   /images/arcs/conditions/player-state-playerkiller-flags-00    mods/client_settings/classes/conditions.lua:330
+   /images/arcs/conditions/player-state-playerkiller-flags-01    mods/client_settings/classes/conditions.lua:344
+   /images/arcs/conditions/player-state-playerkiller-flags-02    mods/client_settings/classes/conditions.lua:356
+   /images/arcs/conditions/player-state-playerkiller-flags-03    mods/client_settings/classes/conditions.lua:368
+   /images/arcs/conditions/player-state-playerkiller-flags-04    mods/client_settings/classes/conditions.lua:379
+   /images/arcs/conditions/player-state-playerkiller-flags-05    mods/client_settings/classes/conditions.lua:390
+
+== images/game/destiny_wheel  (46)
+   /images/game/destiny_wheel/                                   mods/game_wheel/classes/wheelclass.lua:2957
+   /images/game/destiny_wheel/                                   mods/game_wheel/classes/wheelclass.lua:2957
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2041
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2041
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2044
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2044
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2047
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2047
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2050
+   /images/game/destiny_wheel/backdrop_skillwheel_largebonus_fr  mods/game_wheel/classes/wheelclass.lua:2050
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot1/    mods/game_wheel/classes/buttons.lua:189
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot2/    mods/game_wheel/classes/buttons.lua:180
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot3/    mods/game_wheel/classes/buttons.lua:243
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot4/    mods/game_wheel/classes/buttons.lua:171
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot5/    mods/game_wheel/classes/buttons.lua:234
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot6/    mods/game_wheel/classes/buttons.lua:297
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot7/    mods/game_wheel/classes/buttons.lua:225
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot8/    mods/game_wheel/classes/buttons.lua:288
+   /images/game/destiny_wheel/wheel-colors/bottom_left/slot9/    mods/game_wheel/classes/buttons.lua:279
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot1/   mods/game_wheel/classes/buttons.lua:198
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot2/   mods/game_wheel/classes/buttons.lua:252
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot3/   mods/game_wheel/classes/buttons.lua:207
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot4/   mods/game_wheel/classes/buttons.lua:306
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot5/   mods/game_wheel/classes/buttons.lua:261
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot6/   mods/game_wheel/classes/buttons.lua:216
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot7/   mods/game_wheel/classes/buttons.lua:315
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot8/   mods/game_wheel/classes/buttons.lua:270
+   /images/game/destiny_wheel/wheel-colors/bottom_right/slot9/   mods/game_wheel/classes/buttons.lua:324
+   /images/game/destiny_wheel/wheel-colors/top_left/slot1/       mods/game_wheel/classes/buttons.lua:135
+   /images/game/destiny_wheel/wheel-colors/top_left/slot2/       mods/game_wheel/classes/buttons.lua:126
+   /images/game/destiny_wheel/wheel-colors/top_left/slot3/       mods/game_wheel/classes/buttons.lua:81
+   /images/game/destiny_wheel/wheel-colors/top_left/slot4/       mods/game_wheel/classes/buttons.lua:117
+   /images/game/destiny_wheel/wheel-colors/top_left/slot5/       mods/game_wheel/classes/buttons.lua:72
+   /images/game/destiny_wheel/wheel-colors/top_left/slot6/       mods/game_wheel/classes/buttons.lua:27
+   /images/game/destiny_wheel/wheel-colors/top_left/slot7/       mods/game_wheel/classes/buttons.lua:63
+   /images/game/destiny_wheel/wheel-colors/top_left/slot8/       mods/game_wheel/classes/buttons.lua:18
+   /images/game/destiny_wheel/wheel-colors/top_left/slot9/       mods/game_wheel/classes/buttons.lua:9
+   /images/game/destiny_wheel/wheel-colors/top_right/slot1/      mods/game_wheel/classes/buttons.lua:144
+   /images/game/destiny_wheel/wheel-colors/top_right/slot2/      mods/game_wheel/classes/buttons.lua:153
+   /images/game/destiny_wheel/wheel-colors/top_right/slot3/      mods/game_wheel/classes/buttons.lua:90
+   /images/game/destiny_wheel/wheel-colors/top_right/slot4/      mods/game_wheel/classes/buttons.lua:36
+   /images/game/destiny_wheel/wheel-colors/top_right/slot5/      mods/game_wheel/classes/buttons.lua:99
+   /images/game/destiny_wheel/wheel-colors/top_right/slot6/      mods/game_wheel/classes/buttons.lua:162
+   /images/game/destiny_wheel/wheel-colors/top_right/slot7/      mods/game_wheel/classes/buttons.lua:108
+   /images/game/destiny_wheel/wheel-colors/top_right/slot8/      mods/game_wheel/classes/buttons.lua:45
+   /images/game/destiny_wheel/wheel-colors/top_right/slot9/      mods/game_wheel/classes/buttons.lua:54
+
+== images/game/states  (43)
+   /images/game/states/                                          modules/game_healthinfo/healthinfo.lua:248
+   /images/game/states/                                          modules/game_healthinfo/healthinfo.lua:248
+   /images/game/states/28                                        mods/client_settings/classes/conditions.lua:1119
+   /images/game/states/28                                        mods/client_settings/classes/conditions.lua:256
+   /images/game/states/29                                        mods/client_settings/classes/conditions.lua:1126
+   /images/game/states/29                                        mods/client_settings/classes/conditions.lua:1126
+   /images/game/states/39                                        mods/client_settings/classes/conditions.lua:316
+   /images/game/states/agony                                     modules/gamelib/player.lua:80
+   /images/game/states/bleeding                                  modules/gamelib/player.lua:67
+   /images/game/states/burning                                   modules/gamelib/player.lua:53
+   /images/game/states/cursed                                    modules/gamelib/player.lua:63
+   /images/game/states/cursei                                    modules/gamelib/player.lua:74
+   /images/game/states/curseii                                   modules/gamelib/player.lua:75
+   /images/game/states/curseiii                                  modules/gamelib/player.lua:76
+   /images/game/states/curseiv                                   modules/gamelib/player.lua:77
+   /images/game/states/cursev                                    mods/client_settings/classes/conditions.lua:304
+   /images/game/states/dazzled                                   modules/gamelib/player.lua:62
+   /images/game/states/drowning                                  modules/gamelib/player.lua:60
+   /images/game/states/drunk                                     modules/gamelib/player.lua:55
+   /images/game/states/electrified                               mods/client_settings/options/hud.otui:13
+   /images/game/states/electrified                               modules/gamelib/player.lua:54
+   /images/game/states/feared                                    modules/gamelib/player.lua:73
+   /images/game/states/freezing                                  modules/gamelib/player.lua:61
+   /images/game/states/haste                                     modules/gamelib/player.lua:58
+   /images/game/states/hungry                                    modules/gamelib/player.lua:68
+   /images/game/states/logout_block                              modules/gamelib/player.lua:59
+   /images/game/states/magic_shield                              modules/gamelib/player.lua:56
+   /images/game/states/mentored                                  modules/gamelib/player.lua:82
+   /images/game/states/poisoned                                  modules/gamelib/player.lua:52
+   /images/game/states/protection_zone                           modules/gamelib/player.lua:66
+   /images/game/states/protection_zone_block                     modules/gamelib/player.lua:65
+   /images/game/states/rooted                                    modules/gamelib/player.lua:72
+   /images/game/states/skullgreen                                modules/gamelib/player.lua:85
+   /images/game/states/skullorange                               modules/gamelib/player.lua:88
+   /images/game/states/skullred                                  modules/gamelib/player.lua:87
+   /images/game/states/skullwhite                                modules/gamelib/player.lua:86
+   /images/game/states/skullyellow                               mods/client_settings/classes/conditions.lua:328
+   /images/game/states/slowed                                    modules/gamelib/player.lua:57
+   /images/game/states/strengthened                              modules/gamelib/player.lua:64
+   /images/game/states/sufferringgreaterhex                      modules/gamelib/player.lua:71
+   /images/game/states/sufferringintenserhex                     modules/gamelib/player.lua:70
+   /images/game/states/sufferringlesserhex                       modules/gamelib/player.lua:69
+   /images/game/states/sufferringpowerless                       modules/gamelib/player.lua:81
+
+== images/game/ranked-queue  (34)
+   /images/game/ranked-queue/                                    mods/game_pvp_queue/pvp_leaderboard.lua:172
+   /images/game/ranked-queue/MapBg                               mods/game_pvp_queue/pvp_queue.otui:712
+   /images/game/ranked-queue/announcer                           mods/game_pvp_queue/pvp_queue.otui:745
+   /images/game/ranked-queue/backgrounds/                        mods/game_pvp_queue/pvp_queue.lua:616
+   /images/game/ranked-queue/banners/                            mods/game_pvp_queue/pvp_queue.lua:622
+   /images/game/ranked-queue/banners/bg                          mods/game_pvp_queue/pvp_queue.otui:801
+   /images/game/ranked-queue/banners/rank-0-bg                   mods/game_pvp_queue/pvp_queue.otui:809
+   /images/game/ranked-queue/cast/VS                             mods/game_pvp_queue/pvp_queue.otui:478
+   /images/game/ranked-queue/cast/arrow-left                     mods/game_store/styles/home.otui:41
+   /images/game/ranked-queue/cast/arrow-right                    mods/game_store/styles/home.otui:53
+   /images/game/ranked-queue/cast/cast-bg                        mods/game_pvp_queue/pvp_queue.otui:445
+   /images/game/ranked-queue/cast/cast-bg-                       mods/game_pvp_queue/pvp_queue.lua:1107
+   /images/game/ranked-queue/cast/icon-close                     modules/game_interface/gameinterface.otui:255
+   /images/game/ranked-queue/countdown                           mods/game_pvp_queue/pvp_queue.lua:293
+   /images/game/ranked-queue/countdown                           mods/game_pvp_queue/pvp_queue.lua:293
+   /images/game/ranked-queue/game-hud                            modules/game_interface/gameinterface.otui:130
+   /images/game/ranked-queue/game-hud-ui                         modules/game_interface/gameinterface.otui:164
+   /images/game/ranked-queue/icon-arrow-up                       mods/game_pvp_queue/pvp_queue.otui:563
+   /images/game/ranked-queue/icon-hourglass                      mods/game_pvp_queue/pvp_queue.otui:1039
+   /images/game/ranked-queue/icon-no                             mods/game_pvp_queue/pvp_queue.otui:1001
+   /images/game/ranked-queue/icon-none                           mods/game_pvp_queue/pvp_leaderboard.lua:180
+   /images/game/ranked-queue/icon-none                           mods/game_pvp_queue/pvp_leaderboard.lua:180
+   /images/game/ranked-queue/icon-scoretable                     mods/game_pvp_queue/pvp_queue.otui:1312
+   /images/game/ranked-queue/icon-swords                         mods/game_pvp_queue/pvp_queue.otui:2407
+   /images/game/ranked-queue/icon-trophy                         mods/game_pvp_queue/pvp_queue.otui:2426
+   /images/game/ranked-queue/icon-trophy-gold                    modules/game_sidebuttons/sidebuttons.otui:200
+   /images/game/ranked-queue/map-images/                         mods/game_pvp_queue/pvp_map_phase.lua:41
+   /images/game/ranked-queue/map-images/ice-library              mods/game_pvp_queue/pvp_queue.otui:732
+   /images/game/ranked-queue/queue_menu                          mods/game_pvp_queue/pvp_queue.otui:2405
+   /images/game/ranked-queue/rank-icons/                         mods/game_pvp_queue/pvp_queue.lua:1110
+   /images/game/ranked-queue/rank-icons/                         mods/game_pvp_queue/pvp_queue.lua:1110
+   /images/game/ranked-queue/ranks/                              mods/game_pvp_queue/pvp_queue.lua:608
+   /images/game/ranked-queue/ranks/rank-1                        mods/game_pvp_queue/pvp_queue.otui:820
+   /images/game/ranked-queue/ranks/rank-9                        mods/game_pvp_queue/pvp_queue.otui:155
+
+== images/game/christmas-daily  (17)
+   /images/game/christmas-daily/                                 mods/game_christmas_daily/christmas_daily.lua:105
+   /images/game/christmas-daily/                                 mods/game_christmas_daily/christmas_daily.lua:105
+   /images/game/christmas-daily/1                                mods/game_christmas_daily/christmas_daily.otui:48
+   /images/game/christmas-daily/RadiantBell                      mods/game_christmas_daily/christmas_daily.otui:426
+   /images/game/christmas-daily/backdrop_grades_circle_bottom    mods/game_christmas_daily/christmas_daily.otui:245
+   /images/game/christmas-daily/backdrop_grades_circle_bottom_a  mods/game_christmas_daily/christmas_daily.otui:250
+   /images/game/christmas-daily/backdrop_grades_circle_mid       mods/game_christmas_daily/christmas_daily.otui:291
+   /images/game/christmas-daily/backdrop_grades_circle_mid_anim  mods/game_christmas_daily/christmas_daily.otui:297
+   /images/game/christmas-daily/backdrop_grades_circle_top       mods/game_christmas_daily/christmas_daily.otui:406
+   /images/game/christmas-daily/backdrop_grades_circle_top_anim  mods/game_christmas_daily/christmas_daily.otui:411
+   /images/game/christmas-daily/backdrop_grades_line             mods/game_christmas_daily/christmas_daily.otui:276
+   /images/game/christmas-daily/backdrop_grades_line_anim        mods/game_christmas_daily/christmas_daily.otui:282
+   /images/game/christmas-daily/check                            mods/game_christmas_daily/christmas_daily.otui:78
+   /images/game/christmas-daily/coin                             mods/game_christmas_daily/christmas_daily.otui:265
+   /images/game/christmas-daily/doll                             mods/game_christmas_daily/christmas_daily.otui:313
+   /images/game/christmas-daily/flake                            mods/game_christmas_daily/christmas_daily.otui:378
+   /images/game/christmas-daily/frozenstore                      mods/game_christmas_daily/christmas_daily.otui:165
+
+== images/game/quickloot  (14)
+   /images/game/quickloot/add-accepted-button                    mods/game_quickloot/quickloot.lua:246
+   /images/game/quickloot/add-accepted-button                    mods/game_quickloot/quickloot.lua:246
+   /images/game/quickloot/add-button                             mods/game_quickloot/quickloot.lua:250
+   /images/game/quickloot/add-button                             mods/game_quickloot/quickloot.otui:254
+   /images/game/quickloot/add-button                             mods/game_quickloot/quickloot.lua:250
+   /images/game/quickloot/button-clear-up                        mods/game_quickloot/quickloot.otui:26
+   /images/game/quickloot/button-select-up                       mods/game_quickloot/quickloot.otui:20
+   /images/game/quickloot/clear-accepted-button                  mods/game_quickloot/quickloot.lua:245
+   /images/game/quickloot/clear-accepted-button                  mods/game_quickloot/quickloot.lua:245
+   /images/game/quickloot/clear-button                           mods/game_quickloot/quickloot.lua:249
+   /images/game/quickloot/clear-button                           mods/game_quickloot/quickloot.otui:239
+   /images/game/quickloot/clear-button                           mods/game_quickloot/quickloot.lua:249
+   /images/game/quickloot/manage-container                       mods/game_stash/stash.otui:185
+   /images/game/quickloot/quick-info                             mods/game_quickloot/quickloot.otui:267
+
+== images/game/battle  (13)
+   /images/game/battle/battlelist_druid                          mods/game_party_list/partyList.otui:29
+   /images/game/battle/battlelist_knight                         mods/game_party_list/partyList.otui:32
+   /images/game/battle/battlelist_monk                           mods/game_party_list/partyList.otui:41
+   /images/game/battle/battlelist_monsters                       modules/game_battle/battle.otui:53
+   /images/game/battle/battlelist_npcs                           modules/game_battle/battle.otui:50
+   /images/game/battle/battlelist_own_guild                      modules/game_battle/battle.otui:47
+   /images/game/battle/battlelist_paladin                        mods/game_party_list/partyList.otui:38
+   /images/game/battle/battlelist_party                          modules/game_battle/battle.otui:59
+   /images/game/battle/battlelist_players                        mods/game_party_list/partyList.otui:26
+   /images/game/battle/battlelist_skull                          modules/game_battle/battle.otui:56
+   /images/game/battle/battlelist_sorcerer                       mods/game_party_list/partyList.otui:35
+   /images/game/battle/battlelist_summon                         mods/game_party_list/partyList.otui:44
+   /images/game/battle/nameLabel                                 mods/game_party_list/newName.otui:15
+
+== images/game/cyclopedia  (12)
+   /images/game/cyclopedia/bestiary/                             mods/game_cyclopedia/classes/bestiary.lua:123
+   /images/game/cyclopedia/bestiary/                             mods/game_cyclopedia/classes/bestiary.lua:123
+   /images/game/cyclopedia/icons/icon-star-                      mods/game_cyclopedia/classes/bestiary.lua:325
+   /images/game/cyclopedia/icons/icon-star-                      mods/game_cyclopedia/classes/bestiary.lua:325
+   /images/game/cyclopedia/icons/monster-icon-                   mods/game_cyclopedia/classes/bestiary.lua:586
+   /images/game/cyclopedia/icons/monster-icon-                   mods/game_cyclopedia/classes/bestiary.lua:586
+   /images/game/cyclopedia/icons/monster-icon-diamond-           mods/game_cyclopedia/classes/bestiary.lua:344
+   /images/game/cyclopedia/icons/monster-icon-diamond-           mods/game_cyclopedia/classes/bestiary.lua:344
+   /images/game/cyclopedia/monster-bonus-effects/monster-bonus-  mods/game_cyclopedia/classes/charms.lua:87
+   /images/game/cyclopedia/monster-bonus-effects/monster-bonus-  mods/game_cyclopedia/classes/charms.lua:87
+   /images/game/cyclopedia/ui/backdrop_charmgrade                mods/game_cyclopedia/classes/charms.lua:137
+   /images/game/cyclopedia/ui/backdrop_charmgrade                mods/game_cyclopedia/classes/charms.lua:137
+
+== images/game/castle  (12)
+   /images/game/castle/allianceBg                                mods/game_castle/styles/teams.otui:84
+   /images/game/castle/allianceIcon                              mods/game_castle/styles/teams.otui:113
+   /images/game/castle/allianceLabel                             mods/game_castle/styles/teams.otui:146
+   /images/game/castle/allianceLifeCrystal                       mods/game_castle/styles/teams.otui:93
+   /images/game/castle/allianceLifeTower                         mods/game_castle/styles/teams.otui:103
+   /images/game/castle/allianceLogo                              mods/game_castle/styles/info.otui:97
+   /images/game/castle/hordeIcon                                 mods/game_castle/styles/teams.otui:37
+   /images/game/castle/hordeLabel                                mods/game_castle/styles/teams.otui:70
+   /images/game/castle/hordeLifeCrystal                          mods/game_castle/styles/teams.otui:17
+   /images/game/castle/hordeLifeTower                            mods/game_castle/styles/teams.otui:27
+   /images/game/castle/hordeLogo                                 mods/game_castle/styles/info.otui:90
+   /images/game/castle/horderBg                                  mods/game_castle/styles/teams.otui:8
+
+== images/game/prey  (11)
+   /images/game/prey/                                            modules/game_prey/prey.lua:558
+   /images/game/prey/cardBg                                      modules/game_prey/prey.otui:424
+   /images/game/prey/infoBg                                      modules/game_prey/prey.otui:823
+   /images/game/prey/prey-button                                 modules/game_prey/prey.otui:999
+   /images/game/prey/prey_bonus_up                               modules/game_prey/prey.otui:807
+   /images/game/prey/prey_reroll_up                              modules/game_prey/prey.otui:694
+   /images/game/prey/preyhuntingtask-tokens                      modules/game_prey/prey.otui:1283
+   /images/game/prey/progress                                    modules/game_prey/prey.otui:209
+   /images/game/prey/select-creature-button                      modules/game_prey/prey.otui:785
+   /images/game/prey/selectPrey-up                               modules/game_prey/prey.otui:755
+   /images/game/prey/timerProgress                               modules/game_prey/prey.otui:218
+
+== images/game/combatmodes  (10)
+   /images/game/combatmodes/min-pvpmode                          modules/game_inventory/inventory.lua:636
+   /images/game/combatmodes/min-pvpmode                          modules/game_inventory/inventory.lua:636
+   /images/game/combatmodes/pvp                                  data/styles/40-inventory.otui:279
+   /images/game/combatmodes/pvp                                  modules/game_inventory/inventory.lua:664
+   /images/game/combatmodes/pvp                                  modules/game_inventory/inventory.otui:160
+   /images/game/combatmodes/pvp                                  modules/game_inventory/inventory.lua:664
+   /images/game/combatmodes/pvpmode                              modules/game_inventory/inventory.lua:676
+   /images/game/combatmodes/pvpmode                              modules/game_inventory/inventory.otui:164
+   /images/game/combatmodes/pvpmode                              modules/game_inventory/inventory.lua:676
+   /images/game/combatmodes/standmode                            modules/game_inventory/inventory.otui:318
+
+== images/game/minimap  (10)
+   /images/game/minimap/icon/                                    mods/game_cyclopedia/cyclopedia.lua:557
+   /images/game/minimap/icon/                                    mods/game_cyclopedia/cyclopedia.lua:557
+   /images/game/minimap/mapflags                                 data/styles/40-minimap.otui:131
+   /images/game/minimap/party-hidden                             modules/gamelib/ui/uiminimap.lua:165
+   /images/game/minimap/party-hidden                             modules/gamelib/ui/uiminimap.lua:165
+   /images/game/minimap/party-normal-color                       modules/gamelib/ui/uiminimap.lua:170
+   /images/game/minimap/party-normal-color                       modules/gamelib/ui/uiminimap.lua:170
+   /images/game/minimap/party-vocation-color                     modules/gamelib/ui/uiminimap.lua:160
+   /images/game/minimap/party-vocation-color                     data/styles/40-minimap.otui:12
+   /images/game/minimap/party-vocation-color                     modules/gamelib/ui/uiminimap.lua:160
+
+== images/game/blessings  (9)
+   /images/game/blessings/blessings-icons_2                      mods/game_blessing/blessing.lua:9
+   /images/game/blessings/blessings-icons_3                      mods/game_blessing/blessing.lua:7
+   /images/game/blessings/blessings-icons_4                      mods/game_blessing/blessing.otui:17
+   /images/game/blessings/blessings-icons_4                      mods/game_blessing/blessing.lua:5
+   /images/game/blessings/blessings-icons_5                      mods/game_blessing/blessing.lua:8
+   /images/game/blessings/blessings-icons_6                      mods/game_blessing/blessing.lua:6
+   /images/game/blessings/blessings-icons_7                      mods/game_blessing/blessing.lua:10
+   /images/game/blessings/blessings-icons_8                      mods/game_blessing/blessing.lua:11
+   /images/game/blessings/blessings-icons_9                      mods/game_blessing/blessing.lua:4
+
+== images/game/skills  (9)
+   /images/game/skills/skill_0                                   modules/game_skills/skills.otui:312
+   /images/game/skills/skill_1                                   modules/game_skills/skills.otui:327
+   /images/game/skills/skill_2                                   modules/game_skills/skills.otui:342
+   /images/game/skills/skill_3                                   modules/game_skills/skills.otui:357
+   /images/game/skills/skill_4                                   modules/game_skills/skills.otui:372
+   /images/game/skills/skill_5                                   modules/game_skills/skills.otui:387
+   /images/game/skills/skill_6                                   modules/game_skills/skills.otui:402
+   /images/game/skills/skill_magic                               modules/game_skills/skills.otui:296
+   /images/game/skills/xp_boost                                  mods/game_cyclopedia/styles/character.otui:1579
+
+== images/game/battlepass  (8)
+   /images/game/battlepass/                                      mods/game_pvp_queue/pvp_map_phase.lua:42
+   /images/game/battlepass/battlepass-hourglass                  mods/game_pvp_queue/pvp_queue.lua:911
+   /images/game/battlepass/battlepass-hourglass                  mods/game_pvp_queue/pvp_queue.otui:996
+   /images/game/battlepass/battlepass-hourglass                  mods/game_pvp_queue/pvp_queue.lua:911
+   /images/game/battlepass/bright                                modules/game_sidebuttons/sidebuttons.otui:106
+   /images/game/battlepass/bronze-icon                           mods/game_trackers/styles/battlepass_tracker.otui:14
+   /images/game/battlepass/mainIcon1                             modules/game_sidebuttons/sidebuttons.otui:76
+   /images/game/battlepass/player-icon-level                     mods/game_trackers/styles/battlepass_tracker.otui:68
+
+== images/game/actionbar  (8)
+   /images/game/actionbar/action-slot-highlight                  modules/game_actionbar/actionbar.otui:189
+   /images/game/actionbar/equip-preset/                          modules/game_actionbar/actionbar.lua:1092
+   /images/game/actionbar/equip-preset/                          modules/game_actionbar/actionbar.lua:1092
+   /images/game/actionbar/equip-preset/icon_                     modules/game_actionbar/equippreset.otui:150
+   /images/game/actionbar/equip-preset/icon_                     modules/game_actionbar/equippreset.otui:150
+   /images/game/actionbar/equip-preset/icon_1                    modules/game_actionbar/equippreset.otui:79
+   /images/game/actionbar/equip-preset/selected_frame            modules/game_actionbar/equippreset.otui:99
+   /images/game/actionbar/select-object                          mods/client_settings/styles/object.otui:143
+
+== images/game/slots  (5)
+   /images/game/slots/                                           mods/game_cyclopedia/classes/character.lua:125
+   /images/game/slots/                                           mods/game_cyclopedia/classes/character.lua:125
+   /images/game/slots/smoth-pattern                              modules/game_inventory/inventory.otui:81
+   /images/game/slots/soulcap                                    data/styles/40-inventory.otui:111
+   /images/game/slots/soulcap                                    modules/game_inventory/inventory.otui:251
+
+== images/game/compendium  (5)
+   /images/game/compendium/client-features                       mods/game_compendium/compendium.otui:42
+   /images/game/compendium/game-content                          mods/game_compendium/compendium.otui:26
+   /images/game/compendium/major-updates                         mods/game_compendium/compendium.otui:75
+   /images/game/compendium/support                               mods/game_compendium/compendium.otui:91
+   /images/game/compendium/useful-info                           mods/game_compendium/compendium.otui:58
+
+== images/icons/icon-battlelist.png  (4)
+   /images/icons/icon-battlelist                                 modules/game_battle/battle.otui:66
+   /images/icons/icon-battlelist                                 modules/game_battle/BattleClass.lua:109
+   /images/icons/icon-battlelist                                 mods/game_pvp_queue/pvp_queue.otui:2157
+   /images/icons/icon-battlelist                                 modules/game_battle/BattleClass.lua:109
+
+== game_cyclopedia/images/icons  (4)
+   /game_cyclopedia/images/icons/icon-bosstiary-                 mods/game_cyclopedia/classes/boss_slots.lua:104
+   /game_cyclopedia/images/icons/icon-bosstiary-                 mods/game_cyclopedia/classes/boss_slots.lua:104
+   /game_cyclopedia/images/icons/stats/element_                  modules/game_skills/skills.lua:1182
+   /game_cyclopedia/images/icons/stats/element_                  mods/game_cyclopedia/classes/character.lua:736
+
+== images/game/trackers  (4)
+   /images/game/trackers/imbue-slot                              mods/game_trackers/classes/imbuement_tracker.lua:72
+   /images/game/trackers/imbue-slot                              mods/game_trackers/styles/imbui_tracker.otui:30
+   /images/game/trackers/imbue-slot                              mods/game_trackers/classes/imbuement_tracker.lua:72
+   /images/game/trackers/progressBg                              mods/game_cyclopedia/styles/bossslot.otui:112
+
+== images/ui/numbers  (4)
+   /images/ui/numbers/number-                                    modules/client_background/background.lua:275
+   /images/ui/numbers/number-                                    modules/client_background/background.lua:275
+   /images/ui/numbers/number-0                                   modules/client_background/background.otui:336
+   /images/ui/numbers/separator                                  modules/client_background/background.otui:351
+
+== images/game/forge  (4)
+   /images/game/forge/conversionButton                           mods/game_forge/forge.otui:57
+   /images/game/forge/fusionButton                               mods/game_forge/forge.otui:25
+   /images/game/forge/historyButton                              mods/game_forge/forge.otui:73
+   /images/game/forge/transferButton                             mods/game_forge/forge.otui:41
+
+== images/ui/notification  (4)
+   /images/ui/notification/notification-down                     modules/game_interface/gameinterface.otui:233
+   /images/ui/notification/notification-up                       modules/game_interface/gameinterface.otui:231
+   /images/ui/notification/reward-down                           modules/game_interface/gameinterface.otui:82
+   /images/ui/notification/reward-up                             modules/game_interface/gameinterface.otui:80
+
+== images/dailyreward/icon-arrow-disabled.png  (3)
+   /images/dailyreward/icon-arrow-disabled                       mods/game_dailyreward/selectreward.otui:41
+   /images/dailyreward/icon-arrow-disabled                       mods/game_dailyreward/dailyreward.lua:404
+   /images/dailyreward/icon-arrow-disabled                       mods/game_dailyreward/dailyreward.lua:404
+
+== images/dailyreward/icon-arrowright.png  (3)
+   /images/dailyreward/icon-arrowright                           mods/game_dailyreward/selectreward.otui:59
+   /images/dailyreward/icon-arrowright                           mods/game_dailyreward/dailyreward.lua:389
+   /images/dailyreward/icon-arrowright                           mods/game_dailyreward/dailyreward.lua:389
+
+== images/dailyreward/icon-arrowskip-disabled.png  (3)
+   /images/dailyreward/icon-arrowskip-disabled                   mods/game_dailyreward/selectreward.otui:34
+   /images/dailyreward/icon-arrowskip-disabled                   mods/game_dailyreward/dailyreward.lua:403
+   /images/dailyreward/icon-arrowskip-disabled                   mods/game_dailyreward/dailyreward.lua:403
+
+== images/dailyreward/icon-arrowskipright.png  (3)
+   /images/dailyreward/icon-arrowskipright                       mods/game_dailyreward/selectreward.otui:66
+   /images/dailyreward/icon-arrowskipright                       mods/game_dailyreward/dailyreward.lua:388
+   /images/dailyreward/icon-arrowskipright                       mods/game_dailyreward/dailyreward.lua:388
+
+== images/arrows/icon-arrow-rightlarge.png  (3)
+   /images/arrows/icon-arrow-rightlarge                          mods/game_forge/classes/Forge.lua:923
+   /images/arrows/icon-arrow-rightlarge                          mods/game_forge/styles/result.otui:59
+   /images/arrows/icon-arrow-rightlarge                          mods/game_forge/classes/Forge.lua:923
+
+== images/dailyreward/buttonbg.png  (3)
+   /images/dailyreward/buttonbg                                  mods/game_dailyreward/dailyreward.lua:165
+   /images/dailyreward/buttonbg                                  mods/game_dailyreward/dailyreward.otui:10
+   /images/dailyreward/buttonbg                                  mods/game_dailyreward/dailyreward.lua:165
+
+== images/dailyreward/nextbg.png  (3)
+   /images/dailyreward/nextbg                                    mods/game_dailyreward/dailyreward.lua:155
+   /images/dailyreward/nextbg                                    mods/game_dailyreward/dailyreward.otui:5
+   /images/dailyreward/nextbg                                    mods/game_dailyreward/dailyreward.lua:155
+
+== images/game/outfit_ground.png  (3)
+   /images/game/outfit_ground                                    mods/game_podium_monster/mpodium.lua:170
+   /images/game/outfit_ground                                    mods/game_podium_monster/mpodium.otui:152
+   /images/game/outfit_ground                                    mods/game_podium_player/player_podium.lua:586
+
+== images/icons/icon-cooldown-running.png  (3)
+   /images/icons/icon-cooldown-running                           mods/game_trackers/classes/boss_tracker.lua:316
+   /images/icons/icon-cooldown-running                           mods/game_trackers/styles/boss_tracker.otui:119
+   /images/icons/icon-cooldown-running                           mods/game_trackers/classes/boss_tracker.lua:316
+
+== images/latency/latency-low.png  (3)
+   /images/latency/latency-low                                   modules/game_stats/stats.lua:93
+   /images/latency/latency-low                                   modules/game_stats/stats.otui:14
+   /images/latency/latency-low                                   modules/game_stats/stats.lua:93
+
+== images/ui/hidden-menu-down.png  (3)
+   /images/ui/hidden-menu-down                                   modules/game_sidebuttons/sidebuttons.lua:465
+   /images/ui/hidden-menu-down                                   modules/game_sidebuttons/sidebuttons.otui:114
+   /images/ui/hidden-menu-down                                   modules/game_sidebuttons/sidebuttons.lua:465
+
+== images/ui/info.png  (3)
+   /images/ui/info                                               mods/game_cyclopedia/styles/bosstiary.otui:286
+   /images/ui/info                                               mods/game_quickloot/quickloot.otui:120
+   /images/ui/info                                               mods/game_cyclopedia/styles/bosstiary.otui:286
+
+== images/ui/pressed-large-button.png  (3)
+   /images/ui/pressed-large-button                               mods/game_hireling_outfit/hireling_outfit.lua:239
+   /images/ui/pressed-large-button                               data/styles/40-hirelingwindow.otui:573
+   /images/ui/pressed-large-button                               mods/game_hireling_outfit/hireling_outfit.lua:239
+
+== images/game/items  (3)
+   /images/game/items/tier-1                                     modules/game_interface/gameinterface.otui:241
+   /images/game/items/tiers-strip                                mods/game_forge/styles/transfer.otui:309
+   /images/game/items/tiers-strip-big                            mods/game_forge/styles/transfer.otui:149
+
+== data/fonts/.otfont  (2)
+   /data/fonts/                                                  modules/client_styles/styles.lua:48
+   /layouts/                                                     modules/client_styles/styles.lua:39
+
+== game_cyclopedia/images/ui  (2)
+   /game_cyclopedia/images/ui/icon/icon-character-               mods/game_cyclopedia/classes/character.lua:139
+   /game_cyclopedia/images/ui/icon/icon-character-               mods/game_cyclopedia/classes/character.lua:139
+
+== images/arrows/icon-arrow-rightlarge-filled.png  (2)
+   /images/arrows/icon-arrow-rightlarge-filled                   mods/game_forge/classes/Forge.lua:922
+   /images/arrows/icon-arrow-rightlarge-filled                   mods/game_forge/classes/Forge.lua:922
+
+== images/dailyreward/icon-arrow.png  (2)
+   /images/dailyreward/icon-arrow                                mods/game_dailyreward/dailyreward.lua:401
+   /images/dailyreward/icon-arrow                                mods/game_dailyreward/dailyreward.lua:401
+
+== images/dailyreward/icon-arrowright-disabled.png  (2)
+   /images/dailyreward/icon-arrowright-disabled                  mods/game_dailyreward/dailyreward.lua:394
+   /images/dailyreward/icon-arrowright-disabled                  mods/game_dailyreward/dailyreward.lua:394
+
+== images/dailyreward/icon-arrowskip.png  (2)
+   /images/dailyreward/icon-arrowskip                            mods/game_dailyreward/dailyreward.lua:400
+   /images/dailyreward/icon-arrowskip                            mods/game_dailyreward/dailyreward.lua:400
+
+== images/dailyreward/icon-arrowskipright-disabled.png  (2)
+   /images/dailyreward/icon-arrowskipright-disabled              mods/game_dailyreward/dailyreward.lua:393
+   /images/dailyreward/icon-arrowskipright-disabled              mods/game_dailyreward/dailyreward.lua:393
+
+== images/dailyreward/icon-checkmark.png  (2)
+   /images/dailyreward/icon-checkmark                            mods/game_dailyreward/dailyreward.lua:193
+   /images/dailyreward/icon-checkmark                            mods/game_dailyreward/dailyreward.lua:193
+
+== images/dailyreward/icon-reward-fixeditems.png  (2)
+   /images/dailyreward/icon-reward-fixeditems                    mods/game_dailyreward/classes/DailyReward.lua:59
+   /images/dailyreward/icon-reward-fixeditems                    mods/game_dailyreward/classes/DailyReward.lua:59
+
+== images/dailyreward/icon-reward-pickitems.png  (2)
+   /images/dailyreward/icon-reward-pickitems                     mods/game_dailyreward/classes/DailyReward.lua:56
+   /images/dailyreward/icon-reward-pickitems                     mods/game_dailyreward/classes/DailyReward.lua:56
+
+== images/dailyreward/icon-reward-xpboost.png  (2)
+   /images/dailyreward/icon-reward-xpboost                       mods/game_dailyreward/classes/DailyReward.lua:61
+   /images/dailyreward/icon-reward-xpboost                       mods/game_dailyreward/classes/DailyReward.lua:61
+
+== images/dailyreward/icon-rewardarrow-active.png  (2)
+   /images/dailyreward/icon-rewardarrow-active                   mods/game_dailyreward/dailyreward.lua:258
+   /images/dailyreward/icon-rewardarrow-active                   mods/game_dailyreward/dailyreward.lua:258
+
+== images/flags/.png  (2)
+   /images/flags/                                                modules/client_locales/locales.lua:19
+   /images/flags/                                                modules/client_locales/locales.lua:19
+
+== images/game/entergame  (2)
+   /images/game/entergame/                                       modules/client_entergame/characterlist.lua:1052
+   /images/game/entergame/                                       modules/client_entergame/characterlist.lua:1052
+
+== images/game/proficiency  (2)
+   /images/game/proficiency/icon-masterylevel-                   mods/game_proficiency/proficiency.lua:860
+   /images/game/proficiency/icon-masterylevel-                   mods/game_proficiency/proficiency.lua:860
+
+== images/icons/icon-cooldown-finished.png  (2)
+   /images/icons/icon-cooldown-finished                          mods/game_trackers/classes/boss_tracker.lua:307
+   /images/icons/icon-cooldown-finished                          mods/game_trackers/classes/boss_tracker.lua:307
+
+== images/latency/latency-high.png  (2)
+   /images/latency/latency-high                                  modules/game_stats/stats.lua:87
+   /images/latency/latency-high                                  modules/game_stats/stats.lua:87
+
+== images/latency/latency-medium.png  (2)
+   /images/latency/latency-medium                                modules/game_stats/stats.lua:83
+   /images/latency/latency-medium                                modules/game_stats/stats.lua:83
+
+== images/optionstab/.png  (2)
+   /images/optionstab/                                           mods/client_settings/settings.lua:124
+   /images/optionstab/                                           mods/client_settings/settings.lua:124
+
+== images/optionstab/change-label.png  (2)
+   /images/optionstab/change-label                               mods/client_settings/settings.lua:1490
+   /images/optionstab/change-label                               mods/client_settings/settings.lua:1490
+
+== images/store/clean-button.png  (2)
+   /images/store/clean-button                                    mods/game_helper/helper.lua:1575
+   /images/store/clean-button                                    mods/game_helper/helper.lua:1560
+
+== images/store/icon-.png  (2)
+   /images/store/icon-                                           mods/game_transfer/worldTransfer.lua:87
+   /images/store/icon-                                           mods/game_transfer/worldTransfer.lua:87
+
+== images/store/icon-rtc.png  (2)
+   /images/store/icon-rtc                                        mods/game_patch_notes/patch_notes.lua:128
+   /images/store/icon-rtc                                        mods/game_patch_notes/patch_notes.lua:128
+
+== images/ui/big-dark-button.png  (2)
+   /images/ui/big-dark-button                                    modules/game_outfit/outfit.lua:515
+   /images/ui/big-dark-button                                    modules/game_outfit/outfit.lua:515
+
+== images/ui/chat_channel_selected.png  (2)
+   /images/ui/chat_channel_selected                              modules/game_console/classes/Chat.lua:1097
+   /images/ui/chat_channel_selected                              modules/game_console/classes/Chat.lua:1097
+
+== images/ui/console.png  (2)
+   /images/ui/console                                            modules/game_console/classes/Chat.lua:1126
+   /images/ui/console                                            modules/game_console/classes/Chat.lua:1126
+
+== images/ui/hidden-menu-up.png  (2)
+   /images/ui/hidden-menu-up                                     modules/game_sidebuttons/sidebuttons.lua:462
+   /images/ui/hidden-menu-up                                     modules/game_sidebuttons/sidebuttons.lua:462
+
+== images/ui/hlarge-blue-button.png  (2)
+   /images/ui/hlarge-blue-button                                 mods/game_hireling_outfit/hireling_outfit.lua:234
+   /images/ui/hlarge-blue-button                                 mods/game_hireling_outfit/hireling_outfit.lua:234
+
+== images/ui/large_blue_button.png  (2)
+   /images/ui/large_blue_button                                  mods/game_hireling_outfit/hireling_outfit.lua:134
+   /images/ui/large_blue_button                                  mods/game_hireling_outfit/hireling_outfit.lua:134
+
+== images/ui/unkown-button.png  (2)
+   /images/ui/unkown-button                                      mods/game_cyclopedia/classes/bestiary.lua:400
+   /images/ui/unkown-button                                      mods/game_cyclopedia/classes/bestiary.lua:400
+
+== images/game/eventschedule  (2)
+   /images/game/eventschedule/calendar-bg                        mods/game_schedule/schedule.otui:118
+   /images/game/eventschedule/calendar-panel                     mods/game_schedule/schedule.otui:13
+
+== images/game/memorial  (2)
+   /images/game/memorial/icon-crownsetoutfit                     mods/game_memorial/memorial.otui:88
+   /images/game/memorial/icon-goldenoutfit                       mods/game_memorial/memorial.otui:55
+
+== images/game/spells  (2)
+   /images/game/spells/cooldowns                                 mods/client_settings/styles/spell.otui:55
+   /images/game/spells/spell-icons-22x24                         modules/gamelib/spells.lua:4
+
+== images/game/topbar  (2)
+   /images/game/topbar/proficiency-button-20x                    mods/game_cyclopedia/styles/items.otui:627
+   /images/game/topbar/progress/                                 modules/game_topbar/topbar.lua:38
+
+== images/store/icon-goldcoin.png  (2)
+   /images/store/icon-goldcoin                                   mods/game_tibia_market/t_market.otui:1479
+   images/store/icon-goldcoin.png                                mods/game_transfer/worldTransfer.lua:107
+
+== images/store/icon-rubinotcoin.png  (2)
+   /images/store/icon-rubinotcoin                                mods/game_store/store.otui:82
+   /images/store/icon-rubinotcoin                                mods/game_store/classes/Offers.lua:571
+
+== images/store/icon-rubinotcointransferable.png  (2)
+   /images/store/icon-rubinotcointransferable                    mods/game_tibia_market/t_market.otui:1505
+   /images/store/icon-rubinotcointransferable                    mods/game_store/classes/Bazaar.lua:811
+
+== images/shaders/black.png  (2)
+   /images/shaders/black.png                                     modules/game_shaders/shaders.lua:39
+   /images/shaders/black.png                                     modules/game_shaders/shaders.lua:39
+
+== images/shaders/blue-monochrome.png  (2)
+   /images/shaders/blue-monochrome.png                           modules/game_shaders/shaders.lua:61
+   /images/shaders/blue-monochrome.png                           modules/game_shaders/shaders.lua:61
+
+== images/shaders/bronze.png  (2)
+   /images/shaders/bronze.png                                    modules/game_shaders/shaders.lua:121
+   /images/shaders/bronze.png                                    modules/game_shaders/shaders.lua:121
+
+== images/shaders/champion-monochrome.png  (2)
+   /images/shaders/champion-monochrome.png                       modules/game_shaders/shaders.lua:86
+   /images/shaders/champion-monochrome.png                       modules/game_shaders/shaders.lua:86
+
+== images/shaders/crystal-monochrome.png  (2)
+   /images/shaders/crystal-monochrome.png                        modules/game_shaders/shaders.lua:82
+   /images/shaders/crystal-monochrome.png                        modules/game_shaders/shaders.lua:82
+
+== images/shaders/crystal.png  (2)
+   /images/shaders/crystal.png                                   modules/game_shaders/shaders.lua:127
+   /images/shaders/crystal.png                                   modules/game_shaders/shaders.lua:127
+
+== images/shaders/exalted-monochrome.png  (2)
+   /images/shaders/exalted-monochrome.png                        modules/game_shaders/shaders.lua:88
+   /images/shaders/exalted-monochrome.png                        modules/game_shaders/shaders.lua:88
+
+== images/shaders/fog_halloween.png  (2)
+   /images/shaders/fog_halloween.png                             modules/game_shaders/shaders.lua:100
+   /images/shaders/fog_halloween.png                             modules/game_shaders/shaders.lua:100
+
+== images/shaders/gold-monochrome.png  (2)
+   /images/shaders/gold-monochrome.png                           modules/game_shaders/shaders.lua:58
+   /images/shaders/gold-monochrome.png                           modules/game_shaders/shaders.lua:58
+
+== images/shaders/gold-monochrome2.png  (2)
+   /images/shaders/gold-monochrome2.png                          modules/game_shaders/shaders.lua:78
+   /images/shaders/gold-monochrome2.png                          modules/game_shaders/shaders.lua:78
+
+== images/shaders/gold2.png  (2)
+   /images/shaders/gold2.png                                     modules/game_shaders/shaders.lua:125
+   /images/shaders/gold2.png                                     modules/game_shaders/shaders.lua:125
+
+== images/shaders/green-monochrome.png  (2)
+   /images/shaders/green-monochrome.png                          modules/game_shaders/shaders.lua:67
+   /images/shaders/green-monochrome.png                          modules/game_shaders/shaders.lua:67
+
+== images/shaders/heavy_snow.png  (2)
+   /images/shaders/heavy_snow.png                                modules/game_shaders/shaders.lua:108
+   /images/shaders/heavy_snow.png                                modules/game_shaders/shaders.lua:108
+
+== images/shaders/light_snow.png  (2)
+   /images/shaders/light_snow.png                                modules/game_shaders/shaders.lua:112
+   /images/shaders/light_snow.png                                modules/game_shaders/shaders.lua:112
+
+== images/shaders/megalomaniac-monochrome.png  (2)
+   /images/shaders/megalomaniac-monochrome.png                   modules/game_shaders/shaders.lua:90
+   /images/shaders/megalomaniac-monochrome.png                   modules/game_shaders/shaders.lua:90
+
+== images/shaders/midred-monochrome.png  (2)
+   /images/shaders/midred-monochrome.png                         modules/game_shaders/shaders.lua:70
+   /images/shaders/midred-monochrome.png                         modules/game_shaders/shaders.lua:70
+
+== images/shaders/newbie-monochrome.png  (2)
+   /images/shaders/newbie-monochrome.png                         modules/game_shaders/shaders.lua:74
+   /images/shaders/newbie-monochrome.png                         modules/game_shaders/shaders.lua:74
+
+== images/shaders/platinum-monochrome.png  (2)
+   /images/shaders/platinum-monochrome.png                       modules/game_shaders/shaders.lua:80
+   /images/shaders/platinum-monochrome.png                       modules/game_shaders/shaders.lua:80
+
+== images/shaders/prata.png  (2)
+   /images/shaders/prata.png                                     modules/game_shaders/shaders.lua:123
+   /images/shaders/prata.png                                     modules/game_shaders/shaders.lua:123
+
+== images/shaders/rainbow.png  (2)
+   /images/shaders/rainbow.png                                   modules/game_shaders/shaders.lua:27
+   /images/shaders/rainbow.png                                   modules/game_shaders/shaders.lua:27
+
+== images/shaders/sanguinum-monochrome.png  (2)
+   /images/shaders/sanguinum-monochrome.png                      modules/game_shaders/shaders.lua:92
+   /images/shaders/sanguinum-monochrome.png                      modules/game_shaders/shaders.lua:92
+
+== images/shaders/snow.png  (2)
+   /images/shaders/snow.png                                      modules/game_shaders/shaders.lua:104
+   /images/shaders/snow.png                                      modules/game_shaders/shaders.lua:104
+
+== images/shaders/terror-monochrome.png  (2)
+   /images/shaders/terror-monochrome.png                         modules/game_shaders/shaders.lua:84
+   /images/shaders/terror-monochrome.png                         modules/game_shaders/shaders.lua:84
+
+== images/shaders/warlord-monochrome.png  (2)
+   /images/shaders/warlord-monochrome.png                        modules/game_shaders/shaders.lua:94
+   /images/shaders/warlord-monochrome.png                        modules/game_shaders/shaders.lua:94
+
+== images/shaders/wooden-monochrome.png  (2)
+   /images/shaders/wooden-monochrome.png                         modules/game_shaders/shaders.lua:76
+   /images/shaders/wooden-monochrome.png                         modules/game_shaders/shaders.lua:76
+
+== pointer.png  (1)
+   pointer                                                       mods/game_cyclopedia/styles/map.otui:8
+
+== images/icons/icon-battlelist-party-widget.png  (1)
+   /images/icons/icon-battlelist-party-widget                    mods/game_party_list/partyList.otui:51
+
+== images/icons/icon-questtracker-widget.png  (1)
+   /images/icons/icon-questtracker-widget                        mods/game_questlog/questlog.otui:398
+
+== images/icons/icon-skills-widget.png  (1)
+   /images/icons/icon-skills-widget                              modules/game_skills/skills.otui:76
+
+== images/icons/icon-vip-widget.png  (1)
+   /images/icons/icon-vip-widget                                 modules/game_viplist/viplist.otui:48
+
+== images/store/icon-store-16x10.png  (1)
+   /images/store/icon-store-16x10                                mods/game_cyclopedia/styles/charm.otui:303
+
+== images/ui/discord-icon.png  (1)
+   /images/ui/discord-icon                                       modules/client_entergame/entergame.otui:325
+
+== images/ui/google.png  (1)
+   /images/ui/google                                             modules/client_entergame/entergame.otui:311
+
+== images/ui/trade.png  (1)
+   /images/ui/trade                                              mods/game_trade/trade.otui:62
+
+== images/ui/mkt-battlepass.png  (1)
+   /images/ui/mkt-battlepass                                     data/styles/40-outfitwindow.otui:592
+
+== images/ui/mkt-custom.png  (1)
+   /images/ui/mkt-custom                                         mods/game_tibia_market/t_market.otui:465
+
+== images/ui/mkt-default.png  (1)
+   /images/ui/mkt-default                                        mods/game_tibia_market/t_market.otui:442
+
+== mods/game_cyclopedia/images  (1)
+   /mods/game_cyclopedia/images/ui/itemcolor/                    mods/game_cyclopedia/classes/items.lua:535
+
+== cursor-open.png  (1)
+   cursor-open                                                   data/cursors/cursors.otml:29
+
+== cursor-quick-loot.png  (1)
+   cursor-quick-loot                                             data/cursors/cursors.otml:33
+
+== cursor-use.png  (1)
+   cursor-use                                                    data/cursors/cursors.otml:45
+
+== images/icons/icon-cyclopedia-.png  (1)
+   images/icons/icon-cyclopedia-                                 mods/game_cyclopedia/cyclopedia.lua:112
+
+== data/images/ui  (1)
+   /data/images/ui/health_mana                                   modules/game_healthinfo/healthinfo.otui:25
+
+== game_cyclopedia/images/monsters  (1)
+   /game_cyclopedia/images/monsters/demon                        mods/game_cyclopedia/styles/house.otui:463
+
+== images/arrows/icon-arrow-downlarge.png  (1)
+   /images/arrows/icon-arrow-downlarge                           mods/game_forge/styles/conversion.otui:45
+
+== images/arrows/icon-arrow7x7-down.png  (1)
+   /images/arrows/icon-arrow7x7-down                             mods/game_store/styles/buttons.otui:48
+
+== images/arrows/icon_3arrows.png  (1)
+   /images/arrows/icon_3arrows                                   mods/game_forge/styles/transfer.otui:330
+
+== images/bars/animated-natal.png  (1)
+   /images/bars/animated-natal                                   mods/game_boss_health/boss_health.otui:15
+
+== images/bars/animatedlife1.png  (1)
+   /images/bars/animatedlife1                                    modules/game_interface/gameinterface.otui:376
+
+== images/bars/background.png  (1)
+   /images/bars/background                                       mods/game_boss_health/boss_health.otui:124
+
+== images/bars/background2.png  (1)
+   /images/bars/background2                                      mods/game_boss_health/boss_health.otui:191
+
+== images/bars/background4.png  (1)
+   /images/bars/background4                                      modules/game_interface/gameinterface.otui:369
+
+== images/bars/backgroundf5.png  (1)
+   /images/bars/backgroundf5                                     mods/game_boss_health/boss_health.otui:8
+
+== images/bars/life.png  (1)
+   /images/bars/life                                             mods/game_boss_health/boss_health.otui:115
+
+== images/bars/light1.png  (1)
+   /images/bars/light1                                           modules/game_interface/gameinterface.otui:386
+
+== images/bars/light2.png  (1)
+   /images/bars/light2                                           mods/game_boss_health/boss_health.otui:25
+
+== images/bars/solzarith-try.png  (1)
+   /images/bars/solzarith-try                                    mods/game_boss_health/boss_health.otui:91
+
+== images/dailyreward/icon-check-bg.png  (1)
+   /images/dailyreward/icon-check-bg                             mods/game_dailyreward/dailyreward.otui:119
+
+== images/dailyreward/icon-daily-reward-joker.png  (1)
+   /images/dailyreward/icon-daily-reward-joker                   mods/game_dailyreward/history.otui:262
+
+== images/dailyreward/icon-lock-red.png  (1)
+   /images/dailyreward/icon-lock-red                             mods/game_dailyreward/dailyreward.otui:279
+
+== images/dailyreward/icon-restingareabonuseslevels.png  (1)
+   /images/dailyreward/icon-restingareabonuseslevels             mods/game_dailyreward/dailyreward.otui:146
+
+== images/dailyreward/icon-rewardarrow-inactive.png  (1)
+   /images/dailyreward/icon-rewardarrow-inactive                 mods/game_dailyreward/dailyreward.otui:259
+
+== images/dailyreward/icon-rewardarrow-loop-inactive.png  (1)
+   /images/dailyreward/icon-rewardarrow-loop-inactive            mods/game_dailyreward/dailyreward.otui:649
+
+== images/dailyreward/icon-rewardstreak-bronze.png  (1)
+   /images/dailyreward/icon-rewardstreak-bronze                  mods/game_dailyreward/dailyreward.otui:130
+
+== images/dailyreward/instant-reward-access-icon.png  (1)
+   /images/dailyreward/instant-reward-access-icon                mods/game_dailyreward/history.otui:276
+
+== images/dailyreward/store.png  (1)
+   /images/dailyreward/store                                     mods/game_dailyreward/history.otui:295
+
+== images/dailyreward/timerBg.png  (1)
+   /images/dailyreward/timerBg                                   mods/game_dailyreward/dailyreward.otui:94
+
+== images/dailyreward/tprogress.png  (1)
+   /images/dailyreward/tprogress                                 mods/game_dailyreward/dailyreward.otui:98
+
+== images/game/floor.png  (1)
+   /images/game/floor                                            data/styles/40-hirelingwindow.otui:2
+
+== images/game/skull_progress.png  (1)
+   /images/game/skull_progress                                   modules/game_unjustifiedpoints/unjustifiedpoints.otui:3
+
+== images/game/taskboard  (1)
+   /images/game/taskboard/icon-currency-bountypoints             modules/game_prey/prey.otui:1226
+
+== images/game/transfer  (1)
+   /images/game/transfer/stepTwoLabel                            mods/game_transfer/worldTransfer.otui:233
+
+== images/game/wiki  (1)
+   /images/game/wiki/backdrop_modgrades                          mods/game_christmas_daily/christmas_daily.otui:257
+
+== images/icons/icon-cooldown-finished-small.png  (1)
+   /images/icons/icon-cooldown-finished-small                    modules/game_skills/skills.otui:171
+
+== images/icons/xp_boost.png  (1)
+   /images/icons/xp_boost                                        modules/game_skills/skills.otui:130
+
+== images/optionstab/controlTools.png  (1)
+   /images/optionstab/controlTools                               mods/client_settings/options/hud.otui:519
+
+== images/store/button-store-down.png  (1)
+   /images/store/button-store-down                               modules/game_sidebuttons/sidebuttons.otui:58
+
+== images/store/button-store-new.png  (1)
+   /images/store/button-store-new                                modules/game_sidebuttons/sidebuttons.otui:191
+
+== images/store/button-store-small-down.png  (1)
+   /images/store/button-store-small-down                         mods/game_blessing/blessing.otui:41
+
+== images/store/button-store-small-up.png  (1)
+   /images/store/button-store-small-up                           mods/game_blessing/blessing.otui:35
+
+== images/store/button-store-up.png  (1)
+   /images/store/button-store-up                                 modules/game_sidebuttons/sidebuttons.otui:52
+
+== images/store/get-down.png  (1)
+   /images/store/get-down                                        mods/game_tibia_market/t_market.otui:1534
+
+== images/store/get-up.png  (1)
+   /images/store/get-up                                          mods/game_tibia_market/t_market.otui:1528
+
+== images/store/icon-currency-dust.png  (1)
+   /images/store/icon-currency-dust                              mods/game_forge/forge.otui:135
+
+== images/store/icon-currency-exaltedcore.png  (1)
+   /images/store/icon-currency-exaltedcore                       mods/game_forge/forge.otui:187
+
+== images/store/icon-currency-sliver.png  (1)
+   /images/store/icon-currency-sliver                            mods/game_forge/forge.otui:161
+
+== images/store/icon-star-dark.png  (1)
+   /images/store/icon-star-dark                                  mods/game_proficiency/weapon_proficiency.otui:66
+
+== images/store/transfer-coin-down.png  (1)
+   /images/store/transfer-coin-down                              mods/game_store/store.otui:151
+
+== images/store/transfer-coin-up.png  (1)
+   /images/store/transfer-coin-up                                mods/game_store/store.otui:145
+
+== images/title.png  (1)
+   /images/title                                                 modules/client_background/background.otui:82
+
+== images/title_transiction.png  (1)
+   /images/title_transiction                                     modules/game_interface/gameinterface.otui:45
+
+== images/topbuttons/huntfinder-mini.png  (1)
+   /images/topbuttons/huntfinder-mini                            modules/game_sidebuttons/sidebuttons.otui:176
+
+== images/ui/2pixel-up-frame-borderimage-dark-upside-down.png  (1)
+   /images/ui/2pixel-up-frame-borderimage-dark-upside-down       mods/game_store/styles/pixdonate.otui:190
+
+== images/ui/actionbar_background.png  (1)
+   /images/ui/actionbar_background                               modules/game_actionbar/actionbar.otui:296
+
+== images/ui/actionbar_background-light.png  (1)
+   /images/ui/actionbar_background-light                         modules/game_interface/gameinterface.otui:497
+
+== images/ui/background-dark.png  (1)
+   /images/ui/background-dark                                    modules/game_cooldown/cooldown.otui:30
+
+== images/ui/big-light-button.png  (1)
+   /images/ui/big-light-button                                   data/styles/40-hirelingwindow.otui:31
+
+== images/ui/big-window.png  (1)
+   /images/ui/big-window                                         mods/game_cyclopedia/styles/house.otui:1292
+
+== images/ui/bosstiary-bg.png  (1)
+   /images/ui/bosstiary-bg                                       mods/game_pvp_queue/pvp_queue.otui:172
+
+== images/ui/bosstiary-progress.png  (1)
+   /images/ui/bosstiary-progress                                 mods/game_pvp_queue/pvp_queue.otui:179
+
+== images/ui/browse-arrow-left.png  (1)
+   /images/ui/browse-arrow-left                                  data/styles/40-container.otui:94
+
+== images/ui/browse-arrow-right.png  (1)
+   /images/ui/browse-arrow-right                                 data/styles/40-container.otui:108
+
+== images/ui/button-edit.png  (1)
+   /images/ui/button-edit                                        mods/client_settings/styles/hotkey.otui:70
+
+== images/ui/button-edit-14px.png  (1)
+   /images/ui/button-edit-14px                                   mods/game_cyclopedia/styles/character.otui:3808
+
+== images/ui/cam.png  (1)
+   /images/ui/cam                                                modules/client_entergame/entergame.otui:123
+
+== images/ui/colors-panel.png  (1)
+   /images/ui/colors-panel                                       data/styles/40-hirelingwindow.otui:723
+
+== images/ui/conditionPanel.png  (1)
+   /images/ui/conditionPanel                                     mods/game_store/styles/bazaar.otui:691
+
+== images/ui/continue_with_logpass.png  (1)
+   /images/ui/continue_with_logpass.png                          modules/client_entergame/logpass.otui:8
+
+== images/ui/copy-all.png  (1)
+   /images/ui/copy-all                                           data/styles/40-hirelingwindow.otui:680
+
+== images/ui/copy-colours.png  (1)
+   /images/ui/copy-colours                                       data/styles/40-hirelingwindow.otui:695
+
+== images/ui/cyclopedia_dropbutton.png  (1)
+   /images/ui/cyclopedia_dropbutton                              mods/game_cyclopedia/styles/character.otui:1294
+
+== images/ui/delete-button.png  (1)
+   /images/ui/delete-button                                      data/styles/40-hirelingwindow.otui:332
+
+== images/ui/discord.png  (1)
+   /images/ui/discord                                            data/styles/20-topmenu.otui:83
+
+== images/ui/ditherpattern-20.png  (1)
+   /images/ui/ditherpattern-20                                   mods/game_cyclopedia/styles/magicalarchive.otui:25
+
+== images/ui/erase-button.png  (1)
+   /images/ui/erase-button                                       mods/game_proficiency/weapon_proficiency.otui:401
+
+== images/ui/helper.png  (1)
+   /images/ui/helper                                             mods/game_helper/styles/helper.otui:2528
+
+== images/ui/hide-pin.png  (1)
+   /images/ui/hide-pin                                           mods/game_questlog/questlog.otui:33
+
+== images/ui/large-ditherpattern.png  (1)
+   /images/ui/large-ditherpattern                                data/styles/40-hirelingwindow.otui:763
+
+== images/ui/largeButton.png  (1)
+   /images/ui/largeButton                                        mods/game_memorial/memorial.otui:30
+
+== images/ui/large_gray_button.png  (1)
+   /images/ui/large_gray_button                                  data/styles/40-hirelingwindow.otui:76
+
+== images/ui/logo.png  (1)
+   /images/ui/logo                                               modules/client_background/background.otui:90
+
+== images/ui/logout-down.png  (1)
+   /images/ui/logout-down                                        modules/game_sidebuttons/sidebuttons.otui:133
+
+== images/ui/logout-up.png  (1)
+   /images/ui/logout-up                                          modules/game_sidebuttons/sidebuttons.otui:126
+
+== images/ui/mkt-category-buttons.png  (1)
+   /images/ui/mkt-category-buttons                               mods/game_tibia_market/t_market.otui:440
+
+== images/ui/multiaction-bottom.png  (1)
+   /images/ui/multiaction-bottom                                 modules/game_actionbar/multiaction.otui:4
+
+== images/ui/multiaction-left.png  (1)
+   /images/ui/multiaction-left                                   modules/game_actionbar/actionbar.otui:31
+
+== images/ui/multiaction-right.png  (1)
+   /images/ui/multiaction-right                                  modules/game_actionbar/actionbar.otui:61
+
+== images/ui/new-button.png  (1)
+   /images/ui/new-button                                         data/styles/40-hirelingwindow.otui:282
+
+== images/ui/ok-button.png  (1)
+   /images/ui/ok-button                                          data/styles/40-hirelingwindow.otui:822
+
+== images/ui/opt-sv.png  (1)
+   /images/ui/opt-sv                                             modules/client_background/background.otui:328
+
+== images/ui/options-down.png  (1)
+   /images/ui/options-down                                       modules/game_sidebuttons/sidebuttons.otui:150
+
+== images/ui/options-up.png  (1)
+   /images/ui/options-up                                         modules/game_sidebuttons/sidebuttons.otui:143
+
+== images/ui/p2pixel-up-frame-borderimage.png  (1)
+   /images/ui/p2pixel-up-frame-borderimage                       mods/game_dailyreward/history.otui:171
+
+== images/ui/panel-1-pixel.png  (1)
+   /images/ui/panel-1-pixel                                      mods/game_cyclopedia/styles/house.otui:686
+
+== images/ui/panel-arrow.png  (1)
+   /images/ui/panel-arrow                                        modules/game_interface/gameinterface.otui:762
+
+== images/ui/panel_bottom2.png  (1)
+   /images/ui/panel_bottom2                                      modules/game_interface/gameinterface.otui:476
+
+== images/ui/panel_map_bordered.png  (1)
+   /images/ui/panel_map_bordered                                 data/styles/30-miniwindow.otui:257
+
+== images/ui/paste.png  (1)
+   /images/ui/paste                                              data/styles/40-hirelingwindow.otui:711
+
+== images/ui/people.png  (1)
+   /images/ui/people                                             data/styles/20-topmenu.otui:106
+
+== images/ui/pin-button.png  (1)
+   /images/ui/pin-button                                         modules/client_entergame/characterlist.otui:14
+
+== images/ui/progressbar_thick.png  (1)
+   /images/ui/progressbar_thick                                  data/styles/10-progressbars.otui:16
+
+== images/ui/progressbarbestiary.png  (1)
+   /images/ui/progressbarbestiary                                mods/game_cyclopedia/styles/house.otui:468
+
+== images/ui/rPagination.png  (1)
+   /images/ui/rPagination                                        data/styles/40-container.otui:69
+
+== images/ui/refreshButton.png  (1)
+   /images/ui/refreshButton                                      mods/game_search_locker/searchlocker.otui:285
+
+== images/ui/rename-button.png  (1)
+   /images/ui/rename-button                                      data/styles/40-hirelingwindow.otui:296
+
+== images/ui/retrieve-displayed.png  (1)
+   /images/ui/retrieve-displayed                                 mods/game_search_locker/searchlocker.otui:440
+
+== images/ui/rmv-button.png  (1)
+   /images/ui/rmv-button                                         mods/game_helper/styles/helper.otui:1465
+
+== images/ui/roullet-item-sep.png  (1)
+   /images/ui/roullet-item-sep                                   mods/game_roulette_progress/roulette_progress.otui:194
+
+== images/ui/save-button.png  (1)
+   /images/ui/save-button                                        data/styles/40-hirelingwindow.otui:314
+
+== images/ui/schedule.png  (1)
+   /images/ui/schedule                                           modules/client_background/background.otui:154
+
+== images/ui/schedule-progress.png  (1)
+   /images/ui/schedule-progress                                  modules/client_entergame/waitinglist.otui:27
+
+== images/ui/searchButton.png  (1)
+   /images/ui/searchButton                                       mods/game_search_locker/searchlocker.otui:269
+
+== images/ui/separator_vertical66.png  (1)
+   /images/ui/separator_vertical66                               modules/client_entergame/characterlist.otui:65
+
+== images/ui/sexButton.png  (1)
+   /images/ui/sexButton                                          data/styles/40-hirelingwindow.otui:648
+
+== images/ui/sideBottom.png  (1)
+   /images/ui/sideBottom                                         modules/game_sidebuttons/sidebuttons.otui:250
+
+== images/ui/special_miniwindow.png  (1)
+   /images/ui/special_miniwindow                                 modules/client_entergame/entergame.otui:267
+
+== images/ui/splitterActBottom.png  (1)
+   /images/ui/splitterActBottom                                  modules/game_interface/gameinterface.otui:617
+
+== images/ui/store-purse.png  (1)
+   /images/ui/store-purse                                        mods/game_cyclopedia/styles/character.otui:3483
+
+== images/ui/textedit-bg.png  (1)
+   /images/ui/textedit-bg                                        modules/client_background/background.otui:314
+
+== images/ui/unknownoutfit.png  (1)
+   /images/ui/unknownoutfit                                      modules/client_background/background.otui:252
+
+== images/ui/video_buttons.png  (1)
+   /images/ui/video_buttons                                      modules/client_videoplayer/video_player.otui:44
+
+== images/updater/progress.png  (1)
+   /images/updater/progress                                      modules/updater/updater.otui:32
+
+== images/updater/progress-bg.png  (1)
+   /images/updater/progress-bg                                   modules/updater/updater.otui:25
+
+== images/updater/start-download.png  (1)
+   /images/updater/start-download                                modules/updater/updater.otui:12
+
+== .png.png  (1)
+   .png                                                          mods/client_settings/classes/ScreenShot.lua:55
+
+== images/game/console  (1)
+   images/game/console/mute.png                                  modules/game_console/classes/Message.lua:245
+
+== styles/.otui  (1)
+   /styles/                                                      modules/client_styles/styles.lua:30
+
+== new.otui  (1)
+   new                                                           mods/game_trade/trade.lua:2
+
+== options/.otui  (1)
+   options/                                                      mods/client_settings/settings.lua:105
+
+== cursors/cursors.png  (1)
+   /cursors/cursors                                              modules/client_styles/styles.lua:53
+
+== fonts/.png  (1)
+   /fonts/                                                       modules/client_styles/styles.lua:39
+
+== images/bars/health1.png  (1)
+   /images/bars/health1                                          mods/game_healthbars/healthbars.lua:2
+
+== images/bars/mana1.png  (1)
+   /images/bars/mana1                                            mods/game_healthbars/healthbars.lua:3
+
+== images/game/icons  (1)
+   /images/game/icons/                                           modules/gamelib/creature.lua:183
+
+== images/game/npcicons  (1)
+   /images/game/npcicons/icon_hireling                           modules/gamelib/creature.lua:135
+
+== images/icons/icon-preydialogue.png  (1)
+   /images/icons/icon-preydialogue                               modules/game_prey/prey.lua:355
+
+== images/topbuttons/keypad.png  (1)
+   /images/topbuttons/keypad                                     modules/client_mobile/mobile.lua:21
+
+== layouts/.png  (1)
+   /layouts/                                                     modules/client_styles/styles.lua:9
+
+== minimap/.png  (1)
+   /minimap/                                                     modules/game_minimap/minimap.lua:254
+
+== shaders/image-disabled.png  (1)
+   /shaders/image-disabled                                       modules/game_shaders/shaders.lua:19
+
+== shaders/image_black-white_fragment.png  (1)
+   /shaders/image_black-white_fragment                           modules/game_shaders/shaders.lua:18
+
+== shaders/image_black-white_vertex.png  (1)
+   /shaders/image_black-white_vertex                             modules/game_shaders/shaders.lua:18
+
+== shaders/image_black_fragment.png  (1)
+   /shaders/image_black_fragment                                 modules/game_shaders/shaders.lua:46
+
+== shaders/image_black_white_fragment.png  (1)
+   /shaders/image_black_white_fragment                           modules/game_shaders/shaders.lua:49
+
+== shaders/image_green_fragment.png  (1)
+   /shaders/image_green_fragment                                 modules/game_shaders/shaders.lua:48
+
+== shaders/image_red_fragment.png  (1)
+   /shaders/image_red_fragment                                   modules/game_shaders/shaders.lua:47
+
+== shaders/item_print_fragment.png  (1)
+   /shaders/item_print_fragment                                  modules/game_shaders/shaders.lua:50
+
+== shaders/map_default_fragment.png  (1)
+   /shaders/map_default_fragment                                 modules/game_shaders/shaders.lua:23
+
+== shaders/map_default_vertex.png  (1)
+   /shaders/map_default_vertex                                   modules/game_shaders/shaders.lua:23
+
+== shaders/map_light_snow_fragment.png  (1)
+   /shaders/map_light_snow_fragment                              modules/game_shaders/shaders.lua:111
+
+== shaders/map_light_snow_vertex.png  (1)
+   /shaders/map_light_snow_vertex                                modules/game_shaders/shaders.lua:111
+
+== shaders/map_rainbow_fragment.png  (1)
+   /shaders/map_rainbow_fragment                                 modules/game_shaders/shaders.lua:26
+
+== shaders/map_rainbow_vertex.png  (1)
+   /shaders/map_rainbow_vertex                                   modules/game_shaders/shaders.lua:26
+
+== shaders/outfit-disable_fragment.png  (1)
+   /shaders/outfit-disable_fragment                              modules/game_shaders/shaders.lua:20
+
+== shaders/outfit-disable_vertex.png  (1)
+   /shaders/outfit-disable_vertex                                modules/game_shaders/shaders.lua:20
+
+== shaders/outfit_black_fragment.png  (1)
+   /shaders/outfit_black_fragment                                modules/game_shaders/shaders.lua:38
+
+== shaders/outfit_black_vertex.png  (1)
+   /shaders/outfit_black_vertex                                  modules/game_shaders/shaders.lua:38
+
+== shaders/outfit_default_fragment.png  (1)
+   /shaders/outfit_default_fragment                              modules/game_shaders/shaders.lua:31
+
+== shaders/outfit_default_vertex.png  (1)
+   /shaders/outfit_default_vertex                                modules/game_shaders/shaders.lua:31
+
+== shaders/outfit_frozen_fragment.png  (1)
+   /shaders/outfit_frozen_fragment                               modules/game_shaders/shaders.lua:42
+
+== shaders/outfit_frozen_vertex.png  (1)
+   /shaders/outfit_frozen_vertex                                 modules/game_shaders/shaders.lua:42
+
+== shaders/outfit_rainbow_fragment.png  (1)
+   /shaders/outfit_rainbow_fragment                              modules/game_shaders/shaders.lua:34
+
+== shaders/outfit_rainbow_vertex.png  (1)
+   /shaders/outfit_rainbow_vertex                                modules/game_shaders/shaders.lua:34
+
+== shaders/text_golden_shadow_bold_fragment.png  (1)
+   /shaders/text_golden_shadow_bold_fragment                     modules/game_shaders/shaders.lua:54
+
+== shaders/text_golden_shadow_bold_vertex.png  (1)
+   /shaders/text_golden_shadow_bold_vertex                       modules/game_shaders/shaders.lua:54
+
+== shaders/text_golden_shadow_solid_fragment.png  (1)
+   /shaders/text_golden_shadow_solid_fragment                    modules/game_shaders/shaders.lua:55
+
+== shaders/text_golden_shadow_solid_vertex.png  (1)
+   /shaders/text_golden_shadow_solid_vertex                      modules/game_shaders/shaders.lua:55
+
+== shaders/text_staff_fragment.png  (1)
+   /shaders/text_staff_fragment                                  modules/game_shaders/shaders.lua:57
+
+== shaders/text_staff_vertex.png  (1)
+   /shaders/text_staff_vertex                                    modules/game_shaders/shaders.lua:57
+
+== sounds/startup.png  (1)
+   /sounds/startup                                               modules/client/client.lua:1
+
+== styles/.png  (1)
+   /styles/                                                      modules/client_styles/styles.lua:30
+
