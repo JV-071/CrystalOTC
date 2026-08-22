@@ -163,12 +163,26 @@ void SoundSource::setFading(const FadeState state, const float fadeTime)
         setGain(0.0);
 }
 
+void SoundSource::restartFading()
+{
+    // A fade armed before anything could be heard - a stream still waiting on
+    // its file - has to run from the moment playback really starts, or the
+    // whole window elapses while the source is mute.
+    if (m_fadeState == FadingOn)
+        m_fadeStartTime = stdext::millis() / 1000.0f;
+}
+
 void SoundSource::update()
 {
     const float now = stdext::millis() / 1000.0f;
     if (m_fadeState == FadingOn) {
         const float elapsed = now - m_fadeStartTime;
         if (elapsed >= m_fadeTime) {
+            // setFading() muted the source to start the ramp. Land on the
+            // target gain the way the FadingOff branch does: if the whole
+            // window went by between two updates the ramp never ran, and
+            // leaving it here would keep the source silent for good.
+            setGain(m_fadeGain);
             m_fadeState = NoFading;
         } else {
             setGain((elapsed / m_fadeTime) * m_fadeGain);

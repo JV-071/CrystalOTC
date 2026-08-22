@@ -66,6 +66,7 @@ protected:
     void setChannel(const uint8_t channel) { m_channel = channel; }
 
     virtual void update();
+    void restartFading();
     friend class SoundManager;
     friend class CombinedSoundSource;
 

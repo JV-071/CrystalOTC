@@ -58,8 +58,10 @@ void StreamSoundSource::setSoundFile(const SoundFilePtr& soundFile)
     m_soundFile = soundFile;
     if (m_waitingFile) {
         m_waitingFile = false;
-        if (m_playing)
+        if (m_playing) {
+            restartFading();
             play();
+        }
     }
 }
 
