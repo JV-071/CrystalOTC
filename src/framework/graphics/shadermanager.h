@@ -24,6 +24,8 @@
 
 #include "declarations.h"
 
+#include <shared_mutex>
+
  //@bindsingleton g_shaders
 class ShaderManager
 {
@@ -70,14 +72,23 @@ public:
 
     void addMultiTexture(std::string_view name, std::string_view file);
 
+    // Forgets the name and empties its slot. The slot itself is kept: an id indexes m_shadersVector
+    // and is baked into every material handle and every Thing that names the shader, so compacting
+    // the vector would silently renumber every shader registered after this one.
+    bool removeShader(std::string_view name);
+
     PainterShaderProgramPtr getShader(std::string_view name);
-    PainterShaderProgramPtr getShaderById(const uint8_t id) const {
-        return id > 0 && id <= m_shadersVector.size() ? m_shadersVector[id - 1] : nullptr;
-    }
+    PainterShaderProgramPtr getShaderById(uint8_t id) const;
 
 private:
     void putShader(std::string name, const PainterShaderProgramPtr& shader);
 
+    // Registration happens on the main thread, from inside the g_mainDispatcher lambdas that
+    // compile and link. Lookup happens on the map and async threads: getShader is bound straight to
+    // Lua, and getShaderById is called while recording the draw pools. stdext::map is open
+    // addressing, so an insert can rehash and move the whole slot array out from under a concurrent
+    // find - and m_shadersVector reallocates as it grows. Both need guarding.
+    mutable std::shared_mutex m_mutex;
     stdext::map<std::string, PainterShaderProgramPtr> m_shaders;
     std::vector<PainterShaderProgramPtr> m_shadersVector;
 };

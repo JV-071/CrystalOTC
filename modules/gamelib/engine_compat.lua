@@ -283,10 +283,6 @@ if not g_game.sendForgeHistory and g_game.sendForgeBrowseHistoryRequest then
 	end
 end
 
-if g_shaders then
-	install(g_shaders, "removeShader", function() end)
-end
-
 -- ===== remaining singletons =====
 
 install(g_app, "quit", function()

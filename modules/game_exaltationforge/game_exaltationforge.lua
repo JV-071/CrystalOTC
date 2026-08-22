@@ -448,7 +448,6 @@ local FORGE_RESULT_PULSE_SLOW_MS = 200
 local FORGE_RESULT_PULSE_FAST_MS = 100
 local FORGE_RESULT_FINAL_FLASH_MS = 500
 local FORGE_RESULT_FADE_MS = 800
-local FORGE_RESULT_SHADER_CREATE_MS = 50
 local FORGE_RESULT_STEPS = {
 	{
 		on = FORGE_RESULT_PULSE_SLOW_MS
@@ -541,23 +540,19 @@ local FORGE_RESULT_FADE_OUT_SHADER = "Item - ForgeFadeOut"
 local FORGE_RESULT_FADE_IN_SHADER = "Item - ForgeFadeIn"
 local FORGE_RESULT_FADE_OUT_RED_SHADER = "Item - ForgeFadeOutRed"
 
+-- ShaderManager::putShader replaces an existing name in place, keeping the id it was given, so
+-- creating over the top is the recreate. It used to call a g_shaders.removeShader that did not
+-- exist in C++ at all - the name resolved to a no-op compat stub - after which putShader refused
+-- the new program and the compile was thrown away.
 local function recreateForgeResultShader(shaderName, shaderPath)
-	g_shaders.removeShader(shaderName)
 	g_shaders.createFragmentShader(shaderName, shaderPath, false)
 end
 
-local function applyShaderWhenReady(shaderName, applyFn, attempt)
-	if g_shaders.getShader(shaderName) then
-		applyFn()
-
-		return
-	end
-
-	if (attempt or 0) < 20 then
-		scheduleEvent(function()
-			applyShaderWhenReady(shaderName, applyFn, (attempt or 0) + 1)
-		end, 16)
-	end
+-- Waits on the engine's own completion signal. This used to poll getShader every 16 ms up to 20
+-- times, which raced the main thread's insert into an unsynchronised container and gave up silently
+-- if a driver took longer than ~320 ms to link.
+local function applyShaderWhenReady(shaderName, applyFn)
+	g_shaders.whenReady(shaderName, applyFn)
 end
 
 local function applyResultSilhouette(widget, onApplied)
@@ -706,25 +701,7 @@ local function playResultFade(leftWidget, leftItem, rightWidget, rightItem, left
 	recreateForgeResultShader(leftFadeShader, leftFadePath)
 	recreateForgeResultShader(rightFadeShader, rightFadePath)
 
-	local function applyFadeShaders(attempt)
-		if not g_shaders.getShader(leftFadeShader) or not g_shaders.getShader(rightFadeShader) then
-			if (attempt or 0) < 20 then
-				scheduleEvent(function()
-					applyFadeShaders((attempt or 0) + 1)
-				end, 16)
-			else
-				if onFadeComplete then
-					onFadeComplete()
-				end
-
-				if onComplete then
-					onComplete()
-				end
-			end
-
-			return
-		end
-
+	local function applyFadeShaders()
 		setResultItemShader(leftWidget, leftItem, leftFadeShader)
 		setResultItemShader(rightWidget, rightItem, rightFadeShader)
 		scheduleEvent(function()
@@ -742,9 +719,11 @@ local function playResultFade(leftWidget, leftItem, rightWidget, rightItem, left
 		end, FORGE_RESULT_FADE_MS)
 	end
 
-	scheduleEvent(function()
-		applyFadeShaders(0)
-	end, FORGE_RESULT_SHADER_CREATE_MS)
+	-- Both programs have to exist before either is applied, so wait on the second signal from
+	-- inside the first. No fixed delay: the engine says when it is done.
+	g_shaders.whenReady(leftFadeShader, function()
+		g_shaders.whenReady(rightFadeShader, applyFadeShaders)
+	end)
 end
 
 local function setupResultPreviewItem(widget, item, showTier)
@@ -1038,7 +1017,6 @@ function Forge:ProcessFlash(item, widget, startDelay, item2, widget2, descWidget
 	local animationStartDelay = startDelay or 10
 	local finalFlashAt = FORGE_RESULT_FINAL_FLASH.at
 	local finalFlashOnMs = FORGE_RESULT_FINAL_FLASH.onMs
-	local totalDuration = FORGE_RESULT_FADE_START_MS + FORGE_RESULT_SHADER_CREATE_MS + FORGE_RESULT_FADE_MS + 200
 
 	recreateForgeResultShader(FORGE_RESULT_BLINK_SHADER, "menu/shaders/blink_white.frag")
 
@@ -1098,13 +1076,10 @@ function Forge:ProcessFlash(item, widget, startDelay, item2, widget2, descWidget
 			end, finalFlashOnMs)
 		end, finalFlashAt)
 	end, animationStartDelay)
-	scheduleEvent(function()
-		g_shaders.removeShader(FORGE_RESULT_BLINK_SHADER)
-		g_shaders.removeShader(FORGE_RESULT_BLINK_RED_SHADER)
-		g_shaders.removeShader(FORGE_RESULT_FADE_OUT_SHADER)
-		g_shaders.removeShader(FORGE_RESULT_FADE_IN_SHADER)
-		g_shaders.removeShader(FORGE_RESULT_FADE_OUT_RED_SHADER)
-	end, animationStartDelay + totalDuration)
+
+	-- The five result shaders are deliberately left registered. putShader replaces a name in place
+	-- and keeps its id, so the next forge reuses these slots; removing them would hand out a fresh
+	-- id every animation instead, and the id is a uint8_t.
 end
 
 function Forge:displayResult(actionType, convergence, success, leftItemId, rightItemId, leftTier, rightTier, bonus, coreCount, extraItemId, extraTier)

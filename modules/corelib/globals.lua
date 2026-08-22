@@ -234,3 +234,44 @@ function flushGameSettingsOnLogout()
 		g_settings.save()
 	end
 end
+
+-- Shader creation is asynchronous: g_shaders.createFragmentShader and friends queue the compile
+-- and link onto the render thread and return nothing. ShaderManager::putShader announces the
+-- finished program back here through g_shaders.onShaderReady, so callers can wait on the signal
+-- instead of polling getShader - which used to race the very insert it was waiting for.
+local pendingShaderCallbacks = {}
+
+function g_shaders.whenReady(name, callback)
+	if type(name) ~= "string" or type(callback) ~= "function" then
+		return
+	end
+
+	if g_shaders.getShader(name) then
+		callback(name)
+
+		return
+	end
+
+	local waiting = pendingShaderCallbacks[name]
+
+	if not waiting then
+		waiting = {}
+		pendingShaderCallbacks[name] = waiting
+	end
+
+	table.insert(waiting, callback)
+end
+
+function g_shaders.onShaderReady(name)
+	local waiting = pendingShaderCallbacks[name]
+
+	if not waiting then
+		return
+	end
+
+	pendingShaderCallbacks[name] = nil
+
+	for _, callback in ipairs(waiting) do
+		callback(name)
+	end
+end

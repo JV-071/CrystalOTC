@@ -513,6 +513,7 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_shaders", "setupMountShader", &ShaderManager::setupMountShader, &g_shaders);
     g_lua.bindSingletonFunction("g_shaders", "addMultiTexture", &ShaderManager::addMultiTexture, &g_shaders);
     g_lua.bindSingletonFunction("g_shaders", "getShader", &ShaderManager::getShader, &g_shaders);
+    g_lua.bindSingletonFunction("g_shaders", "removeShader", &ShaderManager::removeShader, &g_shaders);
     g_lua.bindClassStaticFunction("g_shaders", "clear", [] {
         g_mainDispatcher.addEvent([] { g_shaders.clear(); });
     });

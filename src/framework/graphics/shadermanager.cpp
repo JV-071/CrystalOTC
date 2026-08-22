@@ -26,6 +26,7 @@
 #include "framework/core/eventdispatcher.h"
 #include "framework/core/resourcemanager.h"
 #include "render/materialregistry.h"
+#include "framework/luaengine/luainterface.h"
 #include "shader/shadersources.h"
 #include <framework/platform/platformwindow.h>
 
@@ -58,24 +59,73 @@ void ShaderManager::init() { PainterShaderProgram::release(); }
 void ShaderManager::terminate() { clear(); }
 
 void ShaderManager::clear() {
-    m_shaders.clear();
-    m_shadersVector.clear();
+    {
+        std::unique_lock lock(m_mutex);
+        m_shaders.clear();
+        m_shadersVector.clear();
+    }
+
     MaterialRegistry::instance().clear();
 }
 
 void ShaderManager::putShader(std::string name, const PainterShaderProgramPtr& shader) {
-    if (!m_shaders.try_emplace(name, shader).second)
-        return;
+    uint8_t id = 0;
 
-    m_shadersVector.emplace_back(shader);
-    shader->m_id = m_shadersVector.size();
+    {
+        std::unique_lock lock(m_mutex);
+
+        if (const auto it = m_shaders.find(name); it != m_shaders.end()) {
+            // Replace in place rather than refusing. A recreate has to keep the id it already had:
+            // the id indexes m_shadersVector, is baked into the material handle, and is stored on
+            // every Thing that names this shader. It is also a uint8_t, so handing out a fresh id
+            // per recreate would exhaust the whole space after 255 of them.
+            id = it->second->m_id;
+            it->second = shader;
+            shader->m_id = id;
+
+            if (id > 0 && id <= m_shadersVector.size())
+                m_shadersVector[id - 1] = shader;
+        } else {
+            if (m_shadersVector.size() >= std::numeric_limits<uint8_t>::max()) {
+                g_logger.error("shader id space is exhausted, cannot register '{}'", name);
+                return;
+            }
+
+            m_shaders.emplace(name, shader);
+            m_shadersVector.emplace_back(shader);
+            id = shader->m_id = static_cast<uint8_t>(m_shadersVector.size());
+        }
+    }
 
     // Publish what this handle names, in a form a backend that is not OpenGL can read. The
     // handle arithmetic is PoolCompiler::materialOf's, stated once here so the two cannot drift.
     MaterialRegistry::instance().registerMaterial(
         MaterialHandle{ static_cast<uint16_t>(
-            static_cast<uint16_t>(BuiltinMaterial::FirstModule) + shader->m_id) },
-        MaterialDesc{ std::move(name), shader->getSourceKey() });
+            static_cast<uint16_t>(BuiltinMaterial::FirstModule) + id) },
+        MaterialDesc{ name, shader->getSourceKey() });
+
+    // Compiling and linking happen asynchronously on this thread, and until now the only way for
+    // Lua to learn that a program exists was to poll getShader - which raced this very function.
+    // Announce it instead, on the thread Lua actually runs on.
+    g_dispatcher.addEvent([name = std::move(name)] {
+        g_lua.callGlobalField("g_shaders", "onShaderReady", name);
+    });
+}
+
+bool ShaderManager::removeShader(const std::string_view name) {
+    std::unique_lock lock(m_mutex);
+
+    const auto it = m_shaders.find(std::string{ name });
+    if (it == m_shaders.end())
+        return false;
+
+    const auto id = it->second->m_id;
+    m_shaders.erase(it);
+
+    if (id > 0 && id <= m_shadersVector.size())
+        m_shadersVector[id - 1] = nullptr;
+
+    return true;
 }
 
 // GLSL is compiled only where there is an OpenGL context to compile it for: the Vulkan feeder
@@ -225,9 +275,18 @@ void ShaderManager::addMultiTexture(const std::string_view name, const std::stri
 
 PainterShaderProgramPtr ShaderManager::getShader(const std::string_view name)
 {
+    std::shared_lock lock(m_mutex);
+
     const auto it = m_shaders.find(std::string{ name });
     if (it != m_shaders.end())
         return it->second;
 
     return nullptr;
+}
+
+PainterShaderProgramPtr ShaderManager::getShaderById(const uint8_t id) const
+{
+    std::shared_lock lock(m_mutex);
+
+    return id > 0 && id <= m_shadersVector.size() ? m_shadersVector[id - 1] : nullptr;
 }
