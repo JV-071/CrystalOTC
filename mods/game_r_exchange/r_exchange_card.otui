@@ -1,0 +1,168 @@
+OutfitInfoSlot < UIWidget
+  size: 73 73
+  image-source: /images/ui/item66
+  border-width: 1
+  border-color: #161616
+  $hover:
+    border-width: 1
+    border-color: white
+  $!hover:
+    border-width: 1
+
+  UIWidget
+    id: selected
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 5
+    margin-top: 5
+    image-source: /images/store/icon-yes
+    image-auto-resize: true
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: selectedBorder
+    anchors.fill: parent
+    image-border: 1
+    image-source: /images/store/rectangle-highlight
+    phantom: true
+    visible: false
+
+  UICreature
+    id: rewardOutfit
+    size: 64 64
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    idle-animate: true
+    visible: true
+    tooltip-delayed: true
+    outfit-center: true
+    outfit-id: 127
+    margin-top: 2
+    phantom: true
+
+NewHeadlessWindow
+  id: battlePassRewardWindow
+  anchors.horizontalCenter: parent.horizontalCenter
+  size: 460 208
+  @onEscape: hide()
+  UIWidget
+    size: 145 56
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: -33
+    image-source: /images/game/tutorial/backdrop_crestr
+    phantom: true
+  Panel
+    id: mainPanel
+    anchors.fill: parent
+    margin: 15 13 17 13
+    Label
+      id: infoLabel
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-top: 15
+      !text: tr('Select the cosmetic you want to transform into a card.')
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-align: center
+      wrap: true
+      text-auto-resize: true
+
+    TextList
+      id: outfitPanel
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 97
+      margin-top: 10
+      margin-left: 5
+      margin-right: 5
+      horizontal-scrollbar: outfitPanelScrollBar
+      padding-top: 6
+      padding-left: 9
+      padding-right: 9
+      visible: false
+      layout:
+        type: grid
+        cell-size: 73 73
+        cell-spacing: 10
+        num-lines: 1
+        num-columns: 50
+
+    HorizontalScrollBar
+      id: outfitPanelScrollBar
+      anchors.bottom: outfitPanel.bottom
+      anchors.right: outfitPanel.right
+      anchors.left: outfitPanel.left
+      step: 65
+      margin: 0 1 1 2
+      pixels-scroll: true
+      visible: false
+
+    TextList
+      id: mountPanel
+      anchors.top: outfitPanel.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      height: 97
+      margin-top: 7
+      margin-left: 5
+      margin-right: 5
+      horizontal-scrollbar: mountPanelScrollBar
+      padding-top: 6
+      padding-left: 9
+      padding-right: 9
+      visible: false
+      layout:
+        type: grid
+        cell-size: 73 73
+        cell-spacing: 10
+        num-lines: 1
+        num-columns: 50
+
+    HorizontalScrollBar
+      id: mountPanelScrollBar
+      anchors.bottom: mountPanel.bottom
+      anchors.right: mountPanel.right
+      anchors.left: mountPanel.left
+      step: 65
+      margin: 0 1 1 2
+      pixels-scroll: true
+      visible: false 
+
+    HorizontalSeparator
+      id: separator
+      anchors.bottom: next.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-bottom: 11
+      margin-left: 5
+      margin-right: 5
+    Button
+      id: close
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      !text: tr('Close')
+      size: 43 20
+      margin-right: 5
+      @onClick: hide()
+    Button
+      id: collectRewardButton
+      size: 63 20
+      image-source: /images/ui/buttons-blue
+      image-border: 2
+      anchors.bottom: parent.bottom
+      anchors.right: prev.left
+      margin-right: 5
+      !text: tr('Transform')
+      @onClick: doWarnCollect()
+    UIWidget
+      id: border
+      size: 65 22
+      anchors.top: prev.top
+      anchors.left: prev.left
+      margin-left: -1
+      margin-top: -1
+      phantom: true
+      image-source: /images/store/rectangle-highlight

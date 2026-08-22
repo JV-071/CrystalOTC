@@ -1,0 +1,432 @@
+BattlePassMissionWidget < Panel
+  size: 144 25
+  phantom: false
+  tooltip-font: pVerdana Bold-11px
+  tooltip-delayed: true
+  @onClick: modules.game_trackers.BattlePassTracker.onOpenBattlePass()
+  UIWidget
+    id: missionIcon
+    size: 23 23
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: -2
+    margin-left: -3
+    image-source: /images/game/battlepass/bronze-icon
+    phantom: true
+  Label
+    id: missionName
+    anchors.top: parent.top
+    anchors.left: missionIcon.right
+    margin-top: -4
+    margin-left: 1
+    text: Mission Name
+    font: $var-cip-font
+    color: $var-text-cip-color
+    text-auto-resize: true
+    text-overflow-length: 18
+    phantom: true
+
+  ProgressBar
+    id: progressBar
+    height: 5
+    anchors.top: missionName.bottom
+    anchors.left: missionIcon.right
+    anchors.right: parent.right
+    margin-top: 4
+    margin-right: 4
+    margin-left: 2
+    background-color: #C28400
+    color: $var-text-cip-color
+    phantom: true
+
+MiniWindow
+  id: battlepassTracker
+  &type: 'battlepassTracker'
+  !text: tr('Battle Pass Tr...')
+  font: $var-cip-font
+  text-offset: 18 0
+  height: 80
+  icon: /images/icons/icon-analyticsselector-widget
+  @onClose: modules.game_trackers.BattlePassTracker.onClose()
+  @onExtra: modules.game_trackers.BattlePassTracker.showSortOptions()
+  &save: true
+  &autoOpen: false
+  MiniWindowContents
+    anchors.fill: parent
+    margin: 20 17 4 6
+    layout: verticalBox
+    Panel
+      id: headerPanel
+      height: 82
+      phantom: false
+      @onClick: modules.game_trackers.BattlePassTracker.onOpenBattlePass()
+      UIWidget
+        id: levelIconBg
+        size: 81 75
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        image-source: /images/game/battlepass/player-icon-level
+        phantom: true
+      Label
+        id: levelLabel
+        text: 0
+        anchors.bottom: levelIconBg.bottom
+        anchors.horizontalCenter: levelIconBg.horizontalCenter
+        text-align: center
+        text-auto-resize: true
+        font: $var-cip-font
+        color: $var-text-cip-color
+        margin-bottom: 4
+        margin-left: -2
+        phantom: true
+
+    HorizontalSeparator
+      id: dailySeparator1
+
+    Label
+      id: dailyLabel
+      !text: tr('Daily Missions')
+      font: $var-cip-font
+      color: $var-text-cip-color
+
+    HorizontalSeparator
+      id: dailySeparator2
+      margin-top: 4
+
+    BattlePassMissionWidget
+      id: dailySlot1
+      margin-top: 2
+      margin-left: 3
+
+    BattlePassMissionWidget
+      id: dailySlot2
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    HorizontalSeparator
+      id: generalSeparator1
+      margin-top: 3
+
+    Label
+      id: generalLabel
+      !text: tr('General Missions')
+      font: $var-cip-font
+      color: $var-text-cip-color
+
+    HorizontalSeparator
+      id: generalSeparator2
+      margin-top: 4
+
+    BattlePassMissionWidget
+      id: generalSlot1
+      margin-top: 2
+      margin-left: 3
+
+    BattlePassMissionWidget
+      id: generalSlot2
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot3
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot4
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot5
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot6
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot7
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot8
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot9
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot10
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot11
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot12
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot13
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot14
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot15
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot16
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot17
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot18
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot19
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot20
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot21
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot22
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot23
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot24
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot25
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot26
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot27
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot28
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot29
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot30
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot31
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot32
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot33
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot34
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot35
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot36
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot37
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: generalSlot38
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    HorizontalSeparator
+      id: completedSeparator
+      margin-top: 3
+      visible: false
+
+    Label
+      id: completedLabel
+      !text: tr('Completed Missions')
+      font: $var-cip-font
+      color: $var-text-cip-color
+      visible: false
+
+    HorizontalSeparator
+      id: completedSeparator2
+      margin-top: 4
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot1
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot2
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot3
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot4
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot5
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot6
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot7
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot8
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot9
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+    BattlePassMissionWidget
+      id: completedSlot10
+      margin-top: 2
+      margin-left: 3
+      visible: false
+
+  UIWidget
+    id: miniborder
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    image-source: /images/ui/miniborder
+    size: 14 14
+    margin-left: 2
+    margin-bottom: 2

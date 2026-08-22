@@ -1,0 +1,501 @@
+CWarningPanel < NewHeadlessWindow
+  id: setuPoolWindow
+  anchors.horizontalCenter: parent.horizontalCenter
+  size: 400 120
+  @onEnter: closeWarningPanel()
+  @onEscape: closeWarningPanel()
+  UIWidget
+    size: 145 56
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: -33
+    image-source: /images/game/tutorial/backdrop_crestr
+    phantom: true
+
+  Label
+    id: messageLabel
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    margin-top: -8
+    !text: tr('Level too low!\nDaily missions require at least level 300.')
+    text-align: center
+    font: $var-cip-font
+    color: $var-text-cip-color
+    text-auto-resize: true
+
+  HorizontalSeparator
+    id: separator
+    anchors.bottom: next.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-left: 13
+    margin-right: 13
+    margin-bottom: 12
+
+  Button
+    id: close
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    !text: tr('Close')
+    margin-bottom: 9
+    margin-right: 13
+    size: 43 20
+    @onClick: closeWarningPanel()
+
+ChristmasCard < UIWidget
+  size: 100 120
+  image-source: /images/game/christmas-daily/1
+  $hover:
+    border-width: 1
+    border-color: white
+  $!hover:
+    border-width: 0
+    border-color: alpha
+  $on:
+    border-width: 1
+    border-color: white
+  Item
+    id: missionCardItem
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-left: -2
+    virtual: true
+    priceable: false
+    show-count: false
+    phantom: true
+    UIWidget
+      id: imgRepresent
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.horizontalCenter: parent.horizontalCenter
+      image-auto-resize: true
+      tooltip-delayed: true
+      phantom: true
+  UIWidget
+    id: checkIcon
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.horizontalCenter: parent.horizontalCenter
+    image-source: /images/game/christmas-daily/check
+    image-auto-resize: true
+    visible: true
+
+NewHeadlessWindow
+  id: christmasDailyWindow
+  anchors.horizontalCenter: parent.horizontalCenter
+  size: 558 441
+  @onEscape: hide()
+  UIWidget
+    size: 145 56
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: -33
+    image-source: /images/game/tutorial/backdrop_crestr
+    phantom: true
+  Panel
+    id: mainPanel
+    anchors.fill: parent
+    margin: 15 13 17 13
+      phantom: true
+    Panel
+      id: cardsContent
+      height: 132
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      image-source: /images/ui/textedit
+      image-border: 1
+      margin-top: 20
+      padding-top: 6
+      padding-left: 6
+      padding-bottom: 6
+      layout:
+        type: grid
+        cell-size: 100 120
+        cell-spacing: 5
+        num-lines: 1
+        num-columns: 5
+      @onSetup: |
+        local imageMap = {1, 1, 2, 2, 3}
+        local imgRepresentMap = {
+          {img = 'world_board', marginLeft = -2, marginTop = -1},
+          {img = '01', marginLeft = -10, marginTop = -17, width = 57, height = 64},
+          {img = 'maze-ticket', marginLeft = -1, marginTop = -2},
+          {img = '03', marginLeft = -12, marginTop = -14},
+          {img = '04', marginLeft = -10, marginTop = -12, width = 64, height = 63},
+        }
+        for i = 1, 5 do
+          local widget = g_ui.createWidget('ChristmasCard', self)
+          widget:setId('christmasCard' .. i)
+          widget:setImageSource('/images/game/christmas-daily/' .. imageMap[i])
+          local imgRepresent = widget.missionCardItem:getChildById('imgRepresent')
+          if imgRepresent then
+            imgRepresent:setImageSource('/images/game/christmas-daily/' .. imgRepresentMap[i].img)
+            imgRepresent:setMarginLeft(imgRepresentMap[i].marginLeft)
+            imgRepresent:setMarginTop(imgRepresentMap[i].marginTop)
+            if imgRepresentMap[i].width and imgRepresentMap[i].height then
+              imgRepresent:setWidth(imgRepresentMap[i].width)
+              imgRepresent:setHeight(imgRepresentMap[i].height)
+            end
+          end
+        end
+
+    UIWidget
+      id: contentBottom
+      height: 120
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      image-source: /images/ui/t2pixel-up-frame-borderimage
+      image-border: 3
+      margin-top: 11
+      Label
+        id: titleLabel
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        margin-top: 1
+        !text: tr('Gain Frost Points by completing tasks and unlock rewards!')
+        font: $var-cip-font
+        color: $var-text-cip-color-grey
+        text-auto-resize: true
+
+      UIWidget
+        id: frostIcon0
+        anchors.bottom: bg0.top
+        anchors.left: bg0.left
+        image-source: /images/game/christmas-daily/frozenstore
+        image-auto-resize: true
+        margin-bottom: 15
+        margin-left: 8
+      Label
+        id: christmasCountLabel0
+        width: 20
+        anchors.top: prev.top
+        anchors.left: prev.right
+        margin-left: 3
+        margin-top: -1
+        !text: tr('20')
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+      UIWidget
+        id: frostIcon1
+        anchors.bottom: bg1.top
+        anchors.left: bg1.left
+        image-source: /images/game/christmas-daily/frozenstore
+        image-auto-resize: true
+        margin-bottom: 15
+        margin-left: 8
+      Label
+        id: christmasCountLabel1
+        width: 20
+        anchors.top: prev.top
+        anchors.left: prev.right
+        margin-left: 3
+        margin-top: -1
+        !text: tr('50')
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+      UIWidget
+        id: frostIcon2
+        anchors.bottom: bg2.top
+        anchors.left: bg2.left
+        image-source: /images/game/christmas-daily/frozenstore
+        image-auto-resize: true
+        margin-bottom: 15
+        margin-left: 8
+      Label
+        id: christmasCountLabel2
+        width: 20
+        anchors.top: prev.top
+        anchors.left: prev.right
+        margin-left: 3
+        margin-top: -1
+        !text: tr('80')
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+      UIWidget
+        id: frostIcon3
+        anchors.bottom: bg3.top
+        anchors.left: bg3.left
+        image-source: /images/game/christmas-daily/frozenstore
+        image-auto-resize: true
+        margin-bottom: 15
+        margin-left: 5
+      Label
+        id: christmasCountLabel3
+        width: 20
+        anchors.top: prev.top
+        anchors.left: prev.right
+        margin-left: 3
+        margin-top: -1
+        text: 105
+        font: $var-cip-font
+        color: $var-text-cip-color
+        text-auto-resize: true
+
+      UIWidget
+        id: bg0
+        size: 54 54
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        margin-left: 79
+        margin-bottom: 10
+        image-source: /images/game/christmas-daily/backdrop_grades_circle_bottom
+        rotation: 90
+        UIWidget
+          id: bgAnim0
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_circle_bottom_anim
+          visible: false
+        UIWidget
+          id: backdropType0
+          size: 50 50
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.horizontalCenter: parent.horizontalCenter
+          image-source: /images/game/wiki/backdrop_modgrades
+          image-clip: 0 0 50 50
+          phantom: true
+          UIWidget
+            id: itemReward0
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            margin-left: -1
+            image-source: /images/game/christmas-daily/coin
+            image-auto-resize: true
+            !tooltip: tr('5x Frost Coins')
+            tooltip-delayed: true
+            rotation: -90
+
+      UIWidget
+        id: bgLine0
+        size: 6 54
+        anchors.top: prev.top
+        anchors.left: prev.right
+        image-source: /images/game/christmas-daily/backdrop_grades_line
+        margin-left: 25
+        rotation: 90
+        UIWidget
+          id: lineAnim0
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_line_anim
+          visible: false
+          margin: 0 1 0 1
+
+      UIWidget
+        id: bg1
+        size: 54 54
+        anchors.top: bg0.top
+        anchors.left: prev.right
+        image-source: /images/game/christmas-daily/backdrop_grades_circle_mid
+        margin-left: 25
+        rotation: 90
+        UIWidget
+          id: modBgAnim1
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_circle_mid_anim
+          visible: false
+        UIWidget
+          id: backdropType1
+          size: 50 50
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.horizontalCenter: parent.horizontalCenter
+          image-source: /images/game/wiki/backdrop_modgrades
+          image-clip: 0 0 50 50
+          phantom: true
+          image-shader: image_black_white
+          UIWidget
+            id: itemReward1
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            margin-left: -2
+            image-source: /images/game/christmas-daily/doll
+            image-auto-resize: true
+            !tooltip: tr('(Random Reward)\n#14, #15 or #16 Rubini Toy')
+            tooltip-delayed: true
+            rotation: -90
+            @onSetup: |
+              local images = {'doll', 'doll1', 'doll2'}
+              local currentIndex = 1
+              local function changeDoll()
+                self:setImageSource('/images/game/christmas-daily/' .. images[currentIndex])
+                if images[currentIndex] == 'doll2' then
+                  self:setMarginLeft(-4)
+                  self:setMarginTop(-3)
+                else
+                  self:setMarginLeft(-4)
+                  self:setMarginTop(0)
+                end
+                currentIndex = currentIndex + 1
+                if currentIndex > #images then
+                  currentIndex = 1
+                end
+              end
+              cycleEvent(function() changeDoll() end, 2500)
+
+      UIWidget
+        id: bgLine1
+        size: 6 54
+        anchors.top: prev.top
+        anchors.left: prev.right
+        image-source: /images/game/christmas-daily/backdrop_grades_line
+        margin-left: 25
+        rotation: 90
+        UIWidget
+          id: lineAnim1
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_line_anim
+          visible: false
+          margin: 0 1 0 1
+
+      UIWidget
+        id: bg2
+        size: 54 54
+        anchors.top: bg1.top
+        anchors.left: prev.right
+        margin-left: 25
+        image-source: /images/game/christmas-daily/backdrop_grades_circle_mid
+        rotation: 90
+        UIWidget
+          id: modBgAnim2
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_circle_mid_anim
+          visible: false
+        UIWidget
+          id: backdropType2
+          size: 50 50
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.horizontalCenter: parent.horizontalCenter
+          image-source: /images/game/wiki/backdrop_modgrades
+          image-clip: 0 0 50 50
+          phantom: true
+          image-shader: image_black_white
+          UIWidget
+            id: itemReward2
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            image-source: /images/game/christmas-daily/flake
+            image-auto-resize: true
+            margin-left: -1
+            !tooltip: tr('Crimson Flake\n(Bound on character)')
+            tooltip-delayed: true
+            rotation: -90
+
+      UIWidget
+        id: bgLine2
+        size: 6 54
+        anchors.top: prev.top
+        anchors.left: prev.right
+        image-source: /images/game/christmas-daily/backdrop_grades_line
+        margin-left: 25
+        rotation: 90
+        UIWidget
+          id: lineAnim2
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_line_anim
+          visible: false
+          margin: 0 1 0 1
+
+      UIWidget
+        id: bg3
+        size: 54 54
+        anchors.top: bg2.top
+        anchors.left: prev.right
+        margin-left: 25
+        image-source: /images/game/christmas-daily/backdrop_grades_circle_top
+        rotation: 90
+        UIWidget
+          id: modBgAnim3
+          anchors.fill: parent
+          image-source: /images/game/christmas-daily/backdrop_grades_circle_top_anim
+          visible: false
+        UIWidget
+          id: backdropType3
+          size: 50 50
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.horizontalCenter: parent.horizontalCenter
+          image-source: /images/game/wiki/backdrop_modgrades
+          image-clip: 0 0 50 50
+          phantom: true
+          image-shader: image_black_white
+          UIWidget
+            id: itemReward3
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            image-source: /images/game/christmas-daily/RadiantBell
+            margin-left: -5
+            margin-top: -3
+            image-auto-resize: true
+            !tooltip: tr('Radiant Bell (Mount)')
+            tooltip-delayed: true
+            rotation: -90
+
+    FlatLabel
+      id: description
+      height: 75
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 11
+      text-wrap: true
+      image-source: /images/ui/2pixel-up-frame-borderimage
+      image-border: 3
+      padding: 5
+      Label
+        id: tooltip
+        anchors.fill: parent
+        text-auto-resize: true
+        text-wrap: true
+        !text: tr('Collect Frost Points by completing Christmas tasks during the event.\nUse Frost Points to unlock exclusive rewards.\n\nCheck your progress and see how close you are to unlocking each reward!')
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+    HorizontalSeparator
+      id: separator
+      anchors.bottom: next.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-bottom: 11
+    Panel
+      id: frostPointsPanel
+      size: 75 20
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      image-source: /images/ui/progress
+      image-border: 7
+      Panel
+        image-source: /images/game/christmas-daily/frozenstore
+        anchors.right: parent.right
+        anchors.top: parent.top
+        margin-top: 4
+        margin-right: 4
+      UIWidget
+        id: pointsLabel
+        width: 20
+        !text: tr('0')
+        anchors.top: parent.top
+        anchors.right: prev.left
+        margin-top: 3
+        margin-right: 7
+        !tooltip: tr('Total Christmas Points')
+        font: $var-cip-font
+        color: $var-text-cip-color
+        tooltip-delayed: true
+
+    Button
+      id: close
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      !text: tr('Close')
+      size: 43 20
+      @onClick: hide()
+
+    Button
+      id: christmasWiki
+      size: 90 20
+      anchors.bottom: parent.bottom
+      anchors.right: close.left
+      margin-right: 10
+      !text: tr('Christmas Wiki')
+      @onClick: g_platform.openUrl("https://wiki.rubinot.com/pt-BR/eventos-anuais/natal-2025")

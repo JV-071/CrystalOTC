@@ -1,0 +1,490 @@
+MazeRankWidget < UIWidget
+  height: 16
+  $first:
+    margin-top: 16
+  UIWidget
+    id: rankPosition
+    width: 44
+    anchors.top: parent.top
+    anchors.left: parent.left
+    text-align: left
+    text: 1.
+    font: $var-cip-font
+    color: $var-text-cip-color
+    margin-left: 1
+  UIWidget
+    id: time
+    anchors.top: parent.top
+    anchors.left: prev.right
+    text-align: left
+    text: 00:00
+    font: $var-cip-font
+    color: $var-text-cip-color-green
+    text-auto-resize: true
+    margin-left: 2
+  UIWidget
+    id: milliseconds
+    width: 35
+    anchors.top: parent.top
+    anchors.left: prev.right
+    text-align: left
+    text: .000
+    font: $var-cip-font-small
+    color: #56d631
+    margin-top: 1
+    margin-left: 3
+
+  UIWidget
+    id: name
+    width: 216
+    text-align: left
+    !text: tr("Player Name")
+    color: $var-text-cip-color
+    font: $var-cip-font
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-left: 127
+  UIWidget
+    id: level
+    width: 78
+    text: 100
+    color: $var-text-cip-color
+    font: $var-cip-font
+    anchors.top: parent.top
+    anchors.left: prev.right
+    margin-left: 4
+    text-align: left
+  UIWidget
+    id: vocation
+    width: 112
+    !text: tr("Druid")
+    text-align: left
+    color: $var-text-cip-color
+    font: $var-cip-font
+    anchors.top: parent.top
+    anchors.left: prev.right
+    margin-left: 4
+  UIWidget
+    id: world
+    width: 110
+    text: World Name
+    text-align: left
+    color: $var-text-cip-color
+    font: $var-cip-font
+    anchors.top: parent.top
+    anchors.left: prev.right
+    margin-left: 6
+    text-overflow-length: 15
+    tooltip-delayed: true
+
+NewHeadlessWindow
+  anchors.centerIn: parent
+  size: 698 420
+  @onEscape: hide()
+  UIWidget
+    size: 145 56
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: -33
+    image-source: /images/game/tutorial/backdrop_crestr
+    phantom: true
+  Panel
+    id: contentPanel
+    anchors.fill: parent
+    margin: 15 13 17 13
+    UIWidget
+      id: filters
+      height: 55
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.left: parent.left
+      margin-top: 15
+      image-source: /images/ui/t2pixel-up-frame-borderimage
+      image-border: 3
+      padding-top: 22
+      padding-left: 12
+      padding-bottom: 10
+      UIWidget
+        id: filterslabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        margin-top: -21
+        !text: tr("Maze Highscore Configuration")
+        font: $var-cip-font
+        color: $var-text-cip-color-grey
+        text-auto-resize: true
+        visible: true
+      UIWidget
+        id: typeLabel
+        anchors.top: parent.top
+        anchors.left: parent.left
+        margin-top: 5
+        !text: tr("Type")..":"
+        font: $var-cip-font
+        color: $var-text-cip-color
+        text-auto-resize: true
+      ComboBox
+        id: typeBox
+        size: 107 20
+        anchors.top: parent.top
+        anchors.left: prev.right
+        margin-top: 2
+        margin-left: 5
+        @onSetup: |
+          self:addOption(tr("Today"), 1)
+          self:addOption(tr("All Time"), 2)
+          self:setCurrentOption("Today", true)
+        @onOptionChange: modules.game_maze_highscore.updateTypeBox(self)
+
+      VerticalSeparator
+        id: separator0
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: prev.right
+        margin-left: 10
+      UIWidget
+        id: vocationLabel
+        anchors.top: parent.top
+        anchors.left: prev.right
+        margin-top: 5
+        margin-left: 10
+        !text: tr("Vocation")..":"
+        font: $var-cip-font
+        color: $var-text-cip-color
+        text-auto-resize: true
+      ComboBox
+        id: vocationBox
+        size: 100 20
+        anchors.top: parent.top
+        anchors.left: prev.right
+        margin-top: 2
+        margin-left: 5
+        @onSetup: |
+          self:addOption(tr("All"), 255)
+          self:addOption(tr("Knight"), 4)
+          self:addOption(tr("Paladin"), 3)
+          self:addOption(tr("Sorcerer"), 1)
+          self:addOption(tr("Druid"), 2)
+          self:setCurrentOption("All", true)
+        @onOptionChange: modules.game_maze_highscore.updateVocationBox(self)
+      VerticalSeparator
+        id: separator1
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: prev.right
+        margin-left: 10
+      UIWidget
+        id: worldLabel
+        anchors.top: vocationBox.top
+        anchors.left: prev.right
+        margin-top: 3
+        margin-left: 10
+        !text: tr("Game World")..":"
+        font: $var-cip-font
+        color: $var-text-cip-color
+        text-auto-resize: true
+      ComboBox
+        id: worldBox
+        size: 127 20
+        anchors.top: vocationBox.top
+        anchors.left: worldLabel.right
+        margin-left: 5
+        @onSetup: |
+          self:addOption(tr("All"), 255)
+          self:addOption(tr("Auroria"), 11)
+          self:addOption(tr("Belaria"), 15)
+          self:addOption(tr("Bellum"), 17)
+          self:addOption(tr("Elysian"), 1)
+          self:addOption(tr("Lunarian"), 9)
+          self:addOption(tr("Mystian"), 18)
+          self:addOption(tr("Solarian"), 12)
+          self:addOption(tr("Spectrum"), 10)
+          self:addOption(tr("Tenebrium"), 21)
+          self:addOption(tr("Vesperia"), 16)
+          self:setCurrentOption("All", true)
+        @onOptionChange: modules.game_maze_highscore.updateWorldBox(self)
+
+      VerticalSeparator
+        id: separator2
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.left: prev.right
+        margin-left: 10
+
+      Button
+        id: submitButton
+        size: 60 20
+        !text: tr("Submit")
+        anchors.top: vocationBox.top
+        anchors.left: prev.right
+        margin-left: 10
+        image-source: /images/ui/buttons-blue
+        @onClick: onSubmit()
+
+    TextList
+      id: rankList
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: separator.top
+      margin-top: 10
+      margin-bottom: 10
+      padding: 1
+      focusable: false
+      vertical-scrollbar: rankListcrollBar
+    VerticalScrollBar
+      id: rankListcrollBar
+      anchors.top: prev.top
+      anchors.right: prev.right
+      anchors.bottom: prev.bottom
+      margin: 1 1 1 0
+      step: 14
+      pixels-scroll: true
+    UIWidget
+      size: 658 17
+      anchors.top: rankList.top
+      anchors.left: rankList.left
+      margin-left: 1
+      border-width-bottom: 1
+      border-color-bottom: #757575
+    UIWidget
+      id: rankButton
+      size: 44 15
+      text: Rank
+      color: $var-text-cip-color
+      font: $var-cip-font
+      text-offset: 1 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: rankList.left
+      margin-top: 1
+      margin-left: 1
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    UIWidget
+      height: 267
+      anchors.left: prev.right
+      anchors.top: rankList.top
+      image-source: /images/ui/separator_vertical
+      margin-top: 1
+      image-border: 2
+    UIWidget
+      id: timeButton
+      size: 80 15
+      text: Time
+      color: $var-text-cip-color
+      font: $var-cip-font
+      text-offset: 2 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: prev.right
+      margin-top: 1
+      margin-left: 1
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    UIWidget
+      height: 267
+      anchors.top: rankList.top
+      anchors.left: prev.right
+      image-source: /images/ui/separator_vertical
+      margin-top: 1
+      image-border: 2
+    UIWidget
+      id: nameButton
+      size: 218 15
+      text: Name
+      color: $var-text-cip-color
+      font: $var-cip-font
+      text-offset: 1 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: prev.right
+      margin-top: 1
+      margin-left: 1
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    UIWidget
+      height: 267
+      anchors.left: prev.right
+      anchors.top: rankList.top
+      image-source: /images/ui/separator_vertical
+      margin-top: 1
+      image-border: 2
+    UIWidget
+      id: levelButton
+      size: 80 15
+      text: Level
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-offset: 1 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: nameButton.right
+      margin-top: 1
+      margin-left: 2
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    UIWidget
+      height: 267
+      anchors.left: prev.right
+      anchors.top: rankList.top
+      image-source: /images/ui/separator_vertical
+      margin-top: 1
+      image-border: 2
+    UIWidget
+      id: vocationButton
+      size: 115 15
+      text: Vocation
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-offset: 1 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: levelButton.right
+      margin-top: 1
+      margin-left: 2
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    UIWidget
+      height: 267
+      anchors.left: prev.right
+      anchors.top: rankList.top
+      image-source: /images/ui/separator_vertical
+      margin-top: 1
+      image-border: 2
+    UIWidget
+      id: worldButton
+      size: 115 15
+      text: World
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-offset: 1 -1
+      text-align: leftCenter
+      anchors.top: rankList.top
+      anchors.left: vocationButton.right
+      margin-top: 1
+      margin-left: 2
+      border-width-bottom: 1
+      border-color-bottom: #292a29
+      background-color: #363636
+      opacity: 1.0
+      $pressed:
+        color: #dfdfdf88
+        opacity: 0.8
+    
+    Button
+      id: showOwnRank
+      size: 100 20
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      image-source: /images/game/highscore/own_rank
+      image-clip: 0 0 100 20
+      $pressed:
+        image-clip: 0 20 100 20
+      $hover !pressed:
+        image-clip: 0 0 100 20
+      @onClick: showOwnRank()
+
+    Button
+      id: first
+      size: 20 20
+      anchors.bottom: prev.bottom
+      anchors.left: prev.right
+      margin-left: 159
+      image-source: /images/game/highscore/arrow
+      image-clip: 0 0 20 20
+      $pressed:
+        image-clip: 40 0 20 20
+      $hover !pressed:
+        image-clip: 0 0 20 20
+      @onClick: managePages(self)
+    Button
+      id: prevButton
+      size: 20 20
+      anchors.bottom: prev.bottom
+      anchors.left: prev.right
+      margin-left: 5
+      image-source: /images/game/highscore/arrow
+      image-clip: 0 20 20 20
+      $pressed:
+        image-clip: 40 20 20 20
+      $hover !pressed:
+        image-clip: 0 20 20 20
+      @onClick: managePages(self)
+    UIWidget
+      id: page
+      size: 40 20
+      anchors.bottom: prev.bottom
+      anchors.left: prevButton.right
+      margin-bottom: 4
+      margin-left: 27
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-auto-resize: true
+      text: 1/1
+    Button
+      id: nextButton
+      size: 20 20
+      anchors.bottom: prevButton.bottom
+      anchors.left: page.right
+      margin-left: 26
+      image-source: /images/game/highscore/arrow
+      image-clip: 20 20 20 20
+      $pressed:
+        image-clip: 60 20 20 20
+      $hover !pressed:
+        image-clip: 20 20 20 20
+      @onClick: managePages(self)
+    Button
+      id: last
+      size: 20 20
+      anchors.bottom: prev.bottom
+      anchors.left: prev.right
+      margin-left: 5
+      image-source: /images/game/highscore/arrow
+      image-clip: 20 0 20 20
+      $pressed:
+        image-clip: 60 0 20 20
+      $hover !pressed:
+        image-clip: 20 0 20 20
+      @onClick: managePages(self)
+
+    HorizontalSeparator
+      id: separator
+      anchors.bottom: next.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-bottom: 10
+    Button
+      id: close
+      size: 43 20
+      !text: tr('Close')
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+      @onClick: hide()
