@@ -1354,56 +1354,63 @@ local function getHomeBannerWidget()
 	return frame:getChildById("HomeImagen")
 end
 
+local function setImagenLocal(widget, url, isIcon)
+	local localPath = "/game_store/images/" .. url:gsub("^/+", "")
+	local found = g_resources.fileExists(localPath)
+
+	if not found then
+		localPath = "/game_store/images/dynamic-image-error"
+	end
+
+	if isIcon then
+		widget:setIcon(localPath)
+	else
+		widget:setImageSource(localPath)
+
+		if not found then
+			widget:setImageFixedRatio(false)
+		end
+	end
+end
+
 local function setImagenHttp(widget, url, isIcon)
 	local base = GameStore.website.IMAGES_URL
 
-	if base and base ~= "" then
-		pendingHttpId = pendingHttpId + 1
+	if not base or base == "" then
+		setImagenLocal(widget, url, isIcon)
 
-		local myId = pendingHttpId
-
-		pendingHttpWidgets[myId] = widget
-		widget._httpId = myId
-
-		HTTP.downloadImage(base .. url, function(path, err)
-			local w = pendingHttpWidgets[myId]
-
-			pendingHttpWidgets[myId] = nil
-
-			if not w or w:isDestroyed() then
-				return
-			end
-
-			if err then
-				g_logger.warning("HTTP error: " .. err .. " - " .. base .. url)
-
-				if isIcon then
-					w:setIcon("/game_store/images/dynamic-image-error")
-				else
-					w:setImageSource("/game_store/images/dynamic-image-error")
-					w:setImageFixedRatio(false)
-				end
-
-				return
-			end
-
-			if isIcon then
-				w:setIcon(path)
-			else
-				w:setImageSource(path)
-			end
-		end)
-	else
-		local rel = url:gsub("^/+", "")
-		local localPath = "/game_store/images/" .. rel
-
-		if not g_resources.fileExists(localPath) then
-			widget:setImageSource("/game_store/images/dynamic-image-error")
-			widget:setImageFixedRatio(false)
-		else
-			widget:setImageSource(localPath)
-		end
+		return
 	end
+
+	pendingHttpId = pendingHttpId + 1
+
+	local myId = pendingHttpId
+
+	pendingHttpWidgets[myId] = widget
+	widget._httpId = myId
+
+	HTTP.downloadImage(base .. url, function(path, err)
+		local w = pendingHttpWidgets[myId]
+
+		pendingHttpWidgets[myId] = nil
+
+		if not w or w:isDestroyed() then
+			return
+		end
+
+		if err then
+			g_logger.warning("HTTP error: " .. err .. " - " .. base .. url)
+			setImagenLocal(w, url, isIcon)
+
+			return
+		end
+
+		if isIcon then
+			w:setIcon(path)
+		else
+			w:setImageSource(path)
+		end
+	end)
 end
 
 local function formatNumberWithCommas(value)
