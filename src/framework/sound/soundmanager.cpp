@@ -704,33 +704,128 @@ std::string SoundManager::getAudioFileNameById(int32_t audioFileId)
 
 namespace
 {
-    // Maps a soundbank effect type onto the option categories declared in
-    // modules/client_options/data_options.lua. The own/other split those options
-    // also offer cannot be resolved here: the protocol's source byte is dropped
-    // before playSoundEffect is reached, so those categories stay unfiltered.
-    std::string soundFilterCategory(const ClientSoundType type)
+    // The option checkboxes an effect answers to, from
+    // modules/client_options/data_options.lua. Spells and weapons carry a
+    // grouping box ("Spells") plus a specific one ("Attack"), so both are
+    // returned and both have to be ticked.
+    //
+    // The seven Console Messages sub-options - party, guild, npcs, global,
+    // teamFinder, privateMessages, privateMessagesLocalChat - have no
+    // counterpart: the sound packet names no chat channel, so they all fall
+    // under "consoleMessages" and cannot be told apart.
+    struct SoundFilterCategories
+    {
+        std::string_view group;
+        std::string_view specific;
+    };
+
+    SoundFilterCategories soundFilterCategories(const ClientSoundType type, const uint8_t source)
+    {
+        const bool own = source == SOUND_SOURCE_OWN;
+        const bool otherPlayer = source == SOUND_SOURCE_OTHER_PLAYER;
+
+        switch (type) {
+            case NUMERIC_SOUND_TYPE_SPELL_ATTACK:
+                if (own) return { "ownSpells", "ownAttack" };
+                if (otherPlayer) return { "otherSpells", "otherAttack" };
+                return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_SPELL_HEALING:
+                if (own) return { "ownSpells", "ownHealing" };
+                if (otherPlayer) return { "otherSpells", "otherHealing" };
+                return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_SPELL_SUPPORT:
+                if (own) return { "ownSpells", "ownSupport" };
+                if (otherPlayer) return { "otherSpells", "otherSupport" };
+                return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_SPELL_GENERIC:
+                if (own) return { "ownSpells", {} };
+                if (otherPlayer) return { "otherSpells", {} };
+                return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
+                if (own) return { "ownWeapons", {} };
+                if (otherPlayer) return { "otherWeapons", {} };
+                return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_CREATURE_ATTACK: return { "attackAndSpells", {} };
+            case NUMERIC_SOUND_TYPE_CREATURE_NOISE: return { "creatureNoises", {} };
+            case NUMERIC_SOUND_TYPE_CREATURE_DEATH: return { "creatureDeath", {} };
+            case NUMERIC_SOUND_TYPE_FOOD_AND_DRINK: return { "foodAndBeverages", {} };
+            case NUMERIC_SOUND_TYPE_ITEM_MOVEMENT: return { "moveItem", {} };
+            case NUMERIC_SOUND_TYPE_UI: return { "uiInteractions", {} };
+            case NUMERIC_SOUND_TYPE_PARTY: return { "toggleParty", {} };
+            case NUMERIC_SOUND_TYPE_VIP_LIST: return { "toggleVip", {} };
+            case NUMERIC_SOUND_TYPE_WHISPER_WITHOUT_OPEN_CHAT:
+            case NUMERIC_SOUND_TYPE_CHAT_MESSAGE: return { "consoleMessages", {} };
+            case NUMERIC_SOUND_TYPE_RAID_ANNOUNCEMENT: return { "raidAnnouncements", {} };
+            case NUMERIC_SOUND_TYPE_SERVER_MESSAGE: return { "systemAnnouncements", {} };
+            default: return {};
+        }
+    }
+
+    // The volume slider an effect belongs to. Battle sounds are split by who
+    // made them, which is what the protocol's source byte is for.
+    int soundEffectChannel(const ClientSoundType type, const uint8_t source)
     {
         switch (type) {
+            case NUMERIC_SOUND_TYPE_UI:
+            case NUMERIC_SOUND_TYPE_PARTY:
+            case NUMERIC_SOUND_TYPE_VIP_LIST:
+            case NUMERIC_SOUND_TYPE_WHISPER_WITHOUT_OPEN_CHAT:
+            case NUMERIC_SOUND_TYPE_CHAT_MESSAGE:
+            case NUMERIC_SOUND_TYPE_RAID_ANNOUNCEMENT:
+            case NUMERIC_SOUND_TYPE_SERVER_MESSAGE:
+                return SOUND_CHANNEL_UI;
+            case NUMERIC_SOUND_TYPE_FOOD_AND_DRINK:
+            case NUMERIC_SOUND_TYPE_ITEM_MOVEMENT:
+                return SOUND_CHANNEL_ITEM;
+            case NUMERIC_SOUND_TYPE_EVENT:
+                return SOUND_CHANNEL_EVENT;
+            case NUMERIC_SOUND_TYPE_CREATURE_NOISE:
+            case NUMERIC_SOUND_TYPE_CREATURE_DEATH:
+            case NUMERIC_SOUND_TYPE_CREATURE_ATTACK:
+                return SOUND_CHANNEL_CREATURES;
+            case NUMERIC_SOUND_TYPE_AMBIENCE_STREAM:
+                return SOUND_CHANNEL_AMBIENT;
             case NUMERIC_SOUND_TYPE_SPELL_ATTACK:
             case NUMERIC_SOUND_TYPE_SPELL_HEALING:
             case NUMERIC_SOUND_TYPE_SPELL_SUPPORT:
-            case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
-            case NUMERIC_SOUND_TYPE_CREATURE_ATTACK:
             case NUMERIC_SOUND_TYPE_SPELL_GENERIC:
-                return "attackAndSpells";
-            case NUMERIC_SOUND_TYPE_CREATURE_NOISE: return "creatureNoises";
-            case NUMERIC_SOUND_TYPE_CREATURE_DEATH: return "creatureDeath";
-            case NUMERIC_SOUND_TYPE_FOOD_AND_DRINK: return "foodAndBeverages";
-            case NUMERIC_SOUND_TYPE_ITEM_MOVEMENT: return "moveItem";
-            case NUMERIC_SOUND_TYPE_UI: return "uiInteractions";
-            case NUMERIC_SOUND_TYPE_PARTY: return "toggleParty";
-            case NUMERIC_SOUND_TYPE_VIP_LIST: return "toggleVip";
-            default: return {};
+            case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
+                if (source == SOUND_SOURCE_OWN)
+                    return SOUND_CHANNEL_OWN_BATTLE;
+                if (source == SOUND_SOURCE_OTHER_PLAYER)
+                    return SOUND_CHANNEL_OTHER_PLAYERS;
+                // anything else - a monster, a boss, or a sound with no actor
+                // behind it such as an NPC's - answers to the Creatures slider,
+                // matching the "attackAndSpells" box that filters it
+                return SOUND_CHANNEL_CREATURES;
+            default:
+                return SOUND_CHANNEL_EFFECT;
         }
     }
 }
 
-void SoundManager::playSoundEffect(uint32_t effectId)
+bool SoundManager::isFilterEnabled(const std::string_view category) const
+{
+    if (category.empty())
+        return true;
+
+    const auto it = m_clientSoundFilters.find(std::string(category));
+    return it == m_clientSoundFilters.end() || it->second;
+}
+
+void SoundManager::setClientSoundFilter(const std::string& category, const bool enabled)
+{
+    m_clientSoundFilters[category] = enabled;
+
+    // Turning "Anthem" off silences the track already playing rather than
+    // waiting for the next anthem packet. Guarded on a soundbank track really
+    // being current: stopMusic() empties the music channel's queue, and at the
+    // login screen that queue is holding the startup music.
+    if (!enabled && category == "anthem" && m_currentMusicId != 0)
+        stopMusic();
+}
+
+void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
 {
     if (!isAudioEnabled() || m_soundDirectory.empty())
         return;
@@ -753,10 +848,9 @@ void SoundManager::playSoundEffect(uint32_t effectId)
 
     const auto& effect = it->second;
 
-    if (const auto category = soundFilterCategory(effect.type);
-        !category.empty() && !isClientSoundFilterEnabled(category)) {
+    const auto categories = soundFilterCategories(effect.type, source);
+    if (!isFilterEnabled(categories.group) || !isFilterEnabled(categories.specific))
         return;
-    }
 
     // resolve the audio file id
     uint32_t audioFileId = effect.soundId;
@@ -797,9 +891,8 @@ void SoundManager::playSoundEffect(uint32_t effectId)
         gain = effect.volumeMax;
     }
 
-    // apply effect channel volume
-    const auto& channel = getChannel(3); // SoundChannels.Effect
-    if (channel)
+    // apply the volume of the slider this kind of effect belongs to
+    if (const auto& channel = getChannel(soundEffectChannel(effect.type, source)))
         gain *= channel->getGain();
 
     play(filename, 0, gain, pitch);
@@ -849,15 +942,23 @@ void SoundManager::playMusic(uint32_t musicId)
     if (!isAudioEnabled() || m_soundDirectory.empty())
         return;
 
+    // Handled before the dedupe below: "no music here" has to get through even
+    // when nothing is playing, because it is also what clears the track the
+    // music channel remembers for an unmute.
+    if (musicId == 0) {
+        stopMusic();
+        return;
+    }
+
     if (musicId == m_currentMusicId)
         return; // already playing; restarting would clip it back to the start
 
     m_currentMusicId = 0;
 
-    if (musicId == 0) {
-        stopMusic();
+    // The "Anthem" option. Checked here rather than through the effect filters,
+    // which are keyed on a soundbank type music tracks do not carry.
+    if (!isFilterEnabled("anthem"))
         return;
-    }
 
     const auto it = m_clientMusic.find(musicId);
     if (it == m_clientMusic.end()) {
@@ -876,7 +977,7 @@ void SoundManager::playMusic(uint32_t musicId)
 
     const std::string filename = m_soundDirectory + fileIt->second;
 
-    const auto& channel = getChannel(1); // SoundChannels.Music
+    const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
     if (!channel)
         return;
 
@@ -896,7 +997,7 @@ void SoundManager::stopMusic()
 {
     m_currentMusicId = 0;
 
-    const auto& channel = getChannel(1);
+    const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
     if (channel)
         channel->stop(3.0f);
 }

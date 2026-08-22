@@ -220,7 +220,9 @@ return {
 	anthem = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
-			return
+			if g_sounds then
+				g_sounds.setClientSoundFilter("anthem", value)
+			end
 		end
 	},
 	foodAndBeverages = {
@@ -267,8 +269,17 @@ return {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
 			setUISoundConsoleMessagesEnabled(value)
+
+			if g_sounds then
+				g_sounds.setClientSoundFilter("consoleMessages", value)
+			end
 		end
 	},
+	-- The sound packet names no chat channel, so these seven cannot be told apart:
+	-- every one of them arrives as NUMERIC_SOUND_TYPE_CHAT_MESSAGE or
+	-- NUMERIC_SOUND_TYPE_WHISPER_WITHOUT_OPEN_CHAT and answers to the
+	-- "consoleMessages" box above. Wiring them individually would mean triggering
+	-- the chat sound from Lua, where the channel is known.
 	party = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
@@ -314,13 +325,17 @@ return {
 	raidAnnouncements = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
-			return
+			if g_sounds then
+				g_sounds.setClientSoundFilter("raidAnnouncements", value)
+			end
 		end
 	},
 	systemAnnouncements = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
-			return
+			if g_sounds then
+				g_sounds.setClientSoundFilter("systemAnnouncements", value)
+			end
 		end
 	},
 	ownSpells = {
@@ -712,7 +727,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(4, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.Item, value / 100)
 			end
 
 			setUIItemVolumeEnabled(value > 0 and true or false)
@@ -730,7 +745,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(0, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.Event, value / 100)
 			end
 
 			local state = ""
@@ -746,7 +761,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(1, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.OwnBattle, value / 100)
 			end
 
 			setOwnBattleSoundEnabled(value > 0 and true or false)
@@ -764,7 +779,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(2, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.OtherPlayers, value / 100)
 			end
 
 			setOtherPlayersBattleSoundEnabled(value > 0 and true or false)
@@ -782,7 +797,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(3, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.Creatures, value / 100)
 			end
 
 			setCreatureBattleSoundEnabled(value > 0 and true or false)
@@ -800,7 +815,7 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
-				g_sounds.setClientSoundVolume(5, value / 100)
+				g_sounds.setClientSoundVolume(SoundChannels.UI, value / 100)
 			end
 
 			setUISoundsEnabled(value > 0 and true or false)

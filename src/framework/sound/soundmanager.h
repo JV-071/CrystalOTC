@@ -59,6 +59,35 @@ enum ClientSoundType
     NUMERIC_SOUND_TYPE_SPELL_GENERIC = 19
 };
 
+// Who the protocol says a sound effect came from. Mirrors
+// Otc::MagicEffectSources, restated here so the framework needs no game header.
+enum ClientSoundSource : uint8_t
+{
+    SOUND_SOURCE_DEFAULT = 0,
+    SOUND_SOURCE_OWN = 1,
+    SOUND_SOURCE_OTHER_PLAYER = 2,
+    SOUND_SOURCE_MONSTER = 3,
+    SOUND_SOURCE_BOSS = 4
+};
+
+// The mixing channels the sound options drive, one per volume slider. Kept in
+// step with SoundChannels in modules/corelib/const.lua.
+enum ClientSoundChannel
+{
+    SOUND_CHANNEL_MUSIC = 1,
+    SOUND_CHANNEL_AMBIENT = 2,
+    SOUND_CHANNEL_EFFECT = 3, // anything no slider claims
+    SOUND_CHANNEL_ITEM = 4,
+    SOUND_CHANNEL_EVENT = 5,
+    SOUND_CHANNEL_OWN_BATTLE = 6,
+    SOUND_CHANNEL_OTHER_PLAYERS = 7,
+    SOUND_CHANNEL_CREATURES = 8,
+    SOUND_CHANNEL_UI = 9,
+    // one per concurrently looping item ambient; the bank needs up to 7
+    SOUND_CHANNEL_ITEM_AMBIENT_FIRST = 10,
+    SOUND_CHANNEL_ITEM_AMBIENT_LAST = 20
+};
+
 enum ClientMusicType
 {
     MUSIC_TYPE_UNKNOWN = 0,
@@ -143,12 +172,12 @@ public:
     SoundChannelPtr getChannel(int channel);
     void setClientSoundVolume(int channel, float volume);
     void setMasterVolume(float volume);
-    void setClientSoundFilter(const std::string& category, const bool enabled) { m_clientSoundFilters[category] = enabled; }
+    void setClientSoundFilter(const std::string& category, bool enabled);
     bool isClientSoundFilterEnabled(const std::string& category) { const auto it = m_clientSoundFilters.find(category); return it == m_clientSoundFilters.end() || it->second; }
     SoundEffectPtr createSoundEffect();
 
     // client sound playback by protobuf IDs
-    void playSoundEffect(uint32_t effectId);
+    void playSoundEffect(uint32_t effectId, uint8_t source = SOUND_SOURCE_DEFAULT);
 
     // The soundbank effect used for UI interactions. Set from Lua so the
     // framework carries no game-specific id.
@@ -168,6 +197,7 @@ private:
     SoundSourcePtr createSoundSource(const std::string& name);
     bool loadFromProtobuf(const std::string& directory, const std::string& fileName);
 
+    bool isFilterEnabled(std::string_view category) const;
     void subscribeDeviceEvents();
     void unsubscribeDeviceEvents();
     void followDefaultDevice();

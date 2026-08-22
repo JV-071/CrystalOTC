@@ -357,10 +357,18 @@ NetworkMessageTypes = {
 	Boolean = 1,
 	Table = 8
 }
+-- Mixing channels, one per volume slider in the sound options. Kept in step
+-- with ClientSoundChannel in src/framework/sound/soundmanager.h.
 SoundChannels = {
-	Ambient = 2,
 	Music = 1,
-	Effect = 3
+	Ambient = 2,
+	Effect = 3, -- anything no slider claims
+	Item = 4,
+	Event = 5,
+	OwnBattle = 6,
+	OtherPlayers = 7,
+	Creatures = 8,
+	UI = 9
 }
 
 -- Soundbank effect ids of type NUMERIC_SOUND_TYPE_UI (12). Playing these through
