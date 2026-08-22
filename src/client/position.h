@@ -224,7 +224,11 @@ public:
             _pos.coveredUp(pos.z - z);
         }
 
-        return std::abs(x - _pos.x) <= xRange && std::abs(y - _pos.y) <= yRange && z == pos.z;
+        // No z test here: the guard above has already either rejected a
+        // different floor or, when ignoreZ was asked for, projected the
+        // position onto this one. Re-testing z would undo that projection and
+        // make ignoreZ a no-op - the six-argument overload below does not.
+        return std::abs(x - _pos.x) <= xRange && std::abs(y - _pos.y) <= yRange;
     }
 
     bool isInRange(const Position& pos, const uint16_t minXRange, const uint16_t maxXRange, const uint16_t minYRange, const uint16_t maxYRange, const bool ignoreZ = false) const
