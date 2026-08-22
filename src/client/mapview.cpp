@@ -184,16 +184,23 @@ void MapView::preLoad() {
     updateItemAmbientSounds();
 }
 
-// A waterfall or a campfire loops while enough of its items are on screen. The
-// soundbank says which item ids count and how many are needed; only the map can
-// answer how many there are, so the count happens here.
+// A waterfall or a campfire loops while enough of its items are near enough.
+// The soundbank says which item ids count, how many are needed and how close
+// they have to be; only the map can answer how many there are, so the count
+// happens here.
+//
+// Deliberately NOT counted off the renderer's visible-tile cache. That cache is
+// a drawing concept: it is resized by zoom and by the window, and it drops
+// floors the moment they are covered - so walking TOWARDS a source could
+// silence it, and zooming out could make it audible. Distance from the player
+// is the only thing that should decide, so the map itself is walked instead.
 void MapView::updateItemAmbientSounds()
 {
     const auto& queries = g_sounds.getItemAmbientQueries();
     if (queries.empty())
         return;
 
-    // The answer only moves when items or the camera do, and either way a
+    // The answer only moves when items or the player do, and either way a
     // fraction of a second late is inaudible - so this is throttled rather than
     // hung off every tile update.
     if (m_itemAmbientTimer.ticksElapsed() < 250)
@@ -208,34 +215,122 @@ void MapView::updateItemAmbientSounds()
             for (const uint16_t clientId : queries[i].clientIds)
                 m_itemAmbientIndex[clientId].push_back(static_cast<uint8_t>(i));
         }
+
+        m_itemAmbientReach = 0;
+        for (const auto& query : queries)
+            m_itemAmbientReach = std::max<uint32_t>(m_itemAmbientReach, query.maxDistance);
+        m_itemAmbientReach += SoundManager::ITEM_AMBIENT_NEAR_MARGIN;
     }
 
     m_itemAmbientCounts.assign(queries.size(), 0);
+    m_itemAmbientNearby.assign(queries.size(), 0);
 
     const auto& cameraPosition = m_posInfo.camera;
-    for (int_fast8_t z = m_floorMax; z >= m_floorMin; --z) {
-        for (const auto& tile : m_floors[z].cachedVisibleTiles.tiles) {
-            const auto& tilePosition = tile->getPosition();
-            for (const auto& thing : tile->getThings()) {
-                // creatures share this vector and override getId(), so ask for
-                // the client id directly and skip anything that is not an item
-                if (!thing->isItem())
+    if (!cameraPosition.isValid())
+        return;
+
+    // [snd-trace] disabled - uncomment with the two blocks below to restore the scan trace
+    // // While tracing, record WHICH items answered each query and how far off they
+    // // were - including the ones that matched but were out of reach, which is the
+    // // only way to tell "nothing here" from "just too far" from outside.
+    // const bool trace = g_sounds.isSoundDebug();
+    // std::vector<std::string> counted, tooFar;
+    // if (trace) {
+        // counted.assign(queries.size(), std::string());
+        // tooFar.assign(queries.size(), std::string());
+    // }
+
+    const int reach = static_cast<int>(m_itemAmbientReach);
+    const int floorCost = static_cast<int>(SoundManager::ITEM_AMBIENT_FLOOR_COST);
+    const int floorSpan = reach / std::max(floorCost, 1);
+    const int maxZ = g_gameConfig.getMapMaxZ();
+
+    for (int dz = -floorSpan; dz <= floorSpan; ++dz) {
+        const int z = static_cast<int>(cameraPosition.z) + dz;
+        if (z < 0 || z > maxZ)
+            continue;
+
+        // Every floor of separation spends part of the budget, so the higher
+        // ones are walked over a smaller square rather than the full one.
+        const int spent = std::abs(dz) * floorCost;
+        const int span = reach - spent;
+        if (span < 0)
+            continue;
+
+        for (int dy = -span; dy <= span; ++dy) {
+            for (int dx = -span; dx <= span; ++dx) {
+                const Position tilePosition(static_cast<uint16_t>(cameraPosition.x + dx),
+                                            static_cast<uint16_t>(cameraPosition.y + dy),
+                                            static_cast<uint8_t>(z));
+
+                const auto& tile = g_map.getTile(tilePosition);
+                if (!tile)
                     continue;
 
-                const auto entry = m_itemAmbientIndex.find(thing->getClientId());
-                if (entry == m_itemAmbientIndex.end())
-                    continue;
+                // Chebyshev on the ground plus what the floors cost. A source
+                // one floor down is genuinely further away than one beside you,
+                // and no camera decision can change that.
+                const int distance = std::max(std::abs(dx), std::abs(dy)) + spent;
 
-                for (const uint8_t query : entry->second) {
-                    const uint32_t maxDistance = queries[query].maxDistance;
-                    if (maxDistance == 0 || cameraPosition.isInRange(tilePosition, maxDistance, maxDistance, true))
-                        ++m_itemAmbientCounts[query];
+                for (const auto& thing : tile->getThings()) {
+                    // creatures share this vector and override getId(), so ask
+                    // for the client id directly and skip anything not an item
+                    if (!thing->isItem())
+                        continue;
+
+                    const auto entry = m_itemAmbientIndex.find(thing->getClientId());
+                    if (entry == m_itemAmbientIndex.end())
+                        continue;
+
+                    for (const uint8_t query : entry->second) {
+                        // The near band is measured from THIS query's radius,
+                        // not from how far the walk happens to reach: the walk
+                        // is sized for the widest query, and reusing it here
+                        // would call an item twelve tiles from a three-tile
+                        // entry "just out of reach", which is most of a city.
+                        const int radius = static_cast<int>(queries[query].maxDistance);
+                        const int nearLimit = radius + static_cast<int>(SoundManager::ITEM_AMBIENT_NEAR_MARGIN);
+
+                        if (distance > nearLimit)
+                            continue; // too far to count and too far to matter
+
+                        const bool inRange = distance <= radius;
+                        if (inRange)
+                            ++m_itemAmbientCounts[query];
+                        else
+                            ++m_itemAmbientNearby[query];
+
+                        // if (trace) {
+                            // auto& into = inRange ? counted[query] : tooFar[query];
+                            // if (into.size() < 220)
+                                // into += fmt::format(" {}@d{}{}", thing->getClientId(), distance,
+                                                    // dz == 0 ? std::string() : fmt::format(",z{:+d}", dz));
+                        // }
+                    }
                 }
             }
         }
     }
 
-    g_sounds.setItemAmbientCounts(m_itemAmbientCounts);
+    // if (trace) {
+        // if (m_itemAmbientDebugLast.size() != m_itemAmbientCounts.size())
+            // m_itemAmbientDebugLast.assign(m_itemAmbientCounts.size(), 0xFFFF);
+
+        // // one line per query whose answer moved, not one per scan
+        // for (size_t i = 0; i < m_itemAmbientCounts.size(); ++i) {
+            // if (m_itemAmbientDebugLast[i] == m_itemAmbientCounts[i])
+                // continue;
+
+            // m_itemAmbientDebugLast[i] = m_itemAmbientCounts[i];
+            // g_logger.info("[snd] scan entry {} radius={} count={} nearby={}{}{}",
+                          // queries[i].effectId, queries[i].maxDistance,
+                          // m_itemAmbientCounts[i], m_itemAmbientNearby[i],
+                          // counted[i].empty() ? std::string() : "  counted:" + counted[i],
+                          // tooFar[i].empty() ? std::string() : "  toofar:" + tooFar[i]);
+        // }
+    // }
+
+    g_sounds.setItemAmbientCounts(m_itemAmbientCounts, m_itemAmbientNearby);
 }
 
 void MapView::drawFloor()

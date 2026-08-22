@@ -2886,6 +2886,60 @@ function applyMessagePrefixies(name, level, message)
 	return message
 end
 
+-- Which "Console Messages" sub-option governs a given message, and the sound to
+-- play for it. The server's sound packet names no chat channel, so this cannot
+-- be decided in the sound manager - only here, where the channel is known. Ids
+-- are the server's: guild and party are fixed in crystalserver's const.hpp, the
+-- public ones come from data/chatchannels/chatchannels.xml.
+local CHAT_SOUND_OPTION_BY_CHANNEL = {
+	[0] = "guild",  -- Guild
+	[11] = "guild", -- Guild Leaders
+	[1] = "party",  -- Party
+	[2] = "global", -- Tutor
+	[3] = "global", -- World Chat
+	[4] = "global", -- English Chat
+	[5] = "global", -- Advertising
+	[6] = "global", -- Advertising-Rookgaard
+	[7] = "global"  -- Help
+}
+
+local function chatSoundOption(mode, channelId, speaktype, name)
+	if mode == MessageModes.NpcFrom or mode == MessageModes.NpcFromStartBlock or mode == MessageModes.NpcTo then
+		return "npcs"
+	end
+
+	if speaktype and speaktype.private then
+		-- A private message with nowhere of its own to go is shown in the local
+		-- chat, which is the box that names exactly that case.
+		local hasOwnTab = getTab(name) ~= nil
+			or modules.client_options.getOption("openNewTabsWhenReceivingPrivateMessages")
+
+		return hasOwnTab and "privateMessages" or "privateMessagesLocalChat"
+	end
+
+	return CHAT_SOUND_OPTION_BY_CHANNEL[channelId]
+end
+
+local function playChatMessageSound(mode, channelId, speaktype, name)
+	if not g_sounds then
+		return
+	end
+
+	local option = chatSoundOption(mode, channelId, speaktype, name)
+
+	if not option or modules.client_options.getOption(option) == false then
+		return
+	end
+
+	-- The parent "Console Messages" box is applied by the sound manager, keyed
+	-- on the effect's soundbank type, so only the box under it is checked here.
+	local effect = option == "privateMessagesLocalChat"
+		and ChatSoundEffects.PrivateWithoutOpenChat
+		or ChatSoundEffects.Message
+
+	g_sounds.playSoundEffect(effect)
+end
+
 function onTalk(name, level, mode, message, channelId, creaturePos, statementId)
 	statementId = statementId or 0
 
@@ -2953,6 +3007,10 @@ function onTalk(name, level, mode, message, channelId, creaturePos, statementId)
 	if speaktype.hideInConsole then
 		return
 	end
+
+	-- After the ignore and hide checks, so a message the player will never see
+	-- does not announce itself.
+	playChatMessageSound(mode, channelId, speaktype, name)
 
 	local composedMessage = applyMessagePrefixies(name, level, message)
 

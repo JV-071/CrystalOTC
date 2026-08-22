@@ -23,6 +23,7 @@
 #include "soundmanager.h"
 #include <AL/alext.h>
 #include <atomic>
+#include <cstdlib>
 #include <nlohmann/json.hpp>
 #include <sounds.pb.h>
 
@@ -76,6 +77,13 @@ SoundManager g_sounds;
 
 void SoundManager::init()
 {
+    // [snd-trace] disabled - the env var can no longer arm tracing
+    // // Tracing can be armed before the client is up, which is the only way in
+    // // when the in-client terminal is not usable - and it puts every [snd] line
+    // // on stdout of a run started from a shell.
+    // if (const char* env = std::getenv("CRYSTALOTC_SOUND_DEBUG"); env && *env && *env != '0')
+        // m_soundDebug = true;
+
 #ifdef ANDROID
     // The alcOpenDevice call needs to be executed on Android main thread
     g_androidManager.attachToAppMainThread();
@@ -739,10 +747,11 @@ namespace
     // grouping box ("Spells") plus a specific one ("Attack"), so both are
     // returned and both have to be ticked.
     //
-    // The seven Console Messages sub-options - party, guild, npcs, global,
-    // teamFinder, privateMessages, privateMessagesLocalChat - have no
-    // counterpart: the sound packet names no chat channel, so they all fall
-    // under "consoleMessages" and cannot be told apart.
+    // Chat messages answer to "consoleMessages" here and no further: the sound
+    // packet names no chat channel, so this cannot tell a guild message from a
+    // private one. The Console Messages sub-options are applied by
+    // game_console instead, which knows the channel and plays the effect
+    // itself - so this box is the parent of that decision, not a replacement.
     struct SoundFilterCategories
     {
         std::string_view group;
@@ -925,8 +934,13 @@ void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
     }
 
     // apply the volume of the slider this kind of effect belongs to
-    if (const auto& channel = getChannel(soundEffectChannel(effect.type, source)))
+    const int effectChannel = soundEffectChannel(effect.type, source);
+    if (const auto& channel = getChannel(effectChannel))
         gain *= channel->getGain();
+
+    // if (m_soundDebug)
+        // g_logger.info("[snd] EFFECT id {} ch{} gain={:.2f} pitch={:.2f} ({})",
+                      // effectId, effectChannel, gain, pitch, filename);
 
     play(filename, 0, gain, pitch);
 }
@@ -954,6 +968,10 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
     const uint32_t audioFileId = ambient.loopedAudioFileId;
     if (audioFileId == 0)
         return;
+
+    // if (m_soundDebug)
+        // g_logger.info("[snd] AMBIENCE zone {} -> file {} (was zone {}) - channel {}, 3s crossfade",
+                      // ambienceId, audioFileId, m_currentAmbienceId, SOUND_CHANNEL_AMBIENT);
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
     if (fileIt == m_clientSoundFiles.end()) {
@@ -1013,6 +1031,7 @@ void SoundManager::buildItemAmbientQueries()
 {
     m_itemAmbientQueries.clear();
     m_itemAmbientEffectIds.clear();
+    m_itemAmbientSelected.clear();
     ++m_itemAmbientGeneration;
 
     for (const auto& [effectId, ambient] : m_clientItemAmbientEffects) {
@@ -1034,28 +1053,105 @@ void SoundManager::buildItemAmbientQueries()
         if (clientIds.empty())
             continue;
 
-        m_itemAmbientQueries.emplace_back(std::move(clientIds), ambient.maxSoundDistance);
+        // Resolve the bank's missing-radius case once, here, so nothing
+        // downstream has to know that an absent field decodes as zero.
+        const uint32_t radius = ambient.maxSoundDistance == 0
+            ? ITEM_AMBIENT_DEFAULT_RADIUS : ambient.maxSoundDistance;
+
+        m_itemAmbientQueries.emplace_back(std::move(clientIds), radius, effectId);
         m_itemAmbientEffectIds.push_back(effectId);
     }
 }
 
 void SoundManager::stopItemAmbients()
 {
-    for (const auto& [audioFileId, channelId] : m_itemAmbientChannels) {
-        if (const auto& channel = getChannel(channelId))
-            channel->stop(1.0f);
+    // Stopped outright rather than faded: both bookkeeping containers are being
+    // wiped, so a channel left fading would be handed out again from a pool
+    // that has forgotten it is still busy, and the same loop could end up
+    // audible twice at different positions.
+    for (const auto& [audioFileId, voice] : m_itemAmbientVoices) {
+        if (const auto& channel = getChannel(voice.channelId))
+            channel->stop();
     }
 
-    m_itemAmbientChannels.clear();
+    m_itemAmbientVoices.clear();
     m_freeItemAmbientChannels.clear();
+    std::ranges::fill(m_itemAmbientSelected, ItemAmbientSelection{});
 }
 
 // Called by the client with one count per query, in query order: how many of
 // that entry's items are currently on screen (and near enough, where the entry
 // asks for that).
-void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
+// ---------------------------------------------------------------------------
+// Sound tracing
+//
+// The item ambient system decides what loops purely from a count of items the
+// renderer can see, which makes "why is this playing" impossible to answer from
+// the outside. These print the two halves of that: the bank's static answer to
+// what an entry COULD play, and the live state of what it currently IS playing.
+// ---------------------------------------------------------------------------
+
+void SoundManager::setSoundDebug(const bool enable)
 {
-    if (counts.size() != m_itemAmbientQueries.size())
+    m_soundDebug = enable;
+    g_logger.info("[snd] tracing {}", enable ? "ON" : "off");
+
+    if (enable)
+        debugPlaying();
+}
+
+void SoundManager::debugSoundbank()
+{
+    g_logger.info("[snd] --- soundbank: {} item ambient entries ---", m_clientItemAmbientEffects.size());
+
+    for (const auto& [effectId, ambient] : m_clientItemAmbientEffects) {
+        std::string steps;
+        for (const auto& [threshold, audioFileId] : ambient.itemCountSoundEffects) {
+            const auto fileIt = m_clientSoundFiles.find(audioFileId);
+            steps += fmt::format("  >={} -> file {} ({})", threshold, audioFileId,
+                                    fileIt != m_clientSoundFiles.end() ? fileIt->second.filename : "MISSING");
+        }
+
+        g_logger.info("[snd] entry {}: radius={} items={}{}", effectId,
+                      ambient.maxSoundDistance == 0 ? std::string("whole-screen") : fmt::format("{} tiles", ambient.maxSoundDistance),
+                      ambient.clientIds.size(), steps);
+
+        // the ids themselves, so an item looked up in game can be traced back
+        std::string ids;
+        for (const uint32_t id : ambient.clientIds)
+            ids += fmt::format(" {}", id);
+        g_logger.info("[snd]   counts item ids:{}", ids);
+    }
+}
+
+void SoundManager::debugPlaying()
+{
+    g_logger.info("[snd] --- playing: music={} ambience={} | {} item ambient voice(s), {} channel(s) free ---",
+                  m_currentMusicId, m_currentAmbienceId, m_itemAmbientVoices.size(), m_freeItemAmbientChannels.size());
+
+    const ticks_t now = g_clock.millis();
+    for (const auto& [audioFileId, voice] : m_itemAmbientVoices) {
+        const auto& channel = getChannel(voice.channelId);
+        const auto fileIt = m_clientSoundFiles.find(audioFileId);
+
+        std::string state = "playing";
+        if (voice.releasing)
+            state = "FADING OUT";
+        else if (voice.unwantedSince != 0)
+            state = fmt::format("held {}ms/{}", now - voice.unwantedSince, static_cast<int>(ITEM_AMBIENT_HOLD_MS));
+
+        g_logger.info("[snd]   file {} ch{} {} gain={:.2f} audible={} ({})",
+                      audioFileId, voice.channelId, state,
+                      channel ? channel->getGain() : 0.f,
+                      channel && channel->isSounding() ? "yes" : "no",
+                      fileIt != m_clientSoundFiles.end() ? fileIt->second.filename : "MISSING");
+    }
+}
+
+void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
+                                        const std::vector<uint16_t>& nearby)
+{
+    if (counts.size() != m_itemAmbientQueries.size() || nearby.size() != counts.size())
         return;
 
     if (!isAudioEnabled() || m_soundDirectory.empty()) {
@@ -1063,7 +1159,24 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
         return;
     }
 
-    // Which files should be looping now. Deduped by file: two entries can
+    if (m_itemAmbientSelected.size() != counts.size())
+        m_itemAmbientSelected.assign(counts.size(), ItemAmbientSelection{});
+
+    // if (m_soundDebug && m_itemAmbientLastCounts.size() != counts.size())
+        // m_itemAmbientLastCounts.assign(counts.size(), 0);
+
+    const ticks_t now = g_clock.millis();
+
+    // Files dropped this scan because another step of the SAME entry took over.
+    // Those are a replacement, not a departure, so they skip the hold and
+    // crossfade against their successor instead of doubling it at full volume.
+    std::vector<uint32_t> replaced;
+
+    // Files whose items are still on screen, just out of reach. Those get the
+    // long hold: the player is beside the thing, not away from it.
+    std::vector<uint32_t> nearHold;
+
+    // Which files should be looping now. Deduped by file: two effects can
     // select the same one, and starting it twice would just double its volume.
     std::vector<uint32_t> wanted;
     for (size_t i = 0; i < counts.size(); ++i) {
@@ -1073,28 +1186,149 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
 
         // highest threshold the count reaches; none qualifying means silence,
         // which is the normal state at zero and below an entry's first step
-        uint32_t audioFileId = 0;
+        auto& selection = m_itemAmbientSelected[i];
+
+        uint32_t raw = 0;
         for (const auto& [threshold, loopingAudioFileId] : it->second.itemCountSoundEffects) {
-            if (counts[i] >= threshold)
-                audioFileId = loopingAudioFileId;
+            // A step that is already sounding keeps it for one item below the
+            // threshold it needed to start, so the smallest wobble does not
+            // even register as a candidate. An entry's first step is at one
+            // item and has no room beneath it - the hold in the release pass
+            // below is what covers going silent.
+            const uint32_t needed = threshold > 1 && selection.audioFileId == loopingAudioFileId
+                ? threshold - 1 : threshold;
+
+            if (counts[i] >= needed)
+                raw = loopingAudioFileId;
         }
+
+        // [snd-trace] disabled - trace-only local
+        // const uint32_t previousFile = selection.audioFileId;
+
+        if (raw == selection.audioFileId) {
+            selection.pending = 0; // the candidate withdrew; nothing to commit
+            selection.pendingSince = 0;
+        } else if (raw == 0 || selection.audioFileId == 0) {
+            // Silence at either end: starting has to be immediate to feel like
+            // a response to walking up to something, and stopping is the
+            // release pass's job, which already holds and fades.
+            selection.audioFileId = raw;
+            selection.pending = 0;
+            selection.pendingSince = 0;
+        } else if (raw != selection.pending) {
+            selection.pending = raw; // a new candidate; start its clock
+            selection.pendingSince = now;
+        } else if (now - selection.pendingSince >= ITEM_AMBIENT_STEP_MS) {
+            replaced.push_back(selection.audioFileId);
+            selection.audioFileId = raw;
+            selection.pending = 0;
+            selection.pendingSince = 0;
+        }
+
+        const uint32_t audioFileId = selection.audioFileId;
+
+        // Silent because everything drifted out of the radius rather than off
+        // the screen: work out what this query WOULD be sounding if the near
+        // ones counted, and mark that file to be held rather than dropped.
+        if (audioFileId == 0 && nearby[i] > 0) {
+            const uint32_t asIfInRange = counts[i] + nearby[i];
+            uint32_t wouldSelect = 0;
+            for (const auto& [threshold, loopingAudioFileId] : it->second.itemCountSoundEffects) {
+                if (asIfInRange >= threshold)
+                    wouldSelect = loopingAudioFileId;
+            }
+
+            if (wouldSelect != 0 && std::ranges::find(nearHold, wouldSelect) == nearHold.end())
+                nearHold.push_back(wouldSelect);
+        }
+
+        // // Traced on movement only: the scan runs four times a second, and a
+        // // line per scan would bury the moments that actually explain anything.
+        // if (m_soundDebug && (m_itemAmbientLastCounts[i] != counts[i] || previousFile != audioFileId)) {
+            // g_logger.info("[snd] entry {}: count {}->{}, selects {}{}",
+                          // m_itemAmbientEffectIds[i], m_itemAmbientLastCounts[i], counts[i],
+                          // audioFileId == 0 ? std::string("silence") : fmt::format("file {}", audioFileId),
+                          // previousFile != audioFileId && previousFile != 0
+                              // ? fmt::format(" (was file {})", previousFile) : std::string());
+            // m_itemAmbientLastCounts[i] = counts[i];
+        // }
 
         if (audioFileId != 0 && std::ranges::find(wanted, audioFileId) == wanted.end())
             wanted.push_back(audioFileId);
     }
 
-    // stop what is no longer wanted, freeing its channel
-    for (auto it = m_itemAmbientChannels.begin(); it != m_itemAmbientChannels.end();) {
+    // Release pass. Nothing is torn down on the scan it stops being wanted:
+    // the counts come from whatever the renderer had cached a moment ago, and a
+    // teleport, a floor change or one step can drop a loop for a scan or two.
+    // So it plays on for a hold - long while its items are merely out of range,
+    // short once they are off screen entirely - then fades, and the channel is
+    // only handed back once that fade has actually finished, because a channel
+    // reused any earlier would hard-cut a source that is still audible.
+    for (auto it = m_itemAmbientVoices.begin(); it != m_itemAmbientVoices.end();) {
+        auto& voice = it->second;
+
         if (std::ranges::find(wanted, it->first) != wanted.end()) {
+            voice.unwantedSince = 0; // wanted again; the hold starts over
             ++it;
             continue;
         }
 
-        if (const auto& channel = getChannel(it->second))
-            channel->stop(1.0f);
+        const auto& channel = getChannel(voice.channelId);
 
-        m_freeItemAmbientChannels.push_back(it->second);
-        it = m_itemAmbientChannels.erase(it);
+        // Superseded by another step of its own entry: fade it now, against
+        // the successor's fade-in, rather than holding it at full volume while
+        // the new one is already sounding.
+        if (!voice.releasing && std::ranges::find(replaced, it->first) != replaced.end()) {
+            voice.unwantedSince = now;
+            voice.releasing = true;
+            if (channel)
+                channel->fadeOut(ITEM_AMBIENT_FADE);
+
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   SWAP  file {} ch{} - replaced by another step, crossfading out",
+                              // it->first, voice.channelId);
+        }
+
+        // Re-read every scan rather than latched at departure, so a loop whose
+        // items come back into view - without coming back into range - has its
+        // hold extended instead of expiring underneath the player.
+        const bool stillOnScreen = std::ranges::find(nearHold, it->first) != nearHold.end();
+        const ticks_t hold = stillOnScreen ? ITEM_AMBIENT_HOLD_NEAR_MS : ITEM_AMBIENT_HOLD_MS;
+
+        if (!voice.releasing && voice.unwantedSince == 0) {
+            voice.unwantedSince = now;
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   HOLD  file {} ch{} - {}, holding {}ms",
+                              // it->first, voice.channelId,
+                              // stillOnScreen ? "out of range but still on screen" : "gone from screen",
+                              // static_cast<int>(hold));
+        }
+
+        if (!voice.releasing && now - voice.unwantedSince >= hold) {
+            voice.releasing = true;
+            if (channel)
+                channel->fadeOut(ITEM_AMBIENT_FADE);
+
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   FADE  file {} ch{} - {}ms hold expired, fading out over {:.2f}s",
+                              // it->first, voice.channelId, static_cast<int>(hold), ITEM_AMBIENT_FADE);
+        }
+
+        if (voice.releasing && (!channel || !channel->isSounding())) {
+            // The fade has finished. Clear the channel out before parking it,
+            // so it carries no memory of the track: a remembered one would
+            // start itself again if the channel were ever muted and unmuted.
+            if (channel)
+                channel->stop();
+
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   STOP  file {} ch{} - silent, channel released", it->first, voice.channelId);
+
+            m_freeItemAmbientChannels.push_back(voice.channelId);
+            it = m_itemAmbientVoices.erase(it);
+        } else {
+            ++it;
+        }
     }
 
     // item ambients are ambience, so they track that slider
@@ -1102,10 +1336,36 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
     const float gain = ambientChannel ? ambientChannel->getGain() : 1.0f;
 
     for (const uint32_t audioFileId : wanted) {
-        if (const auto existing = m_itemAmbientChannels.find(audioFileId); existing != m_itemAmbientChannels.end()) {
-            if (const auto& channel = getChannel(existing->second))
+        if (const auto existing = m_itemAmbientVoices.find(audioFileId); existing != m_itemAmbientVoices.end()) {
+            const auto& channel = getChannel(existing->second.channelId);
+            if (channel && channel->isSounding()) {
+                // Wanted again while it was on its way out: ride the fade back
+                // up from wherever it reached. play() here would stop a source
+                // that is still audible and restart the file at sample 0.
+                // Turned around before the gain is applied, because a source
+                // heading for silence ignores a change to what it aims at.
+                if (existing->second.releasing) {
+                    channel->resumeFade(ITEM_AMBIENT_FADE);
+                    existing->second.releasing = false;
+
+                    // if (m_soundDebug)
+                        // g_logger.info("[snd]   RESUME file {} ch{} - wanted again mid-fade, riding back up",
+                                      // audioFileId, existing->second.channelId);
+                // } else if (m_soundDebug && existing->second.unwantedSince != 0) {
+                    // g_logger.info("[snd]   KEEP  file {} ch{} - wanted again during hold, never interrupted",
+                                  // audioFileId, existing->second.channelId);
+                // }
+                }
+
                 channel->setGain(gain);
-            continue;
+                continue;
+            }
+
+            // The source went away under us - the fade landed between passes,
+            // or the channel refused it when it was started and it was never
+            // audible at all. Give the channel back and start it properly.
+            m_freeItemAmbientChannels.push_back(existing->second.channelId);
+            m_itemAmbientVoices.erase(existing);
         }
 
         const auto fileIt = m_clientSoundFiles.find(audioFileId);
@@ -1114,24 +1374,67 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts)
             continue;
         }
 
-        int channelId;
-        if (!m_freeItemAmbientChannels.empty()) {
-            channelId = m_freeItemAmbientChannels.back();
-            m_freeItemAmbientChannels.pop_back();
-        } else {
-            channelId = SOUND_CHANNEL_ITEM_AMBIENT_FIRST + static_cast<int>(m_itemAmbientChannels.size());
-            if (channelId > SOUND_CHANNEL_ITEM_AMBIENT_LAST)
-                continue; // more at once than the bank was ever meant to need
-        }
+        const int channelId = acquireItemAmbientChannel();
+        if (channelId < 0)
+            continue; // more at once than the bank was ever meant to need
 
         const auto& channel = getChannel(channelId);
-        if (!channel)
+        if (!channel) {
+            m_freeItemAmbientChannels.push_back(channelId);
             continue;
+        }
 
         channel->setGain(gain);
-        channel->play(m_soundDirectory + fileIt->second.filename, 1.0f, 1.0f, 1.0f, true);
-        m_itemAmbientChannels[audioFileId] = channelId;
+        if (!channel->play(m_soundDirectory + fileIt->second.filename, ITEM_AMBIENT_FADE, 1.0f, 1.0f, true)) {
+            // Recording it as playing anyway would leave the file permanently
+            // claimed by a silent channel, and nothing here ever revives one.
+            m_freeItemAmbientChannels.push_back(channelId);
+            continue;
+        }
+
+        m_itemAmbientVoices[audioFileId] = ItemAmbientVoice{ channelId };
+
+        // if (m_soundDebug)
+            // g_logger.info("[snd]   START file {} ch{} gain={:.2f} ({})",
+                          // audioFileId, channelId, gain, fileIt->second.filename);
     }
+}
+
+// A channel for a loop that is starting: the free pool first, then a fresh id
+// while the block has room. Holding loops past the moment they stop being
+// wanted keeps channels busy for longer, so as a last resort the loop that has
+// been unwanted longest gives its channel up rather than letting a hold starve
+// a loop the map is asking for now. Returns -1 when there is nothing to give.
+int SoundManager::acquireItemAmbientChannel()
+{
+    if (!m_freeItemAmbientChannels.empty()) {
+        const int channelId = m_freeItemAmbientChannels.back();
+        m_freeItemAmbientChannels.pop_back();
+        return channelId;
+    }
+
+    const int channelId = SOUND_CHANNEL_ITEM_AMBIENT_FIRST + static_cast<int>(m_itemAmbientVoices.size());
+    if (channelId <= SOUND_CHANNEL_ITEM_AMBIENT_LAST)
+        return channelId;
+
+    auto oldest = m_itemAmbientVoices.end();
+    for (auto it = m_itemAmbientVoices.begin(); it != m_itemAmbientVoices.end(); ++it) {
+        if (it->second.unwantedSince == 0)
+            continue; // still wanted; not ours to take
+
+        if (oldest == m_itemAmbientVoices.end() || it->second.unwantedSince < oldest->second.unwantedSince)
+            oldest = it;
+    }
+
+    if (oldest == m_itemAmbientVoices.end())
+        return -1;
+
+    if (const auto& channel = getChannel(oldest->second.channelId))
+        channel->stop();
+
+    const int reclaimed = oldest->second.channelId;
+    m_itemAmbientVoices.erase(oldest);
+    return reclaimed;
 }
 
 void SoundManager::stopAmbienceSound()
@@ -1177,6 +1480,10 @@ void SoundManager::playMusic(uint32_t musicId)
     const uint32_t audioFileId = music.audioFileId;
     if (audioFileId == 0)
         return;
+
+    // if (m_soundDebug)
+        // g_logger.info("[snd] MUSIC track {} -> file {} (type {})", musicId, audioFileId,
+                      // static_cast<int>(music.musicType));
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
     if (fileIt == m_clientSoundFiles.end())

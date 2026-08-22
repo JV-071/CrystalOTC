@@ -68,6 +68,34 @@ void SoundChannel::stop(const float fadetime)
     }
 }
 
+bool SoundChannel::fadeOut(const float fadetime)
+{
+    if (!m_currentSource || !m_currentSource->isPlaying())
+        return false;
+
+    g_sounds.ensureContext();
+    m_currentSource->setFading(StreamSoundSource::FadingOff, fadetime);
+    return true;
+}
+
+bool SoundChannel::resumeFade(const float fadetime)
+{
+    if (!m_currentSource || !m_currentSource->isPlaying())
+        return false;
+
+    // setFading() picks the ramp up from the level the source is at, so this
+    // turns a fade-out around from wherever it had got to rather than starting
+    // a new one from silence.
+    g_sounds.ensureContext();
+    m_currentSource->setFading(StreamSoundSource::FadingOn, fadetime);
+    return true;
+}
+
+bool SoundChannel::isSounding()
+{
+    return m_currentSource && m_currentSource->isPlaying();
+}
+
 void SoundChannel::enqueue(const std::string& filename, float fadetime, float gain, float pitch, const bool looping)
 {
     // as in play(): Lua callers that omit these arguments hand us 0

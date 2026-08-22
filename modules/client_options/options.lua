@@ -3429,7 +3429,24 @@ function setCreatureBattleSoundEnabled(state)
 	panels.battleSoundsPanel:recursiveGetChildById("attackAndSpells"):setEnabled(state)
 end
 
+-- The two sub-pages carry a notice explaining why everything on them is
+-- greyed out, because muting the master volume silences the client from a
+-- slider that lives on a different page. Collapsed to nothing when the sound
+-- is on, so the layout below it is unchanged.
+function setSoundDeactivatedNoticeVisible(visible)
+	for _, panel in ipairs({ panels.battleSoundsPanel, panels.uiSoundsPanel }) do
+		local notice = panel and panel:recursiveGetChildById("soundDeactivatedNotice")
+
+		if notice then
+			notice:setVisible(visible)
+			notice:setHeight(visible and 34 or 0)
+		end
+	end
+end
+
 function setAllUISoundState(state)
+	setSoundDeactivatedNoticeVisible(not state)
+
 	panels.soundPanel:recursiveGetChildById("musicVolume"):setEnabled(state)
 	panels.soundPanel:recursiveGetChildById("ambienceVolume"):setEnabled(state)
 	panels.soundPanel:recursiveGetChildById("itemVolume"):setEnabled(state)

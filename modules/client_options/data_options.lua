@@ -275,11 +275,15 @@ return {
 			end
 		end
 	},
-	-- The sound packet names no chat channel, so these seven cannot be told apart:
-	-- every one of them arrives as NUMERIC_SOUND_TYPE_CHAT_MESSAGE or
-	-- NUMERIC_SOUND_TYPE_WHISPER_WITHOUT_OPEN_CHAT and answers to the
-	-- "consoleMessages" box above. Wiring them individually would mean triggering
-	-- the chat sound from Lua, where the channel is known.
+	-- These have no action of their own: the sound packet names no chat channel,
+	-- so the sound manager cannot tell them apart. game_console reads them with
+	-- getOption when a message arrives - it is the only place that knows which
+	-- channel a message came from - and plays the chat effect itself. The
+	-- "consoleMessages" box above still gates all of them, in the sound manager,
+	-- keyed on the effect's soundbank type.
+	--
+	-- teamFinder is the exception: this server defines no such chat channel
+	-- (data/chatchannels/chatchannels.xml), so nothing ever selects it.
 	party = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)

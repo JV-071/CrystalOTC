@@ -377,3 +377,14 @@ UISoundEffects = {
 	Click = 2774,
 	ClickAlternate = 2775
 }
+
+-- Soundbank effect ids for the chat notification, types
+-- NUMERIC_SOUND_TYPE_CHAT_MESSAGE (14) and
+-- NUMERIC_SOUND_TYPE_WHISPER_WITHOUT_OPEN_CHAT (13). Playing these through
+-- g_sounds.playSoundEffect keeps them subject to the "consoleMessages" option;
+-- which per-channel box applies under it is decided in game_console, because
+-- the sound packet names no channel and only the module knows.
+ChatSoundEffects = {
+	Message = 2782,
+	PrivateWithoutOpenChat = 2783
+}

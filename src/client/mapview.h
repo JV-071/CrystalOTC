@@ -328,6 +328,14 @@ private:
     // framework is handed nothing but numbers.
     stdext::map<uint16_t, std::vector<uint8_t>> m_itemAmbientIndex;
     std::vector<uint16_t> m_itemAmbientCounts;
+    // Items that matched a query but fell outside its radius. Still on screen,
+    // so a loop they fed is worth holding rather than restarting.
+    std::vector<uint16_t> m_itemAmbientNearby;
+    // Widest radius any query asks for, plus the near margin: how far the map
+    // is walked. Recomputed with the index, on a soundbank change.
+    uint32_t m_itemAmbientReach{ 0 };
+    // Debug only: last traced answer per query, so tracing reports changes.
+    std::vector<uint16_t> m_itemAmbientDebugLast;
     uint32_t m_itemAmbientGeneration{ 0 };
     Timer m_itemAmbientTimer;
     std::vector<std::vector<FloorData>> m_floorThreads;
