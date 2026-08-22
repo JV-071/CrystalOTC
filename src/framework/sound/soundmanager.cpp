@@ -746,10 +746,11 @@ namespace
     // grouping box ("Spells") plus a specific one ("Attack"), so both are
     // returned and both have to be ticked.
     //
-    // The seven Console Messages sub-options - party, guild, npcs, global,
-    // teamFinder, privateMessages, privateMessagesLocalChat - have no
-    // counterpart: the sound packet names no chat channel, so they all fall
-    // under "consoleMessages" and cannot be told apart.
+    // Chat messages answer to "consoleMessages" here and no further: the sound
+    // packet names no chat channel, so this cannot tell a guild message from a
+    // private one. The Console Messages sub-options are applied by
+    // game_console instead, which knows the channel and plays the effect
+    // itself - so this box is the parent of that decision, not a replacement.
     struct SoundFilterCategories
     {
         std::string_view group;
