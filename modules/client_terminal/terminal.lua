@@ -45,29 +45,31 @@ function init()
 		}
 	})
 
-	-- Sound tracing, bound here so it can be reached without the terminal
-	-- itself: every [snd] line goes to stdout and to crystalotc.log.
-	Keybind.new("Misc.", "Toggle Sound Debug", "Ctrl+Shift+S", "")
-	Keybind.bind("Misc.", "Toggle Sound Debug", {
-		{
-			type = KEY_DOWN,
-			callback = function()
-				g_sounds.setSoundDebug(not g_sounds.isSoundDebug())
-			end
-		}
-	})
+	-- [snd-trace] disabled - these call g_sounds.setSoundDebug/debugSoundbank/debugPlaying,
+	-- whose bindings are commented out in luafunctions.cpp. Uncomment both together.
+	-- -- Sound tracing, bound here so it can be reached without the terminal
+	-- -- itself: every [snd] line goes to stdout and to crystalotc.log.
+	-- Keybind.new("Misc.", "Toggle Sound Debug", "Ctrl+Shift+S", "")
+	-- Keybind.bind("Misc.", "Toggle Sound Debug", {
+	-- {
+	-- type = KEY_DOWN,
+	-- callback = function()
+	-- g_sounds.setSoundDebug(not g_sounds.isSoundDebug())
+	-- end
+	-- }
+	-- })
 
-	-- One-shot dump of the bank: which entry can play what, and from which items.
-	Keybind.new("Misc.", "Dump Soundbank", "Ctrl+Shift+B", "")
-	Keybind.bind("Misc.", "Dump Soundbank", {
-		{
-			type = KEY_DOWN,
-			callback = function()
-				g_sounds.debugSoundbank()
-				g_sounds.debugPlaying()
-			end
-		}
-	})
+	-- -- One-shot dump of the bank: which entry can play what, and from which items.
+	-- Keybind.new("Misc.", "Dump Soundbank", "Ctrl+Shift+B", "")
+	-- Keybind.bind("Misc.", "Dump Soundbank", {
+	-- {
+	-- type = KEY_DOWN,
+	-- callback = function()
+	-- g_sounds.debugSoundbank()
+	-- g_sounds.debugPlaying()
+	-- end
+	-- }
+	-- })
 
 	terminalBuffer = terminalWindow:getChildById("terminalBuffer")
 	terminalSelectText = terminalWindow:getChildById("terminalSelectText")

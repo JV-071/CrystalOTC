@@ -1132,10 +1132,11 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_sounds", "playMusic", &SoundManager::playMusic, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "stopAmbienceSound", &SoundManager::stopAmbienceSound, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "stopMusic", &SoundManager::stopMusic, &g_sounds);
-    g_lua.bindSingletonFunction("g_sounds", "setSoundDebug", &SoundManager::setSoundDebug, &g_sounds);
-    g_lua.bindSingletonFunction("g_sounds", "isSoundDebug", &SoundManager::isSoundDebug, &g_sounds);
-    g_lua.bindSingletonFunction("g_sounds", "debugSoundbank", &SoundManager::debugSoundbank, &g_sounds);
-    g_lua.bindSingletonFunction("g_sounds", "debugPlaying", &SoundManager::debugPlaying, &g_sounds);
+    // [snd-trace] disabled - Lua can no longer reach the tracing; uncomment with the keybinds in client_terminal/terminal.lua
+    // g_lua.bindSingletonFunction("g_sounds", "setSoundDebug", &SoundManager::setSoundDebug, &g_sounds);
+    // g_lua.bindSingletonFunction("g_sounds", "isSoundDebug", &SoundManager::isSoundDebug, &g_sounds);
+    // g_lua.bindSingletonFunction("g_sounds", "debugSoundbank", &SoundManager::debugSoundbank, &g_sounds);
+    // g_lua.bindSingletonFunction("g_sounds", "debugPlaying", &SoundManager::debugPlaying, &g_sounds);
 
     g_lua.registerClass<SoundSource>();
     g_lua.bindClassStaticFunction<SoundSource>("create", [] { return std::make_shared<SoundSource>(); });

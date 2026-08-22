@@ -77,11 +77,12 @@ SoundManager g_sounds;
 
 void SoundManager::init()
 {
-    // Tracing can be armed before the client is up, which is the only way in
-    // when the in-client terminal is not usable - and it puts every [snd] line
-    // on stdout of a run started from a shell.
-    if (const char* env = std::getenv("CRYSTALOTC_SOUND_DEBUG"); env && *env && *env != '0')
-        m_soundDebug = true;
+    // [snd-trace] disabled - the env var can no longer arm tracing
+    // // Tracing can be armed before the client is up, which is the only way in
+    // // when the in-client terminal is not usable - and it puts every [snd] line
+    // // on stdout of a run started from a shell.
+    // if (const char* env = std::getenv("CRYSTALOTC_SOUND_DEBUG"); env && *env && *env != '0')
+        // m_soundDebug = true;
 
 #ifdef ANDROID
     // The alcOpenDevice call needs to be executed on Android main thread
@@ -937,9 +938,9 @@ void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
     if (const auto& channel = getChannel(effectChannel))
         gain *= channel->getGain();
 
-    if (m_soundDebug)
-        g_logger.info("[snd] EFFECT id {} ch{} gain={:.2f} pitch={:.2f} ({})",
-                      effectId, effectChannel, gain, pitch, filename);
+    // if (m_soundDebug)
+        // g_logger.info("[snd] EFFECT id {} ch{} gain={:.2f} pitch={:.2f} ({})",
+                      // effectId, effectChannel, gain, pitch, filename);
 
     play(filename, 0, gain, pitch);
 }
@@ -968,9 +969,9 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
     if (audioFileId == 0)
         return;
 
-    if (m_soundDebug)
-        g_logger.info("[snd] AMBIENCE zone {} -> file {} (was zone {}) - channel {}, 3s crossfade",
-                      ambienceId, audioFileId, m_currentAmbienceId, SOUND_CHANNEL_AMBIENT);
+    // if (m_soundDebug)
+        // g_logger.info("[snd] AMBIENCE zone {} -> file {} (was zone {}) - channel {}, 3s crossfade",
+                      // ambienceId, audioFileId, m_currentAmbienceId, SOUND_CHANNEL_AMBIENT);
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
     if (fileIt == m_clientSoundFiles.end()) {
@@ -1161,8 +1162,8 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
     if (m_itemAmbientSelected.size() != counts.size())
         m_itemAmbientSelected.assign(counts.size(), ItemAmbientSelection{});
 
-    if (m_soundDebug && m_itemAmbientLastCounts.size() != counts.size())
-        m_itemAmbientLastCounts.assign(counts.size(), 0);
+    // if (m_soundDebug && m_itemAmbientLastCounts.size() != counts.size())
+        // m_itemAmbientLastCounts.assign(counts.size(), 0);
 
     const ticks_t now = g_clock.millis();
 
@@ -1201,7 +1202,8 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                 raw = loopingAudioFileId;
         }
 
-        const uint32_t previousFile = selection.audioFileId;
+        // [snd-trace] disabled - trace-only local
+        // const uint32_t previousFile = selection.audioFileId;
 
         if (raw == selection.audioFileId) {
             selection.pending = 0; // the candidate withdrew; nothing to commit
@@ -1240,16 +1242,16 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                 nearHold.push_back(wouldSelect);
         }
 
-        // Traced on movement only: the scan runs four times a second, and a
-        // line per scan would bury the moments that actually explain anything.
-        if (m_soundDebug && (m_itemAmbientLastCounts[i] != counts[i] || previousFile != audioFileId)) {
-            g_logger.info("[snd] entry {}: count {}->{}, selects {}{}",
-                          m_itemAmbientEffectIds[i], m_itemAmbientLastCounts[i], counts[i],
-                          audioFileId == 0 ? std::string("silence") : fmt::format("file {}", audioFileId),
-                          previousFile != audioFileId && previousFile != 0
-                              ? fmt::format(" (was file {})", previousFile) : std::string());
-            m_itemAmbientLastCounts[i] = counts[i];
-        }
+        // // Traced on movement only: the scan runs four times a second, and a
+        // // line per scan would bury the moments that actually explain anything.
+        // if (m_soundDebug && (m_itemAmbientLastCounts[i] != counts[i] || previousFile != audioFileId)) {
+            // g_logger.info("[snd] entry {}: count {}->{}, selects {}{}",
+                          // m_itemAmbientEffectIds[i], m_itemAmbientLastCounts[i], counts[i],
+                          // audioFileId == 0 ? std::string("silence") : fmt::format("file {}", audioFileId),
+                          // previousFile != audioFileId && previousFile != 0
+                              // ? fmt::format(" (was file {})", previousFile) : std::string());
+            // m_itemAmbientLastCounts[i] = counts[i];
+        // }
 
         if (audioFileId != 0 && std::ranges::find(wanted, audioFileId) == wanted.end())
             wanted.push_back(audioFileId);
@@ -1282,9 +1284,9 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             if (channel)
                 channel->fadeOut(ITEM_AMBIENT_FADE);
 
-            if (m_soundDebug)
-                g_logger.info("[snd]   SWAP  file {} ch{} - replaced by another step, crossfading out",
-                              it->first, voice.channelId);
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   SWAP  file {} ch{} - replaced by another step, crossfading out",
+                              // it->first, voice.channelId);
         }
 
         // Re-read every scan rather than latched at departure, so a loop whose
@@ -1295,11 +1297,11 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
 
         if (!voice.releasing && voice.unwantedSince == 0) {
             voice.unwantedSince = now;
-            if (m_soundDebug)
-                g_logger.info("[snd]   HOLD  file {} ch{} - {}, holding {}ms",
-                              it->first, voice.channelId,
-                              stillOnScreen ? "out of range but still on screen" : "gone from screen",
-                              static_cast<int>(hold));
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   HOLD  file {} ch{} - {}, holding {}ms",
+                              // it->first, voice.channelId,
+                              // stillOnScreen ? "out of range but still on screen" : "gone from screen",
+                              // static_cast<int>(hold));
         }
 
         if (!voice.releasing && now - voice.unwantedSince >= hold) {
@@ -1307,9 +1309,9 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             if (channel)
                 channel->fadeOut(ITEM_AMBIENT_FADE);
 
-            if (m_soundDebug)
-                g_logger.info("[snd]   FADE  file {} ch{} - {}ms hold expired, fading out over {:.2f}s",
-                              it->first, voice.channelId, static_cast<int>(hold), ITEM_AMBIENT_FADE);
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   FADE  file {} ch{} - {}ms hold expired, fading out over {:.2f}s",
+                              // it->first, voice.channelId, static_cast<int>(hold), ITEM_AMBIENT_FADE);
         }
 
         if (voice.releasing && (!channel || !channel->isSounding())) {
@@ -1319,8 +1321,8 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             if (channel)
                 channel->stop();
 
-            if (m_soundDebug)
-                g_logger.info("[snd]   STOP  file {} ch{} - silent, channel released", it->first, voice.channelId);
+            // if (m_soundDebug)
+                // g_logger.info("[snd]   STOP  file {} ch{} - silent, channel released", it->first, voice.channelId);
 
             m_freeItemAmbientChannels.push_back(voice.channelId);
             it = m_itemAmbientVoices.erase(it);
@@ -1346,12 +1348,13 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                     channel->resumeFade(ITEM_AMBIENT_FADE);
                     existing->second.releasing = false;
 
-                    if (m_soundDebug)
-                        g_logger.info("[snd]   RESUME file {} ch{} - wanted again mid-fade, riding back up",
-                                      audioFileId, existing->second.channelId);
-                } else if (m_soundDebug && existing->second.unwantedSince != 0) {
-                    g_logger.info("[snd]   KEEP  file {} ch{} - wanted again during hold, never interrupted",
-                                  audioFileId, existing->second.channelId);
+                    // if (m_soundDebug)
+                        // g_logger.info("[snd]   RESUME file {} ch{} - wanted again mid-fade, riding back up",
+                                      // audioFileId, existing->second.channelId);
+                // } else if (m_soundDebug && existing->second.unwantedSince != 0) {
+                    // g_logger.info("[snd]   KEEP  file {} ch{} - wanted again during hold, never interrupted",
+                                  // audioFileId, existing->second.channelId);
+                // }
                 }
 
                 channel->setGain(gain);
@@ -1391,9 +1394,9 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
 
         m_itemAmbientVoices[audioFileId] = ItemAmbientVoice{ channelId };
 
-        if (m_soundDebug)
-            g_logger.info("[snd]   START file {} ch{} gain={:.2f} ({})",
-                          audioFileId, channelId, gain, fileIt->second.filename);
+        // if (m_soundDebug)
+            // g_logger.info("[snd]   START file {} ch{} gain={:.2f} ({})",
+                          // audioFileId, channelId, gain, fileIt->second.filename);
     }
 }
 
@@ -1478,9 +1481,9 @@ void SoundManager::playMusic(uint32_t musicId)
     if (audioFileId == 0)
         return;
 
-    if (m_soundDebug)
-        g_logger.info("[snd] MUSIC track {} -> file {} (type {})", musicId, audioFileId,
-                      static_cast<int>(music.musicType));
+    // if (m_soundDebug)
+        // g_logger.info("[snd] MUSIC track {} -> file {} (type {})", musicId, audioFileId,
+                      // static_cast<int>(music.musicType));
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
     if (fileIt == m_clientSoundFiles.end())

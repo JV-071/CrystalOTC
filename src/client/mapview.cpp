@@ -229,15 +229,16 @@ void MapView::updateItemAmbientSounds()
     if (!cameraPosition.isValid())
         return;
 
-    // While tracing, record WHICH items answered each query and how far off they
-    // were - including the ones that matched but were out of reach, which is the
-    // only way to tell "nothing here" from "just too far" from outside.
-    const bool trace = g_sounds.isSoundDebug();
-    std::vector<std::string> counted, tooFar;
-    if (trace) {
-        counted.assign(queries.size(), std::string());
-        tooFar.assign(queries.size(), std::string());
-    }
+    // [snd-trace] disabled - uncomment with the two blocks below to restore the scan trace
+    // // While tracing, record WHICH items answered each query and how far off they
+    // // were - including the ones that matched but were out of reach, which is the
+    // // only way to tell "nothing here" from "just too far" from outside.
+    // const bool trace = g_sounds.isSoundDebug();
+    // std::vector<std::string> counted, tooFar;
+    // if (trace) {
+        // counted.assign(queries.size(), std::string());
+        // tooFar.assign(queries.size(), std::string());
+    // }
 
     const int reach = static_cast<int>(m_itemAmbientReach);
     const int floorCost = static_cast<int>(SoundManager::ITEM_AMBIENT_FLOOR_COST);
@@ -299,35 +300,35 @@ void MapView::updateItemAmbientSounds()
                         else
                             ++m_itemAmbientNearby[query];
 
-                        if (trace) {
-                            auto& into = inRange ? counted[query] : tooFar[query];
-                            if (into.size() < 220)
-                                into += fmt::format(" {}@d{}{}", thing->getClientId(), distance,
-                                                    dz == 0 ? std::string() : fmt::format(",z{:+d}", dz));
-                        }
+                        // if (trace) {
+                            // auto& into = inRange ? counted[query] : tooFar[query];
+                            // if (into.size() < 220)
+                                // into += fmt::format(" {}@d{}{}", thing->getClientId(), distance,
+                                                    // dz == 0 ? std::string() : fmt::format(",z{:+d}", dz));
+                        // }
                     }
                 }
             }
         }
     }
 
-    if (trace) {
-        if (m_itemAmbientDebugLast.size() != m_itemAmbientCounts.size())
-            m_itemAmbientDebugLast.assign(m_itemAmbientCounts.size(), 0xFFFF);
+    // if (trace) {
+        // if (m_itemAmbientDebugLast.size() != m_itemAmbientCounts.size())
+            // m_itemAmbientDebugLast.assign(m_itemAmbientCounts.size(), 0xFFFF);
 
-        // one line per query whose answer moved, not one per scan
-        for (size_t i = 0; i < m_itemAmbientCounts.size(); ++i) {
-            if (m_itemAmbientDebugLast[i] == m_itemAmbientCounts[i])
-                continue;
+        // // one line per query whose answer moved, not one per scan
+        // for (size_t i = 0; i < m_itemAmbientCounts.size(); ++i) {
+            // if (m_itemAmbientDebugLast[i] == m_itemAmbientCounts[i])
+                // continue;
 
-            m_itemAmbientDebugLast[i] = m_itemAmbientCounts[i];
-            g_logger.info("[snd] scan entry {} radius={} count={} nearby={}{}{}",
-                          queries[i].effectId, queries[i].maxDistance,
-                          m_itemAmbientCounts[i], m_itemAmbientNearby[i],
-                          counted[i].empty() ? std::string() : "  counted:" + counted[i],
-                          tooFar[i].empty() ? std::string() : "  toofar:" + tooFar[i]);
-        }
-    }
+            // m_itemAmbientDebugLast[i] = m_itemAmbientCounts[i];
+            // g_logger.info("[snd] scan entry {} radius={} count={} nearby={}{}{}",
+                          // queries[i].effectId, queries[i].maxDistance,
+                          // m_itemAmbientCounts[i], m_itemAmbientNearby[i],
+                          // counted[i].empty() ? std::string() : "  counted:" + counted[i],
+                          // tooFar[i].empty() ? std::string() : "  toofar:" + tooFar[i]);
+        // }
+    // }
 
     g_sounds.setItemAmbientCounts(m_itemAmbientCounts, m_itemAmbientNearby);
 }
