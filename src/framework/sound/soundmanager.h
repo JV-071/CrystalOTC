@@ -176,9 +176,56 @@ class SoundManager
     enum
     {
         MAX_CACHE_SIZE = 2000000,
-        POLL_DELAY = 100
+        POLL_DELAY = 100,
+
+        // How long a looping item ambient keeps playing after the map stops
+        // asking for it. Restarting one of these costs an ogg decode, a gap and
+        // a ramp from sample 0, so a loop that is about to be wanted again is
+        // better held than torn down. It only has to outlast the map being
+        // momentarily wrong - a teleport rebuilding the visible-tile cache,
+        // which settles in a scan or two - NOT to cover walking away, which is
+        // the map being right. Held any longer and a waterfall trails a player
+        // who ran off well out of sight of it.
+        ITEM_AMBIENT_HOLD_MS = 500,
+
+        // The hold used instead when the items that fed the loop are STILL ON
+        // SCREEN and merely out of the entry's radius. That is a player pacing
+        // around a brazier, not one who left: they are very likely to step back
+        // in, and a restart costs a decode, a gap and a ramp from sample 0.
+        // Walking clean away leaves nothing on screen and takes the short hold
+        // above, so a waterfall still stops promptly once it is behind you.
+        ITEM_AMBIENT_HOLD_NEAR_MS = 3000,
+
+        // How long a DIFFERENT step of the same entry has to stay selected
+        // before it takes over. An entry's steps are intensity layers of one
+        // ambient, and a count that straddles a threshold - which is normal,
+        // since a whole-screen entry gains and loses items at the screen edge
+        // as the player walks - would otherwise swap the two files back and
+        // forth indefinitely, each swap restarting a half-minute stream.
+        ITEM_AMBIENT_STEP_MS = 2000
     };
+
+    // Seconds. Also the window a held loop is faded out over once the hold
+    // expires - and the window it is ridden back up over if it is wanted again
+    // mid-fade. Fades are stepped from poll(), so this buys POLL_DELAY-sized
+    // gain steps: much below half a second there are too few of them left for
+    // the ramp to still sound like one.
+    static constexpr float ITEM_AMBIENT_FADE = 0.5f;
 public:
+    // How the sound system measures space. The bank gives a radius in tiles per
+    // item ambient, but three of its seven entries carry NO radius field at all
+    // - proto2 decodes the absent field as 0, which is not a specification.
+    // Rather than read that as "unlimited", those entries get a real default,
+    // so proximity always means proximity.
+    static constexpr uint32_t ITEM_AMBIENT_DEFAULT_RADIUS = 8;
+    // What one floor costs, in tiles. Without a real cost a source directly
+    // below the player reads as adjacent, and whether it is heard at all ends
+    // up decided by which floors the renderer happens to be drawing.
+    static constexpr uint32_t ITEM_AMBIENT_FLOOR_COST = 3;
+    // How far past its radius an item still counts as "just out of reach"
+    // rather than gone - what picks the long hold over the short one.
+    static constexpr uint32_t ITEM_AMBIENT_NEAR_MARGIN = 4;
+
     void init();
     void terminate();
     void poll();
@@ -217,13 +264,32 @@ public:
     struct ItemAmbientQuery
     {
         std::vector<uint16_t> clientIds; // item client ids that count
-        uint32_t maxDistance;            // in tiles, 0 = the whole screen
+        uint32_t maxDistance;            // in tiles; the bank's absent case is
+                                         // already resolved to the default here
+        uint32_t effectId;               // the bank entry it came from, for tracing
     };
     const std::vector<ItemAmbientQuery>& getItemAmbientQueries() const { return m_itemAmbientQueries; }
     // bumped whenever the queries are rebuilt, so a cached index can tell that
     // a different soundbank loaded even if it happens to hold as many entries
     uint32_t getItemAmbientGeneration() const { return m_itemAmbientGeneration; }
-    void setItemAmbientCounts(const std::vector<uint16_t>& counts);
+    // counts: items in range per query. nearby: items that matched the query
+    // but were out of its radius - the difference between "gone" and "just out
+    // of reach", which is what decides how long a loop is held before it goes.
+    void setItemAmbientCounts(const std::vector<uint16_t>& counts,
+                              const std::vector<uint16_t>& nearby);
+
+    // Sound tracing. Off by default; g_sounds.setSoundDebug(true) from the
+    // in-client terminal (Ctrl+T) turns it on live. Every line it writes is
+    // prefixed [snd] so a log or a console can be grepped down to just this.
+    void setSoundDebug(bool enable);
+    bool isSoundDebug() const { return m_soundDebug; }
+    // What the bank holds: every item ambient, its radius, its steps and the
+    // files they select. Answers "which entry is the sound I am hearing".
+    void debugSoundbank();
+    // What is audible right now: every looping voice with its channel, state
+    // and gain, plus the music and location ambience ids.
+    void debugPlaying();
+
     void playMusic(uint32_t musicId);
     void stopAmbienceSound();
     void stopMusic();
@@ -241,6 +307,7 @@ private:
     void updateAmbientDelayedEffects();
     void buildItemAmbientQueries();
     void stopItemAmbients();
+    int acquireItemAmbientChannel();
     void subscribeDeviceEvents();
     void unsubscribeDeviceEvents();
     void followDefaultDevice();
@@ -285,11 +352,40 @@ private:
     std::vector<uint32_t> m_itemAmbientEffectIds; // parallel to the queries
     uint32_t m_itemAmbientGeneration{ 0 };
 
-    // audio file id -> the channel looping it. Keyed on the FILE, not the
+    // One looping item ambient that has been started. A file the map stops
+    // asking for is not torn down at once: it plays on untouched for
+    // ITEM_AMBIENT_HOLD_MS, then fades out, and either of those states reverts
+    // to plain playing the moment it is wanted again. The channel goes back to
+    // the pool only once the fade has actually finished, so a channel handed
+    // out again can never hard-cut a source that is still audible.
+    struct ItemAmbientVoice
+    {
+        int channelId;
+        ticks_t unwantedSince{ 0 }; // 0 while the map still wants it
+        bool releasing{ false };    // the fade-out has been armed
+    };
+
+    // audio file id -> the voice looping it. Keyed on the FILE, not the
     // effect: two effects can select the same file at once and it must not be
     // started twice at double volume.
-    std::unordered_map<uint32_t, int> m_itemAmbientChannels;
+    std::unordered_map<uint32_t, ItemAmbientVoice> m_itemAmbientVoices;
     std::vector<int> m_freeItemAmbientChannels;
+    // What each query has settled on, and what is currently trying to take
+    // over. Only a change BETWEEN two steps is debounced: starting from
+    // silence and falling to silence both commit at once, so walking up to a
+    // fire still sounds it immediately and the release pass above still owns
+    // the fade-out. Parallel to the queries.
+    struct ItemAmbientSelection
+    {
+        uint32_t audioFileId{ 0 }; // committed - what is actually asked for
+        uint32_t pending{ 0 };     // candidate waiting out ITEM_AMBIENT_STEP_MS
+        ticks_t pendingSince{ 0 };
+    };
+    std::vector<ItemAmbientSelection> m_itemAmbientSelected;
+    // Debug only: the counts of the previous scan, so tracing can report the
+    // moments a count actually moves rather than four times a second.
+    std::vector<uint16_t> m_itemAmbientLastCounts;
+    bool m_soundDebug{ false };
 
     uint32_t m_uiSoundEffectId{ 0 };
     std::map<uint32_t, ClientLocationAmbient> m_clientAmbientEffects;

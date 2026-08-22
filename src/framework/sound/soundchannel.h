@@ -35,6 +35,17 @@ public:
 
     SoundSourcePtr play(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f, bool looping = false);
     void stop(float fadetime = 0);
+
+    // Arm a fade-out without forgetting what is playing, so a caller that
+    // changes its mind can ride the level back up with resumeFade() instead of
+    // restarting the file from the beginning. stop() is the destructive
+    // version: it drops the queue and the remembered track, which makes its
+    // fade a point of no return. Returns false if there was nothing to fade.
+    bool fadeOut(float fadetime);
+    bool resumeFade(float fadetime);
+    // Whether a source is still audible on this channel - true throughout a
+    // fade-out, false once it has actually finished.
+    bool isSounding();
     void enqueue(const std::string& filename, float fadetime = 0, float gain = 1.0f, float pitch = 1.0f, bool looping = false);
     void enable() { setEnabled(true); }
     void disable() { setEnabled(false); }

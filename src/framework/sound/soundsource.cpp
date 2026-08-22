@@ -22,6 +22,8 @@
 
 #include "soundsource.h"
 
+#include <algorithm>
+
 #include "soundbuffer.h"
 #include "soundeffect.h"
 
@@ -164,23 +166,38 @@ void SoundSource::setVelocity(const Point& velocity)
 void SoundSource::setFading(const FadeState state, const float fadeTime)
 {
     const float now = stdext::millis() / 1000.0f;
-    if (m_fadeState != NoFading) {
-        const float elapsed = now - m_fadeStartTime;
-        float add;
-        if (m_fadeState == FadingOn)
-            add = -(1 - (elapsed / m_fadeTime)) * fadeTime;
-        else
-            add = -(elapsed / m_fadeTime) * fadeTime;
-        m_fadeStartTime = now + add;
-    } else
-        m_fadeStartTime = now;
+
+    // Where the ramp sits right now, as a fraction of the gain it is aimed at.
+    // A fade arriving mid-ramp has to pick the level up from here, or it steps.
+    // With no ramp running the source is already at its gain, so a fade-out
+    // starts from the top and a fade-in - which is what starting a sound asks
+    // for - starts from silence.
+    float progress = state == FadingOff ? 1.0f : 0.0f;
+    if (m_fadeState != NoFading && m_fadeTime > 0) {
+        const float elapsed = std::clamp((now - m_fadeStartTime) / m_fadeTime, 0.0f, 1.0f);
+        progress = m_fadeState == FadingOn ? elapsed : 1.0f - elapsed;
+    }
+
+    // Only capture the target while nothing is in flight. setGain() writes the
+    // partially ramped level into m_gain on every update(), so taking that as
+    // the new target during a fade would fold the same fraction in twice and
+    // drop the level in a step.
+    if (m_fadeState == NoFading)
+        m_fadeGain = m_gain;
 
     m_fadeState = state;
     m_fadeTime = fadeTime;
-    m_fadeGain = m_gain;
 
-    if (m_fadeState == FadingOn)
-        setGain(0.0);
+    // Both branches place the start time so that the very next update()
+    // reproduces the level the source is already at, which is what makes a fade
+    // reversible: arming the opposite direction rides the level back rather
+    // than jumping to an end of the window.
+    if (m_fadeState == FadingOn) {
+        m_fadeStartTime = now - progress * fadeTime;
+        setGain(progress * m_fadeGain);
+    } else {
+        m_fadeStartTime = now - (1.0f - progress) * fadeTime;
+    }
 }
 
 void SoundSource::restartFading()
