@@ -663,21 +663,37 @@ bool SoundManager::loadFromProtobuf(const std::string& directory, const std::str
 
 bool SoundManager::loadClientFiles(const std::string& directory)
 {
-    m_soundDirectory = directory;
+    // Cleared up front so a failed or partial load cannot leave the previous
+    // soundbank's entries behind, and so the m_soundDirectory.empty() guards in
+    // the play functions actually fire - they are the only thing standing
+    // between a broken soundbank and every effect silently missing its lookup.
+    m_soundDirectory.clear();
     m_currentMusicId = 0;
+    m_clientSoundFiles.clear();
+    m_clientSoundEffects.clear();
+    m_clientAmbientEffects.clear();
+    m_clientItemAmbientEffects.clear();
+    m_clientMusic.clear();
 
     // find catalog from json file
     try {
+        bool loaded = false;
         json document = json::parse(g_resources.readFileContents(g_resources.resolvePath(g_resources.guessFilePath(directory + "catalog-sound", "json"))));
         for (const auto& obj : document) {
             const auto& type = obj["type"];
             if (type == "sounds") {
                 // dat file encoded with protobuf
-                loadFromProtobuf(directory, obj["file"]);
+                loaded = loadFromProtobuf(directory, obj["file"]) || loaded;
             }
         }
 
-        return true;
+        if (loaded) {
+            m_soundDirectory = directory;
+        }
+        else
+            g_logger.warning("no soundbank was loaded from '{}': the client has no effects, ambience or music", directory);
+
+        return loaded;
     } catch (const std::exception& e) {
         if (g_game.getClientVersion() >= 1300) {
             g_logger.warning("Failed to load '{}' (Sounds): {}", directory, e.what());

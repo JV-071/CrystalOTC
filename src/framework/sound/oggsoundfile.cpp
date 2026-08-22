@@ -52,7 +52,11 @@ int OggSoundFile::read(void* buffer, int bufferSize)
     while (bufferSize > 0) {
         const size_t bytesToRead = bufferSize;
         const long bytesRead = ov_read(&m_vorbisFile, bytesBuffer, bytesToRead, 0, 2, 1, &section);
-        if (bytesRead == 0)
+
+        // 0 is the end of the stream; anything negative is an error such as
+        // OV_HOLE. Adding it would rewind bytesBuffer out of the caller's
+        // buffer and grow bufferSize, so both end the read.
+        if (bytesRead <= 0)
             break;
 
         bufferSize -= bytesRead;
