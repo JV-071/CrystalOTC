@@ -595,6 +595,34 @@ std::string SoundManager::getAudioFileNameById(int32_t audioFileId)
     return "";
 }
 
+namespace
+{
+    // Maps a soundbank effect type onto the option categories declared in
+    // modules/client_options/data_options.lua. The own/other split those options
+    // also offer cannot be resolved here: the protocol's source byte is dropped
+    // before playSoundEffect is reached, so those categories stay unfiltered.
+    std::string soundFilterCategory(const ClientSoundType type)
+    {
+        switch (type) {
+            case NUMERIC_SOUND_TYPE_SPELL_ATTACK:
+            case NUMERIC_SOUND_TYPE_SPELL_HEALING:
+            case NUMERIC_SOUND_TYPE_SPELL_SUPPORT:
+            case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
+            case NUMERIC_SOUND_TYPE_CREATURE_ATTACK:
+            case NUMERIC_SOUND_TYPE_SPELL_GENERIC:
+                return "attackAndSpells";
+            case NUMERIC_SOUND_TYPE_CREATURE_NOISE: return "creatureNoises";
+            case NUMERIC_SOUND_TYPE_CREATURE_DEATH: return "creatureDeath";
+            case NUMERIC_SOUND_TYPE_FOOD_AND_DRINK: return "foodAndBeverages";
+            case NUMERIC_SOUND_TYPE_ITEM_MOVEMENT: return "moveItem";
+            case NUMERIC_SOUND_TYPE_UI: return "uiInteractions";
+            case NUMERIC_SOUND_TYPE_PARTY: return "toggleParty";
+            case NUMERIC_SOUND_TYPE_VIP_LIST: return "toggleVip";
+            default: return {};
+        }
+    }
+}
+
 void SoundManager::playSoundEffect(uint32_t effectId)
 {
     if (!isAudioEnabled() || m_soundDirectory.empty())
@@ -617,6 +645,11 @@ void SoundManager::playSoundEffect(uint32_t effectId)
         return;
 
     const auto& effect = it->second;
+
+    if (const auto category = soundFilterCategory(effect.type);
+        !category.empty() && !isClientSoundFilterEnabled(category)) {
+        return;
+    }
 
     // resolve the audio file id
     uint32_t audioFileId = effect.soundId;
