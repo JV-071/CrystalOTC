@@ -511,6 +511,49 @@ local function getRequiredCenterWidth()
 	return ABSOLUTE_MIN_MAP_WIDTH
 end
 
+-- The map blit is pixel exact only when the map rect is a whole multiple of the native sprite
+-- grid: 15x11 tiles of 32 px, i.e. 480x352 device pixels per step. Those are the heights this
+-- option is supposed to offer - upstream quantises the splitter to three of them, while this fork
+-- had collapsed it to a single fixed size. MapView::getIdealRenderScale caps the multiple at 4.
+local NATIVE_MAP_HEIGHT = 352
+local MAX_RENDER_MULTIPLE = 4
+
+-- Heights of gameMapPanel at which the map lands on a whole render multiple, smallest first.
+local function getPixelExactPanelHeights()
+	if not gameMapPanel or gameMapPanel:isDestroyed() then
+		return {}
+	end
+
+	local density = g_window.getDisplayDensity and g_window.getDisplayDensity() or 1
+
+	if not density or density <= 0 then
+		density = 1
+	end
+
+	local contentWidth, contentHeight = getMapContentSize()
+
+	if contentWidth <= 0 or contentHeight <= 0 then
+		return {}
+	end
+
+	-- UIMap::updateMapSize insets the padding rect by a pixel on every edge and then fits the 15:11
+	-- box into it, so whichever of width or height binds first decides the map size. Only heights
+	-- below the width-limited one actually change anything.
+	local widthLimitedHeight = math.floor((contentWidth - 2) / getMapAspectRatio())
+	local chrome = gameMapPanel:getHeight() - contentHeight
+	local heights = {}
+
+	for multiple = 1, MAX_RENDER_MULTIPLE do
+		local mapHeight = math.floor(multiple * NATIVE_MAP_HEIGHT / density + 0.5)
+
+		if mapHeight >= MIN_GAME_MAP_HEIGHT and mapHeight <= widthLimitedHeight then
+			heights[#heights + 1] = mapHeight + 2 + chrome
+		end
+	end
+
+	return heights
+end
+
 local function getBottomSplitterMaxMarginBottom(parentH)
 	local minM = getBottomSplitterMinMarginBottom()
 
@@ -685,10 +728,6 @@ function onMainRightPanelGeometryChange()
 end
 
 function bottomSplitterCanUpdateMargin(splitter, newMargin)
-	if modules.client_options.getOption("dontStretchShrink") then
-		return splitter:getMarginBottom()
-	end
-
 	local parent = splitter:getParent()
 
 	if not parent then
@@ -698,8 +737,41 @@ function bottomSplitterCanUpdateMargin(splitter, newMargin)
 	local parentH = parent:getHeight()
 	local minM = getBottomSplitterEffectiveMinMargin(parentH)
 	local maxM = getBottomSplitterMaxMarginBottom(parentH)
+	local clamped = math.max(math.min(newMargin, maxM), minM)
 
-	return math.max(math.min(newMargin, maxM), minM)
+	if not modules.client_options.getOption("dontStretchShrink") then
+		return clamped
+	end
+
+	-- Snap to the nearest margin that leaves the map on a whole render multiple. This used to
+	-- return the current margin unchanged, which refused every drag outright - and because
+	-- UISplitter:onHoverChange decides whether to show the resize cursor by asking whether
+	-- canUpdateMargin(margin +/- 1) differs from margin, the splitter did not even look draggable.
+	local currentMargin = splitter:getMarginBottom()
+	local currentPanelHeight = gameMapPanel and not gameMapPanel:isDestroyed() and gameMapPanel:getHeight()
+
+	if not currentPanelHeight then
+		return clamped
+	end
+
+	local best, bestDistance
+
+	for _, panelHeight in ipairs(getPixelExactPanelHeights()) do
+		local margin = currentMargin + (currentPanelHeight - panelHeight)
+
+		-- Only offer stops the layout can actually hold, so the result never has to be clamped
+		-- back off the multiple it was chosen for.
+		if margin >= minM and margin <= maxM then
+			local distance = math.abs(margin - clamped)
+
+			if not bestDistance or distance < bestDistance then
+				best = margin
+				bestDistance = distance
+			end
+		end
+	end
+
+	return best or clamped
 end
 
 function bottomSplitterOnGeometryChange(splitter)
@@ -928,11 +1000,24 @@ function updateStretchShrink()
 			height = 11,
 			width = 15
 		})
-		-- 352 is 11 tiles at the native sprite size, and UIMap::updateMapSize takes the panel's
-		-- 5 px padding off both edges and then another pixel each side, so the panel has to land on
-		-- 364 for the map itself to be 352. The old constant of 13 targeted 365 and produced a 353 px
-		-- map - one pixel off the integral scale this option exists to deliver.
-		bottomSplitter:setMarginBottom(bottomSplitter:getMarginBottom() + (gameMapPanel:getHeight() - 352) - 12)
+		-- Settle on whichever pixel-exact height is nearest to where the splitter already is,
+		-- rather than forcing one fixed size: this runs from onGeometryChange, so hardcoding a
+		-- single height here would drag the panel back off any other stop the moment it moved.
+		local panelHeight = gameMapPanel:getHeight()
+		local best, bestDistance
+
+		for _, candidate in ipairs(getPixelExactPanelHeights()) do
+			local distance = math.abs(candidate - panelHeight)
+
+			if not bestDistance or distance < bestDistance then
+				best = candidate
+				bestDistance = distance
+			end
+		end
+
+		if best and best ~= panelHeight then
+			bottomSplitter:setMarginBottom(bottomSplitter:getMarginBottom() + (panelHeight - best))
+		end
 	end
 end
 
