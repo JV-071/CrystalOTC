@@ -28,8 +28,11 @@
 
 StreamSoundSource::StreamSoundSource()
 {
-    for (auto& buffer : m_buffers)
+    m_freeBuffers.reserve(STREAM_FRAGMENTS);
+    for (auto& buffer : m_buffers) {
         buffer = std::make_shared<SoundBuffer>();
+        m_freeBuffers.push_back(buffer->getBufferId());
+    }
     m_downMix = NoDownMix;
 }
 
@@ -107,15 +110,17 @@ void StreamSoundSource::setLooping(const bool looping)
 void StreamSoundSource::queueBuffers()
 {
     if (m_sourceId == 0) return;
-    int queued;
-    alGetSourcei(m_sourceId, AL_BUFFERS_QUEUED, &queued);
-    for (int i = 0; i < STREAM_FRAGMENTS - queued; ++i) {
-        if (!fillBufferAndQueue(m_buffers[i]->getBufferId()))
+
+    // Refilling a buffer the source still has queued is rejected with
+    // AL_INVALID_OPERATION, so only ever hand fillBufferAndQueue a free one.
+    while (!m_freeBuffers.empty()) {
+        if (!fillBufferAndQueue(m_freeBuffers.back()))
             break;
+        m_freeBuffers.pop_back();
     }
 }
 
-void StreamSoundSource::unqueueBuffers() const
+void StreamSoundSource::unqueueBuffers()
 {
     if (m_sourceId == 0) return;
     int queued;
@@ -123,6 +128,8 @@ void StreamSoundSource::unqueueBuffers() const
     for (int i = 0; i < queued; ++i) {
         uint32_t buffer;
         alSourceUnqueueBuffers(m_sourceId, 1, &buffer);
+        if (alGetError() == AL_NO_ERROR)
+            m_freeBuffers.push_back(buffer);
     }
 }
 
@@ -133,23 +140,32 @@ void StreamSoundSource::update()
 
     SoundSource::update();
 
+    // the fade-out above may have ended the sound; stop() already handed the
+    // buffers back, so there is nothing left to refill
+    if (!m_playing)
+        return;
+
     int processed = 0;
     alGetSourcei(m_sourceId, AL_BUFFERS_PROCESSED, &processed);
     for (int i = 0; i < processed; ++i) {
         uint32_t buffer;
         alSourceUnqueueBuffers(m_sourceId, 1, &buffer);
-
-        if (!fillBufferAndQueue(buffer))
-            break;
+        if (alGetError() == AL_NO_ERROR)
+            m_freeBuffers.push_back(buffer);
     }
+
+    queueBuffers();
 
     if (!isBuffering() && m_playing) {
         if (!m_looping && m_eof) {
             stop();
-        } else if (processed == 0) {
-            g_logger.traceError("audio buffer underrun");
-            play();
-        } else if (m_looping) {
+        } else {
+            // The source ran dry before this refill reached it. Whatever is
+            // queued now has to be started by hand: OpenAL will not resume a
+            // stopped source on its own, and nothing else here ever would, so
+            // the stream would stay silent while it still believes it plays.
+            if (processed == 0)
+                g_logger.traceError("audio buffer underrun");
             play();
         }
     }
@@ -169,19 +185,25 @@ bool StreamSoundSource::fillBufferAndQueue(const uint32_t buffer)
         maxRead *= 2;
 
     int bytesRead = 0;
-    do {
-        bytesRead += m_soundFile->read(bufferData.data() + bytesRead, maxRead - bytesRead);
+    bool rewound = false;
+    while (bytesRead < maxRead) {
+        const int read = m_soundFile->read(bufferData.data() + bytesRead, maxRead - bytesRead);
+        bytesRead += read;
 
-        // end of sound file
-        if (bytesRead < maxRead) {
-            if (m_looping)
-                m_soundFile->reset();
-            else {
-                m_eof = true;
-                break;
-            }
+        if (bytesRead >= maxRead)
+            break;
+
+        // Short read: the sound file ended. A loop starts it over, unless it
+        // came up empty on the rewind too - that file has nothing to give and
+        // asking again would spin here forever.
+        if (!m_looping || (rewound && read == 0)) {
+            m_eof = true;
+            break;
         }
-    } while (bytesRead < maxRead);
+
+        rewound = true;
+        m_soundFile->reset();
+    }
 
     if (bytesRead > 0) {
         if (m_downMix != NoDownMix) {
@@ -202,12 +224,16 @@ bool StreamSoundSource::fillBufferAndQueue(const uint32_t buffer)
 
         alSourceQueueBuffers(m_sourceId, 1, &buffer);
         err = alGetError();
-        if (err != AL_NO_ERROR)
+        if (err != AL_NO_ERROR) {
             g_logger.error("unable to queue audio buffer for '{}': {}", m_soundFile->getName(), alGetString(err));
+            return false;
+        }
+
+        return true;
     }
 
-    // return false if there aren't more buffers to fill
-    return (bytesRead >= STREAM_FRAGMENT_SIZE && !m_eof);
+    // nothing left to read, so the buffer stays free
+    return false;
 }
 
 void StreamSoundSource::downMix(const DownMix downMix)

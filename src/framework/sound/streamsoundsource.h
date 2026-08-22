@@ -56,11 +56,14 @@ public:
 
 private:
     void queueBuffers();
-    void unqueueBuffers() const;
+    void unqueueBuffers();
     bool fillBufferAndQueue(uint32_t buffer);
 
     SoundFilePtr m_soundFile;
     std::array<SoundBufferPtr, STREAM_FRAGMENTS> m_buffers;
+    // ids of the buffers the source is not holding: the only ones alBufferData
+    // will accept
+    std::vector<uint32_t> m_freeBuffers;
     DownMix m_downMix;
     bool m_looping{ false };
     bool m_playing{ false };
