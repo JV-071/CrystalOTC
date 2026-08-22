@@ -275,12 +275,6 @@ function UIMinimap:onSetup()
 end
 
 function UIMinimap:onDestroy()
-	if self._smoothZoomEvent then
-		removeEvent(self._smoothZoomEvent)
-
-		self._smoothZoomEvent = nil
-	end
-
 	table.removevalue(activeMinimaps, self)
 
 	for _, member in pairs(self.partyMembers) do
@@ -1137,90 +1131,12 @@ function UIMinimap:move(x, y)
 	self:setCameraPosition(pos)
 end
 
-function UIMinimap:smoothZoomBy(step, mousePos)
-	if not self.setScale or step == 0 then
-		return step > 0 and self:zoomIn() or self:zoomOut()
-	end
-
-	local targetZoom = self:getZoom() + step
-
-	if targetZoom < self:getMinZoom() or targetZoom > self:getMaxZoom() then
-		return false
-	end
-
-	if self._smoothZoomEvent then
-		removeEvent(self._smoothZoomEvent)
-
-		self._smoothZoomEvent = nil
-	end
-
-	if self.endSmoothZoom then
-		self:endSmoothZoom()
-	end
-
-	local startScale = self:getScale()
-
-	if self.beginSmoothZoom then
-		self:beginSmoothZoom(mousePos or {
-			x = -1,
-			y = -1
-		})
-	end
-
-	if not self:setZoom(targetZoom) then
-		if self.endSmoothZoom then
-			self:endSmoothZoom()
-		end
-
-		return false
-	end
-
-	local targetScale = self:getScale()
-
-	self:setScale(startScale)
-
-	if self.onSmoothZoomScaleChange then
-		self:onSmoothZoomScaleChange(self:getScale())
-	end
-
-	local startedAt = g_clock.millis()
-	local duration = 300
-
-	local function animate()
-		if self:isDestroyed() then
-			return
-		end
-
-		local progress = math.min(1, (g_clock.millis() - startedAt) / duration)
-		local eased = progress * progress * progress * (progress * (progress * 6 - 15) + 10)
-
-		self:setScale(startScale * math.pow(targetScale / startScale, eased))
-
-		if self.onSmoothZoomScaleChange then
-			self:onSmoothZoomScaleChange(self:getScale())
-		end
-
-		if progress < 1 then
-			self._smoothZoomEvent = scheduleEvent(animate, 16)
-		else
-			self:setScale(targetScale)
-
-			if self.endSmoothZoom then
-				self:endSmoothZoom()
-			end
-
-			if self.onSmoothZoomScaleChange then
-				self:onSmoothZoomScaleChange(self:getScale())
-			end
-
-			self._smoothZoomEvent = nil
-		end
-	end
-
-	self._smoothZoomEvent = scheduleEvent(animate, 16)
-
-	return true
-end
+-- smoothZoomBy now lives in C++ (UIMinimap::smoothZoomBy). It used to be a Lua closure
+-- rescheduled every 16 ms that recomputed the ease, wrote the scale back through a binding and
+-- re-fired onSmoothZoomScaleChange every tick - and the Cyclopedia relayout hanging off that
+-- signal is O(labels^2) over hundreds of never-pruned widgets. The C++ version throttles the
+-- signal and anchors the zoom on the cursor, which the Lua one never managed to do: it called
+-- beginSmoothZoom/endSmoothZoom, neither of which was defined anywhere in the repo.
 
 function UIMinimap:onMouseWheel(mousePos, direction)
 	local keyboardModifiers = g_keyboard.getModifiers()

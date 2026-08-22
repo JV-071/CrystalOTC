@@ -23,6 +23,7 @@
 #pragma once
 
 #include "declarations.h"
+#include <framework/core/declarations.h>
 #include <framework/ui/uiwidget.h>
 #include <algorithm>
 
@@ -35,6 +36,11 @@ public:
     bool zoomOut() { return setZoom(m_zoom - 1); }
 
     bool setZoom(int8_t zoom);
+
+    // Eases to the zoom `step` notches away, holding the world position under `anchor` in place.
+    // Pass an anchor outside the widget (the default) to zoom on the camera centre.
+    bool smoothZoomBy(int8_t step, const Point& anchor = Point(-1, -1));
+    bool isSmoothZooming() const { return m_scaleAnimating; }
     void setMinZoom(const int8_t minZoom) { m_minZoom = minZoom; }
     void setMaxZoom(const int8_t maxZoom) { m_maxZoom = maxZoom; }
     void setCameraPosition(const Position& pos);
@@ -72,8 +78,24 @@ protected:
     void onStyleApply(std::string_view styleName, const OTMLNodePtr& styleNode) override;
 
 private:
+    void tickScaleAnimation();
+    void stopScaleAnimation();
+
     Rect m_mapArea;
     Position m_cameraPosition;
+
+    // Smooth-zoom state. This used to be a Lua closure rescheduled every 16 ms that recomputed the
+    // ease, wrote the scale back through a binding and re-fired onSmoothZoomScaleChange on every
+    // single tick - and the relayout hanging off that signal is O(labels^2).
+    Position m_scaleAnchorPosition;
+    Point m_scaleAnchor{ -1, -1 };
+    ScheduledEventPtr m_scaleAnimEvent;
+    ticks_t m_scaleAnimStart{ 0 };
+    ticks_t m_scaleAnimNotified{ 0 };
+    float m_scaleFrom{ 1.f };
+    float m_scaleTo{ 1.f };
+    bool m_scaleAnimating{ false };
+
     float m_scale{ 1.f };
     int8_t m_zoom{ 0 };
     int8_t m_minZoom{ -5 };

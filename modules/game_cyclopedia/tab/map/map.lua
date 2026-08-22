@@ -780,8 +780,9 @@ local function refreshAreaLabels()
 		end
 	end
 
+	-- updateAreaLabelAppearance already ends with hideOverlappingAreaLabels (see the comment
+	-- there), so calling it again here ran the O(labels^2) collision pass twice per refresh.
 	updateAreaLabelAppearance()
-	hideOverlappingAreaLabels()
 end
 
 -- labels built from SatelliteZones can overlap (e.g. "Thais City" lies in the middle of
@@ -2224,7 +2225,13 @@ function Cyclopedia.setZooom(zoom)
 		return
 	end
 
-	minimap:smoothZoomBy(zoom and 1 or -1)
+	-- The anchor is explicit because the binding pads a missing argument with nil, which casts to
+	-- (0, 0) - a real point inside the widget. Off-widget means "zoom on the camera centre", which
+	-- is what the +/- buttons should do.
+	minimap:smoothZoomBy(zoom and 1 or -1, {
+		x = -1,
+		y = -1
+	})
 end
 
 function Cyclopedia.downLayer()
