@@ -41,6 +41,7 @@ public:
 
     virtual bool isBuffering();
     virtual bool isPlaying() { return isBuffering(); }
+    virtual bool isLooping() const { return false; }
 
     void setName(const std::string_view name) { m_name = name; }
     virtual void setLooping(bool looping);
@@ -72,7 +73,7 @@ protected:
     float m_fadeTime{ 0 };
     float m_fadeGain{ 0 };
     float m_gain{ 1.f };
-    uint m_effectId;
+    uint m_effectId{ 0 };
 
     FadeState m_fadeState{ NoFading };
 

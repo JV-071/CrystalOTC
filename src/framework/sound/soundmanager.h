@@ -179,6 +179,10 @@ private:
     std::string m_soundDirectory;
     std::map<uint32_t, std::string> m_clientSoundFiles;
     std::map<uint32_t, ClientSoundEffect> m_clientSoundEffects;
+
+    // the music track currently playing, so a repeated anthem packet does not
+    // restart it from the beginning
+    uint32_t m_currentMusicId{ 0 };
     std::map<uint32_t, ClientLocationAmbient> m_clientAmbientEffects;
     std::map<uint32_t, ClientItemAmbient> m_clientItemAmbientEffects;
     std::map<uint32_t, ClientMusic> m_clientMusic;

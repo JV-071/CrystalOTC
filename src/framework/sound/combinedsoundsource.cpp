@@ -59,6 +59,15 @@ bool CombinedSoundSource::isPlaying()
     return false;
 }
 
+bool CombinedSoundSource::isLooping() const
+{
+    for (const auto& source : m_sources) {
+        if (source->isLooping())
+            return true;
+    }
+    return false;
+}
+
 void CombinedSoundSource::setLooping(const bool looping)
 {
     for (const auto& source : m_sources)

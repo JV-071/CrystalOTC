@@ -197,11 +197,21 @@ SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, f
 
     ensureContext();
 
-    // enforce source limit before creating new sources
+    // Enforce the source limit before creating new ones. Looping sources are
+    // exempt: music and ambience are long-lived, so they are always the oldest
+    // entries and a plain front-eviction would silence them the moment enough
+    // effects are in flight.
     static constexpr size_t MAX_SOURCES = 16;
     while (m_sources.size() >= MAX_SOURCES) {
-        m_sources.front()->stop();
-        m_sources.pop_front();
+        auto it = m_sources.begin();
+        while (it != m_sources.end() && (*it)->isLooping())
+            ++it;
+
+        if (it == m_sources.end())
+            break; // every live source loops; let this one exceed the limit
+
+        (*it)->stop();
+        m_sources.erase(it);
     }
 
     if (gain == 0)
@@ -270,6 +280,8 @@ void SoundManager::stopAll()
     for (const auto& it : m_channels) {
         it.second->stop();
     }
+
+    m_currentMusicId = 0;
 }
 
 SoundSourcePtr SoundManager::createSoundSource(const std::string& name)
@@ -489,7 +501,7 @@ bool SoundManager::loadFromProtobuf(const std::string& directory, const std::str
                 static_cast<ClientSoundType>(protobufSoundEffect.numeric_sound_type()),
                 pitch.min_value(),
                 pitch.max_value(),
-                volume.max_value(),
+                volume.min_value(),
                 volume.max_value(),
                 protobufSoundEffect.has_simple_sound_effect() ? protobufSoundEffect.simple_sound_effect().sound_id() : 0,
                 std::move(randomSounds)
@@ -551,6 +563,7 @@ bool SoundManager::loadFromProtobuf(const std::string& directory, const std::str
 bool SoundManager::loadClientFiles(const std::string& directory)
 {
     m_soundDirectory = directory;
+    m_currentMusicId = 0;
 
     // find catalog from json file
     try {
@@ -696,14 +709,21 @@ void SoundManager::playMusic(uint32_t musicId)
     if (!isAudioEnabled() || m_soundDirectory.empty())
         return;
 
+    if (musicId == m_currentMusicId)
+        return; // already playing; restarting would clip it back to the start
+
+    m_currentMusicId = 0;
+
     if (musicId == 0) {
         stopMusic();
         return;
     }
 
     const auto it = m_clientMusic.find(musicId);
-    if (it == m_clientMusic.end())
+    if (it == m_clientMusic.end()) {
+        g_logger.traceError("unknown client music id {}", musicId);
         return;
+    }
 
     const auto& music = it->second;
     const uint32_t audioFileId = music.audioFileId;
@@ -717,14 +737,25 @@ void SoundManager::playMusic(uint32_t musicId)
     const std::string filename = m_soundDirectory + fileIt->second;
 
     const auto& channel = getChannel(1); // SoundChannels.Music
-    if (channel) {
-        channel->stop(3.0f);
-        channel->enqueue(filename, 3.0f);
-    }
+    if (!channel)
+        return;
+
+    m_currentMusicId = musicId;
+
+    // MUSIC_IMMEDIATE is meant to cut in without a crossfade.
+    const float fadetime = music.musicType == MUSIC_TYPE_MUSIC_IMMEDIATE ? 0.0f : 3.0f;
+
+    // play() rather than enqueue(): a looping source never reaches EOF, so the
+    // channel queue would never cycle it anyway, and looping the stream itself
+    // is gapless where a queue restart is not.
+    if (const auto& source = channel->play(filename, fadetime))
+        source->setLooping(true);
 }
 
 void SoundManager::stopMusic()
 {
+    m_currentMusicId = 0;
+
     const auto& channel = getChannel(1);
     if (channel)
         channel->stop(3.0f);

@@ -41,8 +41,10 @@ public:
 
     void play() override;
     void stop() override;
+    void setLooping(bool looping) override;
 
     bool isPlaying() override { return m_playing; }
+    bool isLooping() const override { return m_looping; }
 
     void setSoundFile(const SoundFilePtr& soundFile);
 

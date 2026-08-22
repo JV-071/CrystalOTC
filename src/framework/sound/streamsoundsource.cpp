@@ -86,11 +86,20 @@ void StreamSoundSource::stop()
 {
     m_playing = false;
 
-    if (m_waitingFile)
+    if (m_waitingFile) {
+        m_waitingFile = false;
         return;
+    }
 
     SoundSource::stop();
     unqueueBuffers();
+}
+
+void StreamSoundSource::setLooping(const bool looping)
+{
+    // Streaming sources queue multiple OpenAL buffers, so AL_LOOPING cannot be
+    // used. Rewind the stream in fillBufferAndQueue() instead.
+    m_looping = looping;
 }
 
 void StreamSoundSource::queueBuffers()

@@ -39,6 +39,7 @@ public:
     bool isPlaying() override;
 
     void setLooping(bool looping) override;
+    bool isLooping() const override;
     void setRelative(bool relative) override;
     void setReferenceDistance(float distance) override;
     void setGain(float gain) override;
