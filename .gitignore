@@ -220,6 +220,9 @@ tags
 *.otbm
 *.spr
 *.dat
+# ...but not the sound catalog, which is ours rather than a Tibia asset. Anchored
+# and prefixed so it cannot re-include Tibia.dat, appearances-*.dat or the rest.
+!/data/sounds/sounds-*.dat
 *.pic
 config.otml
 *.patch
