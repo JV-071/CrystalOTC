@@ -1235,8 +1235,6 @@ void Client::registerLuaFunctions()
     g_lua.bindClassMemberFunction<UIMap>("resetReadyToDisplay", &UIMap::resetReadyToDisplay);
     g_lua.bindClassMemberFunction<UIMap>("movePixels", &UIMap::movePixels);
     g_lua.bindClassMemberFunction<UIMap>("setZoom", &UIMap::setZoom);
-    g_lua.bindClassMemberFunction<UIMap>("setFloatZoom", &UIMap::setFloatZoom);
-    g_lua.bindClassMemberFunction<UIMap>("getFloatZoom", &UIMap::getFloatZoom);
     g_lua.bindClassMemberFunction<UIMap>("zoomIn", &UIMap::zoomIn);
     g_lua.bindClassMemberFunction<UIMap>("zoomOut", &UIMap::zoomOut);
     g_lua.bindClassMemberFunction<UIMap>("followCreature", &UIMap::followCreature);

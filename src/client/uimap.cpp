@@ -40,7 +40,6 @@ UIMap::UIMap()
     m_maxZoomOut = 513;
     m_mapView = std::make_shared<MapView>();
     m_zoom = m_mapView->getVisibleDimension().height();
-    m_zoomFloat = m_zoom;
     m_aspectRatio = m_mapView->getVisibleDimension().ratio();
 
     m_mapRect.resize(1, 1);
@@ -204,30 +203,8 @@ void UIMap::clearTiles() { m_mapView->m_foregroundTiles.clear(); }
 bool UIMap::setZoom(const int zoom)
 {
     m_zoom = std::clamp<int>(zoom, m_maxZoomIn, m_maxZoomOut);
-    m_zoomFloat = m_zoom;
-    m_mapView->setZoomFraction(1.f);
     updateVisibleDimension();
     return false;
-}
-
-bool UIMap::setFloatZoom(const float zoom)
-{
-    m_zoomFloat = std::clamp<float>(zoom, m_maxZoomIn, m_maxZoomOut);
-
-    int dimension = static_cast<int>(std::ceil(m_zoomFloat));
-    if (dimension % 2 == 0)
-        ++dimension;
-
-    const auto oldZoom = m_zoom;
-
-    m_zoom = dimension;
-    updateVisibleDimension();
-    m_mapView->setZoomFraction(m_zoomFloat / dimension);
-
-    if (m_zoom != oldZoom)
-        callLuaField("onZoomChange", m_zoom, oldZoom);
-
-    return true;
 }
 
 bool UIMap::zoomIn()
@@ -242,8 +219,6 @@ bool UIMap::zoomIn()
     const auto oldZoom = m_zoom;
 
     m_zoom -= delta;
-    m_zoomFloat = m_zoom;
-    m_mapView->setZoomFraction(1.f);
     updateVisibleDimension();
 
     callLuaField("onZoomChange", m_zoom, oldZoom);
@@ -263,8 +238,6 @@ bool UIMap::zoomOut()
     const auto oldZoom = m_zoom;
 
     m_zoom += 2;
-    m_zoomFloat = m_zoom;
-    m_mapView->setZoomFraction(1.f);
     updateVisibleDimension();
 
     callLuaField("onZoomChange", m_zoom, oldZoom);

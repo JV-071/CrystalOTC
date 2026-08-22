@@ -958,7 +958,7 @@ Rect MapView::calcFramebufferSource(const Size& destSize)
     const auto& srcVisible = m_visibleDimension * m_tileSize;
 
     Size srcSize = destSize;
-    srcSize.scale(m_zoomFraction < 1.f ? srcVisible * m_zoomFraction : srcVisible, Fw::KeepAspectRatio);
+    srcSize.scale(srcVisible, Fw::KeepAspectRatio);
     drawOffset.x += (srcVisible.width() - srcSize.width()) / 2;
     drawOffset.y += (srcVisible.height() - srcSize.height()) / 2;
 

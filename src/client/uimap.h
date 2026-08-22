@@ -101,8 +101,6 @@ public:
     bool zoomIn();
     bool zoomOut();
     bool setZoom(int zoom);
-    bool setFloatZoom(float zoom);
-    float getFloatZoom() { return m_zoomFloat; }
 
     void setMaxZoomIn(int maxZoomIn) { m_maxZoomIn = static_cast<uint16_t>(maxZoomIn); }
     void setMaxZoomOut(int maxZoomOut) { m_maxZoomOut = static_cast<uint16_t>(maxZoomOut); }
@@ -144,7 +142,6 @@ private:
     uint16_t m_maxZoomIn;
     uint16_t m_maxZoomOut;
     uint16_t m_zoom;
-    float m_zoomFloat{ 0.f };
 
     friend class Client;
 };

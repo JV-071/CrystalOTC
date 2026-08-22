@@ -103,12 +103,6 @@ function init()
 	bottomSplitter = gameRootPanel:getChildById("bottomSplitter")
 	gameMapPanel = gameRootPanel:getChildById("gameMapPanel")
 
-	function gameMapPanel.onMouseWheel(widget, mousePos, direction)
-		requestSmoothZoom(direction == MouseWheelUp and -2 or 2)
-
-		return true
-	end
-
 	gameMainRightPanel = gameRootPanel:getChildById("gameMainRightPanel")
 	gameRightPanel = gameRootPanel:getChildById("gameRightPanel")
 	gameRightExtraPanel = gameRootPanel:getChildById("gameRightExtraPanel")
@@ -217,76 +211,8 @@ function init()
 	StatsBar.init()
 end
 
--- smooth game window zoom: animation towards the target via setFloatZoom (fractional crop in C++),
--- convergence to the exact target after releasing the key/wheel (no drift)
-local smoothZoom = {
-	target = nil,
-	event = nil
-}
-
-local function smoothZoomStep()
-	smoothZoom.event = nil
-
-	if not gameMapPanel or gameMapPanel:isDestroyed() or not smoothZoom.target then
-		smoothZoom.target = nil
-
-		return
-	end
-
-	if not gameMapPanel.getFloatZoom then
-		gameMapPanel:setZoom(math.floor(smoothZoom.target + 0.5))
-
-		smoothZoom.target = nil
-
-		return
-	end
-
-	local current = gameMapPanel:getFloatZoom()
-	local diff = smoothZoom.target - current
-
-	if math.abs(diff) < 0.03 then
-		gameMapPanel:setFloatZoom(smoothZoom.target)
-
-		smoothZoom.target = nil
-
-		return
-	end
-
-	gameMapPanel:setFloatZoom(current + diff * 0.3)
-
-	smoothZoom.event = scheduleEvent(smoothZoomStep, 16)
-end
-
-function requestSmoothZoom(delta)
-	if not gameMapPanel then
-		return
-	end
-
-	if g_game.isZoomEnabled and not g_game.isZoomEnabled() then
-		return
-	end
-
-	local base = smoothZoom.target
-
-	if not base then
-		base = gameMapPanel.getFloatZoom and gameMapPanel:getFloatZoom() or gameMapPanel:getZoom()
-	end
-
-	smoothZoom.target = math.max(gameMapPanel:getMaxZoomIn(), math.min(gameMapPanel:getMaxZoomOut(), base + delta))
-
-	if not smoothZoom.event then
-		smoothZoom.event = scheduleEvent(smoothZoomStep, 16)
-	end
-end
-
 function bindKeys()
 	gameRootPanel:setAutoRepeatDelay(50)
-	g_keyboard.bindKeyPress("Ctrl+=", function()
-		requestSmoothZoom(-1)
-	end, gameRootPanel)
-	g_keyboard.bindKeyPress("Ctrl+-", function()
-		requestSmoothZoom(1)
-	end, gameRootPanel)
 	Keybind.new("Movement", "Stop All Actions", "Escape", "", true)
 	Keybind.bind("Movement", "Stop All Actions", {
 		{
