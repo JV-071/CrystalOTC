@@ -2,10 +2,22 @@ UIWidget
   anchors.fill: parent
   visible: false
 
-  SmallReversedQtPanel
+  Label
+    id: soundDeactivatedNotice
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
+    text-align: topLeft
+    text-wrap: true
+    color: #ff9854
+    visible: false
+    height: 0
+    !text: tr('The sound is currently deactivated.') .. '\n' .. tr('Increase the master volume in the Options menu "Sound".')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
     height: 112
 
     OptionScaleScroll
