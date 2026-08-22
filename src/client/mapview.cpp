@@ -590,11 +590,19 @@ void MapView::updateRect(const Rect& rect) {
     // buffer finally catches up and force a repaint: on a static scene the content hash never
     // changes, so the pool would otherwise keep blitting whatever the buffer happened to hold.
     if (const auto& fb = m_pool->getFrameBuffer(); fb && fb->isValid()) {
-        if (const auto& fbSize = fb->getSize(); fbSize != m_lastFrameBufferSize) {
+        const auto& fbSize = fb->getSize();
+        const bool bufferChanged = fbSize != m_lastFrameBufferSize;
+        if (bufferChanged) {
             m_lastFrameBufferSize = fbSize;
-            m_pool->repaint();
             requestUpdateMapPosInfo();
         }
+
+        // Repaint on the frame the buffer changes - it is a brand new, blank texture - and then for
+        // as long as it is still not the one the geometry describes. The flag is set from one thread
+        // and consumed on another, so a single request can be lost; if it is, a static scene has no
+        // other reason to redraw and keeps blitting the stale frame.
+        if (bufferChanged || fbSize != m_rectDimension.size())
+            m_pool->repaint();
     }
 
     if (m_posInfo.rect != rect || m_updateMapPosInfo) {
@@ -915,8 +923,19 @@ float MapView::getIdealRenderScale(const Size& visibleDimension) const
     if (nativeWidth <= 0 || m_posInfo.rect.isEmpty())
         return supersample;
 
-    const float ratio = std::round(m_posInfo.rect.width() / static_cast<float>(nativeWidth));
-    return std::clamp<float>(ratio * supersample, 1.f, MAX_RENDER_SCALE);
+    const float ratio = m_posInfo.rect.width() / static_cast<float>(nativeWidth);
+
+    // Hysteresis. Rounding alone flips between two multiples the moment the panel sits on a .5
+    // boundary, and the panel does sit there at some sizes - every flip rebuilds the framebuffer,
+    // so the map tears continuously for as long as it lasts. Hold the multiple already in effect
+    // until the panel is clearly past the halfway point; the dead zone is in whole steps, which is
+    // supersample-sized because that is how much the total moves per step. The margin over the
+    // natural half-step is deliberately small - it only has to swallow jitter, not shift the choice.
+    const float applied = m_posInfo.scaleFactor;
+    if (applied >= 1.f && std::abs(ratio * supersample - applied) <= 0.55f * supersample)
+        return applied;
+
+    return std::clamp<float>(std::round(ratio) * supersample, 1.f, MAX_RENDER_SCALE);
 }
 
 float MapView::getMapMagnification() const
