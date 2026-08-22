@@ -343,6 +343,14 @@ void MapView::drawLights() {
 }
 
 void MapView::drawCreatureInformation() {
+    // This pool is drawn after the map framebuffer has already been blitted, so nothing in it
+    // inherits the map's magnification. Track it explicitly, otherwise names and bars keep their
+    // native size while the sprites under them grow, and shrink away to nothing on a large panel.
+    if (m_scaleCreatureInformation) {
+        const float density = g_window.getDisplayDensity();
+        g_app.setCreatureInformationScale(density > 0.f ? getMapMagnification() / density : getMapMagnification());
+    }
+
     g_drawPool.scale(g_app.getCreatureInformationScale());
 
     uint32_t ownFlags = Otc::DrawThings;
@@ -580,6 +588,14 @@ void MapView::updateRect(const Rect& rect) {
         m_updateMapPosInfo = false;
 
         m_posInfo.rect = rect;
+
+        // updateGeometry is otherwise only reached from setVisibleDimension/setAntiAliasingMode,
+        // so without this the buffer resolution would never follow a resize. It only fires when the
+        // ideal multiple actually changes - a handful of times across a whole splitter drag, not
+        // once per pixel - because rebuilding the framebuffer is not cheap.
+        if (getIdealRenderScale(m_visibleDimension) != m_posInfo.scaleFactor)
+            updateGeometry(m_visibleDimension);
+
         m_posInfo.srcRect = calcFramebufferSource(rect.size());
         m_posInfo.drawOffset = m_posInfo.srcRect.topLeft();
         m_posInfo.horizontalStretchFactor = rect.width() / static_cast<float>(m_posInfo.srcRect.width());
@@ -598,7 +614,7 @@ void MapView::updateRect(const Rect& rect) {
 
 void MapView::updateGeometry(const Size& visibleDimension)
 {
-    float scaleFactor = m_antiAliasingMode == Otc::ANTIALIASING_SMOOTH_RETRO ? 2.f : 1.f;
+    float scaleFactor = getIdealRenderScale(visibleDimension);
 
     auto maxAwareRange = std::max<size_t>(visibleDimension.width(), visibleDimension.height());
 
@@ -612,18 +628,31 @@ void MapView::updateGeometry(const Size& visibleDimension)
         scaleFactor /= 2;
     }
 
+    const auto& drawDimension = visibleDimension + 3;
+    const int maxTextureSize = g_graphics.getMaxTextureSize();
+
+    const auto bufferSizeFor = [&](const float scale) {
+        return drawDimension * static_cast<uint16_t>(g_gameConfig.getSpriteSize() * scale);
+    };
+
+    // Step the multiple down rather than bailing out: a view too large for the ideal scale is
+    // still perfectly drawable at a smaller one, just not as close to a pixel-exact blit.
+    auto bufferSize = bufferSizeFor(scaleFactor);
+    while (scaleFactor > 1.f && (bufferSize.width() > maxTextureSize || bufferSize.height() > maxTextureSize)) {
+        scaleFactor -= 1.f;
+        bufferSize = bufferSizeFor(scaleFactor);
+    }
+
+    if (bufferSize.width() > maxTextureSize || bufferSize.height() > maxTextureSize) {
+        g_logger.traceError("reached max zoom out");
+        return;
+    }
+
     m_pool->setScaleFactor(scaleFactor);
 
     m_posInfo.scaleFactor = scaleFactor;
 
-    const uint16_t tileSize = g_gameConfig.getSpriteSize() * m_pool->getScaleFactor();
-    const auto& drawDimension = visibleDimension + 3;
-    const auto& bufferSize = drawDimension * tileSize;
-
-    if (bufferSize.width() > g_graphics.getMaxTextureSize() || bufferSize.height() > g_graphics.getMaxTextureSize()) {
-        g_logger.traceError("reached max zoom out");
-        return;
-    }
+    const uint16_t tileSize = g_gameConfig.getSpriteSize() * scaleFactor;
 
     m_visibleDimension = visibleDimension;
     m_drawDimension = drawDimension;
@@ -640,7 +669,12 @@ void MapView::updateGeometry(const Size& visibleDimension)
     }
 
     g_mainDispatcher.addEvent([this, bufferSize] {
-        m_pool->getFrameBuffer()->resize(bufferSize);
+        // A resized framebuffer is a brand new, blank texture, but the pool keeps reusing its
+        // buffer for as long as its content hash says nothing changed. Without forcing a repaint
+        // the grown area is never drawn into and the blit samples uninitialised memory - which
+        // showed up as streaks down the right and bottom edges until the camera happened to move.
+        if (m_pool->getFrameBuffer()->resize(bufferSize))
+            m_pool->repaint();
     });
 
     const uint8_t left = std::min<uint8_t>(g_map.getAwareRange().left, (m_drawDimension.width() / 2) - 1);
@@ -839,6 +873,48 @@ void MapView::setFloorViewMode(const Otc::FloorViewMode floorViewMode)
 
     resetLastCamera();
     requestUpdateVisibleTiles();
+}
+
+// Upper bound on the render multiple. At 4 a 15x11 view is a 2304x1792 buffer (~16 MB), which
+// every GPU this client runs on can hold, and by then the residual blit ratio is within 12% of
+// 1:1 - past that there is nothing left to win.
+static constexpr float MAX_RENDER_SCALE = 4.f;
+
+// The map is rasterised into an offscreen buffer at an integer number of buffer pixels per sprite
+// pixel, then blitted to the panel. Any non-integer ratio in that final blit is what smears the
+// art: neighbouring destination pixels get different bilinear weights, so one column of a sprite
+// edge is crisp and the next is half-grey. Picking the multiple closest to the panel's own size
+// keeps that ratio within 1 +/- 0.5/N of pixel-exact, so a bigger panel lands *closer* to 1:1 -
+// the opposite of a fixed multiple, which drifts further out the more the map is enlarged.
+float MapView::getIdealRenderScale(const Size& visibleDimension) const
+{
+    // "Smooth Retro" keeps its meaning as an extra supersampling step on top of the ideal.
+    const float supersample = m_antiAliasingMode == Otc::ANTIALIASING_SMOOTH_RETRO ? 2.f : 1.f;
+
+    const int nativeWidth = visibleDimension.width() * g_gameConfig.getSpriteSize();
+    if (nativeWidth <= 0 || m_posInfo.rect.isEmpty())
+        return supersample;
+
+    const float ratio = std::round(m_posInfo.rect.width() / static_cast<float>(nativeWidth));
+    return std::clamp<float>(ratio * supersample, 1.f, MAX_RENDER_SCALE);
+}
+
+float MapView::getMapMagnification() const
+{
+    const int nativeWidth = m_visibleDimension.width() * g_gameConfig.getSpriteSize();
+    if (nativeWidth <= 0 || m_posInfo.rect.isEmpty())
+        return DEFAULT_DISPLAY_DENSITY;
+
+    return m_posInfo.rect.width() / static_cast<float>(nativeWidth);
+}
+
+void MapView::setScaleCreatureInformation(const bool enable)
+{
+    m_scaleCreatureInformation = enable;
+
+    // Nothing else writes this global, so hand it back to its default when switching off.
+    if (!enable)
+        g_app.setCreatureInformationScale(DEFAULT_DISPLAY_DENSITY);
 }
 
 void MapView::setAntiAliasingMode(const Otc::AntialiasingMode mode)

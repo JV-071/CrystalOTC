@@ -91,6 +91,7 @@ public:
     void setDrawHighlightTarget(bool enable);
     void setCursorAnimations(bool enable);
     void setAntiAliasingMode(Otc::AntialiasingMode mode);
+    void setScaleCreatureInformation(bool enable);
     void setFloorFading(uint16_t v);
     MapViewPtr getMapView() const;
     void clearTiles();

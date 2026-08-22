@@ -192,6 +192,8 @@ void UIMap::setCursorAnimations(const bool enable) { m_mapView->setCursorAnimati
 
 void UIMap::setAntiAliasingMode(const Otc::AntialiasingMode mode) { m_mapView->setAntiAliasingMode(mode); }
 
+void UIMap::setScaleCreatureInformation(const bool enable) { m_mapView->setScaleCreatureInformation(enable); }
+
 void UIMap::setFloorFading(const uint16_t v) { m_mapView->setFloorFading(v); }
 
 MapViewPtr UIMap::getMapView() const { return m_mapView; }

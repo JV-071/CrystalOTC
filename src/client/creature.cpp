@@ -208,9 +208,10 @@ void Creature::drawInformation(const MapPosInfo& mapRect, const Point& dest, con
     const int cropSizeText = g_gameConfig.isAdjustCreatureInformationBasedCropSize() ? getExactSize() : 12;
     const int cropSizeBackGround = g_gameConfig.isAdjustCreatureInformationBasedCropSize() ? cropSizeText - nameSize.height() : 0;
 
-    const bool isScaled = g_app.getCreatureInformationScale() != DEFAULT_DISPLAY_DENSITY;
+    const float informationScale = g_app.getCreatureInformationScale();
+    const bool isScaled = informationScale != DEFAULT_DISPLAY_DENSITY;
     if (isScaled) {
-        p.scale(g_app.getCreatureInformationScale());
+        p.scale(informationScale);
     }
 
     auto backgroundRect = Rect(p.x - (15.5), p.y - cropSizeBackGround, 31, 4);
@@ -222,15 +223,28 @@ void Creature::drawInformation(const MapPosInfo& mapRect, const Point& dest, con
         backgroundRect.moveTop(textRect.bottom() + minNameBarSpacing);
     }
 
-    if (!isScaled) {
-        backgroundRect.bind(parentRect);
-        textRect.bind(parentRect);
+    // Point::scale pre-divides this pool's coordinates by the information scale, so the clamp
+    // target has to be divided as well. Binding against raw screen coordinates would pin the name
+    // far outside the map rather than just inside its edge - which is why the scaled path used to
+    // skip clamping altogether and let names spill onto the side panels.
+    Rect clampRect = parentRect;
+    if (isScaled) {
+        clampRect = Rect(static_cast<int>(parentRect.left() / informationScale),
+                         static_cast<int>(parentRect.top() / informationScale),
+                         static_cast<int>(parentRect.width() / informationScale),
+                         static_cast<int>(parentRect.height() / informationScale));
     }
 
-    // distance them
-    uint8_t offset = 12 * mapRect.scaleFactor;
+    backgroundRect.bind(clampRect);
+    textRect.bind(clampRect);
+
+    // distance them. This is a nudge inside the name's own coordinate space, which the pool
+    // transform already scales, so it must not be multiplied by the map's render multiple as well:
+    // that term is the framebuffer resolution, unrelated to text layout, and squaring it for the
+    // local player overflowed the uint8_t this used to be as soon as the multiple passed 2.
+    int offset = 12;
     if (isLocalPlayer()) {
-        offset *= 2 * mapRect.scaleFactor;
+        offset *= 2;
     }
 
     if (textRect.top() == parentRect.top())

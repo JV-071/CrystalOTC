@@ -96,6 +96,22 @@ UIWidget
     margin-left: 1
     margin-right: 1
     margin-top: 6
+    height: 22
+
+    OptionCheckBox
+      id: scaleCreatureInformation
+      margin-top: -1
+      text-offset: 16 0
+      !text: 'Scale Names And Bars With The Map'
+      !tooltip: 'Creature names, health bars and marks are drawn after the game window has been scaled, so by default they keep their original size and look progressively smaller as you enlarge the game window. Enable this option to grow them along with the map so they stay in proportion with the creatures.'
+
+  OnePixelDownFrame
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-left: 1
+    margin-right: 1
+    margin-top: 6
     height: 76
 
     OptionCheckBoxMarked

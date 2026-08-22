@@ -1425,6 +1425,14 @@ return {
 			end
 		end
 	},
+	scaleCreatureInformation = {
+		value = true,
+		action = function(value, options, controller, panels, extraWidgets)
+			if panels and panels.gameMapPanel then
+				panels.gameMapPanel:setScaleCreatureInformation(value)
+			end
+		end
+	},
 	antialiasingMode = {
 		value = 0,
 		action = function(value, options, controller, panels, extraWidgets)

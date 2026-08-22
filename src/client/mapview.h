@@ -133,6 +133,16 @@ public:
     void setCrosshairTexture(const std::string& texturePath);
     void setAntiAliasingMode(Otc::AntialiasingMode mode);
 
+    // Creature names/bars are drawn in their own pool, after the map blit, so they do not
+    // inherit the map's magnification. When enabled they are scaled to match it, which keeps
+    // them proportional to the sprites instead of shrinking away as the panel grows.
+    void setScaleCreatureInformation(bool enable);
+    bool isScalingCreatureInformation() const { return m_scaleCreatureInformation; }
+
+    // On-screen size of one tile relative to a native sprite pixel, i.e. how much the finished
+    // map is magnified. 1.0 means one sprite pixel per device pixel.
+    float getMapMagnification() const;
+
     void onMouseMove(const Position& mousePos, bool isVirtualMove = false);
     void onKeyRelease(const InputEvent& inputEvent);
 
@@ -197,6 +207,7 @@ private:
     void updateLight();
     void updateViewportDirectionCache();
     void updateGeometry(const Size& visibleDimension);
+    float getIdealRenderScale(const Size& visibleDimension) const;
     void updateVisibleTiles();
     void updateRect(const Rect& rect);
     void updateViewport(const Otc::Direction dir = Otc::InvalidDirection) { m_viewport = m_viewPortDirection[dir]; }
@@ -290,6 +301,7 @@ private:
     bool m_drawManaBar{ true };
     bool m_drawNames{ true };
     bool m_smooth{ true };
+    bool m_scaleCreatureInformation{ true };
     bool m_follow{ true };
     bool m_drawingLight{ true };
     bool m_drawHarmony{ true };
