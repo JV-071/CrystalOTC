@@ -12,6 +12,5 @@ function UICheckBox.create()
 end
 
 function UICheckBox:onClick()
-	playUIClickSound()
 	self:setChecked(not self:isChecked())
 end

@@ -365,6 +365,11 @@ protected:
 
     bool m_anchorable{ true };
 
+    // UI interaction click sound. "click-sound: <id>" in a style selects a
+    // specific soundbank effect, "click-sound: false" silences the widget, and
+    // leaving it unset falls back to the client's default UI click.
+    int32_t m_clickSoundId{ -1 };
+
     stdext::map<std::string, UIWidgetPtr> m_childrenById;
     std::unordered_map<std::string, std::function<void()>> m_onDestroyCallbacks;
 
@@ -645,6 +650,10 @@ protected:
     virtual bool onMouseMove(const Point& mousePos, const Point& mouseMoved);
     virtual bool onMouseWheel(const Point& mousePos, Fw::MouseWheelDirection direction);
     virtual bool onClick(const Point& mousePos);
+
+    // -1 = use the client's default UI click, 0 = silent, >0 = that effect id
+    void setClickSoundId(const int32_t effectId) { m_clickSoundId = effectId; }
+    int32_t getClickSoundId() const { return m_clickSoundId; }
     virtual bool onDoubleClick(const Point& mousePos);
     virtual void onTextHoverChange(const std::string& text, bool hovered);
 

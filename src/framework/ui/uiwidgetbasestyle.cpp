@@ -387,6 +387,17 @@ void UIWidget::parseBaseStyle(const OTMLNodePtr& styleNode)
             setOn(node->value<bool>());
         else if (node->tag() == "focusable")
             setFocusable(node->value<bool>());
+        else if (node->tag() == "click-sound") {
+            // The property predates this hook and carries a soundbank effect id,
+            // so accept an id as well as a plain on/off.
+            const std::string clickSound = node->value();
+            if (clickSound == "false" || clickSound == "no")
+                setClickSoundId(0);
+            else if (clickSound == "true" || clickSound == "yes")
+                setClickSoundId(-1);
+            else
+                setClickSoundId(node->value<int32_t>());
+        }
         else if (node->tag() == "auto-focus")
             setAutoFocusPolicy(Fw::translateAutoFocusPolicy(node->value()));
         else if (node->tag() == "phantom" || node->tag() == "pointer-events") {

@@ -589,10 +589,12 @@ function getCombatName(combatId)
 end
 
 
--- Plays the shared UI interaction click. Safe to call before the soundbank is
--- loaded: playSoundEffect resolves nothing and returns quietly in that case.
-function playUIClickSound(effectId)
-	if g_sounds and g_sounds.playSoundEffect then
-		g_sounds.playSoundEffect(effectId or UISoundEffects.Click)
+-- Tells the UI layer which soundbank effect to use for interaction clicks.
+-- UIWidget::onClick plays it for every clickable widget that has not opted out
+-- with "click-sound: false". Safe before the soundbank loads: an unresolved id
+-- plays nothing.
+function setUIClickSound(effectId)
+	if g_sounds and g_sounds.setUiSoundEffect then
+		g_sounds.setUiSoundEffect(effectId or UISoundEffects.Click)
 	end
 end

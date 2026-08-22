@@ -29,6 +29,7 @@
 #include "framework/core/eventdispatcher.h"
 #include <framework/core/graphicalapplication.h>
 #include "framework/graphics/drawpool.h"
+#include "framework/sound/soundmanager.h"
 #include "framework/graphics/drawpoolmanager.h"
 #include "framework/graphics/shadermanager.h"
 #include <framework/graphics/bitmapfont.h>
@@ -2043,6 +2044,14 @@ bool UIWidget::onMouseWheel(const Point& mousePos, const Fw::MouseWheelDirection
 
 bool UIWidget::onClick(const Point& mousePos)
 {
+    // Every clickable widget in the client funnels through here, so this is the
+    // single place a UI interaction sound can cover all of them. Surfaces that
+    // are clicked constantly - the game map above all - opt out in their style.
+    if (m_clickSoundId > 0)
+        g_sounds.playSoundEffect(static_cast<uint32_t>(m_clickSoundId));
+    else if (m_clickSoundId < 0)
+        g_sounds.playUiSoundEffect();
+
     if (hasEventListener(EVENT_TEXT_CLICK)) {
         std::string clickedText = getTextByPos(mousePos);
         if (!clickedText.empty()) {

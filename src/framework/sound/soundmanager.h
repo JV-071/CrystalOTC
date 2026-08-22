@@ -149,6 +149,11 @@ public:
 
     // client sound playback by protobuf IDs
     void playSoundEffect(uint32_t effectId);
+
+    // The soundbank effect used for UI interactions. Set from Lua so the
+    // framework carries no game-specific id.
+    void setUiSoundEffect(const uint32_t effectId) { m_uiSoundEffectId = effectId; }
+    void playUiSoundEffect() { if (m_uiSoundEffectId != 0) playSoundEffect(m_uiSoundEffectId); }
     void playAmbienceSound(uint32_t ambienceId);
     void playMusic(uint32_t musicId);
     void stopAmbienceSound();
@@ -183,6 +188,8 @@ private:
     // the music track currently playing, so a repeated anthem packet does not
     // restart it from the beginning
     uint32_t m_currentMusicId{ 0 };
+
+    uint32_t m_uiSoundEffectId{ 0 };
     std::map<uint32_t, ClientLocationAmbient> m_clientAmbientEffects;
     std::map<uint32_t, ClientItemAmbient> m_clientItemAmbientEffects;
     std::map<uint32_t, ClientMusic> m_clientMusic;

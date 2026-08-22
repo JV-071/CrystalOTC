@@ -1119,6 +1119,8 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_sounds", "loadClientFiles", &SoundManager::loadClientFiles, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "getAudioFileNameById", &SoundManager::getAudioFileNameById, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "playSoundEffect", &SoundManager::playSoundEffect, &g_sounds);
+    g_lua.bindSingletonFunction("g_sounds", "setUiSoundEffect", &SoundManager::setUiSoundEffect, &g_sounds);
+    g_lua.bindSingletonFunction("g_sounds", "playUiSoundEffect", &SoundManager::playUiSoundEffect, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "playAmbienceSound", &SoundManager::playAmbienceSound, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "playMusic", &SoundManager::playMusic, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "stopAmbienceSound", &SoundManager::stopAmbienceSound, &g_sounds);

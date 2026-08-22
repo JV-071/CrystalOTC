@@ -11,11 +11,5 @@ function UIButton.create()
 end
 
 function UIButton:onMouseRelease(pos, button)
-	local pressed = self:isPressed()
-
-	if pressed and button == MouseLeftButton and self:isEnabled() then
-		playUIClickSound()
-	end
-
-	return pressed
+	return self:isPressed()
 end

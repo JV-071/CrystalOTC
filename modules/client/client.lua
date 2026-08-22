@@ -150,6 +150,8 @@ function init()
 		onRun = startup
 	})
 
+	setUIClickSound()
+
 	if musicChannel then
 		g_sounds.preload(musicFilename)
 	end
