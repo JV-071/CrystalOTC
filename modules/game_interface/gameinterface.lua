@@ -928,7 +928,11 @@ function updateStretchShrink()
 			height = 11,
 			width = 15
 		})
-		bottomSplitter:setMarginBottom(bottomSplitter:getMarginBottom() + (gameMapPanel:getHeight() - 352) - 13)
+		-- 352 is 11 tiles at the native sprite size, and UIMap::updateMapSize takes the panel's
+		-- 5 px padding off both edges and then another pixel each side, so the panel has to land on
+		-- 364 for the map itself to be 352. The old constant of 13 targeted 365 and produced a 353 px
+		-- map - one pixel off the integral scale this option exists to deliver.
+		bottomSplitter:setMarginBottom(bottomSplitter:getMarginBottom() + (gameMapPanel:getHeight() - 352) - 12)
 	end
 end
 

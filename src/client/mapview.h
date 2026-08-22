@@ -271,6 +271,7 @@ private:
 
     Size m_drawDimension;
     Size m_visibleDimension;
+    Size m_lastFrameBufferSize;
 
     Point m_virtualCenterOffset;
     Point m_moveOffset;

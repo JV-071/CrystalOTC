@@ -584,6 +584,19 @@ void MapView::updateRect(const Rect& rect) {
         requestUpdateMapPosInfo();
     }
 
+    // updateGeometry changes the geometry at once but can only queue the framebuffer resize, and
+    // g_mainDispatcher runs a callback inline only on the main thread - setAntiAliasingMode reaches
+    // it from Lua on the map thread, so the resize lands a frame or two later. Notice when the
+    // buffer finally catches up and force a repaint: on a static scene the content hash never
+    // changes, so the pool would otherwise keep blitting whatever the buffer happened to hold.
+    if (const auto& fb = m_pool->getFrameBuffer(); fb && fb->isValid()) {
+        if (const auto& fbSize = fb->getSize(); fbSize != m_lastFrameBufferSize) {
+            m_lastFrameBufferSize = fbSize;
+            m_pool->repaint();
+            requestUpdateMapPosInfo();
+        }
+    }
+
     if (m_posInfo.rect != rect || m_updateMapPosInfo) {
         m_updateMapPosInfo = false;
 
@@ -597,6 +610,13 @@ void MapView::updateRect(const Rect& rect) {
             updateGeometry(m_visibleDimension);
 
         m_posInfo.srcRect = calcFramebufferSource(rect.size());
+
+        // Never sample past the texture that exists right now. While the resize is still in flight
+        // the source rect describes the buffer we asked for, not the one bound, and reading beyond
+        // it is what tore streaks down the right and bottom edges.
+        if (m_lastFrameBufferSize.isValid())
+            m_posInfo.srcRect &= Rect(0, 0, m_lastFrameBufferSize);
+
         m_posInfo.drawOffset = m_posInfo.srcRect.topLeft();
         m_posInfo.horizontalStretchFactor = rect.width() / static_cast<float>(m_posInfo.srcRect.width());
         m_posInfo.verticalStretchFactor = rect.height() / static_cast<float>(m_posInfo.srcRect.height());
