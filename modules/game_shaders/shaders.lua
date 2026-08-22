@@ -114,8 +114,38 @@ MOUNT_SHADERS = {
 	}
 }
 
+-- Shaders addressed by widgets through `image-shader:` / setImageShader, rather than
+-- offered in the shader picker. They are not in MAP/OUTFIT/MOUNT_SHADERS because nothing
+-- calls setupMapShader-family on them: a widget names them directly.
+--
+-- image_black_white is the greyed-out state the wheel uses for gems and fragments the
+-- player does not own (game_wheel/styles/gemMenu.otui, fragmentMenu.otui). It was being
+-- requested by name with nothing registering it, so the widgets drew at full colour and
+-- the disabled state was invisible.
+--
+-- It points at grayscale.frag rather than the donor client's own image_black-white
+-- fragment because grayscale.frag is already in the generated Metal material set
+-- (render/metal/metalmodulematerials.h). A .frag with no translated material falls back
+-- to the built-in on non-GL backends, which would put us back where we started on macOS.
+-- The donor source is at data/shaders/image_black-white_fragment.frag if the exact
+-- original look is ever wanted; it needs tools/generate_metal_shaders.py run over it.
+IMAGE_SHADERS = {
+	{
+		frag = "shaders/fragment/grayscale.frag",
+		name = "image_black_white"
+	}
+}
+
 function registerItemShaders()
 	for _, opts in pairs(ITEM_SHADERS) do
+		if opts.frag then
+			g_shaders.createFragmentShader(opts.name, opts.frag, opts.useFramebuffer or false)
+		end
+	end
+end
+
+function registerImageShaders()
+	for _, opts in pairs(IMAGE_SHADERS) do
 		if opts.frag then
 			g_shaders.createFragmentShader(opts.name, opts.frag, opts.useFramebuffer or false)
 		end
@@ -167,6 +197,7 @@ function ShaderController:onInit()
 	end
 
 	registerItemShaders()
+	registerImageShaders()
 end
 
 function ShaderController:onTerminate()
