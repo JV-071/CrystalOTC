@@ -168,6 +168,10 @@ private:
     SoundSourcePtr createSoundSource(const std::string& name);
     bool loadFromProtobuf(const std::string& directory, const std::string& fileName);
 
+    void subscribeDeviceEvents();
+    void unsubscribeDeviceEvents();
+    void followDefaultDevice();
+
     ALCdevice* m_device{};
     ALCcontext* m_context{};
     ALuint m_effect;

@@ -21,6 +21,8 @@
  */
 
 #include "soundmanager.h"
+#include <AL/alext.h>
+#include <atomic>
 #include <nlohmann/json.hpp>
 #include <sounds.pb.h>
 
@@ -41,6 +43,34 @@
 using namespace otclient::protobuf;
 
 using json = nlohmann::json;
+
+// Following the operating system's default output needs two openal-soft
+// extensions. Guard on the headers so a platform shipping an older OpenAL
+// still builds - it just keeps the device it opened, as before.
+#if defined(ALC_SOFT_system_events) && defined(ALC_SOFT_reopen_device)
+#define SOUND_FOLLOW_DEFAULT_DEVICE
+#endif
+
+namespace
+{
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+    LPALCREOPENDEVICESOFT pfnAlcReopenDevice{};
+    LPALCEVENTISSUPPORTEDSOFT pfnAlcEventIsSupported{};
+    LPALCEVENTCONTROLSOFT pfnAlcEventControl{};
+    LPALCEVENTCALLBACKSOFT pfnAlcEventCallback{};
+
+    // Raised from openal-soft's own event thread, which holds its event mutex
+    // across the call, so the callback must not re-enter ALC. poll() consumes
+    // the flag and does the reopen from the thread that owns the sources.
+    std::atomic_bool g_defaultDeviceChanged{ false };
+
+    void ALC_APIENTRY onAlcDeviceEvent(const ALCenum eventType, ALCenum, ALCdevice*, ALCsizei, const ALCchar*, void*) noexcept
+    {
+        if (eventType == ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT)
+            g_defaultDeviceChanged.store(true, std::memory_order_relaxed);
+    }
+#endif
+}
 
 SoundManager g_sounds;
 
@@ -66,6 +96,68 @@ void SoundManager::init()
     if (alcMakeContextCurrent(m_context) != ALC_TRUE) {
         g_logger.error(fmt::format("unable to make context current: {}", alcGetString(m_device, alcGetError(m_device))));
     }
+
+    subscribeDeviceEvents();
+}
+
+void SoundManager::subscribeDeviceEvents()
+{
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+    if (!m_device || !alcIsExtensionPresent(m_device, "ALC_SOFT_reopen_device") ||
+        !alcIsExtensionPresent(m_device, "ALC_SOFT_system_events"))
+        return;
+
+    pfnAlcReopenDevice = reinterpret_cast<LPALCREOPENDEVICESOFT>(alcGetProcAddress(m_device, "alcReopenDeviceSOFT"));
+    pfnAlcEventIsSupported = reinterpret_cast<LPALCEVENTISSUPPORTEDSOFT>(alcGetProcAddress(m_device, "alcEventIsSupportedSOFT"));
+    pfnAlcEventControl = reinterpret_cast<LPALCEVENTCONTROLSOFT>(alcGetProcAddress(m_device, "alcEventControlSOFT"));
+    pfnAlcEventCallback = reinterpret_cast<LPALCEVENTCALLBACKSOFT>(alcGetProcAddress(m_device, "alcEventCallbackSOFT"));
+    alcGetError(m_device);
+
+    // alcEventControlSOFT answers ALC_TRUE for event types the backend never
+    // emits, so ask what it really supports rather than trusting that return.
+    if (!pfnAlcReopenDevice || !pfnAlcEventIsSupported || !pfnAlcEventControl || !pfnAlcEventCallback ||
+        pfnAlcEventIsSupported(ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT, ALC_PLAYBACK_DEVICE_SOFT) != ALC_EVENT_SUPPORTED_SOFT) {
+        pfnAlcReopenDevice = nullptr;
+        return;
+    }
+
+    constexpr ALCenum event = ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT;
+    pfnAlcEventCallback(&onAlcDeviceEvent, nullptr);
+    pfnAlcEventControl(1, &event, ALC_TRUE);
+#endif
+}
+
+void SoundManager::unsubscribeDeviceEvents()
+{
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+    if (pfnAlcEventControl && pfnAlcEventCallback) {
+        constexpr ALCenum event = ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT;
+        pfnAlcEventControl(1, &event, ALC_FALSE);
+        pfnAlcEventCallback(nullptr, nullptr);
+    }
+
+    pfnAlcReopenDevice = nullptr;
+    g_defaultDeviceChanged.store(false, std::memory_order_relaxed);
+#endif
+}
+
+// The audio backend binds one physical output when the device is opened and
+// keeps it for good, so plugging in headphones mid-session leaves the game
+// playing out of the speakers everything else just left. Reopening moves it:
+// the ALCdevice, the context and every source and buffer name survive, so
+// whatever is playing simply continues on the new output.
+void SoundManager::followDefaultDevice()
+{
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+    if (!pfnAlcReopenDevice || !m_device)
+        return;
+
+    if (!g_defaultDeviceChanged.exchange(false, std::memory_order_relaxed))
+        return;
+
+    if (pfnAlcReopenDevice(m_device, nullptr, nullptr) == ALC_FALSE)
+        g_logger.error("unable to move audio to the new default device: {}", alcGetString(m_device, alcGetError(m_device)));
+#endif
 }
 
 void SoundManager::terminate()
@@ -83,6 +175,8 @@ void SoundManager::terminate()
     m_channels.clear();
 
     m_audioEnabled = false;
+
+    unsubscribeDeviceEvents();
 
     alcMakeContextCurrent(nullptr);
 
@@ -111,6 +205,7 @@ void SoundManager::poll()
     lastUpdate = now;
 
     ensureContext();
+    followDefaultDevice();
 
     for (auto it = m_streamFiles.begin(); it != m_streamFiles.end();) {
         const auto& source = it->first;
