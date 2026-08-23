@@ -2,6 +2,8 @@
 
 For synchronized official-client capture, acoustic identification, packet/file
 observation, and CrystalOTC comparison, see [the sound parity lab](lab.md).
+For the current verified state, remaining experiments, repository locations,
+and next-session checklist, see [the sound parity handoff](whats-next.md).
 
 This report is generated from the active shared `/sounds/` bank. Both the current 15.25 profile and 15.30 use this bank.
 
