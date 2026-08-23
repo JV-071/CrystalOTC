@@ -487,6 +487,9 @@ def markdown_report(inventory: dict[str, Any]) -> str:
     lines = [
         "# Official 15.32 sound inventory",
         "",
+        "For synchronized official-client capture, acoustic identification, packet/file",
+        "observation, and CrystalOTC comparison, see [the sound parity lab](lab.md).",
+        "",
         "This report is generated from the active shared `/sounds/` bank. Both the current 15.25 profile and 15.30 use this bank.",
         "",
         f"- Validation: **{'passed' if summary['valid'] else 'failed'}**",

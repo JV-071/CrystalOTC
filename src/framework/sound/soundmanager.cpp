@@ -23,9 +23,12 @@
 #include "soundmanager.h"
 #include <AL/alext.h>
 #include <atomic>
+#include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <nlohmann/json.hpp>
 #include <sounds.pb.h>
+#include <utility>
 
 #include "soundbuffer.h"
 #include "soundchannel.h"
@@ -39,6 +42,7 @@
 #include "framework/core/clock.h"
 #include "framework/core/garbagecollection.h"
 #include "framework/core/resourcemanager.h"
+#include "framework/platform/platform.h"
 #include "framework/util/stats.h"
 
 using namespace otclient::protobuf;
@@ -75,14 +79,152 @@ namespace
 
 SoundManager g_sounds;
 
+SoundManager::~SoundManager()
+{
+    stopSoundTrace();
+}
+
+void SoundManager::startSoundTrace(const std::string& path)
+{
+    if (path.empty())
+        return;
+
+    stopSoundTrace();
+
+    try {
+        const std::filesystem::path tracePath(path);
+        if (tracePath.has_parent_path())
+            std::filesystem::create_directories(tracePath.parent_path());
+
+        m_soundTraceFile.open(tracePath, std::ios::out | std::ios::trunc);
+    } catch (const std::exception& error) {
+        g_logger.error("unable to create sound trace '{}': {}", path, error.what());
+        return;
+    }
+
+    if (!m_soundTraceFile) {
+        g_logger.error("unable to create sound trace '{}'", path);
+        return;
+    }
+
+    m_soundTracePath = path;
+    m_soundTraceStartMonoUs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+    m_soundTraceSequence.store(0, std::memory_order_relaxed);
+    m_soundTraceDropped = 0;
+    m_soundTraceStopping = false;
+    m_soundTraceEnabled.store(true, std::memory_order_release);
+    m_soundTraceThread = std::thread(&SoundManager::soundTraceWriterLoop, this);
+
+    traceSoundEvent("session.start", json({
+        { "producer", "CrystalOTC" },
+        { "pid", g_platform.getProcessId() },
+        { "trace_path", path },
+        { "clock", "steady_clock+unix_epoch" },
+    }).dump());
+    g_logger.info("sound parity trace enabled: {}", path);
+}
+
+void SoundManager::stopSoundTrace()
+{
+    if (!m_soundTraceThread.joinable())
+        return;
+
+    traceSoundEvent("session.stop", json({ { "producer", "CrystalOTC" } }).dump());
+    m_soundTraceEnabled.store(false, std::memory_order_release);
+    {
+        std::lock_guard lock(m_soundTraceMutex);
+        m_soundTraceStopping = true;
+    }
+    m_soundTraceCondition.notify_one();
+    m_soundTraceThread.join();
+    m_soundTraceFile.flush();
+    m_soundTraceFile.close();
+}
+
+void SoundManager::traceSoundEvent(const std::string_view event, const std::string& dataJson)
+{
+    if (!m_soundTraceEnabled.load(std::memory_order_acquire))
+        return;
+
+    const uint64_t monoUs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count());
+    const uint64_t epochUs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count());
+    const uint64_t sequence = m_soundTraceSequence.fetch_add(1, std::memory_order_relaxed);
+
+    const std::string line = fmt::format(
+        R"({{"schema":"crystal-sound-trace-v1","producer":"CrystalOTC","seq":{},"mono_us":{},"session_us":{},"epoch_us":{},"event":{},"data":{}}})",
+        sequence, monoUs, monoUs - m_soundTraceStartMonoUs, epochUs, json(event).dump(), dataJson);
+
+    {
+        std::lock_guard lock(m_soundTraceMutex);
+        static constexpr size_t MAX_QUEUED_EVENTS = 16384;
+        if (m_soundTraceQueue.size() >= MAX_QUEUED_EVENTS) {
+            m_soundTraceQueue.pop_front();
+            ++m_soundTraceDropped;
+        }
+        m_soundTraceQueue.emplace_back(line);
+    }
+    m_soundTraceCondition.notify_one();
+}
+
+void SoundManager::soundTraceWriterLoop()
+{
+    std::deque<std::string> pending;
+    for (;;) {
+        uint64_t dropped = 0;
+        {
+            std::unique_lock lock(m_soundTraceMutex);
+            m_soundTraceCondition.wait_for(lock, std::chrono::milliseconds(250), [this] {
+                return m_soundTraceStopping || !m_soundTraceQueue.empty();
+            });
+            pending.swap(m_soundTraceQueue);
+            dropped = std::exchange(m_soundTraceDropped, 0);
+            if (m_soundTraceStopping && pending.empty() && dropped == 0)
+                break;
+        }
+
+        if (dropped != 0) {
+            const uint64_t epochUs = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count());
+            m_soundTraceFile << fmt::format(
+                R"({{"schema":"crystal-sound-trace-v1","producer":"CrystalOTC","epoch_us":{},"event":"trace.dropped","data":{{"count":{}}}}})",
+                epochUs, dropped) << '\n';
+        }
+        for (const auto& line : pending)
+            m_soundTraceFile << line << '\n';
+        pending.clear();
+        m_soundTraceFile.flush();
+    }
+}
+
+void SoundManager::tracePacketSoundEffect(const uint32_t effectId, const uint8_t source,
+                                          const uint16_t worldX, const uint16_t worldY, const uint8_t worldZ,
+                                          const Point& relativePosition, const bool secondary)
+{
+    traceSoundEvent("packet.sound_effect", json({
+        { "effect_id", effectId },
+        { "source", source },
+        { "secondary", secondary },
+        { "world", { { "x", worldX }, { "y", worldY }, { "z", worldZ } } },
+        { "relative_px", { { "x", relativePosition.x }, { "y", relativePosition.y } } },
+    }).dump());
+}
+
+void SoundManager::tracePacketAnthem(const uint8_t type, const uint16_t id)
+{
+    traceSoundEvent("packet.anthem", json({
+        { "type", type },
+        { "kind", type == 0 ? "ambience" : type == 1 ? "music" : "unknown" },
+        { "id", id },
+    }).dump());
+}
+
 void SoundManager::init()
 {
-    // [snd-trace] disabled - the env var can no longer arm tracing
-    // // Tracing can be armed before the client is up, which is the only way in
-    // // when the in-client terminal is not usable - and it puts every [snd] line
-    // // on stdout of a run started from a shell.
-    // if (const char* env = std::getenv("CRYSTALOTC_SOUND_DEBUG"); env && *env && *env != '0')
-        // m_soundDebug = true;
+    if (const char* tracePath = std::getenv("CRYSTALOTC_SOUND_TRACE"); tracePath && *tracePath)
+        startSoundTrace(tracePath);
 
 #ifdef ANDROID
     // The alcOpenDevice call needs to be executed on Android main thread
@@ -197,6 +339,8 @@ void SoundManager::terminate()
         alcCloseDevice(m_device);
         m_device = nullptr;
     }
+
+    stopSoundTrace();
 }
 
 void SoundManager::poll()
@@ -238,6 +382,10 @@ void SoundManager::poll()
         source->update();
 
         if (!source->isPlaying()) {
+            traceSoundEvent("source.end", json({
+                { "file", source->getName() },
+                { "looping", source->isLooping() },
+            }).dump());
             ++soundsErased;
             it = m_sources.erase(it);
         } else
@@ -349,6 +497,13 @@ SoundSourcePtr SoundManager::play(const std::string& fn, const float fadetime, c
     soundSource->play();
 
     m_sources.emplace_back(soundSource);
+
+    traceSoundEvent("source.start", json({
+        { "file", filename },
+        { "fade_seconds", fadetime },
+        { "gain", gain },
+        { "pitch", pitch },
+    }).dump());
 
     return soundSource;
 }
@@ -876,8 +1031,20 @@ void SoundManager::playPositionedSoundEffect(const uint32_t effectId, const uint
 
 void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_t source, const Point* position)
 {
-    if (!isAudioEnabled() || m_soundDirectory.empty())
+    traceSoundEvent("effect.request", json({
+        { "effect_id", effectId },
+        { "source", source },
+        { "positioned", position != nullptr },
+        { "relative_px", position ? json({ { "x", position->x }, { "y", position->y } }) : json(nullptr) },
+    }).dump());
+
+    if (!isAudioEnabled() || m_soundDirectory.empty()) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId },
+            { "reason", !isAudioEnabled() ? "audio_disabled" : "soundbank_not_loaded" },
+        }).dump());
         return;
+    }
 
     // limit new sound effects to 4 per poll cycle to prevent burst lag
     static ticks_t lastResetTime = 0;
@@ -887,38 +1054,68 @@ void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_
         lastResetTime = now;
         effectsThisCycle = 0;
     }
-    if (effectsThisCycle >= 4)
+    if (effectsThisCycle >= 4) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId },
+            { "reason", "cycle_limit" },
+            { "limit", 4 },
+            { "window_ms", POLL_DELAY },
+        }).dump());
         return;
+    }
     ++effectsThisCycle;
 
     const auto it = m_clientSoundEffects.find(effectId);
-    if (it == m_clientSoundEffects.end())
+    if (it == m_clientSoundEffects.end()) {
+        traceSoundEvent("effect.drop", json({ { "effect_id", effectId }, { "reason", "unknown_effect" } }).dump());
         return;
+    }
 
     const auto& effect = it->second;
 
     const auto categories = soundFilterCategories(effect.type, source);
-    if (!isFilterEnabled(categories.group) || !isFilterEnabled(categories.specific))
+    if (!isFilterEnabled(categories.group) || !isFilterEnabled(categories.specific)) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId },
+            { "reason", "filtered" },
+            { "group", std::string(categories.group) },
+            { "specific", std::string(categories.specific) },
+        }).dump());
         return;
+    }
 
     // resolve the audio file id
     uint32_t audioFileId = effect.soundId;
     if (audioFileId == 0 && !effect.randomSoundId.empty()) {
         audioFileId = effect.randomSoundId[rand() % effect.randomSoundId.size()];
     }
-    if (audioFileId == 0)
+    if (audioFileId == 0) {
+        traceSoundEvent("effect.drop", json({ { "effect_id", effectId }, { "reason", "no_audio_file" } }).dump());
         return;
+    }
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
-    if (fileIt == m_clientSoundFiles.end())
+    if (fileIt == m_clientSoundFiles.end()) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId }, { "audio_file_id", audioFileId }, { "reason", "unknown_audio_file" },
+        }).dump());
         return;
+    }
 
     const std::string filename = m_soundDirectory + fileIt->second.filename;
 
     // throttle: skip if same sound was played less than 150ms ago
     auto& lastTime = m_lastPlayTime[filename];
-    if (now - lastTime < 150)
+    if (now - lastTime < 150) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId },
+            { "audio_file_id", audioFileId },
+            { "reason", "duplicate_throttle" },
+            { "elapsed_ms", now - lastTime },
+            { "threshold_ms", 150 },
+        }).dump());
         return;
+    }
     lastTime = now;
 
     // Cache short effects as buffers for efficient playback (and to avoid
@@ -948,38 +1145,75 @@ void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_
     if (const auto& channel = getChannel(effectChannel))
         gain *= channel->getGain();
 
-    // if (m_soundDebug)
-        // g_logger.info("[snd] EFFECT id {} ch{} gain={:.2f} pitch={:.2f} ({})",
-                      // effectId, effectChannel, gain, pitch, filename);
+    traceSoundEvent("effect.resolve", json({
+        { "effect_id", effectId },
+        { "audio_file_id", audioFileId },
+        { "file", fileIt->second.filename },
+        { "channel", effectChannel },
+        { "gain", gain },
+        { "pitch", pitch },
+        { "source", source },
+        { "positioned", position != nullptr },
+        { "relative_px", position ? json({ { "x", position->x }, { "y", position->y } }) : json(nullptr) },
+    }).dump());
 
     const auto& soundSource = play(filename, 0, gain, pitch);
-    if (soundSource && position)
+    if (!soundSource) {
+        traceSoundEvent("effect.drop", json({
+            { "effect_id", effectId }, { "audio_file_id", audioFileId }, { "reason", "source_refused" },
+        }).dump());
+        return;
+    }
+
+    if (position)
         soundSource->setPosition(*position);
+
+    traceSoundEvent("effect.play", json({
+        { "effect_id", effectId },
+        { "audio_file_id", audioFileId },
+        { "file", fileIt->second.filename },
+        { "channel", effectChannel },
+        { "gain", gain },
+        { "pitch", pitch },
+        { "positioned", position != nullptr },
+    }).dump());
 }
 
 void SoundManager::playAmbienceSound(uint32_t ambienceId)
 {
-    if (!isAudioEnabled() || m_soundDirectory.empty())
+    traceSoundEvent("ambience.request", json({ { "ambience_id", ambienceId } }).dump());
+
+    if (!isAudioEnabled() || m_soundDirectory.empty()) {
+        traceSoundEvent("ambience.drop", json({
+            { "ambience_id", ambienceId },
+            { "reason", !isAudioEnabled() ? "audio_disabled" : "soundbank_not_loaded" },
+        }).dump());
         return;
+    }
 
     if (ambienceId == 0) {
         stopAmbienceSound();
         return;
     }
 
-    if (ambienceId == m_currentAmbienceId)
+    if (ambienceId == m_currentAmbienceId) {
+        traceSoundEvent("ambience.drop", json({ { "ambience_id", ambienceId }, { "reason", "already_current" } }).dump());
         return; // already playing; restarting would clip it and reset its timers
+    }
 
     const auto it = m_clientAmbientEffects.find(ambienceId);
     if (it == m_clientAmbientEffects.end()) {
+        traceSoundEvent("ambience.drop", json({ { "ambience_id", ambienceId }, { "reason", "unknown_ambience" } }).dump());
         g_logger.traceError("unknown client ambience id {}", ambienceId);
         return;
     }
 
     const auto& ambient = it->second;
     const uint32_t audioFileId = ambient.loopedAudioFileId;
-    if (audioFileId == 0)
+    if (audioFileId == 0) {
+        traceSoundEvent("ambience.drop", json({ { "ambience_id", ambienceId }, { "reason", "no_audio_file" } }).dump());
         return;
+    }
 
     // if (m_soundDebug)
         // g_logger.info("[snd] AMBIENCE zone {} -> file {} (was zone {}) - channel {}, 3s crossfade",
@@ -987,6 +1221,9 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
     if (fileIt == m_clientSoundFiles.end()) {
+        traceSoundEvent("ambience.drop", json({
+            { "ambience_id", ambienceId }, { "audio_file_id", audioFileId }, { "reason", "unknown_audio_file" },
+        }).dump());
         g_logger.traceError("ambience id {} names audio file {}, which the soundbank does not have", ambienceId, audioFileId);
         return;
     }
@@ -994,8 +1231,10 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
     const std::string filename = m_soundDirectory + fileIt->second.filename;
 
     const auto& channel = getChannel(SOUND_CHANNEL_AMBIENT);
-    if (!channel)
+    if (!channel) {
+        traceSoundEvent("ambience.drop", json({ { "ambience_id", ambienceId }, { "reason", "channel_unavailable" } }).dump());
         return;
+    }
 
     channel->stop(3.0f);
     // A location ambience loops, and saying so lets the stream recover from an
@@ -1004,6 +1243,15 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
     channel->enqueue(filename, 3.0f, 1.0f, 1.0f, true);
 
     m_currentAmbienceId = ambienceId;
+
+    traceSoundEvent("ambience.play", json({
+        { "ambience_id", ambienceId },
+        { "audio_file_id", audioFileId },
+        { "file", fileIt->second.filename },
+        { "channel", SOUND_CHANNEL_AMBIENT },
+        { "fade_seconds", 3.0f },
+        { "looping", true },
+    }).dump());
 
     // Arm the effects that punctuate this ambience. delay_seconds is read as a
     // period rather than a one-shot deadline: streams pair several effects with
@@ -1018,7 +1266,14 @@ void SoundManager::playAmbienceSound(uint32_t ambienceId)
             continue;
 
         const ticks_t period = static_cast<ticks_t>(delaySeconds) * 1000;
-        m_ambientDelayedEffects.emplace_back(delayedEffectId, period, now + (rand() % period));
+        const ticks_t nextPlay = now + (rand() % period);
+        m_ambientDelayedEffects.emplace_back(delayedEffectId, period, nextPlay);
+        traceSoundEvent("ambience.delayed_schedule", json({
+            { "ambience_id", ambienceId },
+            { "effect_id", delayedEffectId },
+            { "period_ms", period },
+            { "first_delay_ms", nextPlay - now },
+        }).dump());
     }
 }
 
@@ -1034,6 +1289,9 @@ void SoundManager::updateAmbientDelayedEffects()
 
         // These carry NUMERIC_SOUND_TYPE_AMBIENCE_STREAM, so playSoundEffect
         // routes them to the ambience channel and they follow its slider.
+        traceSoundEvent("ambience.delayed_fire", json({
+            { "ambience_id", m_currentAmbienceId }, { "effect_id", pending.effectId }, { "period_ms", pending.period },
+        }).dump());
         playSoundEffect(pending.effectId);
         pending.nextPlay = now + pending.period;
     }
@@ -1174,8 +1432,8 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
     if (m_itemAmbientSelected.size() != counts.size())
         m_itemAmbientSelected.assign(counts.size(), ItemAmbientSelection{});
 
-    // if (m_soundDebug && m_itemAmbientLastCounts.size() != counts.size())
-        // m_itemAmbientLastCounts.assign(counts.size(), 0);
+    if (isSoundTraceEnabled() && m_itemAmbientLastCounts.size() != counts.size())
+        m_itemAmbientLastCounts.assign(counts.size(), 0);
 
     const ticks_t now = g_clock.millis();
 
@@ -1214,8 +1472,7 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                 raw = loopingAudioFileId;
         }
 
-        // [snd-trace] disabled - trace-only local
-        // const uint32_t previousFile = selection.audioFileId;
+        const uint32_t previousFile = selection.audioFileId;
 
         if (raw == selection.audioFileId) {
             selection.pending = 0; // the candidate withdrew; nothing to commit
@@ -1254,16 +1511,20 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                 nearHold.push_back(wouldSelect);
         }
 
-        // // Traced on movement only: the scan runs four times a second, and a
-        // // line per scan would bury the moments that actually explain anything.
-        // if (m_soundDebug && (m_itemAmbientLastCounts[i] != counts[i] || previousFile != audioFileId)) {
-            // g_logger.info("[snd] entry {}: count {}->{}, selects {}{}",
-                          // m_itemAmbientEffectIds[i], m_itemAmbientLastCounts[i], counts[i],
-                          // audioFileId == 0 ? std::string("silence") : fmt::format("file {}", audioFileId),
-                          // previousFile != audioFileId && previousFile != 0
-                              // ? fmt::format(" (was file {})", previousFile) : std::string());
-            // m_itemAmbientLastCounts[i] = counts[i];
-        // }
+        // Record changes only: the scan runs four times a second, and an event
+        // per unchanged scan would hide the transitions the parity lab needs.
+        if (isSoundTraceEnabled() && (m_itemAmbientLastCounts[i] != counts[i] || previousFile != audioFileId)) {
+            traceSoundEvent("item_ambience.selection", json({
+                { "effect_id", m_itemAmbientEffectIds[i] },
+                { "count_before", m_itemAmbientLastCounts[i] },
+                { "count", counts[i] },
+                { "nearby", nearby[i] },
+                { "audio_file_before", previousFile },
+                { "audio_file_id", audioFileId },
+                { "pending_audio_file_id", selection.pending },
+            }).dump());
+            m_itemAmbientLastCounts[i] = counts[i];
+        }
 
         if (audioFileId != 0 && std::ranges::find(wanted, audioFileId) == wanted.end())
             wanted.push_back(audioFileId);
@@ -1296,6 +1557,10 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             if (channel)
                 channel->fadeOut(ITEM_AMBIENT_FADE);
 
+            traceSoundEvent("item_ambience.swap", json({
+                { "audio_file_id", it->first }, { "channel", voice.channelId }, { "fade_seconds", ITEM_AMBIENT_FADE },
+            }).dump());
+
             // if (m_soundDebug)
                 // g_logger.info("[snd]   SWAP  file {} ch{} - replaced by another step, crossfading out",
                               // it->first, voice.channelId);
@@ -1309,6 +1574,12 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
 
         if (!voice.releasing && voice.unwantedSince == 0) {
             voice.unwantedSince = now;
+            traceSoundEvent("item_ambience.hold", json({
+                { "audio_file_id", it->first },
+                { "channel", voice.channelId },
+                { "still_on_screen", stillOnScreen },
+                { "hold_ms", hold },
+            }).dump());
             // if (m_soundDebug)
                 // g_logger.info("[snd]   HOLD  file {} ch{} - {}, holding {}ms",
                               // it->first, voice.channelId,
@@ -1321,6 +1592,13 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             if (channel)
                 channel->fadeOut(ITEM_AMBIENT_FADE);
 
+            traceSoundEvent("item_ambience.fade", json({
+                { "audio_file_id", it->first },
+                { "channel", voice.channelId },
+                { "held_ms", now - voice.unwantedSince },
+                { "fade_seconds", ITEM_AMBIENT_FADE },
+            }).dump());
+
             // if (m_soundDebug)
                 // g_logger.info("[snd]   FADE  file {} ch{} - {}ms hold expired, fading out over {:.2f}s",
                               // it->first, voice.channelId, static_cast<int>(hold), ITEM_AMBIENT_FADE);
@@ -1332,6 +1610,10 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             // start itself again if the channel were ever muted and unmuted.
             if (channel)
                 channel->stop();
+
+            traceSoundEvent("item_ambience.stop", json({
+                { "audio_file_id", it->first }, { "channel", voice.channelId },
+            }).dump());
 
             // if (m_soundDebug)
                 // g_logger.info("[snd]   STOP  file {} ch{} - silent, channel released", it->first, voice.channelId);
@@ -1360,6 +1642,12 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
                     channel->resumeFade(ITEM_AMBIENT_FADE);
                     existing->second.releasing = false;
 
+                    traceSoundEvent("item_ambience.resume", json({
+                        { "audio_file_id", audioFileId },
+                        { "channel", existing->second.channelId },
+                        { "fade_seconds", ITEM_AMBIENT_FADE },
+                    }).dump());
+
                     // if (m_soundDebug)
                         // g_logger.info("[snd]   RESUME file {} ch{} - wanted again mid-fade, riding back up",
                                       // audioFileId, existing->second.channelId);
@@ -1382,17 +1670,27 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
 
         const auto fileIt = m_clientSoundFiles.find(audioFileId);
         if (fileIt == m_clientSoundFiles.end()) {
+            traceSoundEvent("item_ambience.drop", json({
+                { "audio_file_id", audioFileId }, { "reason", "unknown_audio_file" },
+            }).dump());
             g_logger.traceError("item ambient names audio file {}, which the soundbank does not have", audioFileId);
             continue;
         }
 
         const int channelId = acquireItemAmbientChannel();
-        if (channelId < 0)
+        if (channelId < 0) {
+            traceSoundEvent("item_ambience.drop", json({
+                { "audio_file_id", audioFileId }, { "reason", "voice_limit" },
+            }).dump());
             continue; // more at once than the bank was ever meant to need
+        }
 
         const auto& channel = getChannel(channelId);
         if (!channel) {
             m_freeItemAmbientChannels.push_back(channelId);
+            traceSoundEvent("item_ambience.drop", json({
+                { "audio_file_id", audioFileId }, { "channel", channelId }, { "reason", "channel_unavailable" },
+            }).dump());
             continue;
         }
 
@@ -1401,10 +1699,22 @@ void SoundManager::setItemAmbientCounts(const std::vector<uint16_t>& counts,
             // Recording it as playing anyway would leave the file permanently
             // claimed by a silent channel, and nothing here ever revives one.
             m_freeItemAmbientChannels.push_back(channelId);
+            traceSoundEvent("item_ambience.drop", json({
+                { "audio_file_id", audioFileId }, { "channel", channelId }, { "reason", "source_refused" },
+            }).dump());
             continue;
         }
 
         m_itemAmbientVoices[audioFileId] = ItemAmbientVoice{ channelId };
+
+        traceSoundEvent("item_ambience.play", json({
+            { "audio_file_id", audioFileId },
+            { "file", fileIt->second.filename },
+            { "channel", channelId },
+            { "gain", gain },
+            { "fade_seconds", ITEM_AMBIENT_FADE },
+            { "looping", true },
+        }).dump());
 
         // if (m_soundDebug)
             // g_logger.info("[snd]   START file {} ch{} gain={:.2f} ({})",
@@ -1451,18 +1761,28 @@ int SoundManager::acquireItemAmbientChannel()
 
 void SoundManager::stopAmbienceSound()
 {
+    const uint32_t previous = m_currentAmbienceId;
     m_currentAmbienceId = 0;
     m_ambientDelayedEffects.clear();
 
     const auto& channel = getChannel(SOUND_CHANNEL_AMBIENT);
     if (channel)
         channel->stop(3.0f);
+
+    traceSoundEvent("ambience.stop", json({ { "ambience_id", previous }, { "fade_seconds", 3.0f } }).dump());
 }
 
 void SoundManager::playMusic(uint32_t musicId)
 {
-    if (!isAudioEnabled() || m_soundDirectory.empty())
+    traceSoundEvent("music.request", json({ { "music_id", musicId } }).dump());
+
+    if (!isAudioEnabled() || m_soundDirectory.empty()) {
+        traceSoundEvent("music.drop", json({
+            { "music_id", musicId },
+            { "reason", !isAudioEnabled() ? "audio_disabled" : "soundbank_not_loaded" },
+        }).dump());
         return;
+    }
 
     // Handled before the dedupe below: "no music here" has to get through even
     // when nothing is playing, because it is also what clears the track the
@@ -1473,39 +1793,52 @@ void SoundManager::playMusic(uint32_t musicId)
     }
 
     const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
-    if (musicId == m_currentMusicId && channel && channel->isSounding())
+    if (musicId == m_currentMusicId && channel && channel->isSounding()) {
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "already_playing" } }).dump());
         return; // already playing; restarting would clip it back to the start
+    }
 
     m_currentMusicId = 0;
 
     // The "Anthem" option. Checked here rather than through the effect filters,
     // which are keyed on a soundbank type music tracks do not carry.
-    if (!isFilterEnabled("anthem"))
+    if (!isFilterEnabled("anthem")) {
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "filtered" } }).dump());
         return;
+    }
 
     const auto it = m_clientMusic.find(musicId);
     if (it == m_clientMusic.end()) {
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "unknown_music" } }).dump());
         g_logger.traceError("unknown client music id {}", musicId);
         return;
     }
 
     const auto& music = it->second;
     const uint32_t audioFileId = music.audioFileId;
-    if (audioFileId == 0)
+    if (audioFileId == 0) {
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "no_audio_file" } }).dump());
         return;
+    }
 
     // if (m_soundDebug)
         // g_logger.info("[snd] MUSIC track {} -> file {} (type {})", musicId, audioFileId,
                       // static_cast<int>(music.musicType));
 
     const auto fileIt = m_clientSoundFiles.find(audioFileId);
-    if (fileIt == m_clientSoundFiles.end())
+    if (fileIt == m_clientSoundFiles.end()) {
+        traceSoundEvent("music.drop", json({
+            { "music_id", musicId }, { "audio_file_id", audioFileId }, { "reason", "unknown_audio_file" },
+        }).dump());
         return;
+    }
 
     const std::string filename = m_soundDirectory + fileIt->second.filename;
 
-    if (!channel)
+    if (!channel) {
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "channel_unavailable" } }).dump());
         return;
+    }
 
     // MUSIC_IMMEDIATE is meant to cut in without a crossfade.
     const float fadetime = music.musicType == MUSIC_TYPE_MUSIC_IMMEDIATE ? 0.0f : 3.0f;
@@ -1519,17 +1852,29 @@ void SoundManager::playMusic(uint32_t musicId)
         // as current here would make every later anthem carrying the same id
         // return early, so it would never be heard again this session.
         g_logger.traceError("music id {} was refused by the music channel", musicId);
+        traceSoundEvent("music.drop", json({ { "music_id", musicId }, { "reason", "source_refused" } }).dump());
         return;
     }
 
     m_currentMusicId = musicId;
+    traceSoundEvent("music.play", json({
+        { "music_id", musicId },
+        { "audio_file_id", audioFileId },
+        { "file", fileIt->second.filename },
+        { "music_type", static_cast<int>(music.musicType) },
+        { "fade_seconds", fadetime },
+        { "looping", false },
+    }).dump());
 }
 
 void SoundManager::stopMusic()
 {
+    const uint32_t previous = m_currentMusicId;
     m_currentMusicId = 0;
 
     const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
     if (channel)
         channel->stop(3.0f);
+
+    traceSoundEvent("music.stop", json({ { "music_id", previous }, { "fade_seconds", 3.0f } }).dump());
 }

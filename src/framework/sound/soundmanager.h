@@ -23,7 +23,12 @@
 #pragma once
 
 #include "declarations.h"
+#include <atomic>
+#include <condition_variable>
 #include <deque>
+#include <fstream>
+#include <mutex>
+#include <thread>
 
 using DelayedSoundEffect = std::pair<uint32_t, uint32_t>;
 using DelayedSoundEffects = std::vector<DelayedSoundEffect>;
@@ -226,6 +231,8 @@ public:
     // rather than gone - what picks the long hold over the short one.
     static constexpr uint32_t ITEM_AMBIENT_NEAR_MARGIN = 4;
 
+    ~SoundManager();
+
     void init();
     void terminate();
     void poll();
@@ -252,6 +259,16 @@ public:
     // client sound playback by protobuf IDs
     void playSoundEffect(uint32_t effectId, uint8_t source = SOUND_SOURCE_DEFAULT);
     void playPositionedSoundEffect(uint32_t effectId, uint8_t source, const Point& position);
+
+    // Opt-in structured trace used by the sound parity lab. The writer is
+    // asynchronous so packet/mixer instrumentation never performs file I/O on
+    // the map or protocol thread. CRYSTALOTC_SOUND_TRACE=/absolute/path.jsonl
+    // arms it before startup; these helpers preserve the boundary between a
+    // packet being received and the mixer accepting or rejecting its sound.
+    bool isSoundTraceEnabled() const { return m_soundTraceEnabled.load(std::memory_order_relaxed); }
+    void tracePacketSoundEffect(uint32_t effectId, uint8_t source, uint16_t worldX, uint16_t worldY,
+                                uint8_t worldZ, const Point& relativePosition, bool secondary);
+    void tracePacketAnthem(uint8_t type, uint16_t id);
 
     // The soundbank effect used for UI interactions. Set from Lua so the
     // framework carries no game-specific id.
@@ -313,6 +330,10 @@ private:
     void subscribeDeviceEvents();
     void unsubscribeDeviceEvents();
     void followDefaultDevice();
+    void startSoundTrace(const std::string& path);
+    void stopSoundTrace();
+    void traceSoundEvent(std::string_view event, const std::string& dataJson = "{}");
+    void soundTraceWriterLoop();
 
     ALCdevice* m_device{};
     ALCcontext* m_context{};
@@ -397,6 +418,18 @@ private:
     std::deque<SoundSourcePtr> m_sources;
     std::unordered_map<std::string, ticks_t> m_lastPlayTime;
     bool m_audioEnabled{ true };
+
+    std::atomic_bool m_soundTraceEnabled{ false };
+    std::atomic<uint64_t> m_soundTraceSequence{ 0 };
+    uint64_t m_soundTraceStartMonoUs{ 0 };
+    std::string m_soundTracePath;
+    std::ofstream m_soundTraceFile;
+    std::mutex m_soundTraceMutex;
+    std::condition_variable m_soundTraceCondition;
+    std::deque<std::string> m_soundTraceQueue;
+    std::thread m_soundTraceThread;
+    bool m_soundTraceStopping{ false };
+    uint64_t m_soundTraceDropped{ 0 };
 };
 
 extern SoundManager g_sounds;

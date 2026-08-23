@@ -51,6 +51,7 @@ vc17/
 *.vspscc
 *.vssscc
 .builds
+.build/
 *.pidb
 *.scc
 *.dll

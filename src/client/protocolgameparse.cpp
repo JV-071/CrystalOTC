@@ -1999,6 +1999,7 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     const Point soundPosition(
                         (pos.x - center.x) * g_gameConfig.getSpriteSize(),
                         (pos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.tracePacketSoundEffect(soundId, soundSource, pos.x, pos.y, pos.z, soundPosition, false);
                     g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
@@ -2011,6 +2012,7 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     const Point soundPosition(
                         (pos.x - center.x) * g_gameConfig.getSpriteSize(),
                         (pos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.tracePacketSoundEffect(soundId, soundSource, pos.x, pos.y, pos.z, soundPosition, true);
                     g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
@@ -2076,6 +2078,7 @@ void ProtocolGame::parseAnthem(const InputMessagePtr& msg)
     const uint8_t type = msg->getU8();
     if (type <= 2) {
         const uint16_t id = msg->getU16();
+        g_sounds.tracePacketAnthem(type, id);
         if (type == 0) {
             // ambient sound
             g_sounds.playAmbienceSound(id);
