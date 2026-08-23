@@ -864,7 +864,17 @@ void SoundManager::setClientSoundFilter(const std::string& category, const bool 
         stopMusic();
 }
 
-void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
+void SoundManager::playSoundEffect(const uint32_t effectId, const uint8_t source)
+{
+    playSoundEffectInternal(effectId, source, nullptr);
+}
+
+void SoundManager::playPositionedSoundEffect(const uint32_t effectId, const uint8_t source, const Point& position)
+{
+    playSoundEffectInternal(effectId, source, &position);
+}
+
+void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_t source, const Point* position)
 {
     if (!isAudioEnabled() || m_soundDirectory.empty())
         return;
@@ -942,7 +952,9 @@ void SoundManager::playSoundEffect(uint32_t effectId, const uint8_t source)
         // g_logger.info("[snd] EFFECT id {} ch{} gain={:.2f} pitch={:.2f} ({})",
                       // effectId, effectChannel, gain, pitch, filename);
 
-    play(filename, 0, gain, pitch);
+    const auto& soundSource = play(filename, 0, gain, pitch);
+    if (soundSource && position)
+        soundSource->setPosition(*position);
 }
 
 void SoundManager::playAmbienceSound(uint32_t ambienceId)

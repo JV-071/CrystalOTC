@@ -1995,7 +1995,11 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                 case Otc::MAGIC_EFFECTS_CREATE_SOUND_MAIN_EFFECT: {
                     const uint8_t soundSource = msg->getU8();
                     const uint16_t soundId = msg->getU16();
-                    g_sounds.playSoundEffect(soundId, soundSource);
+                    const auto& center = g_map.getCentralPosition();
+                    const Point soundPosition(
+                        (pos.x - center.x) * g_gameConfig.getSpriteSize(),
+                        (pos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
 
@@ -2003,7 +2007,11 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     msg->getU8(); // ENUM
                     const uint8_t soundSource = msg->getU8();
                     const uint16_t soundId = msg->getU16();
-                    g_sounds.playSoundEffect(soundId, soundSource);
+                    const auto& center = g_map.getCentralPosition();
+                    const Point soundPosition(
+                        (pos.x - center.x) * g_gameConfig.getSpriteSize(),
+                        (pos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
                 default:

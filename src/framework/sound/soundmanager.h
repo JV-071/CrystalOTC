@@ -251,6 +251,7 @@ public:
 
     // client sound playback by protobuf IDs
     void playSoundEffect(uint32_t effectId, uint8_t source = SOUND_SOURCE_DEFAULT);
+    void playPositionedSoundEffect(uint32_t effectId, uint8_t source, const Point& position);
 
     // The soundbank effect used for UI interactions. Set from Lua so the
     // framework carries no game-specific id.
@@ -302,6 +303,7 @@ public:
 private:
     SoundSourcePtr createSoundSource(const std::string& name);
     bool loadFromProtobuf(const std::string& directory, const std::string& fileName);
+    void playSoundEffectInternal(uint32_t effectId, uint8_t source, const Point* position);
 
     bool isFilterEnabled(std::string_view category) const;
     void updateAmbientDelayedEffects();
