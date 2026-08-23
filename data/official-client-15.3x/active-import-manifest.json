@@ -1,0 +1,3725 @@
+{
+  "archive": "graphics_resources.rcc",
+  "archive_version": 3,
+  "official_resource_count": 1063,
+  "resource_entries_imported": 463,
+  "unique_decoded_payloads_imported": 455,
+  "official_path_count": 455,
+  "preserved_conflict_count": 8,
+  "compatibility_copies": [
+    {
+      "source": "/images/icon-cooldown-running.png",
+      "destination": "data/images/icons/icon-cooldown-running.png",
+      "reason": "Existing Boss Tracker UI references /images/icons/icon-cooldown-running.",
+      "snapshot_source": "data/official-client-15.3x/graphics-resources/images/icon-cooldown-running.png"
+    }
+  ],
+  "resources": [
+    {
+      "source": "/animations/animation-dragonheader.png",
+      "destination": "data/animations/animation-dragonheader.png",
+      "bytes": 18978,
+      "sha256": "05df9fde2adcec244efa7c10c6328496e339566126733393605529771a891ef3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/animations/animation-fire-bowl.png",
+      "destination": "data/animations/animation-fire-bowl.png",
+      "bytes": 2134,
+      "sha256": "cf398fad56243bd4d91e379f91b9f35940b52f5517bea3115e86fa56e987adaf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/animations/animation-purchasecomplete-idle.png",
+      "destination": "data/animations/animation-purchasecomplete-idle.png",
+      "bytes": 4012,
+      "sha256": "fdad493a4bc576dc5aa68209db77e04b04fdd74dc123b722e2da1b95efec8a8d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/animations/button-store-animation.png",
+      "destination": "data/animations/button-store-animation.png",
+      "bytes": 628,
+      "sha256": "5ed354c7de74bbda254b593b4a146db2c0c2f86967f7feaaca1f2c72b5da5133",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/css/news.css",
+      "destination": "data/css/news.css",
+      "bytes": 249,
+      "sha256": "bf8e9b4f488b5373d9ba279a3e057fb56c0013b466d2d89522f04bac4859845e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/cursors/cursor-attack.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-attack.png",
+      "bytes": 1600,
+      "sha256": "a53822d27edf524dfb407fa810557f680ecf6827132a4b24b10737d23e3d41e4",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-crosshair-reject.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-crosshair-reject.png",
+      "bytes": 1275,
+      "sha256": "b777332cdc393f8d10bfaa2d3b5a6b5662ce0ed9887158e75e7f52ca554b1c6c",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-look.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-look.png",
+      "bytes": 1418,
+      "sha256": "7069f26dfa26c4ac99d15f711ae750c60db536daa07622bab68c27eaecaf4b68",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-open.png",
+      "destination": "data/cursors/cursor-open.png",
+      "bytes": 1780,
+      "sha256": "3e87cd09579f31f23d5004d9378a1d3540703b39ca7d3ef1b837d1cb5c296495",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/cursors/cursor-quick-loot.png",
+      "destination": "data/cursors/cursor-quick-loot.png",
+      "bytes": 1797,
+      "sha256": "c722bb38c3273dc8521df085da0d0de181a983694c66c08c771d251c14679c8f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/cursors/cursor-resize-diagonal-bltr.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-resize-diagonal-bltr.png",
+      "bytes": 1335,
+      "sha256": "b0ac71922dfba4e419048f4bca3ccd20b10fc042fa57579264bb1e51a12bba0b",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-resize-diagonal-tlbr.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-resize-diagonal-tlbr.png",
+      "bytes": 1345,
+      "sha256": "f514b2ceb823bd50e8715be01c3def973f730445bdde5efe5b00379b921e247a",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-talk.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-talk.png",
+      "bytes": 1508,
+      "sha256": "b0dd2f6552d4e10605d7fa8da1355af7d98155df343029a843453834185cdde7",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/cursors/cursor-use.png",
+      "destination": "data/cursors/cursor-use.png",
+      "bytes": 1670,
+      "sha256": "2996059152f6f1e1cf13e335e2640dbd45dc0c85f6f07cf2fe00eeecbe7505ec",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/cursors/cursor-walk.png",
+      "destination": "data/official-client-15.3x/conflicts/cursors/cursor-walk.png",
+      "bytes": 1547,
+      "sha256": "a90e53b62fe69e4256335ea53c0746d495d3df4e7f5f2461852e308dba43b3b8",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/data/ImportantBalancingMessageData.json",
+      "destination": "data/data/ImportantBalancingMessageData.json",
+      "bytes": 1257,
+      "sha256": "2d2b9753e629d1a1a81fe48c27b638ad4c20fc52889b76c72aa2436f0a441ca3",
+      "flags": 1,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/fonts/Verdana10px.fnt",
+      "destination": "data/fonts/Verdana10px.fnt",
+      "bytes": 7868,
+      "sha256": "70bf2eb531039ae180850ca80a4241365b7438596d505c90ff8f9131fc4eae38",
+      "flags": 1,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/fonts/Verdana10px.png",
+      "destination": "data/fonts/Verdana10px.png",
+      "bytes": 940,
+      "sha256": "4a9f6c1db76b4403428a08c03ee81440f42a780e0126b3086b47890e9bc2d2d7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/1pixel-up-frame.png",
+      "destination": "data/images/1pixel-up-frame.png",
+      "bytes": 1052,
+      "sha256": "04910d70b0e5c843282a1e7c90621a00081d30330a8aa020054bb8ef8d68a345",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/2pixel-up-frame-borderimage-dark-upside-down.png",
+      "destination": "data/images/2pixel-up-frame-borderimage-dark-upside-down.png",
+      "bytes": 7283,
+      "sha256": "3b5a4b4c02eb1dfcbebf7931ff5d2b3602a272b4132973cd38ca7bd06b7f7c18",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/2pixel-up-frame-borderimage-upside-down.png",
+      "destination": "data/images/2pixel-up-frame-borderimage-upside-down.png",
+      "bytes": 15383,
+      "sha256": "186901e9b67a10cb3d84d982560cc6e5c2b85ee44c470e44e5503b3ab8d16755",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/2pixel-up-header-smoother.png",
+      "destination": "data/images/2pixel-up-header-smoother.png",
+      "bytes": 2880,
+      "sha256": "14d724a3414ccc891b6887f8817bf21c60469176278a658d143867f83e49987a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-centre.png",
+      "destination": "data/images/automap-centre.png",
+      "bytes": 1857,
+      "sha256": "fe50787764904cbd3cd7aec682f614712610a3bdd10adc5af93bb0504c56aa73",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-crosshair-dark.png",
+      "destination": "data/images/automap-crosshair-dark.png",
+      "bytes": 90,
+      "sha256": "3a50dc11b2b69da8df39346a4796edd907391fbea37fce727e4626e69303998b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-crosshair-light.png",
+      "destination": "data/images/automap-crosshair-light.png",
+      "bytes": 87,
+      "sha256": "8715a1265e30c997cce1c4af5c7816b9c2af77e831bcdb2b562083dac6c2420f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-indicator-slider.png",
+      "destination": "data/images/automap-indicator-slider.png",
+      "bytes": 143,
+      "sha256": "c72c17ad5c758f6a8cd70012a5c77840eafe723f09fe80433f4d7945b0dec240",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-e.png",
+      "destination": "data/images/automap-rose-e.png",
+      "bytes": 2568,
+      "sha256": "480f84865d2abd28d5f5104f2ef0f02895d26f7f35fae181a47ac09a42cc745f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-idle.png",
+      "destination": "data/images/automap-rose-idle.png",
+      "bytes": 2563,
+      "sha256": "dac2af7bf406d44f1d1e12d7bc90e3468659f9f5138ea0b54f76683073942224",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-n.png",
+      "destination": "data/images/automap-rose-n.png",
+      "bytes": 2573,
+      "sha256": "1ed5d5b10c6bca734696bfe2cef2b1f32eba3a662f5dd832a46f8e1df2974e94",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-ne.png",
+      "destination": "data/images/automap-rose-ne.png",
+      "bytes": 2590,
+      "sha256": "17498bccc0d289e2802369e53583d29d54ce1fd3124f1fd8ef570dee28442233",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-nw.png",
+      "destination": "data/images/automap-rose-nw.png",
+      "bytes": 2588,
+      "sha256": "1394690218cb43a4dda23d9e9d100c1e0f8bf2e348d3a54758d5b543486e820a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-s.png",
+      "destination": "data/images/automap-rose-s.png",
+      "bytes": 2573,
+      "sha256": "36bcdf67f0abc43a98216703e972075f98592a330ffc40b9c7d89735048888ab",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-se.png",
+      "destination": "data/images/automap-rose-se.png",
+      "bytes": 2588,
+      "sha256": "f401109aed73509bf5ebfd0b12d219365082788019b641c8627060ed68e10ce4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-sw.png",
+      "destination": "data/images/automap-rose-sw.png",
+      "bytes": 2561,
+      "sha256": "812541f81d4b0bcbafeb1fa6e34aeb97ee3d2a18300abcea378b28d2ce9386b8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/automap-rose-w.png",
+      "destination": "data/images/automap-rose-w.png",
+      "bytes": 2554,
+      "sha256": "d3dd16b778c952a33548650205a3243d943136453cf05aecb11bc228d9c1d19f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/backdrop-npcdialog-podestal.png",
+      "destination": "data/images/backdrop-npcdialog-podestal.png",
+      "bytes": 6540,
+      "sha256": "cfb2ecbe8a810e2c0fd311ffb1e89fbb242ccfa5af191f02c87cfdc73fccca2f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/blue-golden-flag-banner.png",
+      "destination": "data/images/blue-golden-flag-banner.png",
+      "bytes": 1102,
+      "sha256": "0973cf826178a4eddaa82432fb9a9ad314adebf4586998a8f443cbde5ade442b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/borderimage-statusbar-left.png",
+      "destination": "data/images/borderimage-statusbar-left.png",
+      "bytes": 14861,
+      "sha256": "b13f293f2ffe9b1d869dbafcc2fb29a0f7a803856181eec56288f27c2fc79559",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/borderimage-statusbar-right.png",
+      "destination": "data/images/borderimage-statusbar-right.png",
+      "bytes": 14886,
+      "sha256": "fc6409a2d1ac65dea097a767edbebecdbef162783cc4b74a5313f89a0cca246f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/borderimage-statusbar-top.png",
+      "destination": "data/images/borderimage-statusbar-top.png",
+      "bytes": 14071,
+      "sha256": "af34d9b69b60a2da5e188e2a19e7731e2ccfe66a1965731bfdcc4d39fc1bf961",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-analyticsselector-down.png",
+      "destination": "data/images/button-analyticsselector-down.png",
+      "bytes": 920,
+      "sha256": "1561aef1aaf1441755bed140a7fae8136576e31dffca7b980533478df6ca6e30",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-analyticsselector-up.png",
+      "destination": "data/images/button-analyticsselector-up.png",
+      "bytes": 932,
+      "sha256": "a9f02e705cac2263458e585e7fc32e4f2d2ff1acded0e70470d06c9890d87e3a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-arrow-left-down.png",
+      "destination": "data/images/button-arrow-left-down.png",
+      "bytes": 888,
+      "sha256": "51756d78caa3e72d7c73a576a596d0fca503b7cdcc2c8b925e7f99394e437039",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-arrow-left-up.png",
+      "destination": "data/images/button-arrow-left-up.png",
+      "bytes": 877,
+      "sha256": "b5e7c2e7b304268cf7ba0a90ec83fa2e6515658ca61921fce1c117e07f06661e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-arrow-right-down.png",
+      "destination": "data/images/button-arrow-right-down.png",
+      "bytes": 872,
+      "sha256": "664210682a5fe930f8a7260b015d6bb7dcf28730092070810ffd848d5a0aa5d7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-arrow-right-up.png",
+      "destination": "data/images/button-arrow-right-up.png",
+      "bytes": 884,
+      "sha256": "96735f8562b5af678cf31f66c982c65437b866bf64a7973f687e26043c01d045",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-battlelist-down.png",
+      "destination": "data/images/button-battlelist-down.png",
+      "bytes": 992,
+      "sha256": "460fdb61e16707f8bda3367e06e511fe6920b609b48f332a417a5b73e78d8fcc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-battlelist-party-up.png",
+      "destination": "data/images/button-battlelist-party-up.png",
+      "bytes": 876,
+      "sha256": "765864936f34b18e7497baa7908db5d20a12bedd9e48e0843467e51a5e294fb6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-battlelist-up.png",
+      "destination": "data/images/button-battlelist-up.png",
+      "bytes": 993,
+      "sha256": "0a832196e3a4f5814dc0fc009c74f4b8af58ef0aa34aee3f55afd5f9c2ee513c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-bossslots-down.png",
+      "destination": "data/images/button-bossslots-down.png",
+      "bytes": 738,
+      "sha256": "92250f9807f512ac71df9fe656a4f1e6daee229c7b2b6648b74944c913353011",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-bossslots-up.png",
+      "destination": "data/images/button-bossslots-up.png",
+      "bytes": 756,
+      "sha256": "0d708c618307c76305dd77852ecd57ff3787f0e618a2545816ed5fb9962ed9b3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-bosstiary-down.png",
+      "destination": "data/images/button-bosstiary-down.png",
+      "bytes": 884,
+      "sha256": "e0740b44e861551cf5118276398091ed21750ccce71cd58c7365d716b9b123cd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-bosstiary-up.png",
+      "destination": "data/images/button-bosstiary-up.png",
+      "bytes": 906,
+      "sha256": "9628c79520e9cccf97602c4f46bed1b15f0c54ad6cfa09327383940531377ba0",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-dovemode-down.png",
+      "destination": "data/images/button-combat-dovemode-down.png",
+      "bytes": 934,
+      "sha256": "aa9055e0df5268351daed066e434ba1eba337e08cdb5687276536b269be13426",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-dovemode-up.png",
+      "destination": "data/images/button-combat-dovemode-up.png",
+      "bytes": 989,
+      "sha256": "1fa601beb98ca858d9f141d84ce40c79ab03c3d2dd57c137ae974c19dea4e9c6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-pvp-small-down.png",
+      "destination": "data/images/button-combat-pvp-small-down.png",
+      "bytes": 992,
+      "sha256": "b9fd61db2be1692c73e05d4a6ae2c4a48de44113d16723c8aeffa5eddadacc41",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-pvp-small-up.png",
+      "destination": "data/images/button-combat-pvp-small-up.png",
+      "bytes": 918,
+      "sha256": "9731ba5b3cd20bd5da3f43d482aba0f93d64d6e073b3aa99d9b52435216f8db2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-redfistmode-down.png",
+      "destination": "data/images/button-combat-redfistmode-down.png",
+      "bytes": 958,
+      "sha256": "08789be9181d20de2ff80bdea51982a6c631109e92002cac8f05e596fb5d1415",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-redfistmode-up.png",
+      "destination": "data/images/button-combat-redfistmode-up.png",
+      "bytes": 1061,
+      "sha256": "0f9e151c8538798b4c5172fea7751af20f31ac2fe86d2b59d1e3341f546b17b4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-whitehandmode-down.png",
+      "destination": "data/images/button-combat-whitehandmode-down.png",
+      "bytes": 983,
+      "sha256": "a005045540e00344d0d157a2edaa1422342f72d9a5507df339b0f8bd19cc3b0c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-whitehandmode-up.png",
+      "destination": "data/images/button-combat-whitehandmode-up.png",
+      "bytes": 994,
+      "sha256": "92c7ae2cb21bc47eab850b65f1e8e3afc1c4ee8b2e7ea084bf94d007af912eaa",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-yellowhandmode-down.png",
+      "destination": "data/images/button-combat-yellowhandmode-down.png",
+      "bytes": 1002,
+      "sha256": "58b12630a1f54e7d6a010f5fe50c99ac919784be0301aaedd93da0c65a36e033",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-combat-yellowhandmode-up.png",
+      "destination": "data/images/button-combat-yellowhandmode-up.png",
+      "bytes": 1027,
+      "sha256": "3603eb00b6b28aeb140b879cc7b4cf8fe6e39551c573751f6eedafcbc4cf3e5c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-copytoclipboard-down.png",
+      "destination": "data/images/button-copytoclipboard-down.png",
+      "bytes": 696,
+      "sha256": "35122bb093df36bb1b9d9fd95bc8cbe8abf82f2ab771a20da04bfec4159ff717",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-copytoclipboard-up.png",
+      "destination": "data/images/button-copytoclipboard-up.png",
+      "bytes": 698,
+      "sha256": "5e38ed851f1a97c29f3b88727c8702364d854b59ab6daa172063cb4d158c9919",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-cyclopedia-down.png",
+      "destination": "data/images/button-cyclopedia-down.png",
+      "bytes": 949,
+      "sha256": "f1881487a9eb3d59527914eb77b79d8d23b89ba2de85f30ef3ad035c074ae772",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-cyclopedia-up.png",
+      "destination": "data/images/button-cyclopedia-up.png",
+      "bytes": 970,
+      "sha256": "08832ff6bd4f9fabe8e5449940af4b6d2bf84eb35699b088c073b33453df0ba1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-exaltation-forge-down.png",
+      "destination": "data/images/button-exaltation-forge-down.png",
+      "bytes": 836,
+      "sha256": "b55814f6c81b77b11aa208f67b246445ce037c72850df5945eae8d71d3ee217d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-exaltation-forge-up.png",
+      "destination": "data/images/button-exaltation-forge-up.png",
+      "bytes": 844,
+      "sha256": "10c7776ee7662efa223091b5c0b6b2044e314737e7d8ad1bdbaa44a92868366f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-follow-down.png",
+      "destination": "data/images/button-follow-down.png",
+      "bytes": 929,
+      "sha256": "16713aa4083e93c96fd5bf588de8afbbb776a49a396f51fdcde7a757fd60ee5a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-follow-up.png",
+      "destination": "data/images/button-follow-up.png",
+      "bytes": 942,
+      "sha256": "aa8dc5b750d689227b0a1b70fdc975ed620bbf844531c36745785c9aaedbfeeb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-genderfemale-down.png",
+      "destination": "data/images/button-genderfemale-down.png",
+      "bytes": 387,
+      "sha256": "e206ad87585ec675b380f839d0fad8b26c953a38b5688fe4473dde3dec10fc07",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-genderfemale-up.png",
+      "destination": "data/images/button-genderfemale-up.png",
+      "bytes": 387,
+      "sha256": "0db3d9ea7f137d998342a6ce4ca6d2d8cb9a89945843142e37295ddf437cb705",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-gendermale-down.png",
+      "destination": "data/images/button-gendermale-down.png",
+      "bytes": 396,
+      "sha256": "a617df5f2a38ca112076568324fd91cf0574fb188f2b39b27f66d5919c2f8e96",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-gendermale-up.png",
+      "destination": "data/images/button-gendermale-up.png",
+      "bytes": 389,
+      "sha256": "2d6c72fe32d8f4f1929410b273115b359543e5cc2218d9d9297826b826f861ef",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-highscores-down.png",
+      "destination": "data/images/button-highscores-down.png",
+      "bytes": 828,
+      "sha256": "bfae6efe44d1e23a096d86f6aa2fc8a18a321074e66177f17f7a1ff2aae6f955",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-highscores-up.png",
+      "destination": "data/images/button-highscores-up.png",
+      "bytes": 823,
+      "sha256": "4762eb0a221f26f5943c04dab937a13718fad3b0a5f9e92435262f0f0968d14b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-killtracker-down.png",
+      "destination": "data/images/button-killtracker-down.png",
+      "bytes": 980,
+      "sha256": "7427ffa6f6e86a0551290cba9bd3c93894454c76d354e660dc148809818a738b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-killtracker-up.png",
+      "destination": "data/images/button-killtracker-up.png",
+      "bytes": 982,
+      "sha256": "f00d18ed4f20bf4bdf91249b3acff29f5b5e06d605cdc6f800b779165654755b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-leaderboard-down.png",
+      "destination": "data/images/button-leaderboard-down.png",
+      "bytes": 685,
+      "sha256": "341b511badb9e5696ecaf4622611f5d8136d68ab0198446983559a7884d5464b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-leaderboard-up.png",
+      "destination": "data/images/button-leaderboard-up.png",
+      "bytes": 678,
+      "sha256": "3bd165670ac788dac1d5600b0206c8293424bd4e99d38794a42946e777db1b4d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-logout-down.png",
+      "destination": "data/images/button-logout-down.png",
+      "bytes": 964,
+      "sha256": "c953761561c096051db987df58ea844665955c097249532296d74ada46fda383",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-logout-up.png",
+      "destination": "data/images/button-logout-up.png",
+      "bytes": 964,
+      "sha256": "fe70af4b161389c284168ef377038c8958a363f2e148f4971a334ca60844777c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-news-down.png",
+      "destination": "data/images/button-news-down.png",
+      "bytes": 880,
+      "sha256": "d6350fac50ce4efbf02ac586031bcd7812a4c24e38d6bc344754fbd59fd2e18f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-news-up.png",
+      "destination": "data/images/button-news-up.png",
+      "bytes": 906,
+      "sha256": "8901709863050e34e5316d2c7f94cc58e140e6dd4bff678c1941b8dbee5c97bb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-options-down.png",
+      "destination": "data/images/button-options-down.png",
+      "bytes": 826,
+      "sha256": "9dedb0f0f677409d2fe771ccf670ec191180816dbaf06c9426e19716299c19e5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-options-up.png",
+      "destination": "data/images/button-options-up.png",
+      "bytes": 818,
+      "sha256": "350e2c816c6d93e290f0ab03e917f7ca2b44c79c530a1a4b1769ab493d1069fa",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-questlog-down.png",
+      "destination": "data/images/button-questlog-down.png",
+      "bytes": 955,
+      "sha256": "1111ee50dabfd2be5fd15a59fd4ecee3aaf1d9cd383b53326f1cc6de0836d2f6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-questlog-up.png",
+      "destination": "data/images/button-questlog-up.png",
+      "bytes": 958,
+      "sha256": "1d64df316e47c91ffe7a58e2621c8b2103d7793ab68da35835c7a3202139bb6f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rewardwall-down.png",
+      "destination": "data/images/button-rewardwall-down.png",
+      "bytes": 1014,
+      "sha256": "5e432478defd8f5b1d7bf95100c17240cf50ea938f31dc0d236c83f7d9ba4093",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rewardwall-up.png",
+      "destination": "data/images/button-rewardwall-up.png",
+      "bytes": 1008,
+      "sha256": "a3cb03894b13380fd5dbccefa17c4a3593439500cf8d4eb4db66884faf0696cb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rotate-left-down.png",
+      "destination": "data/images/button-rotate-left-down.png",
+      "bytes": 862,
+      "sha256": "938a1a8921469b54e3d73bc8c387ae3d45751ff3ab9dcc8e7d686118ac1a7e37",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rotate-left-up.png",
+      "destination": "data/images/button-rotate-left-up.png",
+      "bytes": 861,
+      "sha256": "92fac6305826f9147f6819c1ba49eb328a356f288825f4cb0737a7d604d3947f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rotate-right-down.png",
+      "destination": "data/images/button-rotate-right-down.png",
+      "bytes": 808,
+      "sha256": "07f17eb94253c0271acca552ea6fd3708cd6dacb81272038c194b2ea7b32e62f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-rotate-right-up.png",
+      "destination": "data/images/button-rotate-right-up.png",
+      "bytes": 868,
+      "sha256": "507455650da34b04d45291c675e7f324813f301b7b4d4e80ee1c7ed5a250948f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-select-20x20-down.png",
+      "destination": "data/images/button-select-20x20-down.png",
+      "bytes": 891,
+      "sha256": "705693828eeaace2fbd5ae89a2e63b012e7b3e3cd5a0db8ca655d17b9dedaca3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-select-20x20-up.png",
+      "destination": "data/images/button-select-20x20-up.png",
+      "bytes": 889,
+      "sha256": "35f1112b0ffa0ffc313db32cbf1a908ba0ab005d906a3b1aff7d9d12e5b0bd70",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-add-disabled.png",
+      "destination": "data/images/button-sidebar-left-add-disabled.png",
+      "bytes": 527,
+      "sha256": "54195c2ba4bb9ac8503f7a13859fde2fb6cc600cf69d752c7bf1130380f43ef1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-add-down.png",
+      "destination": "data/images/button-sidebar-left-add-down.png",
+      "bytes": 539,
+      "sha256": "ba8dccfa677967511505f74bb7a6b7bca1fac77a2fe8907d66dda25c5d64980f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-add-up.png",
+      "destination": "data/images/button-sidebar-left-add-up.png",
+      "bytes": 536,
+      "sha256": "dea383f9846de6b02255ee0645c0894b91c4b453f0728f0840c7f74d6a16e698",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-remove-disabled.png",
+      "destination": "data/images/button-sidebar-left-remove-disabled.png",
+      "bytes": 526,
+      "sha256": "9f9ba411ff847ed6ddc68f24513f8698d11849817ba92578f376d709d803f066",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-remove-down.png",
+      "destination": "data/images/button-sidebar-left-remove-down.png",
+      "bytes": 536,
+      "sha256": "427c4f9a383df2ccbd972a9eba0a183d1d1c41baa1aead26934e2f14e59e976d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-left-remove-up.png",
+      "destination": "data/images/button-sidebar-left-remove-up.png",
+      "bytes": 542,
+      "sha256": "961673ffbf86fe0de4aeab2c9b0d3a16326cdebcb421f1dcbbe9ecfce8ac3348",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-add-disabled.png",
+      "destination": "data/images/button-sidebar-right-add-disabled.png",
+      "bytes": 511,
+      "sha256": "b7fe72effdf9511e7f2298fe3a022209c5a2450ec87acdfc5ec25f3a04d9edf1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-add-down.png",
+      "destination": "data/images/button-sidebar-right-add-down.png",
+      "bytes": 515,
+      "sha256": "4390ac949b68fa1b5d772db4f03083bcdcc39e1afe4e15068b217a3c1e65d9dd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-add-up.png",
+      "destination": "data/images/button-sidebar-right-add-up.png",
+      "bytes": 522,
+      "sha256": "29801888bf7168b5f5a2e7cc350e8e73281dd3db395726df2543a0c30dc1052f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-remove-disabled.png",
+      "destination": "data/images/button-sidebar-right-remove-disabled.png",
+      "bytes": 503,
+      "sha256": "07d7c85af073353ed78c2158616143dde3894abbd021ce78f8b9f5c7dfbc48bf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-remove-down.png",
+      "destination": "data/images/button-sidebar-right-remove-down.png",
+      "bytes": 514,
+      "sha256": "c1f0fc49eee22f71d0122718a58af9da3205b5426b6dc9b47ddc938bdf85467f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-sidebar-right-remove-up.png",
+      "destination": "data/images/button-sidebar-right-remove-up.png",
+      "bytes": 517,
+      "sha256": "03c0a4c8fea149a8a61a8755c762b3bbbbb179d921ce1f36ea3610f0abe02c07",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-skills-down.png",
+      "destination": "data/images/button-skills-down.png",
+      "bytes": 848,
+      "sha256": "0d2fe18d79fecaa2a955f0777075e898b27d6c0201dbb5d8d3e3e258b256ac3f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-skills-up.png",
+      "destination": "data/images/button-skills-up.png",
+      "bytes": 818,
+      "sha256": "9c0018d35133574da3760c6be45075cf9d8e8dce52074139719bb7efff79db35",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-social-down.png",
+      "destination": "data/images/button-social-down.png",
+      "bytes": 932,
+      "sha256": "d74c23cff431bdca394ffd9a8deea48664992377625eb184e7ca6db06e66aea6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-social-up.png",
+      "destination": "data/images/button-social-up.png",
+      "bytes": 928,
+      "sha256": "3addf719ccc4e731d5e9b0067c55daf3bf5ac67074cb3db1bb38845432bcf96a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-spelllistwidget-down.png",
+      "destination": "data/images/button-spelllistwidget-down.png",
+      "bytes": 1022,
+      "sha256": "2bc01a79d6a498be542ee27a1e387d0c3a6d7681463f6f34aedc063fb2bfaa3e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-spelllistwidget-up.png",
+      "destination": "data/images/button-spelllistwidget-up.png",
+      "bytes": 1026,
+      "sha256": "6b3cc9340da6846295d0b37afe7304b85da0c78c5387e82b6b68fa2969cd0ca2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-stand-down.png",
+      "destination": "data/images/button-stand-down.png",
+      "bytes": 921,
+      "sha256": "d603fd15937629b1f5880efa955815705ae13da9db182d8407512f3da56b7b97",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-stand-up.png",
+      "destination": "data/images/button-stand-up.png",
+      "bytes": 940,
+      "sha256": "62d3e999e981de3d489ee0c3c1e443598200d784dcedffe9b65ddeb611b528a6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-inbox-down.png",
+      "destination": "data/images/button-store-inbox-down.png",
+      "bytes": 848,
+      "sha256": "ac9c165dc6c35a66f2979842226fe21f9c5b3dc31ae230aa118b8b5340e72be8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-inbox-up.png",
+      "destination": "data/images/button-store-inbox-up.png",
+      "bytes": 835,
+      "sha256": "f2340a0bd6dccb945eba973891760c127036bb0d731dd290071f20f9959af41f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-small-down.png",
+      "destination": "data/images/button-store-small-down.png",
+      "bytes": 2782,
+      "sha256": "b192967f2d030bb5c54021bf2cdcdd0d9287f73dc441cf897c5a7fe7b27bc9a8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-small-up.png",
+      "destination": "data/images/button-store-small-up.png",
+      "bytes": 2795,
+      "sha256": "b42ca146a6e9c06057f8fbf51caee79dfd9413f5e7b6827b2247f8bb441030bc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-storexp-down.png",
+      "destination": "data/images/button-store-storexp-down.png",
+      "bytes": 2245,
+      "sha256": "1a72d4ab5e24f68e5aedc503d470537a4226d7aee2c54501ca64225504b48d3c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-store-storexp-up.png",
+      "destination": "data/images/button-store-storexp-up.png",
+      "bytes": 2247,
+      "sha256": "0008ba9b87cb7b733bf6ee49a8f313ee9344e0c286c33cdec4bcb913cdfd01c8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storeicon-down.png",
+      "destination": "data/images/button-storeicon-down.png",
+      "bytes": 1270,
+      "sha256": "05dc9032a6928b5c8e60295859aec173eaa26d6356ce20373dc5957538165ba2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storeicon-up.png",
+      "destination": "data/images/button-storeicon-up.png",
+      "bytes": 1251,
+      "sha256": "6d9e7300cfeae950852017811c3d192c7d0233b721970b6aeac76506b35a53d5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-idle.png",
+      "destination": "data/images/button-storexp-noborder-idle.png",
+      "bytes": 2184,
+      "sha256": "f4a0bb1692af5b82d7a800b252cfa9508fde7a0c56a5a926b9cce4eb98cd3988",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-left-idle.png",
+      "destination": "data/images/button-storexp-noborder-left-idle.png",
+      "bytes": 2348,
+      "sha256": "5b7e6d1a0cfc98a98a5ab9b1f835c0062ede9291d08a13783d51512f04371d41",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-left-pressed.png",
+      "destination": "data/images/button-storexp-noborder-left-pressed.png",
+      "bytes": 2334,
+      "sha256": "ed51b8bd9d188734d4e1f26116c601b27a19bc0d2a6ca8ab32c28b2a0b052b64",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-pressed.png",
+      "destination": "data/images/button-storexp-noborder-pressed.png",
+      "bytes": 2167,
+      "sha256": "be19ba7e078fbf50a9c9f80e1f033eea1be69b74e1c2891875e0f0b4824b473b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-right-idle.png",
+      "destination": "data/images/button-storexp-noborder-right-idle.png",
+      "bytes": 2337,
+      "sha256": "0cd93786a2dc91ad4db884111cfa66f3bab811fbbe5642aabae470322d7fb368",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-storexp-noborder-right-pressed.png",
+      "destination": "data/images/button-storexp-noborder-right-pressed.png",
+      "bytes": 2356,
+      "sha256": "082a49f9c4a30036b07a3fb0602b2100b00924629e63d8f55f3892149e994e1b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-viplist-down.png",
+      "destination": "data/images/button-viplist-down.png",
+      "bytes": 939,
+      "sha256": "7be63f2982d4d626568650602c5d16da0f0727e6893fcf0ae13df96a284db057",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/button-viplist-up.png",
+      "destination": "data/images/button-viplist-up.png",
+      "bytes": 938,
+      "sha256": "92462ce2315869101ad160b68857a76c9a39df4a83cfb7bde48eb4ada77b5577",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/charm-points.png",
+      "destination": "data/images/charm-points.png",
+      "bytes": 294,
+      "sha256": "1eb2dbcab7a03d595dcbd46bb82c77a20fee211a6007be2136bd898b796d6a76",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/clamp_selector.png",
+      "destination": "data/images/clamp_selector.png",
+      "bytes": 100,
+      "sha256": "056bfa504846ff4e8accebb4765a364c30ce3d27c3f58e6a2d314dddd5b39f74",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonclose-down.png",
+      "destination": "data/images/console-buttonclose-down.png",
+      "bytes": 677,
+      "sha256": "8a9040cd2d58a954232c86885c8c73e766fa5452601605eb6af9e6175153211a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonignore-down.png",
+      "destination": "data/images/console-buttonignore-down.png",
+      "bytes": 708,
+      "sha256": "a5ce2ba10495d5e248c383db969853e1b08c8c8fed3caf45e4d722d0dc6b50d9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonignore-up-flash.png",
+      "destination": "data/images/console-buttonignore-up-flash.png",
+      "bytes": 738,
+      "sha256": "481f53d276f6af57fff7a96607fbc9a72baca04b95fa8f37e4f079f4e38a5880",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonignore-up.png",
+      "destination": "data/images/console-buttonignore-up.png",
+      "bytes": 704,
+      "sha256": "d03a3a218f705a6fe8710eb41a9e6b74e6bb1f4ba31b759b7025e6ad70ae97a2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-down.png",
+      "destination": "data/images/console-buttonleft-down.png",
+      "bytes": 636,
+      "sha256": "135a546228bc0b58af527d59b365b8d2d0fac9b645790e413cd2159d53f008e2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-flash-down.png",
+      "destination": "data/images/console-buttonleft-flash-down.png",
+      "bytes": 614,
+      "sha256": "63cf4e472090aab65ebecd2bbeb46d0471484687d15e12827ad2796311380bf7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-flash-up.png",
+      "destination": "data/images/console-buttonleft-flash-up.png",
+      "bytes": 637,
+      "sha256": "86f60d4f555ad5e6f8ea73b857a53be8d998b7acf08a462cd229539bd973124a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-up.png",
+      "destination": "data/images/console-buttonleft-up.png",
+      "bytes": 637,
+      "sha256": "c81ceed3a12a511a60f6e4b8a6f53bd4f883e6a109b9b715b947f39a9855d914",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-update-down.png",
+      "destination": "data/images/console-buttonleft-update-down.png",
+      "bytes": 607,
+      "sha256": "a4e83897fd295ac6b1da8a04d96b162ef9e04cb442595c1f0c6bbcd7adcc9772",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonleft-update-up.png",
+      "destination": "data/images/console-buttonleft-update-up.png",
+      "bytes": 635,
+      "sha256": "fb8b3869243eeb5673c411bee94c21915204548a26d1c22662e45d39ed8cfd07",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonmessages-down.png",
+      "destination": "data/images/console-buttonmessages-down.png",
+      "bytes": 608,
+      "sha256": "8e2b9a5c1488a925e096dc30feaa7685a6b9ca72e9ce09cfd5ec8c5a2cf3ddc9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonmessages-up.png",
+      "destination": "data/images/console-buttonmessages-up.png",
+      "bytes": 600,
+      "sha256": "6c433cf477a2045257b4bc8445910937b51398fa357bf4eaf8e0e39936343adc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonnew-down.png",
+      "destination": "data/images/console-buttonnew-down.png",
+      "bytes": 609,
+      "sha256": "494c6da5ade84e3f92a3edba1942961f467b57269a3cf99028c62505a0d1e5cf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonnew-up.png",
+      "destination": "data/images/console-buttonnew-up.png",
+      "bytes": 599,
+      "sha256": "3f001d3e04e51c04651895e7ca3af4571c69d94a0813756bdc8d67a84cf1b233",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-down.png",
+      "destination": "data/images/console-buttonright-down.png",
+      "bytes": 628,
+      "sha256": "89aee34cbab77222f2c75527993b41f425e9b4b7fc0b9cb3a8fd38cc8567908a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-flash-down.png",
+      "destination": "data/images/console-buttonright-flash-down.png",
+      "bytes": 604,
+      "sha256": "3121848a576922fa865a5ae790e368f601ec1dcdd0d0e6476dccda4af696c3dc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-flash-up.png",
+      "destination": "data/images/console-buttonright-flash-up.png",
+      "bytes": 622,
+      "sha256": "1988c89cde83c00e3f1339f5b35665e2a95a2f08413316b033fd4946b28a83a7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-up.png",
+      "destination": "data/images/console-buttonright-up.png",
+      "bytes": 632,
+      "sha256": "0017098b1c8585b9f2e297e249df537c913ecbcec91e5c46c2e0d304bc6c94c9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-update-down.png",
+      "destination": "data/images/console-buttonright-update-down.png",
+      "bytes": 616,
+      "sha256": "3b6069653e08812976e1398e7590a555399208ceeeb065756220ea7b2cf3bb3f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-buttonright-update-up.png",
+      "destination": "data/images/console-buttonright-update-up.png",
+      "bytes": 615,
+      "sha256": "cd1906d8d4314af95ee1f9d825b52d4d8d60a10b31b02672d592ea48139ae63c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-tab-active.png",
+      "destination": "data/images/console-tab-active.png",
+      "bytes": 2856,
+      "sha256": "51e770a25dadadb5e5a18d454a7733309d15c2b47c4c65956a8273f37133484d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/console-tab-passive.png",
+      "destination": "data/images/console-tab-passive.png",
+      "bytes": 2927,
+      "sha256": "20a34c69b0247ff69abe13d0536da56fb22216e884ab6493f95a97042a5affa6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/containerslot-border-large.png",
+      "destination": "data/images/containerslot-border-large.png",
+      "bytes": 275,
+      "sha256": "fb13ec7108f9d665aee0c1d94dee0347abd343071a8f56d78ed0513bfc44c7df",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/context-menu-separator.png",
+      "destination": "data/images/context-menu-separator.png",
+      "bytes": 374,
+      "sha256": "a3873f94e55a9be686cf9d76e1de07a8c5b2ddd663004b5b39451eb6a0dac52b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/creatures/hud/flags/npc-categories.png",
+      "destination": "data/images/creatures/hud/flags/npc-categories.png",
+      "bytes": 948,
+      "sha256": "f966c79cc29a5f02ac470e32ce77bdd8c7b2571d19102110ee593d5324f80b7a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/creatures/player-state-guildwar-flag.png",
+      "destination": "data/images/creatures/player-state-guildwar-flag.png",
+      "bytes": 235,
+      "sha256": "f29fe10dfa11d2e5893ffbd66053f30be2da8972dc1a0d67fb230bfa90755862",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/cyclopedia-hunting-session-premium.png",
+      "destination": "data/images/cyclopedia-hunting-session-premium.png",
+      "bytes": 2025,
+      "sha256": "68d527b742d2354a614bae505c73588580f5f58007a81df896db482cfd2e5bf5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dailyreward/icon-get-premium.png",
+      "destination": "data/images/dailyreward/icon-get-premium.png",
+      "bytes": 902,
+      "sha256": "dd9fad467aa512835a8ddcc580f945bc631456f81de42486f7dc7bf855644588",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dailyreward/icon-have-premium.png",
+      "destination": "data/images/dailyreward/icon-have-premium.png",
+      "bytes": 834,
+      "sha256": "80694ce2446a86b4a3958ef91c4d67b581515bd0be88e477e3ea50dbd64821dc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dailyreward/icon-rewardarrow-active.png",
+      "destination": "data/images/dailyreward/icon-rewardarrow-active.png",
+      "bytes": 130,
+      "sha256": "6b84ac107e0213b36d8f25528e6e6a847106ce03bcebe209115f7fd91ac72ab5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dailyreward/icon-rewardarrow-inactive.png",
+      "destination": "data/images/dailyreward/icon-rewardarrow-inactive.png",
+      "bytes": 128,
+      "sha256": "42fe6262f4be7aa0470cbdfe3ebc12630d22d4850c4e06bdf50bdc84bc4b9990",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/divider-horizontal.png",
+      "destination": "data/images/divider-horizontal.png",
+      "bytes": 751,
+      "sha256": "eade2abf56e942c3137291b1ba51742d3b1bc04426c8ee6e8ec736418244c2f8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dynamic/dynamic-image-error_13x13.png",
+      "destination": "data/images/dynamic/dynamic-image-error_13x13.png",
+      "bytes": 271,
+      "sha256": "ab710ee656edf1c21a234933b69038cce04044ccc618b534feb2f7989a774f03",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dynamic/dynamic-image-loading.png",
+      "destination": "data/images/dynamic/dynamic-image-loading.png",
+      "bytes": 855,
+      "sha256": "21522bb0df36153482b9c25d3370f039f7fc23225edb360438b7562c4122d2b1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/dynamic/dynamic-image-loading_13x13.png",
+      "destination": "data/images/dynamic/dynamic-image-loading_13x13.png",
+      "bytes": 352,
+      "sha256": "977fc7c222686b254201e8041b99a64498eff16e3949c865eb70787615737d5d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/edit-list-logo.png",
+      "destination": "data/images/edit-list-logo.png",
+      "bytes": 1572,
+      "sha256": "d96b1a7b281818f5881d02370e4c10c110a39c0cab824650e18433a439328aa6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/gauge-arrow.png",
+      "destination": "data/images/gauge-arrow.png",
+      "bytes": 137,
+      "sha256": "976588324fc11820dc93fffe9ca79c8ea170d505381efd0cbf36a19aa3dc837a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/gauge.png",
+      "destination": "data/images/gauge.png",
+      "bytes": 1229,
+      "sha256": "63f70c3a0df897a93e41e1c33330aca579cedd9b8c076f1495eda35da23b7817",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/1pixel-down-frame-left.png",
+      "destination": "data/images/grid/1pixel-down-frame-left.png",
+      "bytes": 204,
+      "sha256": "ee18f6fa78060f029082084d5a53dc889910e3ce7ef16b5d443124dbfb13b1c1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/1pixel-down-frame-top.png",
+      "destination": "data/images/grid/1pixel-down-frame-top.png",
+      "bytes": 178,
+      "sha256": "2e97909dc77aa18253ea6eb121b4a91a4e3ef0fc755d54e32629f8414ebf242d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-bottom-left.png",
+      "destination": "data/images/grid/3pixel-frame-bottom-left.png",
+      "bytes": 96,
+      "sha256": "626a6f285a6da42c1f4173d1caf9a9fa11cd6321e364d714b891f6701f5648fd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-bottom-right.png",
+      "destination": "data/images/grid/3pixel-frame-bottom-right.png",
+      "bytes": 95,
+      "sha256": "aad9f51e095c894926c84e07bb85d1a5f0deeb8c413405ad8c07a1b3e81b393c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-bottom.png",
+      "destination": "data/images/grid/3pixel-frame-bottom.png",
+      "bytes": 514,
+      "sha256": "0b94b6e3946a30f23f2fc84225cc288b1b5628f3716472b112c37ec8874b14e2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-left.png",
+      "destination": "data/images/grid/3pixel-frame-left.png",
+      "bytes": 584,
+      "sha256": "f5b8f613b51056ab72874b37ee965c869815a9e2efb9277fdd7ef2b04703e0dc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-right.png",
+      "destination": "data/images/grid/3pixel-frame-right.png",
+      "bytes": 584,
+      "sha256": "f5b8f613b51056ab72874b37ee965c869815a9e2efb9277fdd7ef2b04703e0dc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-top-left.png",
+      "destination": "data/images/grid/3pixel-frame-top-left.png",
+      "bytes": 96,
+      "sha256": "7fe3d818793acf8fe0d55aec9694dd9f32e11e54eee2da35f25d5730a5cd5c83",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-top-right.png",
+      "destination": "data/images/grid/3pixel-frame-top-right.png",
+      "bytes": 96,
+      "sha256": "573a8a705cc25e85c45955539ea682e928d2be68168ce4c9b3162b17ea5c2ae4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/grid/3pixel-frame-top.png",
+      "destination": "data/images/grid/3pixel-frame-top.png",
+      "bytes": 514,
+      "sha256": "0b94b6e3946a30f23f2fc84225cc288b1b5628f3716472b112c37ec8874b14e2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/hitpoints-bar-filled.png",
+      "destination": "data/images/hitpoints-bar-filled.png",
+      "bytes": 573,
+      "sha256": "15371adf92a7b2882023175861e835b1d70d2fc2acfdaa21727934dd2c2468fe",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-arrowskiptoend-disabled.png",
+      "destination": "data/images/icon-arrowskiptoend-disabled.png",
+      "bytes": 128,
+      "sha256": "58aafc49cc3f02fc2222cdc5b8cce7ee22549143e1af9eaaa0849552c7abe491",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-arrowskiptoend.png",
+      "destination": "data/images/icon-arrowskiptoend.png",
+      "bytes": 126,
+      "sha256": "162f7588d4925c35150c556ee4b57a089a4e6ef86dcefd8687a2b5ac633c296d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-battlelist-party-button.png",
+      "destination": "data/images/icon-battlelist-party-button.png",
+      "bytes": 462,
+      "sha256": "f61c82e65dbf570a81596964dfa1b545918d85122dcad06732e9f47af87ed48b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-cooldown-finished.png",
+      "destination": "data/images/icon-cooldown-finished.png",
+      "bytes": 168,
+      "sha256": "dcdf6d2a272fb45d8458d2a3f3ef67771e14a7fe407e0cda545693f5978b539f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-cooldown-running.png",
+      "destination": "data/images/icon-cooldown-running.png",
+      "bytes": 174,
+      "sha256": "cf5fe023500d64d711254fdc6a32a2f1fdb43e79bd06d8a6b23364d876f687c3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-cyclopedia-magicalarchive.png",
+      "destination": "data/images/icon-cyclopedia-magicalarchive.png",
+      "bytes": 1400,
+      "sha256": "a3b756b42f600d919a3348e160ad6db626a009144624d5c82a034f4940068df6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-delete.png",
+      "destination": "data/images/icon-delete.png",
+      "bytes": 114,
+      "sha256": "3e3bf6421b028efe2e91674b58b1cf722640b8fe1380d85a86c1a03f22076963",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-depot.png",
+      "destination": "data/images/icon-depot.png",
+      "bytes": 756,
+      "sha256": "d994eeb89401f7b0272094d438a46c00d2934fbc1b1d239f1f9e2cb3c8c14771",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-displayresults.png",
+      "destination": "data/images/icon-displayresults.png",
+      "bytes": 273,
+      "sha256": "cf0c511401e0e44c8b000e14166efdee8695bab6285adbbd840c4e5acd5adf39",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-downarrow.png",
+      "destination": "data/images/icon-downarrow.png",
+      "bytes": 143,
+      "sha256": "eb9b3059538d52bcf7f7552c6d6f60a732b628a7c2aade03cc0cc549e3b1e399",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-downarrowskip-disabled.png",
+      "destination": "data/images/icon-downarrowskip-disabled.png",
+      "bytes": 227,
+      "sha256": "3e3ffe605038340760c6130e5ba24a7380fa792c27795ff15ceaca46585bb57f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-downarrowskip.png",
+      "destination": "data/images/icon-downarrowskip.png",
+      "bytes": 217,
+      "sha256": "fdb47eb1d479c454752b221ce02b11ce8564a57cb02b0707d8292dc3a5ce4da6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-erase-small-disabled.png",
+      "destination": "data/images/icon-erase-small-disabled.png",
+      "bytes": 128,
+      "sha256": "3d1e6a6fc3e5f73a5330fac473375deb9c25684b575444ea7b1c651ce6aeb53f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-erase-small.png",
+      "destination": "data/images/icon-erase-small.png",
+      "bytes": 150,
+      "sha256": "4b2bc5e0419895d434800132d6825200bbf41ddd1d46fb66cb884647551b28a1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-exiva-disabled.png",
+      "destination": "data/images/icon-exiva-disabled.png",
+      "bytes": 403,
+      "sha256": "94e979c3bd4eddc0c7924e395b3dcc0191e03ec9ae1a0cd023d5a826a30dbe91",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-exiva-flash.png",
+      "destination": "data/images/icon-exiva-flash.png",
+      "bytes": 434,
+      "sha256": "0fd5c9b97be2c01402517bcff00ccf88a8e8e1374f90ccec2011dfacd00b9e48",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-exiva.png",
+      "destination": "data/images/icon-exiva.png",
+      "bytes": 402,
+      "sha256": "048a65afee15a114b6e62aa4b42a85263b1edbb743a5a1af3fa71b72e14f23e4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-gender-female.png",
+      "destination": "data/images/icon-gender-female.png",
+      "bytes": 149,
+      "sha256": "6ccdd16e32baad63de27dd6ad2f221d6eb547531eeb1a3e21538bfae2b1e532e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-gender-male.png",
+      "destination": "data/images/icon-gender-male.png",
+      "bytes": 142,
+      "sha256": "c70d81b0a7e12275bd7a31356bb608ba15aa5fea045f69c1a4d6ef403baff9bf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-guildaccount.png",
+      "destination": "data/images/icon-guildaccount.png",
+      "bytes": 351,
+      "sha256": "51f0332970d761be9bd4f765b0c6431b1f017b9339615793e18f04ecaffc9dbd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-imminentraid.png",
+      "destination": "data/images/icon-imminentraid.png",
+      "bytes": 484,
+      "sha256": "88ca57e6709a5575a59862790ec4277f1c453056df3ea57f6f903e4f56a3b4a3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-inbox.png",
+      "destination": "data/images/icon-inbox.png",
+      "bytes": 1520,
+      "sha256": "975a070d3a6787f5527c98c881df84e463891d5607a5b561966fc70f7e0cea64",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-invite.png",
+      "destination": "data/images/icon-invite.png",
+      "bytes": 386,
+      "sha256": "2c6c852fcd37ee5249b30283bc997ebbc406945518ea9e99dc9c6fc94773af9c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-leader.png",
+      "destination": "data/images/icon-leader.png",
+      "bytes": 172,
+      "sha256": "b98a82494cc0fd0a649039940315a057fb05aee30a14a93c0f2813babd11008f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-lock-grey.png",
+      "destination": "data/images/icon-lock-grey.png",
+      "bytes": 323,
+      "sha256": "3f5eae490488ef389525bc1c3a37b804b9ad2c8abfd16516737d82a65c9b6af4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-marketchest.png",
+      "destination": "data/images/icon-marketchest.png",
+      "bytes": 1013,
+      "sha256": "70bf737bd0c8687585fa37bd0dc8c2158b7492e46e3e26499a1b77474677d576",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-menu.png",
+      "destination": "data/images/icon-menu.png",
+      "bytes": 434,
+      "sha256": "048b3aeaf11a225e9c9fb159a9c7c06841394311e57d8f02d09a3fd40772db0e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-mute-pressed-disabled.png",
+      "destination": "data/images/icon-mute-pressed-disabled.png",
+      "bytes": 154,
+      "sha256": "7c1ef6e2892f2ffe69d3939f5fc68d9e09b9832ad2f19fc6fe2564c2b0284914",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-normal-mode.png",
+      "destination": "data/images/icon-normal-mode.png",
+      "bytes": 638,
+      "sha256": "bf4f21b1a8d9da38bc29eb5049b64d6b2d9c0a54e03a553d00c6d7a98e9aa762",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-npcdialog-multiplenpcs.png",
+      "destination": "data/images/icon-npcdialog-multiplenpcs.png",
+      "bytes": 630,
+      "sha256": "707a08431db59f525e6b5d0cb8ea68d48abdf9a2f3a00a693a957e78f926c38a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-pending.png",
+      "destination": "data/images/icon-pending.png",
+      "bytes": 163,
+      "sha256": "edee3a56f4fb704c0ad4c9f40638f02b5b2cb2a9153c95ff30bc3ad1e99ac1fe",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-prey-preycreature.png",
+      "destination": "data/images/icon-prey-preycreature.png",
+      "bytes": 792,
+      "sha256": "cc4cb9fa1f59158595acafa34018e2cfca38a57232cb52848c2d220941fc5904",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-proficiencytree-off.png",
+      "destination": "data/images/icon-proficiencytree-off.png",
+      "bytes": 313,
+      "sha256": "9c8def65e31a3e281222caad8a29894437bbf2e43261471fa2831bbf4883e829",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-proficiencytree-on.png",
+      "destination": "data/images/icon-proficiencytree-on.png",
+      "bytes": 253,
+      "sha256": "5b0691672226b58a844367c2def40bc57d224af4dc01f50906ca9ad73fb2ddd5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-proficiencytree-open-button.png",
+      "destination": "data/images/icon-proficiencytree-open-button.png",
+      "bytes": 133,
+      "sha256": "c29789586607be32f3e93fbc03dea1a69007a9dfd3aa9a296c908e46112d0180",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-proficiencytree-open.png",
+      "destination": "data/images/icon-proficiencytree-open.png",
+      "bytes": 167,
+      "sha256": "7f474e0b7fa7606515e799392e4aa66c2d78730b1bfd8c9353e2ef09da9ab8e5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-raid.png",
+      "destination": "data/images/icon-raid.png",
+      "bytes": 319,
+      "sha256": "bcd8a9a74e12934586955ac7b33fc130c1c373ea02cfeadf4c746533e4218e2b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-resize-chat.png",
+      "destination": "data/images/icon-resize-chat.png",
+      "bytes": 159,
+      "sha256": "5e49dc21c996ead1f3c612445db45a00b6cf6d57fd462989c580a39708665356",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-resize-mapwindow-and-chat.png",
+      "destination": "data/images/icon-resize-mapwindow-and-chat.png",
+      "bytes": 169,
+      "sha256": "c199e8b69fe7fcb989b89c15f910731ec6311160fbd83de6f9f2b6e32536ceab",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-resize-mapwindow.png",
+      "destination": "data/images/icon-resize-mapwindow.png",
+      "bytes": 157,
+      "sha256": "35e6137379fea4a3650dc40dfe94d5658a2e3458437cde0a6c82e907f183a619",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-search-tiny.png",
+      "destination": "data/images/icon-search-tiny.png",
+      "bytes": 159,
+      "sha256": "856471a0eb49c8d1fb3e199498433e5ee21d2bf6f6b248e5cbf64d7c6751e28c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-search.png",
+      "destination": "data/images/icon-search.png",
+      "bytes": 275,
+      "sha256": "91466c2643c8f54c269af9a13484ea017ba111204e41ef045e96949619db7884",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-secure-mode.png",
+      "destination": "data/images/icon-secure-mode.png",
+      "bytes": 546,
+      "sha256": "2f4f148034eaf70f3ae4f2d099dd9c8a77b83c9393e61efa64ddc7d3c56a5b79",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-show-small-off.png",
+      "destination": "data/images/icon-show-small-off.png",
+      "bytes": 131,
+      "sha256": "42b9eaee54c8917ae5c4f3d284df21082b8facd84ff404a5da3044dad0df223e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-speech-say.png",
+      "destination": "data/images/icon-speech-say.png",
+      "bytes": 100,
+      "sha256": "8b01b8c62ba953a981fd758d236bb5f26d9e8d4dfddd5777a38125b33212d7c0",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-speech-whisper.png",
+      "destination": "data/images/icon-speech-whisper.png",
+      "bytes": 95,
+      "sha256": "37ea6631cb59420c394363e46fd20bbfbe6a2dded01fc9154fe38a52ed6599fd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-speech-yell.png",
+      "destination": "data/images/icon-speech-yell.png",
+      "bytes": 121,
+      "sha256": "530fb6af463a683d807b6d74e6518378a048d4c2c7157d0f487846fd825b2bf7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-splitchat.png",
+      "destination": "data/images/icon-splitchat.png",
+      "bytes": 344,
+      "sha256": "1f8a7affc324e22ad46a12227e54cab4c6e6847653293a91fe1ce795fa216a39",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-status-hidden.png",
+      "destination": "data/images/icon-status-hidden.png",
+      "bytes": 327,
+      "sha256": "892255c9027af1d779ad9ebb91e3d870a6a1ad2ac01816bfa72590c23bdfc6d4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-store-16x10.png",
+      "destination": "data/images/icon-store-16x10.png",
+      "bytes": 423,
+      "sha256": "cf0c15732a1e20cdedebeb40057a44a6c80c2521c02321f33c7be6a4932bd51e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-summary.png",
+      "destination": "data/images/icon-summary.png",
+      "bytes": 115,
+      "sha256": "dd629ca40e227fcc8ad3e882972295a042f5165001b7ae1687bd51535db6ef27",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-supplystash.png",
+      "destination": "data/images/icon-supplystash.png",
+      "bytes": 1409,
+      "sha256": "49f602c170043f518b6602f5045b5cd0859b26d06b1b782806e66b317709befd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-uparrow.png",
+      "destination": "data/images/icon-uparrow.png",
+      "bytes": 174,
+      "sha256": "1f7e6b7d5eecc2e7d4f31388b62caf58da37ef6d37794a54fb007c52f49ab631",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-uparrowskip-disabled.png",
+      "destination": "data/images/icon-uparrowskip-disabled.png",
+      "bytes": 240,
+      "sha256": "baca71b0016651315eb3f4dc25ca48c2a90cd4830dd950205a0284aa3b37427d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icon-uparrowskip.png",
+      "destination": "data/images/icon-uparrowskip.png",
+      "bytes": 261,
+      "sha256": "3b5be7498350848e31de34fe4cebdc61e1a9fa0abff4718c06c2267246c267c8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/icons-npcdialog.png",
+      "destination": "data/images/icons-npcdialog.png",
+      "bytes": 6150,
+      "sha256": "e743d0537c15dcf17158ed738132347a6ec613ffc724846750f94b1e54467d52",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/icon-imbuementlevel-basic.png",
+      "destination": "data/images/imbuing/icon-imbuementlevel-basic.png",
+      "bytes": 206,
+      "sha256": "d6ef6d39adc37205802a4ff2d0d83b62809a32c4889cdf32a4b19374f1224836",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/icon-imbuementlevel-intricate.png",
+      "destination": "data/images/imbuing/icon-imbuementlevel-intricate.png",
+      "bytes": 244,
+      "sha256": "e5e60f5a7cdc71f7b83c5de892bf8de98a78771ed100601cef47d176f3fc29e6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/icon-imbuementlevel-powerful.png",
+      "destination": "data/images/imbuing/icon-imbuementlevel-powerful.png",
+      "bytes": 248,
+      "sha256": "6f3db7bdb423adbfb780ac5b0405093112f0ed9af31eade573211980f76e6f9f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-imbue-active.png",
+      "destination": "data/images/imbuing/imbuing-icon-imbue-active.png",
+      "bytes": 1180,
+      "sha256": "327870a39dca30eb04409bb1791e51157646260d11353c3c05f3c4858007fb48",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-imbue-disabled.png",
+      "destination": "data/images/imbuing/imbuing-icon-imbue-disabled.png",
+      "bytes": 1046,
+      "sha256": "e4c726b4cc23dff000f0740b1980f2a12a2fac45c5bcd85de345804045f601f5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-nopremium.png",
+      "destination": "data/images/imbuing/imbuing-icon-nopremium.png",
+      "bytes": 870,
+      "sha256": "8958a2509ce67f56712fec76942bafdcab1c99f348af472cf52feb6c8fc96c08",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-premium.png",
+      "destination": "data/images/imbuing/imbuing-icon-premium.png",
+      "bytes": 849,
+      "sha256": "a33c21522e8d88552691ed4eaf8d2a9d1e57c308fad1625e57cde0f3375b102a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-remove-active.png",
+      "destination": "data/images/imbuing/imbuing-icon-remove-active.png",
+      "bytes": 1177,
+      "sha256": "eab1075712cab257e6fa0cc729736064870e8205658f34c49730b6f2285999d8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-remove-disabled.png",
+      "destination": "data/images/imbuing/imbuing-icon-remove-disabled.png",
+      "bytes": 1084,
+      "sha256": "d06dc12050d39667686b80928f5f9fd9495b626cc4cae3d5f6f278f1662cc667",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-useprotection-active.png",
+      "destination": "data/images/imbuing/imbuing-icon-useprotection-active.png",
+      "bytes": 1195,
+      "sha256": "6136546c92afcc1a476e42746d873627ecdce48c21f2787dcfb1d14718d9468a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-icon-useprotection-disabled.png",
+      "destination": "data/images/imbuing/imbuing-icon-useprotection-disabled.png",
+      "bytes": 966,
+      "sha256": "e69e5329e69e072fe045bacdbf3c5ef49e4fc3d8f0be1d7e09dd5163393d234d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-slot-empty.png",
+      "destination": "data/images/imbuing/imbuing-slot-empty.png",
+      "bytes": 1779,
+      "sha256": "1db416c26592277899448d9e2183dcd9bf5aa5d483b8bd045034534a8d86ae4e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/imbuing/imbuing-slot-locked.png",
+      "destination": "data/images/imbuing/imbuing-slot-locked.png",
+      "bytes": 1206,
+      "sha256": "d83afcc6ef6bbe898faa23605f96694ec61b7bff85a8f47afb4cab7ebb407f3d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/indicator_soulcore.png",
+      "destination": "data/images/indicator_soulcore.png",
+      "bytes": 457,
+      "sha256": "02a6082d8f59828168b9de88167ee823d462cec83aaf08415c3f89620ff333ef",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/inventory-states-bar-vertical.png",
+      "destination": "data/images/inventory-states-bar-vertical.png",
+      "bytes": 1332,
+      "sha256": "9276b4d7b9ef6e093568bb8e0b0054ae30fdf7c03711f027048b3b4ca11187b7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/inventory-states-bar.png",
+      "destination": "data/images/inventory-states-bar.png",
+      "bytes": 2359,
+      "sha256": "bbc414c924db70b1c03abf3aa00087274c47fd26ff43f1931c2b3d4c83d325c9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/latency/latency-high.png",
+      "destination": "data/images/latency/latency-high.png",
+      "bytes": 415,
+      "sha256": "f4ef17b1668a9f0bff09c31fdb324b5ccb335883f3ee7218f2a314b69c2d7bd0",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/latency/latency-low.png",
+      "destination": "data/images/latency/latency-low.png",
+      "bytes": 389,
+      "sha256": "019a8ed61a2ac5260ec88b08fbb6d8adecc670b6d6fb067fa9a7a130df886b8a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/latency/latency-medium.png",
+      "destination": "data/images/latency/latency-medium.png",
+      "bytes": 366,
+      "sha256": "ba1f19721a465c69aed15941d0069153739a31034a02a574e0b91f2078e2b495",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/latency/optimized-connection-stability.png",
+      "destination": "data/images/latency/optimized-connection-stability.png",
+      "bytes": 134,
+      "sha256": "67fa5cf08aa24088e8b42ec827348ef8775fc42882b87bf1bdd9db8f7c19da99",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/lenshelp-icon-exiva.png",
+      "destination": "data/images/lenshelp-icon-exiva.png",
+      "bytes": 699,
+      "sha256": "3ad0e621406507d3c2d5ea7f45f50aa6048180fa70f12e34495df883345857f5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/lenshelp-icon-locked.png",
+      "destination": "data/images/lenshelp-icon-locked.png",
+      "bytes": 387,
+      "sha256": "3baee90e723f45af58c7171064875d1564ff7a00a745f20786a17261f163a285",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/lenshelp-icon-unlocked.png",
+      "destination": "data/images/lenshelp-icon-unlocked.png",
+      "bytes": 408,
+      "sha256": "1519e3dde1fd944d735b0f8f9dcdf58960d3e9bc6352c45452266e8d18df149a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/maincharacter.png",
+      "destination": "data/images/maincharacter.png",
+      "bytes": 201,
+      "sha256": "41e1fc4b782bcc84ba3fd3bb90bdea7149e1454470086ec110b3929054d0686d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/mana-bar-filled.png",
+      "destination": "data/images/mana-bar-filled.png",
+      "bytes": 622,
+      "sha256": "da42f59c7d3ddbebe896e653242bf71f8d7866be08fef847d1e19ac65f0720f8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/manashield.png",
+      "destination": "data/images/manashield.png",
+      "bytes": 194,
+      "sha256": "8976ca00c70732dc24052fda04b919e2461335c94265c47887b42abdb228a140",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/minimap/background-for-highlighting-markers.png",
+      "destination": "data/images/minimap/background-for-highlighting-markers.png",
+      "bytes": 387,
+      "sha256": "e1af6856c57de92762cded5c19fdf905efe3f792a80f308190c077147cd020b2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/monster-classifications.png",
+      "destination": "data/images/monster-classifications.png",
+      "bytes": 13733,
+      "sha256": "73d2e9e6cdbca52cf587789c17e372deb33f239c0710a6ca32a00289af883b8f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/monster-icon-bonuspoints.png",
+      "destination": "data/images/monster-icon-bonuspoints.png",
+      "bytes": 296,
+      "sha256": "18357e5e12f98c4edafac49dcca27452329b697d7d86582cd352c7f734b04700",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/news/icon-news-client-features.png",
+      "destination": "data/images/news/icon-news-client-features.png",
+      "bytes": 1055,
+      "sha256": "7fd0b6e092285823751d6837670d4930677b770657d3ca90d1e19a1bbbfa5057",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/news/icon-news-major-updates.png",
+      "destination": "data/images/news/icon-news-major-updates.png",
+      "bytes": 895,
+      "sha256": "a6b2e9da94ef5f91eb49a239376cf3ba1eeb0cc71f78ebb81412e9ab41487906",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/news/icon-news-support.png",
+      "destination": "data/images/news/icon-news-support.png",
+      "bytes": 1041,
+      "sha256": "4eb130a3f69095d5b7cde7ad880261e99c00901ace4747931ec9b079413f7d14",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/news/icon-news-useful-info.png",
+      "destination": "data/images/news/icon-news-useful-info.png",
+      "bytes": 429,
+      "sha256": "608ade8c8d94cc6a302099a9476718910b7631cc949c88780da59f06aacbf246",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/playerguide/playerguide-icon-levelup.png",
+      "destination": "data/images/playerguide/playerguide-icon-levelup.png",
+      "bytes": 3849,
+      "sha256": "195dfb8c30b77f43465397b42f245fd8091ab7d65000b17a158c441691f475b8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/premium/icon-banner-premium-16x16.png",
+      "destination": "data/images/premium/icon-banner-premium-16x16.png",
+      "bytes": 361,
+      "sha256": "f7537b02b445e0fc29581c56ea2dad48353c9c6da7ee7a8fee9ab3c2670cd6ba",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/premium/illustration-welcomeback.png",
+      "destination": "data/images/premium/illustration-welcomeback.png",
+      "bytes": 84862,
+      "sha256": "5e0a86322a564c6ebcd8659415edf39cd9de4339ae33c4a96a91cb3945894516",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/premium/premium-icons-20x20.png",
+      "destination": "data/images/premium/premium-icons-20x20.png",
+      "bytes": 35719,
+      "sha256": "1118c0986b9c96445e43124631e6a2d6e87b1937a03fd1a82918ce98d98b814d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-bonus-reroll-disabled.png",
+      "destination": "data/images/prey-bonus-reroll-disabled.png",
+      "bytes": 551,
+      "sha256": "5694def9e7d5f8b532968dbe48d9d6cdb6af971b45901594667fdac3fe0214e4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-bonus-reroll.png",
+      "destination": "data/images/prey-bonus-reroll.png",
+      "bytes": 608,
+      "sha256": "a82e2194e58bbdd5b20815827dda86a679dbd7e3dc9460e16e56350a9bef2461",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-choose-prey-disabled.png",
+      "destination": "data/images/prey-choose-prey-disabled.png",
+      "bytes": 1140,
+      "sha256": "82837277b30984644a058414a37176046487626b58dbb255f389794ca166bbaa",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-choose-prey-reactivate-disabled.png",
+      "destination": "data/images/prey-choose-prey-reactivate-disabled.png",
+      "bytes": 1294,
+      "sha256": "62f31ace4e8c89bd16c6b78be41be8d66d3364abc95b5a130bd1e309ae1bb72f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-choose-prey-reactivate.png",
+      "destination": "data/images/prey-choose-prey-reactivate.png",
+      "bytes": 1439,
+      "sha256": "d051c696e54bfea110d376f87898c5d2f093ef2f722dc2924dcdc96ffa8e23f6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-choose-prey.png",
+      "destination": "data/images/prey-choose-prey.png",
+      "bytes": 1147,
+      "sha256": "bcc0b0d081046e2088f1b89289c787d20baae9e9c9d5f43f8bfaa8f9197c20e0",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-confirm-monster-selection-disabled.png",
+      "destination": "data/images/prey-confirm-monster-selection-disabled.png",
+      "bytes": 974,
+      "sha256": "f626c548a785f9415a662815b23f53c55c901c033ddcb4a90b8b3f9d10ff95bf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-confirm-monster-selection.png",
+      "destination": "data/images/prey-confirm-monster-selection.png",
+      "bytes": 1095,
+      "sha256": "0b42ca7f977dac91e0636d52919d2960757bac3bea8408f9bd267eef80f38b56",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-list-reroll-disabled.png",
+      "destination": "data/images/prey-list-reroll-disabled.png",
+      "bytes": 1132,
+      "sha256": "1bd67ebd43e4216a58b4b78586fc3f92fe4c9c9c87a984e80d5fd3a45641f482",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-list-reroll-reactivate-disabled.png",
+      "destination": "data/images/prey-list-reroll-reactivate-disabled.png",
+      "bytes": 1324,
+      "sha256": "f8aee41933546b69fc1e8dd4bab465aec5957f2ec78034171f330010cc9b3d66",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-list-reroll-reactivate.png",
+      "destination": "data/images/prey-list-reroll-reactivate.png",
+      "bytes": 1581,
+      "sha256": "9f3e767e69c4c92ffa274ccdc1515134dd720e43f1ce9b3c2c5e72f9706f27f8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-list-reroll.png",
+      "destination": "data/images/prey-list-reroll.png",
+      "bytes": 1407,
+      "sha256": "122d271afecb9a20fd8b05ac32c4528951b0461f0735ec11542f3286c288a7bc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-noprey.png",
+      "destination": "data/images/prey-noprey.png",
+      "bytes": 1218,
+      "sha256": "a6284c8056eecb8390d5291e8aaa3f7dbce68b6e2c422292f4b9056ad59df50b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-unlock-permanently.png",
+      "destination": "data/images/prey-unlock-permanently.png",
+      "bytes": 810,
+      "sha256": "2f7689168c76828119fa15d5a07bf32cec89221bbb10d5a4e87bd203854c028c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/prey-unlock-temporarily.png",
+      "destination": "data/images/prey-unlock-temporarily.png",
+      "bytes": 909,
+      "sha256": "e80f1d024b68c85e8baa62d9ab3bbf8c3cbacd7f232d67fa568eebc0a255a8b3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/backdrop_weaponmastery_highlight.png",
+      "destination": "data/images/proficiency/backdrop_weaponmastery_highlight.png",
+      "bytes": 1976,
+      "sha256": "c48a3d7273c2f251fa2baeb1b09c286fc5776af5dd2feeccca101d4722028387",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/backdrop_weaponmastery_manipulate_highlight.png",
+      "destination": "data/images/proficiency/backdrop_weaponmastery_manipulate_highlight.png",
+      "bytes": 1980,
+      "sha256": "13cc7370dbca4a6b7f31f3c8bbcf6e29ba86ee58db87042bbead7880a9227b3f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/border-weaponmasterytreeicons-active.png",
+      "destination": "data/images/proficiency/border-weaponmasterytreeicons-active.png",
+      "bytes": 3393,
+      "sha256": "507500d3645634ad36e823442ebecb622f1402f954c092d0533848c50db129cb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/border-weaponmasterytreeicons-inactive.png",
+      "destination": "data/images/proficiency/border-weaponmasterytreeicons-inactive.png",
+      "bytes": 3119,
+      "sha256": "3dc504ed888bfb8e204157757f6ee0784cb498bb6967b538ffc3a07abd620ea6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-0.png",
+      "destination": "data/images/proficiency/icon-masterylevel-0.png",
+      "bytes": 1595,
+      "sha256": "912b9d0d4f37baaae92a59ed888ef00f2ac0b1a15fe029310bcfd401d71cc167",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-1-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-1-gold.png",
+      "bytes": 759,
+      "sha256": "68159b20fc5520ed37d99fd88984c7bdac6480d9c705c8b58e3bf327c6fafe02",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-1-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-1-silver.png",
+      "bytes": 755,
+      "sha256": "6b4f94df16153275fc78f3628711f0acea8921c485bd3a91e90b5f263647f20d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-1.png",
+      "destination": "data/images/proficiency/icon-masterylevel-1.png",
+      "bytes": 2042,
+      "sha256": "b309f13a14a1eb2ca7c1b75fe11cb24f4f71d786810c822d7e8fcadaafff7f95",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-2-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-2-gold.png",
+      "bytes": 773,
+      "sha256": "b469d09d7ef887ba825295f8641caae19858806dc132eda6bceb3666736188ea",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-2-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-2-silver.png",
+      "bytes": 773,
+      "sha256": "15b036e10de7750efb79ed740fb236d9a20200297081cc21ead91ad6bc14da60",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-2.png",
+      "destination": "data/images/proficiency/icon-masterylevel-2.png",
+      "bytes": 2389,
+      "sha256": "7a35931419873e3e9858d7a65e277f832c597263d23c4ee79081440c699e33b2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-3-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-3-gold.png",
+      "bytes": 862,
+      "sha256": "b43b8c4790a6d9279a471048bca0b7ea4dde4eb7a74e7f56cfc9c9d842eddc6d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-3-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-3-silver.png",
+      "bytes": 852,
+      "sha256": "ead0c34b6dd4dac57cf375604f713896767d069784bd25f4079545fbd9b7ecd3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-3.png",
+      "destination": "data/images/proficiency/icon-masterylevel-3.png",
+      "bytes": 3359,
+      "sha256": "159b6fb8e56adf6e6e8a5b329be61bdb62d617ed1a2bf213e88a4d7759c50c96",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-4-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-4-gold.png",
+      "bytes": 968,
+      "sha256": "2e59aec87ba777eb1eb001b9f643ce658381c993bbc12d1e00ca46c7f366ced1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-4-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-4-silver.png",
+      "bytes": 950,
+      "sha256": "7641fba938b7a6857da2c2e41eb06fd3c26abbac082cea1b38d52e47e28894a4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-4.png",
+      "destination": "data/images/proficiency/icon-masterylevel-4.png",
+      "bytes": 4245,
+      "sha256": "a8a0da925e5a836b34ae229471229bcb079f827f8a1ce24ae3ce259ac97fca95",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-5-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-5-gold.png",
+      "bytes": 1088,
+      "sha256": "6924c77a90eaeb991e6afbe89989dcf0d9d8550f6729d948385ccc8012bff730",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-5-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-5-silver.png",
+      "bytes": 1074,
+      "sha256": "59b3d1098c21e2ddb61d32a068dbd683103860974a0415a1e3f6e0e72de1607e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-5.png",
+      "destination": "data/images/proficiency/icon-masterylevel-5.png",
+      "bytes": 4850,
+      "sha256": "bcae765633fc6cb77e27abb359de1d4f0fe4b7796e14bd3aafcd1c44d3ebc9cc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-6-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-6-gold.png",
+      "bytes": 1186,
+      "sha256": "f9cc4c889ad528a02ad7a17ac8ad645dff726490fa6eea58e94070a7da3ccf50",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-6-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-6-silver.png",
+      "bytes": 1156,
+      "sha256": "e9ea5836cf3be64c73ffaa17d65c2112ee445d0f7cac4a60c2328423015bcf17",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-6.png",
+      "destination": "data/images/proficiency/icon-masterylevel-6.png",
+      "bytes": 5620,
+      "sha256": "5b7cde797b7c09a54800784d61aea8eaa30850214775f687536ea0da8861f000",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-7-gold.png",
+      "destination": "data/images/proficiency/icon-masterylevel-7-gold.png",
+      "bytes": 1195,
+      "sha256": "3dd854d8676ebfde5081856200242f46bdca9db3e07aace42945e26c7bf4829b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-7-silver.png",
+      "destination": "data/images/proficiency/icon-masterylevel-7-silver.png",
+      "bytes": 1178,
+      "sha256": "ce23ae4f357442cd00f263cb6c3c041065a2beb3d7e4229ee82f35a738f7e2d5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-masterylevel-7.png",
+      "destination": "data/images/proficiency/icon-masterylevel-7.png",
+      "bytes": 7174,
+      "sha256": "a8f2b5011597142cf4356b620ec84396986fdf80619d8a82db3613fb815b613e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-star-tiny-gold.png",
+      "destination": "data/images/proficiency/icon-star-tiny-gold.png",
+      "bytes": 137,
+      "sha256": "3551b00a4962d2e926a4e04084528cfb9f45b3269f72530fd7342a06fc5cd10c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon-star-tiny-silver.png",
+      "destination": "data/images/proficiency/icon-star-tiny-silver.png",
+      "bytes": 129,
+      "sha256": "7dd3945cb62c00f23523b3736e634b0793d8057295664df3bfb0312c9daec7dc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon_forge_disabled.png",
+      "destination": "data/images/proficiency/icon_forge_disabled.png",
+      "bytes": 434,
+      "sha256": "d68e9bdec17577359206587195aa23162ab5b98798d3494c74c3f1b34fb9f600",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon_manipulation.png",
+      "destination": "data/images/proficiency/icon_manipulation.png",
+      "bytes": 526,
+      "sha256": "8977a71d2961c87605420e14e118e45454c5bd6c6d37209b83e646e15ebe3f7c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/proficiency/icon_manipulation_disabled.png",
+      "destination": "data/images/proficiency/icon_manipulation_disabled.png",
+      "bytes": 469,
+      "sha256": "fbbcb2147701170fe1e72a37073f8a161cd66ceccb922baead70de30dfd76c95",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_grades_circle_bottom_anim.png",
+      "destination": "data/images/skillwheel/backdrop_grades_circle_bottom_anim.png",
+      "bytes": 5014,
+      "sha256": "86bcaa6f0ef1660f050882ca8789aa0a2abd9c093ad3ad79736c5063c04dfca3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_grades_circle_mid_anim.png",
+      "destination": "data/images/skillwheel/backdrop_grades_circle_mid_anim.png",
+      "bytes": 5108,
+      "sha256": "36ed02bf441af7b2ac04206a8a70c055887764b7e6aba8da941515a00ea02f17",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_grades_circle_top_anim.png",
+      "destination": "data/images/skillwheel/backdrop_grades_circle_top_anim.png",
+      "bytes": 4995,
+      "sha256": "10fc3bccdd6b09ea03da08fc70677764ad702044922ba561d74e4c1501e7f1fb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_grades_line_anim.png",
+      "destination": "data/images/skillwheel/backdrop_grades_line_anim.png",
+      "bytes": 461,
+      "sha256": "aa9f7d1364db64c8b028ae64c42be45d13f53e5f00347113cde899d2303fd03f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_light_BL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_light_BL.png",
+      "bytes": 409,
+      "sha256": "f04c3cd26d1dc8f5fbe84aafaa6d1e71ca9f25979fc4a5c15892e88f9db4fa03",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_light_BR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_light_BR.png",
+      "bytes": 411,
+      "sha256": "03d9bd949d1caf45ccd2aabd489a80a59bc2bdc4651c60b8f24eb19a09249f33",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_light_TL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_light_TL.png",
+      "bytes": 416,
+      "sha256": "ca32d39ddf5ab70fcec4f0874060f4c3549825a1cb04b1451da23e23be7f67bb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_light_TR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_light_TR.png",
+      "bytes": 424,
+      "sha256": "f5dc39c5810c1d2e2e48472fe9b5e33029457c29c024cdafb1b5a5b2a93b4eeb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_BL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_BL.png",
+      "bytes": 1081,
+      "sha256": "64f9d566fc1478e20419c63343ee50b0f920f6855aaaf9dbee40052272ca7711",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_BR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_BR.png",
+      "bytes": 1099,
+      "sha256": "88be20517727f93f01f277c4c59a0c8b96daf477812c228c347eb040a59a54e9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_TL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_TL.png",
+      "bytes": 1102,
+      "sha256": "cb2464f2a40aff6cc2d5704165f0a534a26927276d5ebd602f5e7fc0b60cad8d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_TR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketdisabled_TR.png",
+      "bytes": 1104,
+      "sha256": "a2120f63219ab06fdd9869a53da24eaed9011a10769435966c670806c860b1e2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_BL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_BL.png",
+      "bytes": 1110,
+      "sha256": "8daf740b52d4d495d51ac38f4660189182b5dd55d08360d94b438599d0701f74",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_BR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_BR.png",
+      "bytes": 1121,
+      "sha256": "519d45c1e2ab017271b5bce6061a52eafe1212064e7253c577c90d20de4839ae",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_TL.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_TL.png",
+      "bytes": 1124,
+      "sha256": "7b0e89d07d4b2f6ac0c01d4b82f0a39a48aa666a3968606742d2313a5284e7c5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_TR.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_largebonus_socketenabled_TR.png",
+      "bytes": 1127,
+      "sha256": "d8134b39dd1c54735350b0c857356d81122475a885a30f4c1754b072a5dab2b7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_socket_active.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_socket_active.png",
+      "bytes": 479,
+      "sha256": "f8011decbc193b8380806d6f62cdeb35ebdfd82e51a086e681923884052216ee",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/backdrop_skillwheel_socket_inactive.png",
+      "destination": "data/images/skillwheel/backdrop_skillwheel_socket_inactive.png",
+      "bytes": 1239,
+      "sha256": "317c71354ed8cecf5e91f7624dcc9539950e8b0680578aa113a60daa741b5812",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/change-skillpoints-button-down.png",
+      "destination": "data/images/skillwheel/change-skillpoints-button-down.png",
+      "bytes": 1232,
+      "sha256": "9b11126b15f26c14fe9ba46f183c2e37863e6792b8b9d002554c6a732de6c190",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/change-skillpoints-button-up.png",
+      "destination": "data/images/skillwheel/change-skillpoints-button-up.png",
+      "bytes": 1244,
+      "sha256": "f814963e4af057c12b1798cecbc1f399dd43f6813a4fe41548572dea72712020",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-cooldown-reduction.png",
+      "destination": "data/images/skillwheel/icon-cooldown-reduction.png",
+      "bytes": 211,
+      "sha256": "6d8cc0949fba981ec8cfaa230d8b5c5d69d3f60a7c2630e93461a397cec965df",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-fragments-greater.png",
+      "destination": "data/images/skillwheel/icon-fragments-greater.png",
+      "bytes": 345,
+      "sha256": "c8fb5f88edd5c41d726aceb14b6ff705c80d248a7578dd91a8ab314654258ea5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-fragments-lesser.png",
+      "destination": "data/images/skillwheel/icon-fragments-lesser.png",
+      "bytes": 278,
+      "sha256": "63e61197b11f6618d6a4ea9c726c915961b96ae7c36b2c8391742f5bd8ebb891",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-fragmentworkshop.png",
+      "destination": "data/images/skillwheel/icon-fragmentworkshop.png",
+      "bytes": 985,
+      "sha256": "456ba3764fe322a963c4a742f99279d3bc21fcb875cbbf4aed67339733b1c75d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-gematelier.png",
+      "destination": "data/images/skillwheel/icon-gematelier.png",
+      "bytes": 1305,
+      "sha256": "b66f2a8cb5a50df54ee406bdcd3f8678ea3dee0d9a7a9dab7d6d7a3ef4bac786",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-skillwheel-presets.png",
+      "destination": "data/images/skillwheel/icon-skillwheel-presets.png",
+      "bytes": 913,
+      "sha256": "b3d1805edcf08c3937996af6173b8a9436316568b854c5fe9c33681a90d74640",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icon-skillwheel-selection.png",
+      "destination": "data/images/skillwheel/icon-skillwheel-selection.png",
+      "bytes": 972,
+      "sha256": "c31563f18dfc40f1fc98febd608cbfff61183af7b2f939c2060ba6441bfe56bb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icons-gematelier-domainaffinity.png",
+      "destination": "data/images/skillwheel/icons-gematelier-domainaffinity.png",
+      "bytes": 1011,
+      "sha256": "1fd81ded2d8b9a061acf24791421e52282e3bdc54d4f7c324182c3615ff0a5cd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/icons-skillwheel-sockets.png",
+      "destination": "data/images/skillwheel/icons-skillwheel-sockets.png",
+      "bytes": 2633,
+      "sha256": "8f575121fdd798ec4b8a7d45ac709f4eeaee38f568014a70cf377b9ad835d729",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/marker_skillwheelsocket.png",
+      "destination": "data/images/skillwheel/marker_skillwheelsocket.png",
+      "bytes": 249,
+      "sha256": "4c95b27e4baa8559b4072923126b117bd564bf9cf0154d820f574232d77ce84a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skillwheel/socket-gematelier.png",
+      "destination": "data/images/skillwheel/socket-gematelier.png",
+      "bytes": 4081,
+      "sha256": "707c982a06107f973a90f7c4c7c9c3cf54d3f4b5c84ba3edf9272743a94e035d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/4pixel-up-frame.png",
+      "destination": "data/images/skin/classic/4pixel-up-frame.png",
+      "bytes": 14269,
+      "sha256": "78c19a9dccf91ae3cb5bc5e58d2eb782e0c19130c68802bc02b49036c0f2f08a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-dropdown-20x20-idle.png",
+      "destination": "data/images/skin/classic/button-dropdown-20x20-idle.png",
+      "bytes": 785,
+      "sha256": "9f4832ad8646697cdb35d4e479b51cb8f487e06c8b0effa2d44787b113315682",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-dropdown-20x20-pressed.png",
+      "destination": "data/images/skin/classic/button-dropdown-20x20-pressed.png",
+      "bytes": 793,
+      "sha256": "76ad26148ad30f07a99c21beaa12419a9c1782ca08786ac9c5bb8a1efb5d3215",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-storeimage-next-down.png",
+      "destination": "data/images/skin/classic/button-storeimage-next-down.png",
+      "bytes": 126,
+      "sha256": "71253fff2df77bc18a02656b741b11dcab21fae5b1ef5621c51ee1cd833d89f7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-storeimage-next-up.png",
+      "destination": "data/images/skin/classic/button-storeimage-next-up.png",
+      "bytes": 113,
+      "sha256": "c220d703f22eb63041daa5c3aa2e279819c3403034d3491f256d85c953a48e89",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-storeimage-previous-up.png",
+      "destination": "data/images/skin/classic/button-storeimage-previous-up.png",
+      "bytes": 114,
+      "sha256": "80ffa8b77ce8cd7e6d6525e1c7c9f0972900faf7186cf02185d2e43b3091fb38",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-textured-down.png",
+      "destination": "data/images/skin/classic/button-textured-down.png",
+      "bytes": 538,
+      "sha256": "d5f69aebba49259d2570a1044e7592a2a5d4c1da85a9a5d37535d50f6560c0b2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/button-textured-up.png",
+      "destination": "data/images/skin/classic/button-textured-up.png",
+      "bytes": 536,
+      "sha256": "54738c67b55cac35c4ab7dc47e2cbca8f1a97e9369a0acf0fc6c0d064fe87139",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/cipsoft-logo.png",
+      "destination": "data/images/skin/classic/cipsoft-logo.png",
+      "bytes": 7175,
+      "sha256": "1bb8eef672c4442eaab8c86b4c7290922310cf44885e4d35ae4f77e6d853ba6c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/client-dragon-logo-testserver.png",
+      "destination": "data/images/skin/classic/client-dragon-logo-testserver.png",
+      "bytes": 39337,
+      "sha256": "f6fbb4100f3fff318eb2349f11618fa7de6f3ed3bb43bbf1845c209f6c7dd1ed",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/container-level-up-down.png",
+      "destination": "data/images/skin/classic/container-level-up-down.png",
+      "bytes": 414,
+      "sha256": "05d7a38c07c92dd2ec36d3720e3d5ce1144d9c0daae293564cc46e56ff2edc9b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/container-level-up-up.png",
+      "destination": "data/images/skin/classic/container-level-up-up.png",
+      "bytes": 410,
+      "sha256": "1bb9fcfe812a2d2b356746640d4ff7b97f9a9b4b4e249eb1b4ccf90d75f347cc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/dialog-frame-borderimage.png",
+      "destination": "data/images/skin/classic/dialog-frame-borderimage.png",
+      "bytes": 17918,
+      "sha256": "d116abe0a6de490403957330e642d1fd39a7c2dbcf4146544bc4b8543a1e72b2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/exit-button-small-inactive.png",
+      "destination": "data/images/skin/classic/exit-button-small-inactive.png",
+      "bytes": 395,
+      "sha256": "9f60192a5a5909c45ca3447974e892f890ef627595129962d57f46fe964fb30e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-add.png",
+      "destination": "data/images/skin/classic/icon-add.png",
+      "bytes": 117,
+      "sha256": "98c2236b1f151d9e3f0d16dc752f4936fd1f2443c0481a71a247fdc09e34faa9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-additionalwidget.png",
+      "destination": "data/images/skin/classic/icon-additionalwidget.png",
+      "bytes": 205,
+      "sha256": "b72e1aaf549dee8695597d40abd2b9143ffc7ca8fb2bdcc36b1dbd101d619e4b",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-arrow-greater-horizontal.png",
+      "destination": "data/images/skin/classic/icon-arrow-greater-horizontal.png",
+      "bytes": 193,
+      "sha256": "a09cec99b9abd5deb014e1e457fdd21f113e219b7b38692c429fc5f75e08e2da",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-arrow-greater-vertical.png",
+      "destination": "data/images/skin/classic/icon-arrow-greater-vertical.png",
+      "bytes": 136,
+      "sha256": "fbcf788d5ec570cfb9f15dcc7709a3566fb9a6a3ec3dc4bbaa8b807530c91e33",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-bestiarytracker.png",
+      "destination": "data/images/skin/classic/icon-bestiarytracker.png",
+      "bytes": 202,
+      "sha256": "f571cd87796faa1781ad43288d70e9827697e6cfc2003cadd7ebb7e2167f7112",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-bosstiarytracker.png",
+      "destination": "data/images/skin/classic/icon-bosstiarytracker.png",
+      "bytes": 226,
+      "sha256": "743c3dd0eee637fd965363030538d895bb084d847b64ae82848e4b1f53321ab6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-crownsetoutfit.png",
+      "destination": "data/images/skin/classic/icon-crownsetoutfit.png",
+      "bytes": 998,
+      "sha256": "15739633dba7bc227f005fc9792d11d61769f856913caeeb01581f8c037c85b3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-goldenoutfit.png",
+      "destination": "data/images/skin/classic/icon-goldenoutfit.png",
+      "bytes": 1201,
+      "sha256": "f4ca086e927533d82fe78a072ea085d3788373e263c9899868a9b9f5c73d2972",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-imbuementtracker-button.png",
+      "destination": "data/images/skin/classic/icon-imbuementtracker-button.png",
+      "bytes": 191,
+      "sha256": "31cc636273c93826f454213d05de798b651f5a5663679578110ef70fac0f5289",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-lenshelp.png",
+      "destination": "data/images/skin/classic/icon-lenshelp.png",
+      "bytes": 340,
+      "sha256": "48836fb0d65b8f76fef6a6d069827c36501cc2350a665dee1f6d92b42260c962",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-playerguide-widget.png",
+      "destination": "data/images/skin/classic/icon-playerguide-widget.png",
+      "bytes": 234,
+      "sha256": "caa9f25bd1062ea0ac5c7320376fad56f9d27862004d6e216220e917febc0c19",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-playerguidewidget-button.png",
+      "destination": "data/images/skin/classic/icon-playerguidewidget-button.png",
+      "bytes": 178,
+      "sha256": "62c4065d039376132fed22e1e36eb95da9f70c4c92791891b3764b08d41ae1ec",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-preydialogue.png",
+      "destination": "data/images/skin/classic/icon-preydialogue.png",
+      "bytes": 304,
+      "sha256": "af14b225dd46f1c191067f902ee0289670370388c45c0da7339addaccac11b82",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-questtracker.png",
+      "destination": "data/images/skin/classic/icon-questtracker.png",
+      "bytes": 170,
+      "sha256": "f60f771243e170c9f058dc501fb94665ac71ffc2a70ac6d231cb5ac00cbd5973",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-skillwheeldialog.png",
+      "destination": "data/images/skin/classic/icon-skillwheeldialog.png",
+      "bytes": 170,
+      "sha256": "7bef13a836a5cc74a27a5b9a6d2e548297336244e112e3da9457d7a287df406c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-taskboard-button.png",
+      "destination": "data/images/skin/classic/icon-taskboard-button.png",
+      "bytes": 175,
+      "sha256": "bca78e83299c811dbde1179c7e9ca0c74dc1dbdc8625120897f7638d0f971ed6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/icon-transfercoins.png",
+      "destination": "data/images/skin/classic/icon-transfercoins.png",
+      "bytes": 519,
+      "sha256": "9295d915f328fca14d937b982c6aa9d38fbf0e37c020cda99ed15f5f950b0b59",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/indicator-arrowright.png",
+      "destination": "data/images/skin/classic/indicator-arrowright.png",
+      "bytes": 461,
+      "sha256": "0c43ef485341f116174cb66eb8308f6f79d2d36b8a9d4aa308679e6e51c53fd9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/pic-premium.png",
+      "destination": "data/images/skin/classic/pic-premium.png",
+      "bytes": 208,
+      "sha256": "762c10dca27240fd38e3dbb851a40b2221cd187c596bb944d32a4ecc74e10806",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/progress-bar-empty.png",
+      "destination": "data/images/skin/classic/progress-bar-empty.png",
+      "bytes": 1982,
+      "sha256": "7910b85ea88318e5e3a79a905a537e04c9a0bbce547c3c776992169103a22363",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/progress-bar-full.png",
+      "destination": "data/images/skin/classic/progress-bar-full.png",
+      "bytes": 608,
+      "sha256": "0bd43fd9e362391ce0bd2c37646229ee241cc55c5fd45ad1195d2f3f41c6d621",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/radiobutton-checked-disabled.png",
+      "destination": "data/images/skin/classic/radiobutton-checked-disabled.png",
+      "bytes": 250,
+      "sha256": "123bbc8e8edd7257801fdff794b1fd743e1027203e44afc0e897fc99cacd7d9a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/radiobutton-checked.png",
+      "destination": "data/images/skin/classic/radiobutton-checked.png",
+      "bytes": 245,
+      "sha256": "d2cd9c42e82fd28e2de33b945e6fc32cdc52a3064cd289de845311344b871ba0",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/radiobutton-unchecked.png",
+      "destination": "data/images/skin/classic/radiobutton-unchecked.png",
+      "bytes": 232,
+      "sha256": "e48e27167b0707dcf4cf572998df8b7ef0e1ae180a076b553ccaf0c1fab861d9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttondown-down.png",
+      "destination": "data/images/skin/classic/scrollbar-buttondown-down.png",
+      "bytes": 336,
+      "sha256": "9e9747db1a4477bf0e364c76c08dd321ef61dc9bd5139b08afdcc1ac138b28b4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttondown-up.png",
+      "destination": "data/images/skin/classic/scrollbar-buttondown-up.png",
+      "bytes": 340,
+      "sha256": "a68e51f2c73b4c08cfc28422fe93257fec07817d5ec4bc5c9c42187bf86327e6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonleft-down.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonleft-down.png",
+      "bytes": 327,
+      "sha256": "b1e069453eb4645832be40d937d0c1bdde29ea747b8bb26baf631afd130d82b6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonleft-up.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonleft-up.png",
+      "bytes": 341,
+      "sha256": "5f9d042efae78590b3c4a7833af4d4ea05f66dcc53ffb54b1428ceef78710936",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonright-down.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonright-down.png",
+      "bytes": 326,
+      "sha256": "672047db44695fd138a04638f4708823cbfa003706aeef659d666818492b896f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonright-up.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonright-up.png",
+      "bytes": 330,
+      "sha256": "15d4ac64f2fa71a018565affb02d5b6bd6b6c6b759db898d919dfc818314b27d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonup-down.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonup-down.png",
+      "bytes": 325,
+      "sha256": "8d1a8ac6fb4b62c07a677a1d6762f29a73a0e7f6a832346aa190edf70a571802",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-buttonup-up.png",
+      "destination": "data/images/skin/classic/scrollbar-buttonup-up.png",
+      "bytes": 332,
+      "sha256": "1df1920caad697a4e81327e45739b3110f10aa28d5e75087612837ca1d5bfaa3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-texture-horizontal.png",
+      "destination": "data/images/skin/classic/scrollbar-texture-horizontal.png",
+      "bytes": 1905,
+      "sha256": "e5e68020233c6a89734ee43fae7832f271e4bf5a5a3c88a1f4d5ca6d7730f838",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/scrollbar-texture-vertical.png",
+      "destination": "data/images/skin/classic/scrollbar-texture-vertical.png",
+      "bytes": 2041,
+      "sha256": "85b9fe467acceb29a4d9b12e347aefdd7a45434d616959146ec785c906fca84c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/slider-buttonleft-down.png",
+      "destination": "data/images/skin/classic/slider-buttonleft-down.png",
+      "bytes": 327,
+      "sha256": "b1e069453eb4645832be40d937d0c1bdde29ea747b8bb26baf631afd130d82b6",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/slider-buttonleft-up.png",
+      "destination": "data/images/skin/classic/slider-buttonleft-up.png",
+      "bytes": 341,
+      "sha256": "5f9d042efae78590b3c4a7833af4d4ea05f66dcc53ffb54b1428ceef78710936",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/slider-buttonright-down.png",
+      "destination": "data/images/skin/classic/slider-buttonright-down.png",
+      "bytes": 326,
+      "sha256": "672047db44695fd138a04638f4708823cbfa003706aeef659d666818492b896f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/slider-buttonright-up.png",
+      "destination": "data/images/skin/classic/slider-buttonright-up.png",
+      "bytes": 330,
+      "sha256": "15d4ac64f2fa71a018565affb02d5b6bd6b6c6b759db898d919dfc818314b27d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/slider-texture.png",
+      "destination": "data/images/skin/classic/slider-texture.png",
+      "bytes": 1905,
+      "sha256": "e5e68020233c6a89734ee43fae7832f271e4bf5a5a3c88a1f4d5ca6d7730f838",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/skin/classic/warning-triangle.png",
+      "destination": "data/images/skin/classic/warning-triangle.png",
+      "bytes": 261,
+      "sha256": "0a68fcd8628cd0e60223a77d855d8c30f8833be764e92e60d96db5d97031b18e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/friend-badge-icons.png",
+      "destination": "data/images/social/friend-badge-icons.png",
+      "bytes": 21623,
+      "sha256": "52f32840d1b7302aa2b61523c421a2a4e8004be047fd3265acca532d2c55f658",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/friend-badge-locked.png",
+      "destination": "data/images/social/friend-badge-locked.png",
+      "bytes": 699,
+      "sha256": "71c966777b40c22209a2f9aa0d28defb8f7f12adfae8aec9abad8c5038be5e1c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-createpartygroup.png",
+      "destination": "data/images/social/icon-createpartygroup.png",
+      "bytes": 1385,
+      "sha256": "1451b55bce7646b87a56da5504e2c3e9f2b0360b7bcb771a3aa44831838b7789",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-findpartygroup.png",
+      "destination": "data/images/social/icon-findpartygroup.png",
+      "bytes": 1753,
+      "sha256": "ecc39eb6c23b8934d308af2008e4e6c49926e47f138610d39d5e03756dd03ae1",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-friends-accountsearch.png",
+      "destination": "data/images/social/icon-friends-accountsearch.png",
+      "bytes": 1116,
+      "sha256": "09f3138c37e2f8966b8f734fc81599bf33642116a70bc580c81ea8e8af28e809",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-friends-badges.png",
+      "destination": "data/images/social/icon-friends-badges.png",
+      "bytes": 1283,
+      "sha256": "505a4c934a7cecaa5f13db2feda40d9bbb18bdfc9a299a0ef53cd863b848622c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-friends-configuration.png",
+      "destination": "data/images/social/icon-friends-configuration.png",
+      "bytes": 1381,
+      "sha256": "5966b9088f93375b52fedaf9b7945e446b9367fd6546c9fed1b49ab2459d8d71",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-friends-friendlist.png",
+      "destination": "data/images/social/icon-friends-friendlist.png",
+      "bytes": 1055,
+      "sha256": "7fd0b6e092285823751d6837670d4930677b770657d3ca90d1e19a1bbbfa5057",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/social/icon-friends-invites.png",
+      "destination": "data/images/social/icon-friends-invites.png",
+      "bytes": 1604,
+      "sha256": "12eec8848d2d49c6f3a8e34956e7080e8542e00eaa42c83c9d08acfdd6534b61",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/statusbar-top-lower-border.png",
+      "destination": "data/images/statusbar-top-lower-border.png",
+      "bytes": 370,
+      "sha256": "23844e043a550687cc42ae3147d20f95157c3d5721fd783f2f8d1c29abc18fdd",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_huntingtaskpoint_shop_Mount.png",
+      "destination": "data/images/taskboard/backdrop_huntingtaskpoint_shop_Mount.png",
+      "bytes": 938,
+      "sha256": "83259a862641957165b22c1ab0e9ec3c63cd1981d2fa352af10801e6ca6a442a",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_huntingtaskpoint_shop_boost.png",
+      "destination": "data/images/taskboard/backdrop_huntingtaskpoint_shop_boost.png",
+      "bytes": 899,
+      "sha256": "000a57f538ac4e53d01ce1ea6122397b1559ff52c3490c832aa58a66b11878bc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_huntingtaskpoint_shop_decoration.png",
+      "destination": "data/images/taskboard/backdrop_huntingtaskpoint_shop_decoration.png",
+      "bytes": 849,
+      "sha256": "95c4ac70b1d6c6e3c1fda549e98cb24d75a3ee8a2ff0c9c5b5088d2f645b3ea7",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_huntingtaskpoint_shop_outfit.png",
+      "destination": "data/images/taskboard/backdrop_huntingtaskpoint_shop_outfit.png",
+      "bytes": 894,
+      "sha256": "e3a0827bfcaad75b4e16c2a0f46c39149d24cb05b9610236aa2bd073ae6f0951",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_tasksystem_gold_task.png",
+      "destination": "data/images/taskboard/backdrop_tasksystem_gold_task.png",
+      "bytes": 3295,
+      "sha256": "64d59e4427948d2e40fe4007095a705d3e65414ccfe2e2c4b728cffedb422e2f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_tasksystem_normal_task.png",
+      "destination": "data/images/taskboard/backdrop_tasksystem_normal_task.png",
+      "bytes": 2167,
+      "sha256": "c6550ce8d6e6ae92eb0d32cf38f64e23e85130b91f0010740c20d50e6c1d01ab",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_tasksystem_silver_task.png",
+      "destination": "data/images/taskboard/backdrop_tasksystem_silver_task.png",
+      "bytes": 3171,
+      "sha256": "7b015fbab54ab98a367e8545318edd8c54a78d3790deb30c3f7ba1e7de139c51",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/backdrop_weeklyresults.png",
+      "destination": "data/images/taskboard/backdrop_weeklyresults.png",
+      "bytes": 5537,
+      "sha256": "e7e1657b3a5877305d2477696db4c329ef86c79d5edffd4985d160465144f9cb",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-arbitrarymonster.png",
+      "destination": "data/images/taskboard/icon-arbitrarymonster.png",
+      "bytes": 452,
+      "sha256": "631685b60e44998af8e1cbd72e4c58f25b7bb5bffc6e2990cc0ae6271da54842",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-bountyring-damageagainstmonster.png",
+      "destination": "data/images/taskboard/icon-bountyring-damageagainstmonster.png",
+      "bytes": 851,
+      "sha256": "719d5fed01b6bd35a94ec9adcfe30e2ce1d9f3d52ba71d9ba5aa8e49c837821f",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-bountyring-doublebestiarychance.png",
+      "destination": "data/images/taskboard/icon-bountyring-doublebestiarychance.png",
+      "bytes": 960,
+      "sha256": "1700782d4b461530844d44e5cea1adf853cd311ba06a23c3022df4a372e6d463",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-bountyring-lifeleech.png",
+      "destination": "data/images/taskboard/icon-bountyring-lifeleech.png",
+      "bytes": 719,
+      "sha256": "d8f8e0d8a2966f371151b6b83aded9c8698d2a0e0579c66a2377607fa0747318",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-bountyring-moreloot.png",
+      "destination": "data/images/taskboard/icon-bountyring-moreloot.png",
+      "bytes": 744,
+      "sha256": "f83dde08142e4742f2bc61e10f2af20de9c080b2096cd6ba17e4aeff4c52c96d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-bountytasks.png",
+      "destination": "data/images/taskboard/icon-bountytasks.png",
+      "bytes": 1104,
+      "sha256": "7126b6b46fa569232429976a204c1458d32f304d2c67a2291c2cf59837c7df35",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-currency-bountypoints.png",
+      "destination": "data/images/taskboard/icon-currency-bountypoints.png",
+      "bytes": 242,
+      "sha256": "676ee844fd159989602be1e58fdc6a6fbf4144e187bb461e974fcd371d231312",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-currency-soulseals.png",
+      "destination": "data/images/taskboard/icon-currency-soulseals.png",
+      "bytes": 178,
+      "sha256": "3aade80c12d7fe57597fa3325b06dcc693607bc128b0a387a8c5028f3469e020",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-currency-taskreroll.png",
+      "destination": "data/images/taskboard/icon-currency-taskreroll.png",
+      "bytes": 384,
+      "sha256": "28822078c265b3078f13957eaefec48c1303b30a26f907e31ab0d6b9df31efdc",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-huntingtaskshop.png",
+      "destination": "data/images/taskboard/icon-huntingtaskshop.png",
+      "bytes": 873,
+      "sha256": "8e50306d243a55503ef8b641882a0be8ecfb1bbf98b59117856dff05789fbb79",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon-weeklytasks.png",
+      "destination": "data/images/taskboard/icon-weeklytasks.png",
+      "bytes": 607,
+      "sha256": "00928de5c9a806fa959f952476d96b505bf263ff71b6299ee52d49f9c2e3604e",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/taskboard/icon_tasksystem_promotionpoint.png",
+      "destination": "data/images/taskboard/icon_tasksystem_promotionpoint.png",
+      "bytes": 1912,
+      "sha256": "5a9010b952fb071876ebd65d889ca522e654f074f875d178a2cf0bb2406c8020",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/timedisplay-scroll.png",
+      "destination": "data/images/timedisplay-scroll.png",
+      "bytes": 1833,
+      "sha256": "8b6fca50325d4578344b7777db41b42b8ab0184aa894247e7b882fdf115b97c5",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/title.jpg",
+      "destination": "data/official-client-15.3x/conflicts/images/title.jpg",
+      "bytes": 801266,
+      "sha256": "80bea65fdd20da805df30ce3ee773d3f63f8f71b5a9c9fbe7543624ff2ca1a6c",
+      "flags": 0,
+      "disposition": "preserved-conflict"
+    },
+    {
+      "source": "/images/transaction-history-logo.png",
+      "destination": "data/images/transaction-history-logo.png",
+      "bytes": 1929,
+      "sha256": "8b16d51342c8f4931f49e1deee13a50da73638c5decf04be609df33c44a71a25",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop-infobanner-ornaments.png",
+      "destination": "data/images/tutorial/backdrop-infobanner-ornaments.png",
+      "bytes": 410,
+      "sha256": "da002e64aa499ac83b2a929c197739c706e9b08d80febd2d7cfbb4af76b80c29",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop-vocationinfo.png",
+      "destination": "data/images/tutorial/backdrop-vocationinfo.png",
+      "bytes": 9880,
+      "sha256": "89a4fb210474105132d0aa0428fe369ae29692e6a6bfb2c579d87d309a977116",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop_crest.png",
+      "destination": "data/images/tutorial/backdrop_crest.png",
+      "bytes": 7629,
+      "sha256": "559bc022e310d625d2eef0600b2969daa345b74f1fa07c1750b8a6ec290f62bf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop_popup_level10.jpg",
+      "destination": "data/images/tutorial/backdrop_popup_level10.jpg",
+      "bytes": 161551,
+      "sha256": "563a524c3d5426b996bc39a091bb07c3d8e9b5316430da6eecae3d949df7b9e8",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop_popup_theworldawaits.jpg",
+      "destination": "data/images/tutorial/backdrop_popup_theworldawaits.jpg",
+      "bytes": 156524,
+      "sha256": "8484766a0116dc9f75a97ba202c28ed759a95f4a333ad802516ac0f475c7edc9",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/backdrop_popup_welcometotibia.jpg",
+      "destination": "data/images/tutorial/backdrop_popup_welcometotibia.jpg",
+      "bytes": 153332,
+      "sha256": "73f6436674f82f37019c0ac5b2be31180eca835bdea30b5bb69696931b0e9b62",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/banner_tutorialpopup01.png",
+      "destination": "data/images/tutorial/banner_tutorialpopup01.png",
+      "bytes": 3505,
+      "sha256": "75b4042addbbf6fd0f723aa7c5328e08825fab64012acdf147e7fc96a4358899",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/banner_tutorialpopup_welcometonewhaven.png",
+      "destination": "data/images/tutorial/banner_tutorialpopup_welcometonewhaven.png",
+      "bytes": 3553,
+      "sha256": "4bfe32113f84b76608395a3cec73676484392556663706dc8b951d7369038e5d",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/banner_tutorialpopup_welcometotibia.png",
+      "destination": "data/images/tutorial/banner_tutorialpopup_welcometotibia.png",
+      "bytes": 3502,
+      "sha256": "408aabe697d1760606f973323da3d643c79fef76d11de0d30e0810cff38ba9ee",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/hint_07_arrivalmain.jpg",
+      "destination": "data/images/tutorial/hint_07_arrivalmain.jpg",
+      "bytes": 140843,
+      "sha256": "db76dcb7706049663f3428c9b431e5d90f022e5ff6975d82f44a453419bf29b4",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/tutorial/hint_11_vocationmonk.png",
+      "destination": "data/images/tutorial/hint_11_vocationmonk.png",
+      "bytes": 170693,
+      "sha256": "01329e3ff2d3299b0e946f0aa987de25d63fa3b63cd5792e74c8863ff795f964",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/images/unknownoutfit.png",
+      "destination": "data/images/unknownoutfit.png",
+      "bytes": 336,
+      "sha256": "00015db49cf6daf80fc2da8c50b7ce5e97c719b3942d416ac3a3cb18983fcd03",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/minimap/default/Minimap_Color_32256_32000_7.png",
+      "destination": "data/minimap/default/Minimap_Color_32256_32000_7.png",
+      "bytes": 1739,
+      "sha256": "a0652bd668dd3d545a74a363d85899f2d81c1851f588fbbfb986dbe50c029408",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/minimap/default/Minimap_Color_32256_32256_7.png",
+      "destination": "data/minimap/default/Minimap_Color_32256_32256_7.png",
+      "bytes": 1491,
+      "sha256": "d8058ad08239dcd655c0478af4a5cb6e093a10b6a7a103e245fd0e56d4fda7d3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/minimap/default/Minimap_WaypointCost_32256_32000_7.png",
+      "destination": "data/minimap/default/Minimap_WaypointCost_32256_32000_7.png",
+      "bytes": 2103,
+      "sha256": "5c6e5398b370a53bd75250f8c1b1ef8e6f5341538df93bc326767d1f4909b7e3",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/minimap/default/Minimap_WaypointCost_32256_32256_7.png",
+      "destination": "data/minimap/default/Minimap_WaypointCost_32256_32256_7.png",
+      "bytes": 1811,
+      "sha256": "d7dcee381c3ffa7d457613d683ac61c3b2371fd2fa87f3500452f8deec14b0cf",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/sounds/empty.wav",
+      "destination": "data/sounds/empty.wav",
+      "bytes": 132,
+      "sha256": "23d95c1703939bd70a5f1fbd51edd8adca81dedaf759e407bda43c9abe6ca286",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/tutorial/clientoptions.json",
+      "destination": "data/tutorial/clientoptions.json",
+      "bytes": 1565,
+      "sha256": "d55f761868c502165a572daf1a8dceeeffc8c5184196f1ff9c834a649e61a3b2",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/tutorial/tutorial-catalog.json",
+      "destination": "data/tutorial/tutorial-catalog.json",
+      "bytes": 201,
+      "sha256": "3749f266ffa56090d69ea6df80b90d86d67c6f7e534d2738fb2214cbe5540a5c",
+      "flags": 0,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/tutorial/tutorial-sessiondump.dmp",
+      "destination": "data/tutorial/tutorial-sessiondump.dmp",
+      "bytes": 75383,
+      "sha256": "887e8d6353298d3af32de37309537e18e1aaa6cf7cd0838181c451ef2ae6647e",
+      "flags": 1,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/tutorial/tutorial-sessiondump.hints",
+      "destination": "data/tutorial/tutorial-sessiondump.hints",
+      "bytes": 10107,
+      "sha256": "de076603a0211fd604430aafed599bcd38d983bd2b39076bab77b8f3a370128c",
+      "flags": 1,
+      "disposition": "official-path"
+    },
+    {
+      "source": "/tutorial/vocation-selection-dialog-data.json",
+      "destination": "data/tutorial/vocation-selection-dialog-data.json",
+      "bytes": 792,
+      "sha256": "c80988d3f25c78c1495d5b946b148d18eb790ff34a946c9e4d005691f2b675bc",
+      "flags": 0,
+      "disposition": "official-path"
+    }
+  ],
+  "snapshot": "official-client-15.3x",
+  "official_client_version": "15.32.bf29ac"
+}
