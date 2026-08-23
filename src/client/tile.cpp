@@ -78,7 +78,41 @@ void Tile::draw(const Point& dest, const int flags, LightView* lightView)
     }
 
     for (const auto& thing : m_things) {
-        if (!thing->isGround() && !thing->isGroundBorder() && !thing->isOnBottom())
+        if (!thing->isGround() && !thing->isGroundBorder())
+            break;
+
+        drawThing(thing, dest, flags, drawElevation);
+    }
+
+    // Draw NE/SW walkers that are leaving this tile before bottom objects, so those
+    // objects correctly occlude the creature during the diagonal transition.
+    if (!m_walkingCreatures.empty()) {
+        g_drawPool.setDrawOrder(DrawOrder::THIRD);
+        for (const auto& creature : m_walkingCreatures) {
+            if (creature->getDirection() != Otc::Direction::NorthEast && creature->getDirection() != Otc::Direction::SouthWest)
+                continue;
+
+            // A creature stepping into this tile belongs to the regular later pass.
+            if (creature->getLastStepToPosition() == getPosition())
+                continue;
+
+            const auto& cDest = Point(
+                dest.x + ((creature->getPosition().x - m_position.x) * g_gameConfig.getSpriteSize() - creature->getDrawElevation()) * g_drawPool.getScaleFactor(),
+                dest.y + ((creature->getPosition().y - m_position.y) * g_gameConfig.getSpriteSize() - creature->getDrawElevation()) * g_drawPool.getScaleFactor()
+            );
+
+            if (flags == Otc::DrawLights)
+                creature->drawLight(cDest, lightView);
+            else
+                creature->draw(cDest, flags & Otc::DrawThings);
+        }
+        g_drawPool.resetDrawOrder();
+    }
+
+    for (const auto& thing : m_things) {
+        if (thing->isGround() || thing->isGroundBorder())
+            continue;
+        if (!thing->isOnBottom())
             break;
 
         drawThing(thing, dest, flags, drawElevation);
@@ -150,6 +184,11 @@ void Tile::drawCreature(const Point& dest, const int flags, const bool forceDraw
 
     g_drawPool.setDrawOrder(DrawOrder::THIRD);
     for (const auto& creature : m_walkingCreatures) {
+        // NE/SW creatures leaving this tile were already drawn before bottom objects.
+        if (creature->getDirection() == Otc::Direction::NorthEast || creature->getDirection() == Otc::Direction::SouthWest)
+            if (creature->getLastStepToPosition() != getPosition())
+                continue;
+
         const auto& cDest = Point(
             dest.x + ((creature->getPosition().x - m_position.x) * g_gameConfig.getSpriteSize() - creature->getDrawElevation()) * g_drawPool.getScaleFactor(),
             dest.y + ((creature->getPosition().y - m_position.y) * g_gameConfig.getSpriteSize() - creature->getDrawElevation()) * g_drawPool.getScaleFactor()

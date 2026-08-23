@@ -727,27 +727,6 @@ void Creature::updateWalkAnimation()
             footAnimDelay /= 1.5;
     }
 
-    // Walk phases used to be driven by a free-running m_footTimer with a hard clamp [minFootDelay,
-    // maxFootDelay], so they had nothing to do with the step tempo: at slow walk the character jogged
-    // in place, and at fast walk it slid (frames could not keep up with the offset). We tie them to
-    // STEP PROGRESS, so that one full frame cycle lands exactly on one tile.
-    // The phase range stays as before (1..footAnimPhases), so sprite indexing is left untouched.
-    // Progress is measured against the SAME duration the offset uses - the regular step, not the
-    // diagonal one - so one frame cycle lands exactly on one tile crossing. Using the diagonal
-    // duration here would stretch the leg cycle to 3x on diagonals; using it for only one of the
-    // two would slide the feet against the body.
-    const uint16_t stepDurationMs = getStepDuration(true);
-    const float stepProgress = stepDurationMs > 0
-        ? m_walkTimer.ticksElapsed() / static_cast<float>(stepDurationMs)
-        : -1.f;
-
-    if (std::isfinite(stepProgress) && stepProgress >= 0.f) {
-        const float progress = std::min(stepProgress, 0.999f);
-        m_walkAnimationPhase = static_cast<uint8_t>(1 + static_cast<int>(progress * footAnimPhases));
-        return;
-    }
-
-    // fallback in case the step duration is unknown - old timer-based behavior
     const auto walkSpeed = m_walkingAnimationSpeed > 0 ? m_walkingAnimationSpeed : m_stepCache.getDuration(m_lastStepDirection);
     const int footDelay = std::clamp<int>(walkSpeed / footAnimDelay, minFootDelay, maxFootDelay);
 
@@ -794,6 +773,15 @@ void Creature::updateWalkingTile()
                 newWalkingTile = g_map.getOrCreateTile(getPosition().translated(xi, yi, 0));
             }
         }
+    }
+
+    // NW - for the effect of going behind the object west of it, walking creature will be drawn in front of the object for the half of the way, and after behind
+    // SE - for the effect of going in front the object south of it, walking creature will be drawn behind the object for the half of the way, and after in front
+    if (m_walkedPixels < g_gameConfig.getSpriteSize() / 2) {
+        if (m_direction == Otc::Direction::NorthWest)
+            newWalkingTile = m_walkingTile ? m_walkingTile : getTile();
+        else if (m_direction == Otc::Direction::SouthEast)
+            newWalkingTile = g_map.getTile(getPosition().translated(-1, -1, 0));
     }
 
     if (newWalkingTile == m_walkingTile) return;
@@ -1278,6 +1266,10 @@ uint16_t Creature::getCurrentAnimationPhase(const bool mount)
     }
 
     if (thingType->isAnimateAlways()) {
+        if (const auto animator = thingType->getAnimator()) {
+            return static_cast<uint16_t>(thingType->getIdleAnimationPhases() + animator->getPhase());
+        }
+
         const int animationPhases = thingType->getAnimationPhases();
         if (animationPhases <= 0) return 0;
 

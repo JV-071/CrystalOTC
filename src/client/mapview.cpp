@@ -349,6 +349,7 @@ void MapView::drawFloor()
         const bool alwaysTransparent = m_floorViewMode == Otc::ALWAYS_WITH_TRANSPARENCY && z < m_cachedFirstVisibleFloor && _camera.coveredUp(cameraPosition.z - z);
 
         const auto& map = m_floors[z].cachedVisibleTiles;
+        std::vector<TilePtr> walkingTiles;
 
         for (const auto& tile : map.tiles) {
             uint32_t tileFlags = flags;
@@ -356,15 +357,25 @@ void MapView::drawFloor()
             if (!m_drawViewportEdge && !tile->canRender(tileFlags, cameraPosition, m_viewport))
                 continue;
 
-            if (alwaysTransparent) {
-                const bool inRange = tile->getPosition().isInRange(_camera, g_gameConfig.getTileTransparentFloorViewRange(), g_gameConfig.getTileTransparentFloorViewRange(), true);
-                g_drawPool.setOpacity(inRange ? .16 : .7);
+            walkingTiles.emplace_back(tile);
+
+            // Delay this diagonal run until its upper-right dependency has no walking
+            // creature, then render the run in reverse to preserve creature occlusion.
+            const TilePtr upperRightTile = g_map.getTile(tile->getPosition().translated(1, -1, 0));
+            if (!upperRightTile || upperRightTile->getWalkingCreatures().empty()) {
+                for (const auto& walkingTile : std::ranges::reverse_view(walkingTiles)) {
+                    if (alwaysTransparent) {
+                        const bool inRange = walkingTile->getPosition().isInRange(_camera, g_gameConfig.getTileTransparentFloorViewRange(), g_gameConfig.getTileTransparentFloorViewRange(), true);
+                        g_drawPool.setOpacity(inRange ? .16 : .7);
+                    }
+
+                    walkingTile->draw(transformPositionTo2D(walkingTile->getPosition()), tileFlags);
+
+                    if (alwaysTransparent)
+                        g_drawPool.resetOpacity();
+                }
+                walkingTiles.clear();
             }
-
-            tile->draw(transformPositionTo2D(tile->getPosition()), tileFlags);
-
-            if (alwaysTransparent)
-                g_drawPool.resetOpacity();
         }
 
         for (const auto& missile : g_map.getFloorMissiles(z))
