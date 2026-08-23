@@ -480,6 +480,10 @@ def coverage_gaps(bank: dict[str, Any], server_enums: dict[str, dict[int, list[s
 def markdown_report(inventory: dict[str, Any]) -> str:
     summary = inventory["summary"]
     gaps = inventory["coverage_gaps"]
+
+    def gap_ids(values: list[int]) -> str:
+        return f" (`{', '.join(map(str, values))}`)" if 0 < len(values) <= 20 else ""
+
     lines = [
         "# Official 15.32 sound inventory",
         "",
@@ -505,11 +509,11 @@ def markdown_report(inventory: dict[str, Any]) -> str:
         "",
         "## Known mapping gaps",
         "",
-        f"- Numeric effects in the bank without a crystalserver symbol: {len(gaps['effects']['bank_ids_without_server_symbol'])}",
-        f"- Location ambiences without a crystalserver symbol: {len(gaps['ambience']['bank_ids_without_server_symbol'])} (`{', '.join(map(str, gaps['ambience']['bank_ids_without_server_symbol']))}`)",
-        f"- Music templates without a crystalserver symbol: {len(gaps['music']['bank_ids_without_server_symbol'])} (`{', '.join(map(str, gaps['music']['bank_ids_without_server_symbol']))}`)",
+        f"- Numeric effects in the bank without a crystalserver symbol: {len(gaps['effects']['bank_ids_without_server_symbol'])}{gap_ids(gaps['effects']['bank_ids_without_server_symbol'])}",
+        f"- Location ambiences without a crystalserver symbol: {len(gaps['ambience']['bank_ids_without_server_symbol'])}{gap_ids(gaps['ambience']['bank_ids_without_server_symbol'])}",
+        f"- Music templates without a crystalserver symbol: {len(gaps['music']['bank_ids_without_server_symbol'])}{gap_ids(gaps['music']['bank_ids_without_server_symbol'])}",
         "",
-        "The JSON inventory contains the complete ID lists and every discovered source reference. These gaps are inputs to the server-wiring phase; they do not indicate missing audio files.",
+        "The JSON inventory contains the complete ID lists and every discovered source reference. New 15.32 ambience and music IDs retain neutral server names until packet capture confirms their canonical labels; region mappings are limited to map content and asset chronology.",
         "",
         "## Numeric effect categories",
         "",

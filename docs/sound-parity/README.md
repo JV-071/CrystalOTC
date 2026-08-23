@@ -15,18 +15,18 @@ This report is generated from the active shared `/sounds/` bank. Both the curren
 | Family | In bank | Named by server | Explicitly referenced by server |
 | --- | ---: | ---: | ---: |
 | Numeric effects | 592 | 501 | 250 |
-| Location ambience | 91 | 82 | 9 |
-| Music | 25 | 21 | 17 |
+| Location ambience | 91 | 91 | 34 |
+| Music | 25 | 25 | 21 |
 
 Item ambience is client-driven: its item IDs, distance, count thresholds, and selected OGGs are recorded in the JSON inventory. World locations for ambience and music are server behavior and therefore appear as server references, not as soundbank metadata.
 
 ## Known mapping gaps
 
 - Numeric effects in the bank without a crystalserver symbol: 91
-- Location ambiences without a crystalserver symbol: 9 (`91, 92, 94, 95, 96, 97, 98, 99, 100`)
-- Music templates without a crystalserver symbol: 4 (`30, 31, 33, 34`)
+- Location ambiences without a crystalserver symbol: 0
+- Music templates without a crystalserver symbol: 0
 
-The JSON inventory contains the complete ID lists and every discovered source reference. These gaps are inputs to the server-wiring phase; they do not indicate missing audio files.
+The JSON inventory contains the complete ID lists and every discovered source reference. New 15.32 ambience and music IDs retain neutral server names until packet capture confirms their canonical labels; region mappings are limited to map content and asset chronology.
 
 ## Numeric effect categories
 

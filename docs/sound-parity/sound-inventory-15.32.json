@@ -31,10 +31,10 @@
       "looping_audio_file_id": 435,
       "server_references": [
         {
-          "line": 22,
+          "line": 28,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_INSECTS_CREATURES",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_INSECTS_CREATURES,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_INSECTS_CREATURES,"
         }
       ],
       "server_symbols": [
@@ -74,7 +74,32 @@
         "sha256": "3570308129a482d02d7a9b0f133aa7472e46e982ddfc7c5ec4dad532afbda31e"
       },
       "looping_audio_file_id": 465,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 32,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM,"
+        },
+        {
+          "line": 36,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM,"
+        },
+        {
+          "line": 64,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM,"
+        },
+        {
+          "line": 108,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_NOISES_STORM"
       ]
@@ -150,7 +175,32 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 33,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM_2,"
+        },
+        {
+          "line": 37,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM_2,"
+        },
+        {
+          "line": 65,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM_2,"
+        },
+        {
+          "line": 109,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_STORM_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_STORM_2,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_NOISES_STORM_2"
       ]
@@ -200,7 +250,38 @@
         "sha256": "79faf26ead3d5e95c7aeb4eb0086827bb3de24c829c8dd6e98669b1d5060ff65"
       },
       "looping_audio_file_id": 775,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 68,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_DAY",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_DAY,"
+        },
+        {
+          "line": 72,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_DAY",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_DAY,"
+        },
+        {
+          "line": 76,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_DAY",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_DAY,"
+        },
+        {
+          "line": 80,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_DAY",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_DAY,"
+        },
+        {
+          "line": 124,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_DAY",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_DAY,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NATURE_DAY"
       ]
@@ -260,10 +341,46 @@
       "looping_audio_file_id": 439,
       "server_references": [
         {
-          "line": 35,
+          "line": 41,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_NATURE_NIGHT",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 69,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 73,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 77,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 81,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 113,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
+        },
+        {
+          "line": 125,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NATURE_NIGHT,"
         }
       ],
       "server_symbols": [
@@ -299,7 +416,14 @@
         "sha256": "d605eb5d20f72bd2e340de1141dbe0dd4cddbda239365ab8228a502b31dc076a"
       },
       "looping_audio_file_id": 466,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 48,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_STORM",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_STORM,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_STORM"
       ]
@@ -383,10 +507,16 @@
       "looping_audio_file_id": 775,
       "server_references": [
         {
-          "line": 34,
+          "line": 40,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_CITY_NATURE_HUMANS",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_CITY_NATURE_HUMANS,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_CITY_NATURE_HUMANS,"
+        },
+        {
+          "line": 112,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_CITY_NATURE_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_CITY_NATURE_HUMANS,"
         }
       ],
       "server_symbols": [
@@ -626,7 +756,20 @@
         "sha256": "173952cd8c16d035ad9b339a0e2af150c55b7bc02f4d576bec1da50a27d76d54"
       },
       "looping_audio_file_id": 626,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 44,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_PORT_SEA_BIRDS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WATER_PORT_SEA_BIRDS,"
+        },
+        {
+          "line": 132,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_PORT_SEA_BIRDS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WATER_PORT_SEA_BIRDS,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WATER_PORT_SEA_BIRDS"
       ]
@@ -678,10 +821,10 @@
       "looping_audio_file_id": 448,
       "server_references": [
         {
-          "line": 28,
+          "line": 20,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_CAVE_WIND_NOISES",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_CAVE_WIND_NOISES,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_CAVE_WIND_NOISES,"
         }
       ],
       "server_symbols": [
@@ -981,7 +1124,14 @@
         "sha256": "cb565e22ee1aa43637a6d548cffc383280662b386ef6f335db6b4e2e6e9de6d0"
       },
       "looping_audio_file_id": 450,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 53,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NOISES_MAGIC_SPARKS_STORM",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_NOISES_MAGIC_SPARKS_STORM,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NOISES_MAGIC_SPARKS_STORM"
       ]
@@ -1161,10 +1311,10 @@
       "looping_audio_file_id": 451,
       "server_references": [
         {
-          "line": 4,
+          "line": 24,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_SWAMP_INSECTS_BIRDS_NOISES",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES,"
         }
       ],
       "server_symbols": [
@@ -1312,16 +1462,16 @@
       "looping_audio_file_id": 451,
       "server_references": [
         {
-          "line": 10,
+          "line": 8,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY,"
         },
         {
-          "line": 16,
+          "line": 12,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY",
-          "text": "soundEnterDay = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY,"
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_SWAMP_INSECTS_BIRDS_NOISES_CITY,"
         }
       ],
       "server_symbols": [
@@ -1503,22 +1653,22 @@
       "looping_audio_file_id": 656,
       "server_references": [
         {
-          "line": 5,
+          "line": 9,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
         },
         {
-          "line": 11,
+          "line": 13,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
         },
         {
-          "line": 17,
+          "line": 25,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_INSECTS_NIGHT,"
         }
       ],
       "server_symbols": [
@@ -1710,7 +1860,14 @@
         "sha256": "cb565e22ee1aa43637a6d548cffc383280662b386ef6f335db6b4e2e6e9de6d0"
       },
       "looping_audio_file_id": 450,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 52,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NOISES_MAGIC_SPARKS_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NOISES_MAGIC_SPARKS_HUMANS,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NOISES_MAGIC_SPARKS_HUMANS"
       ]
@@ -1856,7 +2013,26 @@
         "sha256": "eb529a371a9c394a8dac9fd086fecc111640bcb2858cdbeb3f544d712f3d42b7"
       },
       "looping_audio_file_id": 656,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 96,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_CREATURES_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_CREATURES_HUMANS,"
+        },
+        {
+          "line": 100,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_CREATURES_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_CREATURES_HUMANS,"
+        },
+        {
+          "line": 104,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_CREATURES_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_CREATURES_HUMANS,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_MAGIC_CREATURES_HUMANS"
       ]
@@ -1906,7 +2082,20 @@
         "sha256": "eb529a371a9c394a8dac9fd086fecc111640bcb2858cdbeb3f544d712f3d42b7"
       },
       "looping_audio_file_id": 656,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 97,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_INSECTS_CREATURES",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_INSECTS_CREATURES,"
+        },
+        {
+          "line": 101,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_INSECTS_CREATURES",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_INSECTS_CREATURES,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_MAGIC_INSECTS_CREATURES"
       ]
@@ -1938,10 +2127,10 @@
       "looping_audio_file_id": 435,
       "server_references": [
         {
-          "line": 23,
+          "line": 29,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_INSECTS_CREATURES_NIGHT",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_INSECTS_CREATURES_NIGHT,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_INSECTS_CREATURES_NIGHT,"
         }
       ],
       "server_symbols": [
@@ -2051,7 +2240,20 @@
         "sha256": "79faf26ead3d5e95c7aeb4eb0086827bb3de24c829c8dd6e98669b1d5060ff65"
       },
       "looping_audio_file_id": 775,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 16,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_BIRDS_MAGIC_SPARKS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_BIRDS_MAGIC_SPARKS,"
+        },
+        {
+          "line": 116,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_BIRDS_MAGIC_SPARKS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_BIRDS_MAGIC_SPARKS,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NATURE_BIRDS_MAGIC_SPARKS"
       ]
@@ -2117,7 +2319,20 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 17,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_SPARKS_INSECTS_CREATURES_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_SPARKS_INSECTS_CREATURES_NIGHT,"
+        },
+        {
+          "line": 117,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_SPARKS_INSECTS_CREATURES_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_SPARKS_INSECTS_CREATURES_NIGHT,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_MAGIC_SPARKS_INSECTS_CREATURES_NIGHT"
       ]
@@ -2247,10 +2462,10 @@
       "looping_audio_file_id": 448,
       "server_references": [
         {
-          "line": 29,
+          "line": 21,
           "path": "data-global/scripts/custom/ambient_sounds.lua",
           "symbol": "AMBIENT_CAVE_HAMMERING_NOISES_HAMMERING",
-          "text": "soundEnterNight = SOUND_EFFECT_TYPE_AMBIENT_CAVE_HAMMERING_NOISES_HAMMERING,"
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_CAVE_HAMMERING_NOISES_HAMMERING,"
         }
       ],
       "server_symbols": [
@@ -2322,7 +2537,14 @@
         "sha256": "79faf26ead3d5e95c7aeb4eb0086827bb3de24c829c8dd6e98669b1d5060ff65"
       },
       "looping_audio_file_id": 775,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 56,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_BIRDS_HAMMERING_CREATURE_HUMANS",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_BIRDS_HAMMERING_CREATURE_HUMANS,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NATURE_BIRDS_HAMMERING_CREATURE_HUMANS"
       ]
@@ -2388,7 +2610,14 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 57,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_NOISES_CREATURES_INSECTS_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_NOISES_CREATURES_INSECTS_NIGHT,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_MAGIC_NOISES_CREATURES_INSECTS_NIGHT"
       ]
@@ -2422,7 +2651,14 @@
         "sha256": "79faf26ead3d5e95c7aeb4eb0086827bb3de24c829c8dd6e98669b1d5060ff65"
       },
       "looping_audio_file_id": 775,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 84,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_NATURE_BIRDS_NOISES",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_NATURE_BIRDS_NOISES,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_NATURE_BIRDS_NOISES"
       ]
@@ -2476,7 +2712,14 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 85,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_CREATURES_INSECTS_NOISES_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_CREATURES_INSECTS_NOISES_NIGHT,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_CREATURES_INSECTS_NOISES_NIGHT"
       ]
@@ -3554,7 +3797,14 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 60,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_HUMANS_HAMMERING",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_HUMANS_HAMMERING,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_NOISES_HUMANS_HAMMERING"
       ]
@@ -3616,7 +3866,14 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 61,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_NOISES_CREATURES_HAMMERING",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_NOISES_CREATURES_HAMMERING,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_NOISES_CREATURES_HAMMERING"
       ]
@@ -3696,7 +3953,20 @@
         "sha256": "173952cd8c16d035ad9b339a0e2af150c55b7bc02f4d576bec1da50a27d76d54"
       },
       "looping_audio_file_id": 626,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 45,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_PORT_SEA_BIRDS_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WATER_PORT_SEA_BIRDS_2,"
+        },
+        {
+          "line": 133,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_PORT_SEA_BIRDS_2",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WATER_PORT_SEA_BIRDS_2,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WATER_PORT_SEA_BIRDS_2"
       ]
@@ -3730,7 +4000,14 @@
         "sha256": "b02f379a34b8f3b056571f2c8ea412ba542470ae7ba4df7459c8a99719e9d76f"
       },
       "looping_audio_file_id": 653,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 49,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_CREATURES_STORM_NOISES_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_CREATURES_STORM_NOISES_NIGHT,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_CREATURES_STORM_NOISES_NIGHT"
       ]
@@ -4164,7 +4441,32 @@
         "sha256": "173952cd8c16d035ad9b339a0e2af150c55b7bc02f4d576bec1da50a27d76d54"
       },
       "looping_audio_file_id": 626,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 88,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_SEA",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WATER_SEA,"
+        },
+        {
+          "line": 89,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_SEA",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WATER_SEA,"
+        },
+        {
+          "line": 92,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_SEA",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_WATER_SEA,"
+        },
+        {
+          "line": 93,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WATER_SEA",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WATER_SEA,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WATER_SEA"
       ]
@@ -4340,7 +4642,14 @@
         "sha256": "036b3ee1f2bf4dbd6a09692865c8df57058255b5f967342a495d34247b0f13e7"
       },
       "looping_audio_file_id": 439,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 105,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_WIND_MAGIC_CREATURES_NIGHT",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_WIND_MAGIC_CREATURES_NIGHT,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_WIND_MAGIC_CREATURES_NIGHT"
       ]
@@ -4440,7 +4749,20 @@
         "sha256": "1bd8e139f055c767b71e62250e927edd97093cb5ff4c7a4b1ee8d5c45fe48f28"
       },
       "looping_audio_file_id": 832,
-      "server_references": [],
+      "server_references": [
+        {
+          "line": 120,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_BUBBLING_NOISES",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_BUBBLING_NOISES,"
+        },
+        {
+          "line": 121,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_BUBBLING_NOISES",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_BUBBLING_NOISES,"
+        }
+      ],
       "server_symbols": [
         "AMBIENT_BUBBLING_NOISES"
       ]
@@ -4522,8 +4844,17 @@
         "sha256": "8f2b0d640f506c0d58c49b08b44d48e50be815dce757a38b883ad244d9ee88a7"
       },
       "looping_audio_file_id": 843,
-      "server_references": [],
-      "server_symbols": []
+      "server_references": [
+        {
+          "line": 128,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_STREAM_91",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_STREAM_91,"
+        }
+      ],
+      "server_symbols": [
+        "AMBIENT_STREAM_91"
+      ]
     },
     {
       "delayed_effects": [
@@ -4590,8 +4921,17 @@
         "sha256": "8f2b0d640f506c0d58c49b08b44d48e50be815dce757a38b883ad244d9ee88a7"
       },
       "looping_audio_file_id": 843,
-      "server_references": [],
-      "server_symbols": []
+      "server_references": [
+        {
+          "line": 129,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_STREAM_92",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_STREAM_92,"
+        }
+      ],
+      "server_symbols": [
+        "AMBIENT_STREAM_92"
+      ]
     },
     {
       "delayed_effects": [
@@ -4635,7 +4975,9 @@
       },
       "looping_audio_file_id": 849,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_94"
+      ]
     },
     {
       "delayed_effects": [
@@ -4663,7 +5005,9 @@
       },
       "looping_audio_file_id": 448,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_95"
+      ]
     },
     {
       "delayed_effects": [
@@ -4731,7 +5075,9 @@
       },
       "looping_audio_file_id": 858,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_96"
+      ]
     },
     {
       "delayed_effects": [
@@ -4791,7 +5137,9 @@
       },
       "looping_audio_file_id": 450,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_97"
+      ]
     },
     {
       "delayed_effects": [
@@ -4855,7 +5203,9 @@
       },
       "looping_audio_file_id": 655,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_98"
+      ]
     },
     {
       "delayed_effects": [
@@ -4923,7 +5273,9 @@
       },
       "looping_audio_file_id": 832,
       "server_references": [],
-      "server_symbols": []
+      "server_symbols": [
+        "AMBIENT_STREAM_99"
+      ]
     },
     {
       "delayed_effects": [
@@ -4950,8 +5302,23 @@
         "sha256": "af9ed6023705b887b65b26af59c642be5be3709dbe1509be3c21cecd55df4374"
       },
       "looping_audio_file_id": 912,
-      "server_references": [],
-      "server_symbols": []
+      "server_references": [
+        {
+          "line": 136,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_STREAM_100",
+          "text": "day = SOUND_EFFECT_TYPE_AMBIENT_STREAM_100,"
+        },
+        {
+          "line": 137,
+          "path": "data-global/scripts/custom/ambient_sounds.lua",
+          "symbol": "AMBIENT_STREAM_100",
+          "text": "night = SOUND_EFFECT_TYPE_AMBIENT_STREAM_100,"
+        }
+      ],
+      "server_symbols": [
+        "AMBIENT_STREAM_100"
+      ]
     }
   ],
   "audio_files": [
@@ -11710,17 +12077,7 @@
   ],
   "coverage_gaps": {
     "ambience": {
-      "bank_ids_without_server_symbol": [
-        91,
-        92,
-        94,
-        95,
-        96,
-        97,
-        98,
-        99,
-        100
-      ],
+      "bank_ids_without_server_symbol": [],
       "server_ids_absent_from_bank": [
         0
       ]
@@ -11834,12 +12191,7 @@
       ]
     },
     "music": {
-      "bank_ids_without_server_symbol": [
-        30,
-        31,
-        33,
-        34
-      ],
+      "bank_ids_without_server_symbol": [],
       "server_ids_absent_from_bank": [
         0,
         28
@@ -39782,7 +40134,7 @@
       "id": 15,
       "server_references": [
         {
-          "line": 37,
+          "line": 43,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"feyrist\"]",
           "text": "[\"feyrist\"] = 15, -- Feyrist"
@@ -39807,10 +40159,22 @@
       "id": 16,
       "server_references": [
         {
-          "line": 36,
+          "line": 40,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"gray beach\"]",
           "text": "[\"gray beach\"] = 16, -- Quirefang and More"
+        },
+        {
+          "line": 41,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"krailos\"]",
+          "text": "[\"krailos\"] = 16, -- Quirefang and More"
+        },
+        {
+          "line": 42,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"roshamuul\"]",
+          "text": "[\"roshamuul\"] = 16, -- Quirefang and More"
         }
       ],
       "server_symbols": [
@@ -40040,6 +40404,12 @@
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"issavi\"]",
           "text": "[\"issavi\"] = 26, -- Kilmaresh"
+        },
+        {
+          "line": 32,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"cobra bastion\"]",
+          "text": "[\"cobra bastion\"] = 26, -- Kilmaresh"
         }
       ],
       "server_symbols": [
@@ -40061,16 +40431,28 @@
       "id": 27,
       "server_references": [
         {
-          "line": 32,
+          "line": 33,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"rookgaard\"]",
           "text": "[\"rookgaard\"] = 27, -- Dawnport / Rookgaard"
         },
         {
-          "line": 33,
+          "line": 34,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"dawnport\"]",
           "text": "[\"dawnport\"] = 27, -- Dawnport / Rookgaard"
+        },
+        {
+          "line": 35,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"dawnport tutorial\"]",
+          "text": "[\"dawnport tutorial\"] = 27, -- Dawnport / Rookgaard"
+        },
+        {
+          "line": 36,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"island of destiny\"]",
+          "text": "[\"island of destiny\"] = 27, -- Dawnport / Rookgaard"
         }
       ],
       "server_symbols": [
@@ -40092,16 +40474,22 @@
       "id": 29,
       "server_references": [
         {
-          "line": 34,
+          "line": 37,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"marapur\"]",
           "text": "[\"marapur\"] = 29, -- Marapur"
         },
         {
-          "line": 35,
+          "line": 38,
           "path": "data-global/scripts/custom/city_music.lua",
           "symbol": "CITY_MUSIC[\"silvertides\"]",
           "text": "[\"silvertides\"] = 29, -- Marapur"
+        },
+        {
+          "line": 39,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"moonfall\"]",
+          "text": "[\"moonfall\"] = 29, -- Marapur"
         }
       ],
       "server_symbols": [
@@ -40121,8 +40509,17 @@
       },
       "audio_file_id": 828,
       "id": 30,
-      "server_references": [],
-      "server_symbols": [],
+      "server_references": [
+        {
+          "line": 44,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"gnomprona\"]",
+          "text": "[\"gnomprona\"] = 30, -- Podzilla's Biosphere"
+        }
+      ],
+      "server_symbols": [
+        "MUSIC_TYPE_MUSIC_20"
+      ],
       "type": "music",
       "type_id": 1
     },
@@ -40137,8 +40534,17 @@
       },
       "audio_file_id": 873,
       "id": 31,
-      "server_references": [],
-      "server_symbols": [],
+      "server_references": [
+        {
+          "line": 45,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"blue valley\"]",
+          "text": "[\"blue valley\"] = 31, -- Blue Valley"
+        }
+      ],
+      "server_symbols": [
+        "MUSIC_TYPE_MUSIC_21"
+      ],
       "type": "music",
       "type_id": 1
     },
@@ -40153,8 +40559,17 @@
       },
       "audio_file_id": 906,
       "id": 33,
-      "server_references": [],
-      "server_symbols": [],
+      "server_references": [
+        {
+          "line": 46,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"newhaven\"]",
+          "text": "[\"newhaven\"] = 33, -- Newhaven"
+        }
+      ],
+      "server_symbols": [
+        "MUSIC_TYPE_MUSIC_22"
+      ],
       "type": "music",
       "type_id": 1
     },
@@ -40169,8 +40584,17 @@
       },
       "audio_file_id": 907,
       "id": 34,
-      "server_references": [],
-      "server_symbols": [],
+      "server_references": [
+        {
+          "line": 47,
+          "path": "data-global/scripts/custom/city_music.lua",
+          "symbol": "CITY_MUSIC[\"targuna\"]",
+          "text": "[\"targuna\"] = 34, -- Targuna"
+        }
+      ],
+      "server_symbols": [
+        "MUSIC_TYPE_MUSIC_23"
+      ],
       "type": "music",
       "type_id": 1
     }
@@ -40793,12 +41217,12 @@
     "music_templates": 25,
     "numeric_effects": 592,
     "object_ambience_streams": 9,
-    "server_defined_ambience_streams": 82,
+    "server_defined_ambience_streams": 91,
     "server_defined_effects": 501,
-    "server_defined_music_templates": 21,
-    "server_referenced_ambience_streams": 9,
+    "server_defined_music_templates": 25,
+    "server_referenced_ambience_streams": 34,
     "server_referenced_effects": 250,
-    "server_referenced_music_templates": 17,
+    "server_referenced_music_templates": 21,
     "streaming_audio_files": 220,
     "valid": true,
     "validation_errors": []
