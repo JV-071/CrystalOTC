@@ -396,6 +396,23 @@ OutfitWindow < MainWindowHigh
           color: #c0c0c0
 
       OnePixelDownFrame
+        id: showMount
+        height: 22
+        padding: 5
+
+        CheckBox
+          id: check
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.left: parent.left
+          anchors.right: parent.right
+          text: Show Mount
+          checked: true
+          margin-bottom: 1
+          text-offset: 15 0
+          font: $var-cip-font-new
+          color: #c0c0c0
+
+      OnePixelDownFrame
         id: showFamiliar
         height: 22
         padding: 5

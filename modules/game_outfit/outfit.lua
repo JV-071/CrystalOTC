@@ -14,7 +14,7 @@ local CYClOPEDIA_VIEW_TITLES = {
 	mounts = "View Mounts",
 	outfits = "View Outfits"
 }
-local window, podiumContext, hirelingContext, appearanceGroup, colorModeGroup, colorBoxGroup, floor, movementCheck, showFloorCheck, showOutfitCheck, showFamiliarCheck, podiumPlatformCheck, podiumOutfitCheck
+local window, podiumContext, hirelingContext, appearanceGroup, colorModeGroup, colorBoxGroup, floor, movementCheck, showFloorCheck, showOutfitCheck, showMountCheck, showFamiliarCheck, podiumPlatformCheck, podiumOutfitCheck
 local showPlatformBeforeOutfitOff = true
 local PODIUM_OPTION_ENABLED_COLOR = "#c0c0c0"
 local PODIUM_OPTION_DISABLED_COLOR = "#707070"
@@ -674,7 +674,7 @@ end
 
 local settingsFile = "/settings/outfit.json"
 local settings = {}
-local movementEnabledForSession = false
+local movementEnabledForSession = true
 local outfitWindowDefaultWidth = 756
 local outfitWindowDefaultHeight = 537
 local outfitWindowDefaultMarginTop = 43
@@ -892,9 +892,11 @@ local function applyOutfitPreviewSpriteScale(spriteWidget)
 		return
 	end
 
-	spriteWidget:setCenter(false)
+	-- Match the reference outfit preview geometry. Centering against the creature's
+	-- native bounds keeps wide mounted sprites inside the 2x2 preview framebuffer.
+	spriteWidget:setCenter(true)
 	spriteWidget:setFixedCreatureSize(false)
-	spriteWidget:setCreatureSize(100)
+	spriteWidget:setCreatureSize(128)
 	spriteWidget:setBaseScale(true)
 end
 
@@ -2505,7 +2507,7 @@ local function onPasteColoursClick()
 
 	refreshColorBoxForCurrentContext()
 	updatePreview()
-	refreshFilterListForCurrentColorChange()
+	refreshSelectionListColorsInPlace()
 	updateColorControlsState()
 end
 
@@ -2615,9 +2617,8 @@ function applyHirelingWindowMode()
 	window:setText(tr("Customise Hireling"))
 	hidePreviewOption(window.preview.options.movement)
 	hidePreviewOption(window.preview.options.showOutfit)
+	hidePreviewOption(window.preview.options.showMount)
 	hidePreviewOption(window.preview.options.showFamiliar)
-
-	settings.movement = false
 
 	if movementCheck then
 		local movementHandler = movementCheck.onCheckChange
@@ -2716,6 +2717,7 @@ function applyPodiumWindowMode()
 	window:setText(tr("Customise Podium"))
 	hidePreviewOption(window.preview.options.movement)
 	hidePreviewOption(window.preview.options.showOutfit)
+	hidePreviewOption(window.preview.options.showMount)
 	hidePreviewOption(window.preview.options.showFamiliar)
 
 	if window.configure and window.configure.outfit and window.configure.outfit.check then
@@ -2883,6 +2885,12 @@ function onShowFamiliarChange(checkBox, checked)
 	updatePreview()
 end
 
+function onShowMountChange(checkBox, checked)
+	settings.showMount = checked == true
+
+	updatePreview()
+end
+
 function syncShowOutfitOptionState()
 	local outfitCheck = podiumContext and podiumOutfitCheck or showOutfitCheck
 
@@ -2901,46 +2909,15 @@ function syncShowOutfitOptionState()
 		return
 	end
 
-	if not g_game.getFeature(GamePlayerMounts) or not window.configure.mount or not window.configure.mount.check then
-		outfitCheck:setEnabled(true)
-		outfitCheck:setColor("#c0c0c0")
+	outfitCheck:setEnabled(true)
+	outfitCheck:setColor("#c0c0c0")
 
-		if showFamiliarCheck and not podiumContext then
-			if hasFamiliars then
-				showFamiliarCheck:setEnabled(settings.showOutfit)
-				showFamiliarCheck:setColor(settings.showOutfit and "#c0c0c0" or "#707070")
-			else
-				settings.showFamiliar = false
+	if showMountCheck then
+		local canShowMount = g_game.getFeature(GamePlayerMounts) and settings.showOutfit
 
-				showFamiliarCheck:setChecked(false)
-				showFamiliarCheck:setEnabled(true)
-				showFamiliarCheck:setColor("#707070")
-			end
-		end
-
-		return
+		showMountCheck:setEnabled(canShowMount)
+		showMountCheck:setColor(canShowMount and "#c0c0c0" or "#707070")
 	end
-
-	local mountOn = window.configure.mount.check:isChecked()
-
-	if not mountOn then
-		settings.showOutfit = true
-
-		local h = outfitCheck.onCheckChange
-
-		outfitCheck.onCheckChange = nil
-
-		outfitCheck:setChecked(true)
-
-		outfitCheck.onCheckChange = h
-
-		if podiumContext then
-			podiumContext.showCreature = true
-		end
-	end
-
-	outfitCheck:setEnabled(mountOn)
-	outfitCheck:setColor(mountOn and "#c0c0c0" or "#707070")
 
 	if showFamiliarCheck and not podiumContext then
 		if hasFamiliars then
@@ -2960,6 +2937,13 @@ function onShowOutfitChange(checkBox, checked)
 	settings.showOutfit = checked
 
 	local hasFamiliars = ServerData and ServerData.familiars and not table.empty(ServerData.familiars)
+
+	if showMountCheck then
+		local canShowMount = g_game.getFeature(GamePlayerMounts) and settings.showOutfit
+
+		showMountCheck:setEnabled(canShowMount)
+		showMountCheck:setColor(canShowMount and "#c0c0c0" or "#707070")
+	end
 
 	if hasFamiliars then
 		showFamiliarCheck:setEnabled(settings.showOutfit)
@@ -3181,6 +3165,7 @@ end
 local PreviewOptions = {
 	showFloor = onShowFloorChange,
 	showOutfit = onShowOutfitChange,
+	showMount = onShowMountChange,
 	showFamiliar = onShowFamiliarChange
 }
 
@@ -3251,6 +3236,7 @@ function create(player, outfitList, creatureMount, mountList, familiarList)
 	movementCheck = window.preview.options.movement.check
 	showFloorCheck = window.preview.options.showFloor.check
 	showOutfitCheck = window.preview.options.showOutfit.check
+	showMountCheck = window.preview.options.showMount.check
 	showFamiliarCheck = window.preview.options.showFamiliar.check
 
 	if settings.currentPreset == nil then
@@ -3329,6 +3315,7 @@ function create(player, outfitList, creatureMount, mountList, familiarList)
 	end
 
 	showOutfitCheck:setChecked(settings.showOutfit)
+	showMountCheck:setChecked(settings.showMount)
 
 	local hasFamiliars = not table.empty(ServerData.familiars)
 
@@ -3397,6 +3384,7 @@ function create(player, outfitList, creatureMount, mountList, familiarList)
 
 	window.configure.mount:setVisible(g_game.getFeature(GamePlayerMounts))
 	window.appearance.settings.mount:setVisible(g_game.getFeature(GamePlayerMounts))
+	window.preview.options.showMount:setVisible(g_game.getFeature(GamePlayerMounts))
 	window.preview.options.showFamiliar:setVisible(g_game.getFeature(GamePlayerFamiliars))
 	window.appearance.settings.familiar:setVisible(g_game.getFeature(GamePlayerFamiliars))
 
@@ -3527,6 +3515,7 @@ function destroy(options)
 	movementCheck = nil
 	showFloorCheck = nil
 	showOutfitCheck = nil
+	showMountCheck = nil
 	showFamiliarCheck = nil
 	podiumOutfitCheck = nil
 	podiumPlatformCheck = nil
@@ -4149,7 +4138,7 @@ function showOutfits()
 		local availableAddons = outfitData[3] or 0
 
 		outfit.type = outfitData[1]
-		outfit.addons = 0
+		outfit.addons = availableAddons
 
 		local h, b, l, f = headBodyForListThumbnail(outfitData[1], outfitColorCache)
 
@@ -4162,14 +4151,12 @@ function showOutfits()
 		markSelectionButtonDeferred(button, outfit)
 		makeThumbnailStatic(button.outfit)
 
-		local state = outfitData[4]
+		local state = outfitData[4] == nil and statesOutft.available or outfitData[4]
 
-		if state then
-			button.state = state
+		button.state = state
 
-			if state ~= statesOutft.available then
-				button:setImageSource("/images/ui/button-blue-up")
-			end
+		if state ~= statesOutft.available then
+			button:setImageSource("/images/ui/button-blue-up")
 		end
 
 		button.name:setText(outfitData[2])
@@ -4228,6 +4215,7 @@ function showOutfits()
 		window.selectionList:show()
 		window.selectionScroll:show()
 		resetSelectionListScrollPosition()
+		applySelectionFilters()
 		scheduleSelectionListHydration("showOutfits")
 		startSelectionWarmupPump("outfits")
 		window.listSearch:setText("Filter Outfits")
@@ -4298,14 +4286,43 @@ function showMounts()
 
 		return tostring(a[2] or "") < tostring(b[2] or "")
 	end)
-	buildSelectionListBatched(sortedMounts, function(mountData)
+
+	local mountSelectionItems = {
+		{
+			0,
+			"None",
+			statesOutft.available
+		}
+	}
+
+	for _, mountData in ipairs(sortedMounts) do
+		table.insert(mountSelectionItems, mountData)
+	end
+
+	buildSelectionListBatched(mountSelectionItems, function(mountData)
 		local button = g_ui.createWidget("SelectionButton", listGrid)
+		local mountId = tonumber(mountData[1]) or 0
 
-		button:setId(mountData[1])
+		button:setId(mountId)
+		button.name:setText(mountData[2] or "None")
+		button.state = mountData[3] == nil and statesOutft.available or mountData[3]
 
-		local h, b, l, f = headBodyForListThumbnail(mountData[1], mountColorCache)
+		if mountId == 0 then
+			button.selectionOutfitData = {
+				type = 0
+			}
+			button.outfit:hide()
+
+			if (tempOutfit.mount or 0) == 0 then
+				focused = 0
+			end
+
+			return
+		end
+
+		local h, b, l, f = headBodyForListThumbnail(mountId, mountColorCache)
 		local mountOutfit = {
-			type = mountData[1],
+			type = mountId,
 			head = h,
 			body = b,
 			legs = l,
@@ -4316,20 +4333,15 @@ function showMounts()
 
 		markSelectionButtonDeferred(button, mountOutfit)
 		makeThumbnailStatic(button.outfit)
-		button.name:setText(mountData[2])
 
-		if tempOutfit.mount == mountData[1] then
-			focused = mountData[1]
+		if tempOutfit.mount == mountId then
+			focused = mountId
 		end
 
 		local state = mountData[3]
 
-		if state then
-			button.state = state
-
-			if state ~= statesOutft.available then
-				button:setImageSource("/images/ui/button-blue-up")
-			end
+		if state ~= nil and state ~= statesOutft.available then
+			button:setImageSource("/images/ui/button-blue-up")
 		end
 	end, function()
 		if cyclopediaMountFocus then
@@ -4337,21 +4349,8 @@ function showMounts()
 			focused = cyclopediaMountFocus.lookType
 		end
 
-		if focused == nil and #sortedMounts > 0 then
-			local firstMount = sortedMounts[1]
-
-			tempOutfit.mount = firstMount[1]
-			focused = firstMount[1]
-
-			updateAppearanceText("mount", firstMount[2] or "None")
-		end
-
-		if #ServerData.mounts == 1 then
-			clearSelectionListFocus()
-		end
-
 		if mountCheck then
-			mountCheck:setEnabled(focused ~= nil)
+			mountCheck:setEnabled((tempOutfit.mount or 0) > 0)
 
 			local showMounted = previousMountChecked
 
@@ -4359,7 +4358,7 @@ function showMounts()
 				showMounted = true
 			end
 
-			mountCheck:setChecked(showMounted and focused ~= nil)
+			mountCheck:setChecked(showMounted and (tempOutfit.mount or 0) > 0)
 		end
 
 		updatePreview()
@@ -4387,6 +4386,7 @@ function showMounts()
 		window.selectionList:show()
 		window.selectionScroll:show()
 		resetSelectionListScrollPosition()
+		applySelectionFilters()
 		scheduleSelectionListHydration("showMounts")
 		startSelectionWarmupPump("mounts")
 		window.listSearch:setText("Filter Mounts")
@@ -4421,15 +4421,41 @@ function showFamiliars()
 	end
 
 	local focused
+	local familiarSelectionItems = {
+		{
+			0,
+			"None"
+		}
+	}
 
-	buildSelectionListBatched(ServerData.familiars, function(familiarData)
+	for _, familiarData in ipairs(ServerData.familiars) do
+		table.insert(familiarSelectionItems, familiarData)
+	end
+
+	buildSelectionListBatched(familiarSelectionItems, function(familiarData)
 		local button = g_ui.createWidget("SelectionButton", listGrid)
+		local familiarId = tonumber(familiarData[1]) or 0
 
-		button:setId(familiarData[1])
+		button:setId(familiarId)
+		button.name:setText(familiarData[2] or "None")
+		button.state = statesOutft.available
 
-		local h, b, l, f = headBodyForListThumbnail(familiarData[1], familiarColorCache)
+		if familiarId == 0 then
+			button.selectionOutfitData = {
+				type = 0
+			}
+			button.outfit:hide()
+
+			if (tempOutfit.familiar or 0) == 0 then
+				focused = 0
+			end
+
+			return
+		end
+
+		local h, b, l, f = headBodyForListThumbnail(familiarId, familiarColorCache)
 		local familiarOutfit = {
-			type = familiarData[1],
+			type = familiarId,
 			head = h,
 			body = b,
 			legs = l,
@@ -4440,16 +4466,11 @@ function showFamiliars()
 
 		markSelectionButtonDeferred(button, familiarOutfit)
 		makeThumbnailStatic(button.outfit)
-		button.name:setText(familiarData[2])
 
-		if tempOutfit.familiar == familiarData[1] then
-			focused = familiarData[1]
+		if tempOutfit.familiar == familiarId then
+			focused = familiarId
 		end
 	end, function()
-		if #ServerData.familiars == 1 and (tempOutfit.familiar or 0) == 0 then
-			clearSelectionListFocus()
-		end
-
 		if focused then
 			local grid = getSelectionListGrid()
 			local w = grid and grid[focused]
@@ -4468,6 +4489,7 @@ function showFamiliars()
 		window.selectionList:show()
 		window.selectionScroll:show()
 		resetSelectionListScrollPosition()
+		applySelectionFilters()
 		scheduleSelectionListHydration("showFamiliars")
 		startSelectionWarmupPump("familiars")
 		window.listSearch:setText("Filter Familiars")
@@ -4494,6 +4516,61 @@ function refreshFilterListForCurrentColorChange()
 		showMounts()
 	elseif id == "familiar" then
 		showFamiliars()
+	end
+end
+
+function refreshSelectionListColorsInPlace()
+	if not appearanceGroup or not window then
+		return
+	end
+
+	local selectedAppearance = appearanceGroup:getSelectedWidget()
+
+	if not selectedAppearance or not selectedAppearance.getParent then
+		return
+	end
+
+	local appearanceId = selectedAppearance:getParent():getId()
+	local cache
+
+	if appearanceId == "outfit" then
+		cache = outfitColorCache
+	elseif appearanceId == "mount" then
+		cache = mountColorCache
+	elseif appearanceId == "familiar" then
+		cache = familiarColorCache
+	else
+		return
+	end
+
+	local grid = getSelectionListGrid()
+
+	if not grid then
+		return
+	end
+
+	for _, button in ipairs(grid:getChildren()) do
+		local payload = button.selectionOutfitData or button.__selectionOutfitPayload
+		local lookType = tonumber(payload and payload.type) or 0
+
+		if lookType > 0 then
+			local head, body, legs, feet = headBodyForListThumbnail(lookType, cache)
+
+			payload.head = head
+			payload.body = body
+			payload.legs = legs
+			payload.feet = feet
+			button.selectionOutfitData = payload
+			button.__selectionOutfitPayload = payload
+
+			-- Keep the existing card and creature alive. Rebuilding or dehydrating the
+			-- grid here makes every visible thumbnail disappear for at least one frame.
+			if button.__selectionOutfitHydrated and button.outfit then
+				button.outfit:setOutfit(payload)
+				makeThumbnailStatic(button.outfit)
+				button.outfit:setVisible(true)
+			end
+		end
 	end
 end
 
@@ -4580,7 +4657,7 @@ end
 
 function onMountSelect(list, focusedChild, unfocusedChild, reason)
 	if focusedChild then
-		local mountType = tonumber(focusedChild:getId())
+		local mountType = tonumber(focusedChild:getId()) or 0
 
 		tempOutfit.mount = mountType
 
@@ -4603,15 +4680,19 @@ end
 
 function onFamiliarSelect(list, focusedChild, unfocusedChild, reason)
 	if focusedChild then
-		local familiarType = tonumber(focusedChild:getId())
+		local familiarType = tonumber(focusedChild:getId()) or 0
 
 		tempOutfit.familiar = familiarType
 
-		previewFamiliar:setOutfit({
-			type = familiarType
-		})
+		if familiarType > 0 then
+			previewFamiliar:setOutfit({
+				type = familiarType
+			})
+		else
+			previewFamiliar:hide()
+		end
 
-		if previewFamiliar:getCreature() then
+		if familiarType > 0 and previewFamiliar:getCreature() then
 			local fo = previewFamiliar:getCreature():getOutfit()
 
 			if fo then
@@ -4620,6 +4701,13 @@ function onFamiliarSelect(list, focusedChild, unfocusedChild, reason)
 				familiarColorCache.legs = fo.legs or 0
 				familiarColorCache.feet = fo.feet or 0
 			end
+		else
+			familiarColorCache = {
+				head = 0,
+				body = 0,
+				legs = 0,
+				feet = 0
+			}
 		end
 
 		updateColorControlsState()
@@ -4755,7 +4843,7 @@ function onColorCheckChange(widget, selectedWidget)
 	end
 
 	updatePreview()
-	refreshFilterListForCurrentColorChange()
+	refreshSelectionListColorsInPlace()
 end
 
 function prepareMovementThingType(lookType)
@@ -4771,7 +4859,10 @@ function prepareMovementThingType(lookType)
 		return true
 	end
 
-	return thingType:preparePreviewMovementTexture()
+	-- Some renderers expose this as an asynchronous readiness check while the
+	-- compatibility implementation is intentionally a no-op and returns nil.
+	-- Only an explicit false means that the texture is still being prepared.
+	return thingType:preparePreviewMovementTexture() ~= false
 end
 
 function isPreviewMovementReady(previewOutfit, showPreviewCreature)
@@ -4854,7 +4945,7 @@ function applyPreviewUpdate(token)
 		end
 	end
 
-	if not podiumContext and g_game.getFeature(GamePlayerMounts) and window and window.configure and window.configure.mount and window.configure.mount.check and not window.configure.mount.check:isChecked() then
+	if not podiumContext and not settings.showMount then
 		previewOutfit.mount = 0
 	end
 
@@ -4969,66 +5060,49 @@ function rotate(value)
 	end
 end
 
+function applySelectionFilters()
+	if not window or not window.listSearch or not window.listSearch.search or not window.selectionList then
+		return
+	end
+
+	local grid = getSelectionListGrid()
+
+	if not grid then
+		return
+	end
+
+	local onlyMine = window.listSearch.onlyMine and window.listSearch.onlyMine:isChecked() or false
+	local searchText = window.listSearch.search:getText():lower():trim()
+	local focusedChild = grid:getFocusedChild()
+	local focusedChildHidden = false
+
+	for _, child in ipairs(grid:getChildren()) do
+		local nameWidget = child.name
+		local childName = nameWidget and nameWidget:getText():lower() or ""
+		local matchesSearch = searchText:len() == 0 or childName:find(searchText, 1, true) ~= nil
+		local matchesOwnership = not onlyMine or child.state == statesOutft.available
+		local visible = matchesSearch and matchesOwnership
+
+		child:setVisible(visible)
+
+		if child == focusedChild and not visible then
+			focusedChildHidden = true
+		end
+	end
+
+	if focusedChildHidden then
+		clearSelectionListFocus()
+	end
+
+	scheduleSelectionListHydration("applyFilters")
+end
+
 function onFilterOnlyMine(self, checked)
-	addEvent(function()
-		if not window or not window.selectionList then
-			return
-		end
-
-		local grid = getSelectionListGrid()
-
-		if not grid then
-			return
-		end
-
-		local children = grid:getChildren()
-
-		for _, child in ipairs(children) do
-			if checked and (not child.state or child.state ~= 0) then
-				clearSelectionListFocus()
-				child:hide()
-			else
-				child:show()
-			end
-		end
-
-		scheduleSelectionListHydration("filterOnlyMine")
-	end)
+	addEvent(applySelectionFilters)
 end
 
 function onFilterSearch()
-	addEvent(function()
-		if not window or not window.listSearch or not window.listSearch.search or not window.selectionList then
-			return
-		end
-
-		local searchText = window.listSearch.search:getText():lower():trim()
-		local grid = getSelectionListGrid()
-
-		if not grid then
-			return
-		end
-
-		local children = grid:getChildren()
-
-		if searchText:len() >= 1 then
-			for _, child in ipairs(children) do
-				local text = child.name:getText():lower()
-
-				if text:find(searchText) then
-					child:show()
-				else
-					child:hide()
-				end
-			end
-		else
-			for _, child in ipairs(children) do
-				child:show()
-			end
-		end
-
-		scheduleSelectionListHydration("filterSearch")
-	end)
+	addEvent(applySelectionFilters)
 end
 
 function clearFilterSearch()
@@ -5065,7 +5139,6 @@ function saveSettings()
 
 	local persistedSettings = table.copy(settings)
 
-	persistedSettings.movement = nil
 	fullSettings[g_game.getCharacterName()] = persistedSettings
 
 	local json_status, json_data = pcall(function()
@@ -5101,23 +5174,33 @@ function loadSettings()
 
 		if not settings then
 			loadDefaultSettings()
-		else
-			settings.movement = movementEnabledForSession
 		end
 	else
 		loadDefaultSettings()
 	end
+
+	if settings.movement == nil then
+		settings.movement = true
+	end
+
+	if settings.showMount == nil then
+		settings.showMount = true
+	end
+
+	movementEnabledForSession = settings.movement == true
 end
 
 function loadDefaultSettings()
 	settings = {
 		showOutfit = true,
+		showMount = true,
 		showFloor = true,
 		currentPreset = 0,
 		showFamiliar = true,
-		movement = movementEnabledForSession,
+		movement = true,
 		presets = {}
 	}
+	movementEnabledForSession = true
 	settings.currentPreset = 0
 end
 
