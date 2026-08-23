@@ -223,3 +223,43 @@ The result is an observable playback specification. It does not claim to
 recover CipSoft's source code; it supplies enough evidence to replace
 CrystalOTC's custom policies only when a controlled official-client measurement
 supports the replacement.
+
+## Verified baseline: positioned great fireball rune
+
+The horizontal GFB experiment held the listener still and cast at equal left
+and right offsets of 1, 3, 5, and 7 tiles. The official recording showed no
+directional panning: changing the sign of the horizontal offset did not swap or
+materially alter the two channels. It preserved the stereo image already in the
+asset and changed only its gain.
+
+The mean official channel peaks were `-8.905`, `-9.965`, `-11.050`, and
+`-12.465` dBFS at distances 1, 3, 5, and 7. Relative to the one-tile sample,
+those are `0`, `-1.060`, `-2.145`, and `-3.560` dB. They fit a linear amplitude
+fade to silence at 19 tiles:
+
+```text
+positionGain = clamp(1 - distanceTiles / 19, 0, 1)
+```
+
+The predicted relative levels are `0`, `-1.023`, `-2.184`, and `-3.522` dB.
+A free linear fit to the four measured amplitudes crosses zero at 18.964 tiles.
+OpenAL source positioning is not equivalent: it ignores position for stereo
+buffers and, for mono buffers, introduces panning that the official recording
+does not exhibit. CrystalOTC therefore applies the measured gain directly and
+leaves the stereo source unpositioned.
+
+The server also has to preserve the selected rune tile. Before correction, the
+client sent the target at three tiles left and the Lua combat variant retained
+that position, but generic rune post-cast handling serialized both sound IDs at
+the caster. Rune post-cast sounds now use the position variant or targeted
+creature position; instant spells keep their caster-centered behaviour. A
+post-fix trace confirmed server world position `(32299, 32262, 7)`, client
+offset `(-96, 0)` pixels, and gain `0.84210527` for a listener at
+`(32302, 32262, 7)`.
+
+The post-fix application-audio capture independently validates the mixer. For
+audio file 304, its mean stereo peak changed by `-1.107` dB from distance 1 to
+3 and by `-2.168` dB from distance 1 to 5, against predictions of `-1.023` and
+`-2.184` dB. For audio file 303, the measured distance-3 to distance-5 change
+was `-1.137` dB against a predicted `-1.160` dB. Comparing like files controls
+for GFB's randomized asset and pitch selection.
