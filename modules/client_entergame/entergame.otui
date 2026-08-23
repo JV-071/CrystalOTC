@@ -1,6 +1,6 @@
 EnterGameWindow < MainWindow
   !text: tr('Journey Onwards')
-  size: 280 200
+  size: 280 180
   color: $var-text-cip-color-grey
   font: $var-cip-font
   text-offset: 0 1
@@ -12,7 +12,7 @@ EnterGameButton < Button
 EnterGameWindow
   id: enterGame
   draggable: false
-  size: 280 200
+  size: 280 180
   image-source: /images/ui/popupwindow
   @onEnter: EnterGame.doLogin()
 
@@ -112,35 +112,6 @@ EnterGameWindow
     $!on:
       visible: false
 
-  QtCheckBox
-    id: rememberPasswordBox
-    !text: tr('Remember Password')
-    !tooltip: tr('Remember password when starts client')
-    anchors.left: passwordLabel.left
-    anchors.right: parent.right
-    anchors.top: rememberEmailBox.bottom
-    margin-top: 7
-    margin-left: 2
-    color: $var-text-cip-color
-    font: $var-cip-font
-    text-offset: 16 0
-    @onCheckChange: |
-      self:getParent():getChildById('rememberPasswordTip'):setOn(self:isChecked())
-
-  UIWidget
-    id: rememberPasswordTip
-    image-source: /images/icons/show_gui_help_grey
-    !specialtooltip: 'Be aware that your Password address will be stored on your configuration file "config.otml" if you activate this option.'
-    anchors.right: accountNameTextEdit.right
-    anchors.verticalCenter: rememberPasswordBox.verticalCenter
-    margin-right: -19
-    margin-top: 1
-    visible: false
-    $on:
-      visible: true
-    $!on:
-      visible: false
-
   UIButton
     !text: tr('Forgot password and/or email')
     id: Forgot_password_email
@@ -148,18 +119,11 @@ EnterGameWindow
     text-align: left
     anchors.left: rememberEmailBox.left
     anchors.right: parent.right
-    anchors.top: rememberPasswordBox.bottom
+    anchors.top: rememberEmailBox.bottom
     color: $var-text-cip-color
     margin-top: 6
     margin-left: 1
-    @onClick: g_platform.openUrl(Services.websites)
-    @onSetup: | 
-        if Services and Services.websites then
-            self:setVisible(true)
-        else
-            self:setVisible(false)
-            self:hide()
-        end
+    @onClick: EnterGame.openAccountRecovery()
 
   HorizontalSeparator
     anchors.left: parent.left
@@ -188,16 +152,7 @@ EnterGameWindow
     size: 110 21
     color: #FFFFFF
 
-    @onClick: |
-      self:disable()
-      createWidgetAccount()
-
-    @onSetup: | 
-      if Services and Servers_init and table.size(Servers_init) == 1 and Services.createAccount then
-        self:setVisible(true)
-      else
-        self:setVisible(false)
-      end
+    @onClick: EnterGame.openCreateAccount()
 
 
   Label
@@ -208,4 +163,3 @@ EnterGameWindow
     margin-top: 6
     color: green
     text-auto-resize: true
-

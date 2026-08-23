@@ -14,3 +14,14 @@ Panel
   anchors.bottom: parent.bottom
 
   focusable: false
+
+  UIWidget
+    id: serverLogo
+    size: 196 112
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    margin-top: -162
+    image-source: /images/client_entergame/client-dragon-logo-regular
+    focusable: false
+    phantom: true
+    visible: false

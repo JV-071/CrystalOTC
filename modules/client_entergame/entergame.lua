@@ -87,13 +87,8 @@ local function onCharacterList(protocol, characters, account, otui)
 		EnterGame.clearAccountNameFields()
 	end
 
-	if enterGame:getChildById("rememberPasswordBox"):isChecked() then
-		local password = g_crypt.encrypt(G.password)
-
-		g_settings.set("password", password)
-	else
-		EnterGame.clearPasswordNameFields()
-	end
+	-- Match the official client: only the email may be remembered.
+	EnterGame.clearPasswordNameFields()
 
 	if loadBox then
 		loadBox:destroy()
@@ -169,11 +164,11 @@ function EnterGame.init()
 	})
 
 	local account = g_settings.get("account")
-	local password = g_settings.get("password")
 	local clientVersion = g_settings.getInteger("client-version")
 
 	EnterGame.setAccountName(account)
-	EnterGame.setPassword(password)
+	EnterGame.setPassword("")
+	g_settings.remove("password")
 
 	if Servers_init and table.size(Servers_init) == 1 then
 		local hostInit, valuesInit = next(Servers_init)
@@ -321,11 +316,13 @@ function dump(o)
 		local s = "{ "
 
 		for k, v in pairs(o) do
+			local key = k
+
 			if type(k) ~= "number" then
-				k = "\"" .. k .. "\""
+				key = "\"" .. k .. "\""
 			end
 
-			s = s .. "[" .. k .. "] = " .. dump(v) .. ","
+			s = s .. "[" .. key .. "] = " .. dump(v) .. ","
 		end
 
 		return s .. "} "
@@ -514,8 +511,6 @@ function EnterGame.show()
 
 	local background = modules.client_background.getBackground()
 
-	-- serverLogo (the ported client logo) removed from background.otui at the user's request - the guard
-	-- stays in case our own logo returns in this spot
 	if background and background.serverLogo then
 		background.serverLogo:show()
 	end
@@ -561,7 +556,31 @@ function EnterGame.setPassword(password)
 	local password = g_crypt.decrypt(password)
 
 	enterGame:getChildById("accountPasswordTextEdit"):setText(password)
-	enterGame:getChildById("rememberPasswordBox"):setChecked(#password > 0)
+end
+
+function EnterGame.openAccountRecovery()
+	local recoveryUrl = Services and Services.websites
+
+	if recoveryUrl and recoveryUrl ~= "" then
+		g_platform.openUrl(recoveryUrl)
+
+		return
+	end
+
+	displayErrorBox(tr("Forgot password and/or email"), tr("Account recovery is not configured for this client."))
+end
+
+function EnterGame.openCreateAccount()
+	local createAccountUrl = Services and Services.createAccount
+
+	if createAccountUrl and createAccountUrl ~= "" then
+		enterGame:getChildById("btnCreateNewAccount"):disable()
+		createWidgetAccount()
+
+		return
+	end
+
+	displayErrorBox(tr("Create New Account"), tr("Account creation is not configured for this client."))
 end
 
 function EnterGame.clearAccountFields()
@@ -901,7 +920,7 @@ function EnterGame.setUniqueServer(host, port, protocol, windowWidth, windowHeig
 
 	enterGame:setWidth(windowWidth)
 
-	windowHeight = windowHeight or 198
+	windowHeight = windowHeight or 180
 
 	enterGame:setHeight(windowHeight)
 	g_game.setClientVersion(clientVersion)
