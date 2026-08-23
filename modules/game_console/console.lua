@@ -2904,6 +2904,13 @@ local CHAT_SOUND_OPTION_BY_CHANNEL = {
 }
 
 local function chatSoundOption(mode, channelId, speaktype, name)
+	-- Spell incantations are rendered in the console, but they are not chat
+	-- notifications. Their audio is supplied by the corresponding world sound
+	-- effect, so layering the generic message sound here produces an extra beep.
+	if mode == MessageModes.Spell then
+		return nil
+	end
+
 	if mode == MessageModes.NpcFrom or mode == MessageModes.NpcFromStartBlock or mode == MessageModes.NpcTo then
 		return "npcs"
 	end
