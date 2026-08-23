@@ -113,8 +113,14 @@ void SoundChannel::enqueue(const std::string& filename, float fadetime, float ga
 
 void SoundChannel::update()
 {
-    if (m_currentSource && !m_currentSource->isPlaying())
+    if (m_currentSource && !m_currentSource->isPlaying()) {
         m_currentSource = nullptr;
+        // A finished one-shot must not come back merely because its channel is
+        // muted and enabled later. Looping ambience and login music remain
+        // resumable through m_lastPlayed.
+        if (m_lastPlayed && !m_lastPlayed->looping)
+            m_lastPlayed.reset();
+    }
 
     if (!m_currentSource && !m_queue.empty() && g_sounds.isAudioEnabled() && m_enabled) {
         const QueueEntry entry = m_queue.front();

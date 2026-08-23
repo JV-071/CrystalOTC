@@ -1472,7 +1472,8 @@ void SoundManager::playMusic(uint32_t musicId)
         return;
     }
 
-    if (musicId == m_currentMusicId)
+    const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
+    if (musicId == m_currentMusicId && channel && channel->isSounding())
         return; // already playing; restarting would clip it back to the start
 
     m_currentMusicId = 0;
@@ -1503,17 +1504,16 @@ void SoundManager::playMusic(uint32_t musicId)
 
     const std::string filename = m_soundDirectory + fileIt->second.filename;
 
-    const auto& channel = getChannel(SOUND_CHANNEL_MUSIC);
     if (!channel)
         return;
 
     // MUSIC_IMMEDIATE is meant to cut in without a crossfade.
     const float fadetime = music.musicType == MUSIC_TYPE_MUSIC_IMMEDIATE ? 0.0f : 3.0f;
 
-    // play() rather than enqueue(): a looping source never reaches EOF, so the
-    // channel queue would never cycle it anyway, and looping the stream itself
-    // is gapless where a queue restart is not.
-    const auto& source = channel->play(filename, fadetime, 1.0f, 1.0f, true);
+    // Signature tracks are one-shots. The server schedules a new play after a
+    // long randomized pause; looping here would turn them into constant
+    // background music and make those server packets ineffective.
+    const auto& source = channel->play(filename, fadetime, 1.0f, 1.0f, false);
     if (!source) {
         // The channel turned it down - muted, or audio off. Claiming the track
         // as current here would make every later anthem carrying the same id
