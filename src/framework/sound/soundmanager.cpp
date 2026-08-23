@@ -22,8 +22,10 @@
 
 #include "soundmanager.h"
 #include <AL/alext.h>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <nlohmann/json.hpp>
@@ -38,6 +40,7 @@
 #include "streamsoundsource.h"
 #include "combinedsoundsource.h"
 #include "client/game.h"
+#include "client/gameconfig.h"
 #include "framework/core/asyncdispatcher.h"
 #include "framework/core/clock.h"
 #include "framework/core/garbagecollection.h"
@@ -58,6 +61,20 @@ using json = nlohmann::json;
 
 namespace
 {
+    // The official client keeps effect assets in stereo, preserves that stereo
+    // image, and applies a linear distance fade instead of positional panning.
+    // A sound reaches silence at 19 tiles. Using OpenAL positioning directly
+    // cannot reproduce this: OpenAL deliberately ignores AL_POSITION for
+    // stereo buffers.
+    constexpr float POSITIONAL_EFFECT_MAX_DISTANCE_TILES = 19.0f;
+
+    float positionalEffectGain(const Point& position)
+    {
+        const float spriteSize = std::max(1.0f, static_cast<float>(g_gameConfig.getSpriteSize()));
+        const float distanceTiles = std::hypot(static_cast<float>(position.x), static_cast<float>(position.y)) / spriteSize;
+        return std::clamp(1.0f - distanceTiles / POSITIONAL_EFFECT_MAX_DISTANCE_TILES, 0.0f, 1.0f);
+    }
+
 #ifdef SOUND_FOLLOW_DEFAULT_DEVICE
     LPALCREOPENDEVICESOFT pfnAlcReopenDevice{};
     LPALCEVENTISSUPPORTEDSOFT pfnAlcEventIsSupported{};
@@ -1145,12 +1162,16 @@ void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_
     if (const auto& channel = getChannel(effectChannel))
         gain *= channel->getGain();
 
+    const float positionGain = position ? positionalEffectGain(*position) : 1.0f;
+    gain *= positionGain;
+
     traceSoundEvent("effect.resolve", json({
         { "effect_id", effectId },
         { "audio_file_id", audioFileId },
         { "file", fileIt->second.filename },
         { "channel", effectChannel },
         { "gain", gain },
+        { "position_gain", positionGain },
         { "pitch", pitch },
         { "source", source },
         { "positioned", position != nullptr },
@@ -1165,15 +1186,13 @@ void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_
         return;
     }
 
-    if (position)
-        soundSource->setPosition(*position);
-
     traceSoundEvent("effect.play", json({
         { "effect_id", effectId },
         { "audio_file_id", audioFileId },
         { "file", fileIt->second.filename },
         { "channel", effectChannel },
         { "gain", gain },
+        { "position_gain", positionGain },
         { "pitch", pitch },
         { "positioned", position != nullptr },
     }).dump());
