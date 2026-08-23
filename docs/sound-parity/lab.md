@@ -201,6 +201,24 @@ audible onset followed the playback command by 104 ms. Treat the last value as
 an end-to-end media-stack measurement for that run, not as a hard-coded client
 delay.
 
+A repeated isolated sample confirmed both pitch and relative playback timing.
+For ten official casts, pitch estimated from normalized inverse audible duration
+ranged from `0.9178` to `1.0818` (mean `1.0035`, sample standard deviation
+`0.0614`). The matching ten Crystal trace values ranged from `0.9147` to
+`1.0973` (mean `1.0155`, sample standard deviation `0.0616`). Both distributions
+are consistent with the catalog's uniform `0.9` through `1.1` range.
+
+More importantly, the official recording's audio followed the first visible
+healing-effect frame by 35.3 ms on average (19.7-46.8 ms). Crystal's nine
+unambiguous video samples averaged 34.7 ms (27.1-42.1 ms); one frame sequence
+was excluded because an overlapping animation made its visual onset ambiguous.
+Across all eleven traced Crystal casts in that capture, server-to-client
+delivery averaged 8.72 ms and playback scheduling followed packet receipt by
+0.074 ms on average. No cast was dropped or throttled. This supports preserving
+the current immediate scheduling path: the roughly 106-ms trace-command to
+captured-audio interval includes the display/capture pipeline, while the
+within-recording audio-to-visual relationship matches the official client.
+
 The result is an observable playback specification. It does not claim to
 recover CipSoft's source code; it supplies enough evidence to replace
 CrystalOTC's custom policies only when a controlled official-client measurement
