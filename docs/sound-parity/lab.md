@@ -263,3 +263,150 @@ audio file 304, its mean stereo peak changed by `-1.107` dB from distance 1 to
 `-2.184` dB. For audio file 303, the measured distance-3 to distance-5 change
 was `-1.137` dB against a predicted `-1.160` dB. Comparing like files controls
 for GFB's randomized asset and pitch selection.
+
+## Verified distance geometry: cardinals and diagonals
+
+The follow-up experiment held both listeners stationary and targeted three
+tiles north, three tiles south, and all four `(3,3)` diagonals. Two clean
+official recordings supplied twelve isolated GFB events in total. Video frames
+immediately before each cast show the target outline exactly three displayed
+tiles away on each intended axis; this rules out cursor placement as an
+explanation for the measured level difference.
+
+The official GFB files retain distinct stereo peak biases even though source
+position does not pan them. File 303 is about 1 dB left-heavy, file 304 is
+balanced, and file 305 is about 0.2 dB right-heavy. Using that invariant plus
+the pitch-relative spectral match allowed the randomized file and pitch to be
+controlled before comparing levels. Three same-file comparisons measured the
+diagonal below the cardinal by `-0.80`, `-0.75`, and `-0.95` dB, mean
+`-0.8333` dB.
+
+For a cardinal distance of 3 and a diagonal offset of `(3,3)`, the candidate
+diagonal-minus-cardinal predictions are:
+
+| Norm | Predicted delta | Error from same-file official mean |
+| --- | ---: | ---: |
+| Euclidean | -0.7022 dB | 0.1311 dB |
+| Chebyshev | 0.0000 dB | 0.8333 dB |
+| Manhattan | -1.8035 dB | 0.9702 dB |
+
+Euclidean is the only compatible rule. CrystalOTC already uses `std::hypot`,
+so no positional formula change was required. Its traced gains were
+`0.84210527` for `(0,±3)` and `0.77670312` for every `(±3,±3)` diagonal.
+
+The final synchronized Crystal capture verified all four boundaries for six
+casts:
+
+- six server packets carried the exact six target world positions;
+- all six arrived at the client with `(0,±96)` or `(±96,±96)` relative pixels;
+- all six resolved and played, with mean packet delivery of `7.745` ms and mean
+  packet-to-play scheduling of `0.038` ms;
+- the only drops were the six expected generic effect-10 `unknown_effect`
+  results, with no unexpected scheduler drops;
+- all six audible onsets are present in the application AAC track; five tails
+  are complete and the last onset is present but its tail reaches the recording
+  boundary.
+
+After correcting the five complete Crystal samples for their traced source file
+and pitch, the mean diagonal-minus-cardinal level was `-0.6917` dB. The traced
+Euclidean gains predict `-0.7022` dB, an absolute error of `0.0106` dB.
+
+The evidence is under
+`/tmp/crystal-sound-parity-run-20260823-02`. The authoritative files are
+`official-gfb-cardinal-diagonal-user-02.mov`,
+`official-gfb-cardinal-diagonal-user-03.mov`,
+`official-gfb-cardinal-diagonal-analysis.json`,
+`server-cardinal-diagonal.jsonl`, `client-cardinal-diagonal.jsonl`,
+`crystal-gfb-cardinal-diagonal-user-04.mov`, and
+`crystal-gfb-cardinal-diagonal-analysis.json`.
+
+## Verified distance 7
+
+The user-operated retry captured one isolated GFB at seven tiles left and one
+at seven tiles right. Each action was verified independently at all three
+boundaries:
+
+| Cast | Server target | Client relative px | File / pitch | Traced gain | Corrected audio delta |
+| --- | --- | ---: | --- | ---: | ---: |
+| L7 | `(32301,32253,7)` | `(-224,0)` | 305 / 1.010917 | 0.63157892 | -3.75 dB |
+| R7 | `(32316,32249,7)` | `(224,0)` | 304 / 0.930067 | 0.63157892 | -4.05 dB |
+
+The server-to-client delivery latencies were `6.856` ms and `11.210` ms, and
+the client packet-to-play latencies were `0.101` ms and `0.041` ms. The two
+isolated AAC bursts began `169.571` ms and `118.203` ms after their respective
+server commands. Both gains exactly match `1 - 7/19` to float precision.
+
+After correcting the captured peaks for the selected source file and traced
+pitch, the two audio deltas average `-3.90` dB. The expected delta for
+`0.6315789474` gain is `-3.9914` dB, leaving `0.0914` dB absolute error.
+
+The authoritative files are `crystal-gfb-distance7-user-01.mov/json`,
+`crystal-gfb-r7-user-01.mov/json`, and
+`crystal-gfb-distance7-analysis.json` in the same run-02 evidence directory.
+The first file contains the complete L7 event; its later R7 action occurred
+after that recorder window ended and therefore is trace-only in that window.
+The dedicated R7 file supplies the matching audio evidence.
+
+Two capture hazards were isolated during the run. Interrupting the recorder
+before its fixed duration prevents AVAssetWriter from finalizing the MOV, so a
+user saying “done” is not a reason to send SIGINT. Long captures started before
+the operator was ready also produced sparse Crystal streams and intermittent
+AVFoundation `-11800/-16122` failures. Wait for an explicit ready signal, send
+an unmistakable live cue, keep the capture narrowly timed, and let it finish
+normally. The recorder now stops accepting late queued samples before marking
+its inputs finished and reports whether a future writer failure occurred while
+starting, appending video, appending audio, or finishing.
+
+## Floor/z diagnostic result
+
+The 2026-08-24 run kept three different boundaries separate: normal server
+spectator delivery, forced client packet/scheduler handling, and captured
+application audio. Evidence is under
+`/tmp/crystal-sound-parity-run-20260824-01`.
+
+Two normal server actions requested effect 1016 at the listener's x/y on the
+adjacent floor above and below. The action confirmation is visible in each
+capture, but the server trace has no corresponding `server.send_sound_effect`,
+the client has no packet or scheduler event, and the complete AAC tracks are
+silent. `Game::sendSingleSoundEffect` selects spectators with the default
+same-floor query, so these are delivery suppressions rather than audio
+failures.
+
+A temporary diagnostic binding bypassed only spectator selection and directly
+serialized a positioned sound packet to the test player. It was name-restricted
+and removed after recording. The following real-tile cases all produced one
+server event, one matching client packet, one scheduler play, and one isolated
+application-audio burst:
+
+| Offset from listener | Client relative px | Position gain | Evidence stem |
+| --- | ---: | ---: | --- |
+| `(0,0,0)` | `(0,0)` | 1.00000000 | `crystal-gfb-floor-direct-same-xyz-user-01` |
+| `(0,0,-1)` | `(0,0)` | 1.00000000 | `crystal-gfb-floor-direct-above-same-xy-user-01` |
+| `(0,0,+1)` | `(0,0)` | 1.00000000 | `crystal-gfb-floor-direct-below-same-xy-user-01` |
+| `(-3,0,-1)` | `(-96,0)` | 0.84210527 | `crystal-gfb-floor-direct-above-west3-real-user-01` |
+| `(-3,0,+1)` | `(-96,0)` | 0.84210527 | `crystal-gfb-floor-direct-below-west3-real-user-01` |
+| `(0,0,-4)` | `(0,0)` | 1.00000000 | `crystal-gfb-floor-direct-above4-same-xy-real-user-01` |
+| `(0,0,+4)` | `(0,0)` | 1.00000000 | `crystal-gfb-floor-direct-below4-same-xy-real-user-01` |
+
+This confirms that CrystalOTC currently calculates positioned gain from x/y
+only. It does not establish official parity for a newly received cross-floor
+sound. The official client's targeted GFB attempt at an upper-floor tile was
+rejected with `Destination is out of range`, so no server event should be
+expected and no audio conclusion may be drawn from that attempt.
+
+The already-playing listener-movement case is observable in both clients. The
+Crystal recording `crystal-gfb-listener-move-down-during-playback-user-01`
+shows the player descend during one scheduled effect-1016 source; its audio is
+continuous from `1.313-4.022` seconds. The official recording
+`official-gfb-listener-move-down-during-playback-user-01` shows one GFB and the
+same one-floor descent during playback; its application audio is continuous
+from `2.042-4.429` seconds. This supports retaining one-shot playback across a
+listener floor change. Official server delivery and internal scheduler state
+remain unobservable.
+
+The clean official same-floor control is
+`official-gfb-floor-same-xyz-user-03`. The first attempted control is renamed
+`official-gfb-floor-same-xyz-user-01.invalid-writer.mov` after AVFoundation
+failed to finalize it, and the second retry contains unrelated nearby sounds.
+Neither is authoritative. Continue excluding every file marked
+`assistant-pilot`, `invalid-interrupted`, or `invalid-writer`.

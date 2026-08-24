@@ -1,7 +1,8 @@
 # Sound parity: next-session handoff
 
-Updated 2026-08-23 after the light-healing and positioned great-fireball
-experiments. This is the starting document for the next sound-parity session.
+Updated 2026-08-24 after the light-healing, horizontal great-fireball,
+cardinal/diagonal geometry, distance-7, and floor/z experiments. This is the
+starting document for the next sound-parity session.
 Read it before changing either repository.
 
 ## Objective and scope
@@ -312,6 +313,35 @@ The trace resolved the six GFB events as follows:
 This independently verifies the application mixer for the measured horizontal
 cases.
 
+### Cardinal and diagonal GFB geometry
+
+The follow-up experiment measured `N3`, `S3`, and all four `(3,3)` diagonals
+with stationary listeners. Two user-operated official captures supplied twelve
+isolated events. Pre-effect video frames show the target outline exactly three
+displayed tiles away on each intended axis.
+
+Random file selection was controlled through the GFB files' invariant stereo
+peak biases plus pitch-relative spectral matching. Three same-file official
+comparisons measured diagonal-minus-cardinal deltas of `-0.80`, `-0.75`, and
+`-0.95` dB, mean `-0.8333` dB. The candidate predictions are `-0.7022` dB for
+Euclidean, `0` for Chebyshev, and `-1.8035` dB for Manhattan. Euclidean is the
+only compatible rule, so CrystalOTC's existing `std::hypot` formula remains
+unchanged.
+
+The final synchronized Crystal run proved every boundary for six casts:
+
+- six effect-1016 server packets at the exact target world positions;
+- six matching client packets at `(0,±96)` and `(±96,±96)` pixels;
+- six scheduler plays, no unexpected drops, mean delivery `7.745` ms, and mean
+  packet-to-play scheduling `0.038` ms;
+- six audible application-track onsets, with five complete tails and the sixth
+  tail clipped only by the recording boundary.
+
+Crystal traced cardinal gain `0.84210527` and diagonal gain `0.77670312`. After
+correcting the five complete audio samples for their traced asset and pitch,
+the captured diagonal-minus-cardinal delta was `-0.6917` dB, only `0.0106` dB
+from the `-0.7022` dB prediction.
+
 ## Evidence files from the 2026-08-23 session
 
 The working evidence directory is:
@@ -350,68 +380,79 @@ server packet.
 Always make new trace and capture names. Reusing one path can truncate evidence
 when a traced process restarts.
 
-## Highest-priority next experiment: distance geometry
-
-Horizontal falloff does not prove how two-dimensional tile offsets are reduced
-to a scalar distance. The current client uses Euclidean distance through
-`std::hypot`. That is still an assumption.
-
-### Step 1: cardinal-axis symmetry
-
-Measure north and south at three tiles while holding the listener stationary:
+The cardinal/diagonal evidence directory is:
 
 ```text
-N3, S3
+/tmp/crystal-sound-parity-run-20260823-02
 ```
 
-Compare them with the verified L3/R3 result. This checks whether vertical screen
-offsets use the same scale as horizontal offsets before diagonals are analyzed.
-
-### Step 2: diagonal norm
-
-Measure at least:
+Its authoritative files are:
 
 ```text
-NE(3,3), SE(3,3), SW(3,3), NW(3,3)
+official-gfb-cardinal-diagonal-user-02.mov/json
+official-gfb-cardinal-diagonal-user-03.mov/json
+official-gfb-cardinal-diagonal-analysis.json
+server-cardinal-diagonal.jsonl
+client-cardinal-diagonal.jsonl
+crystal-gfb-cardinal-diagonal-user-04.mov/json
+crystal-gfb-cardinal-diagonal-analysis.json
+crystal-gfb-distance7-user-01.mov/json
+crystal-gfb-r7-user-01.mov/json
+crystal-gfb-distance7-analysis.json
 ```
 
-The candidate gain values are far enough apart to distinguish:
+Files containing `assistant-pilot`, `invalid-interrupted`, or `invalid-writer`
+in that directory are excluded evidence. The operator performs game actions;
+the recorder should start only after an explicit ready signal and an
+unmistakable live cue. Let the recorder reach its configured duration because
+SIGINT leaves an unindexed MOV. Long sparse Crystal captures also reproduced
+intermittent AVFoundation `-11800/-16122`; use a short synchronized window.
+
+## Completed experiment: distance geometry
+
+The completed matrix held each listener stationary and measured:
+
+```text
+N3, S3, NE(3,3), SE(3,3), SW(3,3), NW(3,3)
+```
+
+The official same-file level result distinguishes the candidate norms, and the
+Crystal application-audio result independently validates the selected mixer
+gain:
 
 | Candidate norm | Distance for (3,3) | Predicted gain |
 | --- | ---: | ---: |
-| Euclidean | 4.242641 | 0.776703 |
+| **Euclidean (verified)** | 4.242641 | 0.776703 |
 | Chebyshev | 3 | 0.842105 |
 | Manhattan | 6 | 0.684211 |
 
-Do not compare one arbitrary GFB peak with another. Repeat each location enough
-times to identify or match the selected file, or compare only samples resolved
-to the same official asset by the fingerprint tooling. Random pitch also changes
-duration and peak structure. Relative measurements within one client are more
-useful than absolute official-versus-Crystal dBFS because the clients may have
-different master/channel slider values.
+Preserve `std::hypot`. Do not replace it with Chebyshev, Manhattan, screen-axis
+weighting, or integer rounding without new official evidence.
 
-If the official result is not Euclidean, update the client formula only after
-the official measurement is clear, rebuild, rerun the same matrix, and record
-the conclusion in `lab.md`.
+## Completed experiment: distance 7
 
-### Step 3: retry distance 7 correctly
+The distance-7 retry used short, synchronized, user-operated windows. `L7` and
+`R7` each produced one effect-1016 server packet, one matching client packet,
+one scheduler play, and one isolated application-audio burst:
 
-The prior Crystal L7/R7 actions never reached the server. Before spending more
-runes:
+| Cast | World target | Relative px | File | Gain | Audio delta |
+| --- | --- | ---: | ---: | ---: | ---: |
+| L7 | `(32301,32253,7)` | `(-224,0)` | 305 | 0.63157892 | -3.75 dB |
+| R7 | `(32316,32249,7)` | `(224,0)` | 304 | 0.63157892 | -4.05 dB |
 
-1. confirm there are enough GFB charges;
-2. use an open map viewport where both target tiles are inside the actual map
-   widget, not a sidebar or panel;
-3. move the cursor first, then press the configured actionbar key (F5 in the
-   previous session) without clicking;
-4. wait at least three seconds between casts for the two-second rune cooldown;
-5. watch the **server trace** for effect 1016 at the intended world position;
-6. classify a missing server event as targeting/input failure, not audio failure.
+The traced gain is `1 - 7/19` on both sides. After correcting each application
+sample for its traced source file and pitch, the mean measured gain delta is
+`-3.90` dB versus the `-3.9914` dB prediction, an absolute error of `0.0914`
+dB. Packet delivery was `6.856` ms for L7 and `11.210` ms for R7;
+packet-to-play scheduling was `0.101` ms and `0.041` ms. Command-to-audible
+onset was `169.571` ms and `118.203` ms respectively.
 
-The previous run also emitted effect 2674 during one unsuccessful attempt. Do
-not fold such feedback sounds into the GFB peak window.
+The earlier attempted distance-7 casts in the horizontal run remain correctly
+classified as input/targeting failures because no effect-1016 packet reached
+the server. The successful retry supersedes only the missing measurement, not
+that boundary diagnosis.
 
-## Second priority: floors and z behavior
+## Completed diagnostic: floors and z behavior
 
 The sound packet contains `x`, `y`, and `z`, but the current Crystal parser
 calculates `relative_px` from only x/y:
@@ -421,32 +462,66 @@ Point((pos.x - center.x) * spriteSize,
       (pos.y - center.y) * spriteSize)
 ```
 
-Consequently, a received sound directly above or below the listener currently
-gets gain 1.0 regardless of floor. This has not been compared with the official
-client.
+Consequently, a received sound directly above or below the listener gets gain
+1.0 regardless of floor. The 2026-08-24 experiment separated normal server
+delivery from forced packet delivery and confirmed that behavior.
 
-Test these separately:
+Normal `Position::sendSingleSoundEffect` actions at the listener's x/y and z-1
+or z+1 were accepted by the talk action, but neither produced a
+`server.send_sound_effect` event, client packet, scheduler event, or audible
+sample. Both application AAC tracks are silent for their complete eight-second
+windows. This is server suppression, not an audio failure:
+`Game::sendSingleSoundEffect` uses `Spectators().find<Player>(pos)` and the
+spectator query defaults to `multifloor=false`, filtering recipients whose z
+differs from the source before serialization.
 
-1. same x/y/z;
-2. same x/y, one visible floor above;
-3. same x/y, one visible floor below;
-4. one floor above with a horizontal offset;
-5. one floor below with a horizontal offset;
-6. a floor not rendered/visible to the listener;
-7. listener changes floor while a long sound is already playing.
+A temporary, name-restricted diagnostic binding then bypassed only spectator
+selection and serialized effect 1016 directly to the test player with an exact
+world position. It was removed after the experiment and is not gameplay
+behavior. Every accepted direct action reached all three observable Crystal
+boundaries:
 
-For every silence, first establish whether the server sent a packet to the
-listener. `Game::sendDoubleSoundEffect` finds spectators around the source, so
-server visibility/spectator rules can suppress delivery before the client has a
-chance to apply floor attenuation. Compare server trace, client packet trace,
-and audio in that order.
+| Case | Server world relation | Client relative px | Scheduled gain | Captured audio |
+| --- | --- | ---: | ---: | --- |
+| same x/y/z control | `(0,0,0)` | `(0,0)` | 1.00000000 | isolated burst, `2.952-5.522` s |
+| same x/y, one above | `(0,0,-1)` | `(0,0)` | 1.00000000 | isolated burst, `1.691-4.319` s |
+| same x/y, one below | `(0,0,+1)` | `(0,0)` | 1.00000000 | isolated burst, `1.716-4.419` s |
+| real tile three west, one above | `(-3,0,-1)` | `(-96,0)` | 0.84210527 | isolated burst, `2.849-5.325` s |
+| real tile three west, one below | `(-3,0,+1)` | `(-96,0)` | 0.84210527 | isolated burst, `1.709-4.466` s |
+| real tile four floors above | `(0,0,-4)` | `(0,0)` | 1.00000000 | isolated burst, `1.987-4.832` s |
+| real tile four floors below | `(0,0,+4)` | `(0,0)` | 1.00000000 | isolated burst, `2.110-4.897` s |
 
-Targeted runes may not be able to address an invisible floor. A controlled
-server-side diagnostic action may be needed to emit one known sound at an exact
-position. Keep such a fixture narrowly scoped and do not commit it as gameplay
-behavior until the official result requires a production change.
+The different peak levels in those recordings are not z attenuation: GFB
+randomly selected files 303-305 and pitches within the catalog range. The
+client trace is decisive: z never changed `relative_px` or `position_gain`.
+Horizontal distance three used `1 - 3/19` above and below, while same-x/y used
+gain 1.0 even at four floors' separation.
 
-## Third priority: burst scheduling and overlap
+The listener-movement case has a usable official comparison. In CrystalOTC,
+effect 1016 was scheduled once at gain 1.0; video shows the player descend one
+floor roughly half a second after playback began, and the AAC burst remains
+continuous from `1.313-4.022` seconds with no detected interruption longer than
+40 ms. In the official client, video likewise shows one GFB followed by a
+one-floor descent during playback, and its application-audio burst remains
+continuous from `2.042-4.429` seconds. Official server serialization and
+internal scheduling are unobservable and must not be inferred.
+
+The official targeted-rune cross-floor attempt displayed `Destination is out
+of range` and was rejected before a valid audio action. It is excluded rather
+than counted as silence. Therefore the official client's attenuation or
+suppression rule for a newly received cross-floor positioned sound remains
+unresolved. Do not change CrystalOTC's z formula or enable multifloor server
+spectators without a real official cross-floor source, such as a controlled
+second actor or environmental source.
+
+Authoritative evidence is under
+`/tmp/crystal-sound-parity-run-20260824-01`. Official filenames start with
+`official-`; Crystal filenames start with `crystal-`. The failed
+`official-gfb-floor-same-xyz-user-01.invalid-writer.mov`, the contaminated
+official retry, and all previously marked `assistant-pilot`,
+`invalid-interrupted`, or `invalid-writer` files are excluded evidence.
+
+## Next behavioral priority: burst scheduling and overlap
 
 Crystal still contains two custom policies with no completed official parity
 measurement:
@@ -794,29 +869,15 @@ Before each commit:
 
 The next session should ideally finish with:
 
-1. a clean official N3/S3 and four-diagonal GFB capture;
-2. enough repeated samples or fingerprints to control random asset/pitch choice;
-3. a documented decision among Euclidean, Chebyshev, Manhattan, or another
-   measured distance rule;
-4. a matching Crystal capture after any required implementation change;
-5. the distance-7 Crystal samples retried with server packet confirmation;
-6. no temporary diagnostic logging left in either repository;
-7. updated `lab.md`, builds/tests run, and logical commits prepared.
+1. a real official cross-floor source obtained without targeted-rune range
+   rejection, with server delivery kept separate from client attenuation;
+2. no temporary diagnostic logging left in either repository;
+3. the recorder's short synchronized workflow preserved until the long sparse
+   AVFoundation failure is independently understood;
+4. builds/tests run and logical commits prepared.
 
-If time remains, begin the floor matrix. Do not jump to burst-policy changes
-until distance geometry is settled, because positional and scheduling variables
-are much easier to reason about independently.
-
-## Ready-to-paste next-session instruction
-
-```text
-Continue the official Tibia versus CrystalOTC sound-parity work. First read
-/Users/alancruz/Github/Tibia/CrystalOTC/docs/sound-parity/whats-next.md and
-/Users/alancruz/Github/Tibia/CrystalOTC/docs/sound-parity/lab.md completely.
-The client repo is /Users/alancruz/Github/Tibia/CrystalOTC and the server repo is
-/Users/alancruz/Github/Tibia/crystalserver. Preserve unrelated work in both.
-Start with the documented cardinal/diagonal GFB experiment, verify every action
-at the server/client/audio boundaries, and update the handoff evidence as you go.
-Do not make sound loading version-aware; the imported official 15.32 bank is
-intentionally used by the current client too.
-```
+Distance geometry through seven horizontal tiles is settled. The floor
+diagnostic is complete, but the official new-sound cross-floor rule still needs
+an oracle action. In parallel, the burst-policy matrix is the next high-risk
+custom behavior; keep its deterministic server fixture separate from
+positional experiments.
