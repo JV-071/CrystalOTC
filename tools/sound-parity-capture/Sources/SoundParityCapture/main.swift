@@ -133,6 +133,11 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
     private var lastAudioTime = CMTime.invalid
     private(set) var firstSampleEpochUs: UInt64 = 0
     private var failedError: Error?
+    private var acceptingSamples = true
+
+    private var writerErrorDescription: String {
+        writer.error.map { String(describing: $0) } ?? "unknown error"
+    }
 
     init(output: URL, width: Int, height: Int) throws {
         try? FileManager.default.removeItem(at: output)
@@ -177,7 +182,9 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
 
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         lock.lock()
-        failedError = error
+        if failedError == nil {
+            failedError = CaptureError.writer("ScreenCaptureKit stopped the stream: \(error)")
+        }
         lock.unlock()
     }
 
@@ -187,9 +194,13 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
         lock.lock()
         defer { lock.unlock() }
 
+        guard acceptingSamples else { return }
+
         if !sessionStarted {
             guard writer.startWriting() else {
-                failedError = writer.error ?? CaptureError.writer("AVAssetWriter could not start")
+                failedError = CaptureError.writer(
+                    "AVAssetWriter could not start: \(writerErrorDescription)"
+                )
                 return
             }
             sessionStartTime = sampleBuffer.presentationTimeStamp
@@ -206,14 +217,20 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
         case .screen where videoInput.isReadyForMoreMediaData:
             guard !lastVideoTime.isValid || CMTimeCompare(presentationTime, lastVideoTime) > 0 else { return }
             if !videoInput.append(sampleBuffer) {
-                failedError = writer.error
+                failedError = CaptureError.writer(
+                    "AVAssetWriter rejected a video sample at \(presentationTime.seconds)s: " +
+                    writerErrorDescription
+                )
             } else {
                 lastVideoTime = presentationTime
             }
         case .audio where audioInput.isReadyForMoreMediaData:
             guard !lastAudioTime.isValid || CMTimeCompare(presentationTime, lastAudioTime) > 0 else { return }
             if !audioInput.append(sampleBuffer) {
-                failedError = writer.error
+                failedError = CaptureError.writer(
+                    "AVAssetWriter rejected an audio sample at \(presentationTime.seconds)s: " +
+                    writerErrorDescription
+                )
             } else {
                 lastAudioTime = presentationTime
             }
@@ -223,7 +240,10 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
     }
 
     func finish() async throws {
-        let (started, error) = lock.withLock { (sessionStarted, failedError) }
+        let (started, error) = lock.withLock {
+            acceptingSamples = false
+            return (sessionStarted, failedError)
+        }
 
         if let error { throw error }
         guard started else { throw CaptureError.writer("capture produced no samples") }
@@ -235,7 +255,9 @@ private final class CaptureWriter: NSObject, SCStreamOutput, SCStreamDelegate {
                 continuation.resume()
             }
         }
-        if let error = writer.error { throw error }
+        if let error = writer.error {
+            throw CaptureError.writer("AVAssetWriter failed while finishing: \(error)")
+        }
     }
 }
 
