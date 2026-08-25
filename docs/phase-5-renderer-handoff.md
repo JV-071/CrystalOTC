@@ -297,9 +297,14 @@ instead of one, for double the texture memory. The bottleneck is the target, not
 
 Three separable parts, in order:
 
-1. Split device pixel ratio from user HUD scale. They are one variable today — `g_app.setHUDScale`
+1. ~~Split device pixel ratio from user HUD scale. They are one variable today — `g_app.setHUDScale`
    writes exactly what `getDisplayDensity` reads — which is what makes the layout and the target
-   size move together.
+   size move together.~~ **Done 2026-08-25**, though it turned out not to be a prerequisite for
+   part 2, which landed first. `PlatformWindow` holds both inputs and caches their product;
+   `getDisplayDensity()` keeps its name and returns that product, so no consumer changed. Worth
+   doing on its own merits rather than for the Retina fix: the conflation meant that on a
+   ratio-2 display, HUD scale 1 laid the interface out at device resolution and HUD scale 2 was a
+   silent no-op, while a display change discarded the user's choice entirely.
 2. Keep laying out in logical units, but size the FOREGROUND target in **physical** pixels and draw
    into it with a scaled projection, so widgets rasterize at native resolution and the composition
    blit becomes 1:1.
