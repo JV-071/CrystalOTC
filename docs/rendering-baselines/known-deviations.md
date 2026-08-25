@@ -698,13 +698,64 @@ post-effect that uses the coordinate as a position sees a vertically mirrored fi
 This is invisible everywhere except here. `shader-matrix` runs the same programs on image widgets,
 which sample an ordinary texture rather than a render target, and it compares at 17 px.
 
-Not fixed, and the fix is not small. The two backends need *different* texcoords to sample the same
-pixel, so no change to the geometry or the matrix can make both the sampling and the coordinate agree
-— only unifying the storage convention can, which means either rendering Metal's targets bottom-up
-like GL's (inverting a Phase 4 decision every other scene now rests on) or moving GL to top-left
-targets as `[D §7]` proposes (a change to the reference renderer). Either is a phase of work with its
-own verification. Recorded here so the next attempt starts from the mechanism rather than from the
-symptom.
+**Fixed 2026-08-25, by a third route neither of those.** The paragraph below is kept because its
+*analysis* was right and is what the fix rests on; its conclusion was wrong.
+
+The two backends do need different texcoords to sample the same pixel, so no change to the geometry
+or the matrix can make both the sampling and the coordinate agree — but the storage convention is not
+the only place the difference can be absorbed. The **shader translation layer** can take it, exactly
+as it already takes `gl_FragCoord`'s origin for `rain.frag`: run the shader's arithmetic in GL's
+coordinate space, and convert once, at the `u_Tex0` fetch. That commutes with any expression the
+shader builds, offsets included, because only the final fetch converts. Metal keeps its native
+top-down targets and the Phase 4 decision stands.
+
+`tools/generate_metal_shaders.py` now emits two helpers into every translated fragment —
+`crystalotc_texCoordGL()` for the coordinate and `crystalotc_sampleTex0()` for the fetch — both
+gated on `u_Tex0FlipY`, a per-draw float in the existing `CrystalOTCDrawParams` block that
+`MetalBackend` sets to 1.0 when the packet's `u_Tex0` resolved to a render target. It cannot be a
+compile-time constant: the same material is bound at both kinds of site, since a map shader also
+runs on an image widget in `shader-matrix`.
+
+Measured against the pinned fixture server `crystalserver` `f47f6e41`, out of 656,880 px:
+
+| Capture | before | after |
+|---|---:|---:|
+| `02-fog` | 197,123 | **111** |
+| `04-snow` | 16,537 | **901** |
+| `08-pulse` | 267,328 | **899** |
+| `09-old-tv` | 15,553 | **838** |
+| `13-heat` | 194,269 | **849** |
+| `14-noise` | 194,267 | **1,106** |
+| the other seven | 665–986 | 787–1,299 |
+| `01-default` (unshaded control) | 1,438 | 2,083 |
+
+Every one of the fourteen now sits at or below the unshaded control frame — six fixed, eight
+unmoved. The offline `shader-matrix`, where `u_Tex0` is an ordinary texture, stays at exactly the
+**17 px** it measured before.
+
+**The conditionality is load-bearing, and was measured rather than assumed.** Applying the same flip
+unconditionally takes `shader-matrix` from 17 px to **40,688 px (6.19%)**, and per grid cell that
+regression is an exact mirror image of the map-site defect: the same six shaders break, the same
+seven are untouched. Without the per-draw flag the bug is traded for its reflection.
+
+That per-cell attribution also settles something the previous entry could not. Bloom, Radial Blur
+and Zomg measure **exactly 0 differing pixels** under the flip in both scenes and both directions —
+they are invariant to it, because their kernels are symmetric in y. They were never agreeing with GL
+so much as unable to detect the disagreement. The same is true of `Outfit - Outline`, which samples a
+*transient* target and therefore takes the flip too: `outfit-masks` and `temporary-framebuffers` both
+still compare at 0 px.
+
+The change is confined to `src/framework/graphics/render/metal/` and the generator — 19 hand-written
+lines across five files, plus regenerated MSL. **No OpenGL or shared framework file is touched**, so
+no checked-in llvmpipe reference can move, which matters while CI cannot reseed one. The full offline
+cross-backend sweep is unchanged at its documented values: eleven scenes PASS, eight at 0 px,
+`shader-matrix` 17, `shader-matrix-outfits` 2,160. `ctest` 67/67.
+
+**Not measured:** `map-core` and `lighting-overlap` could not be compared across backends in this
+session, because the available OpenGL binary predates ~30 commits of UI work and the two disagree on
+window height for those scenes (1020x650 against 1020x644). Neither uses a map shader, so neither can
+reach the changed code, and `shader-matrix-map` is the online coverage that does — but the check is
+owed the next time a current GL binary exists.
 
 A second, smaller defect surfaced in the same run and **was** fixed (`b951233`): the composition
 packet carried no `extraTex`, so Fog and Snow lost `u_Tex1` at the only site they use it. Fog went

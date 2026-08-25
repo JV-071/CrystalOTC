@@ -83,6 +83,26 @@ fails the build rather than shipping half-working, so this list is enforced rath
   expression that first assigned it — and the two backends produced visibly different rain until it
   was fixed. The build cannot catch this; the cross-backend comparison can, and did.
 
+## `v_TexCoord` on a render target
+
+Worth knowing if your shader uses `v_TexCoord` as a **position** rather than only as a sampling
+coordinate — `v_TexCoord * u_Resolution`, a scanline term in `uv.y`, a noise field keyed on `uv`.
+
+OpenGL stores a framebuffer's texture bottom-up and samples it through a flipped texture matrix;
+Metal stores a render target top-down and samples it through a plain one. Both fetch the correct
+texel, but the coordinate *value* runs `1 - t` on one and `t` on the other. A map shader, or any
+shader declaring `useFramebuffer`, is sampling a render target and can see this.
+
+**You do not have to handle it.** The generated Metal translation runs your shader's arithmetic in
+OpenGL's coordinate space and converts back at the `u_Tex0` fetch, so a `.frag` written against
+OpenGL behaves the same on both backends. It is documented here only because the conversion applies
+to `u_Tex0` and not to `u_Tex1..3`, which are ordinary module images sampled at the coordinate
+OpenGL passes them — which is what Fog and Snow rely on.
+
+The one thing to avoid is sampling `u_Tex0` by any spelling other than `texture2D(u_Tex0, ...)`.
+The generator substitutes exactly that form, and fails the build rather than emitting a shader whose
+coordinate is half-converted.
+
 ## Things that translate but will not compare
 
 Some shaders are legitimate and still cannot be pixel-identical on two GPUs. If yours is one, say so

@@ -303,7 +303,17 @@ cannot until the legacy path goes — the same dependency `Painter` and `FrameBu
 narrowed it rather than closing it: the class now carries a source key and a material identity
 alongside the GLSL.
 
-**Map shaders are not consistent across the backends, and that is this phase's one unmet claim.**
+~~**Map shaders are not consistent across the backends, and that is this phase's one unmet claim.**~~
+**Closed 2026-08-25.** Absorbed in the shader translation layer rather than by unifying the storage
+convention — the shader's arithmetic runs in GL coordinate space and converts once at the `u_Tex0`
+fetch, gated per draw on whether that texture resolved to a render target. All fourteen
+`shader-matrix-map` captures now sit at or below the scene's unshaded control frame (Fog 197,123 ->
+111; Pulse 267,328 -> 899), the offline `shader-matrix` holds at exactly 17 px, and the offline
+cross-backend sweep is unchanged at its documented values. No OpenGL or shared framework file was
+touched. Mechanism, measurements and the reason the per-draw gate cannot be a compile-time constant
+are in `known-deviations.md`. The paragraph below is the original statement of the problem:
+
+**Map shaders were not consistent across the backends, and that was this phase's one unmet claim.**
 Six of the thirteen — Fog, Snow, Old Tv, Pulse, Heat and Noise — differ substantially at the map
 composition site because `v_TexCoord` is vertically mirrored between GL and Metal targets. The
 mechanism is fully characterised and the two possible fixes are costed in `known-deviations.md`;
