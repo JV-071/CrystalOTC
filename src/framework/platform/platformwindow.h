@@ -150,14 +150,26 @@ public:
 
     int getDisplayWidth() { return getDisplaySize().width(); }
     int getDisplayHeight() { return getDisplaySize().height(); }
+    // The EFFECTIVE logical-to-device scale: the product of the two independent inputs below.
+    // Everything that converts between UI units and pixels wants this one.
     float getDisplayDensity() { return m_displayDensity; }
-    void setDisplayDensity(const float v) { 
-        if (m_displayDensity == v) {
-            return;
-        }
-        m_displayDensity = v; 
-        onDisplayDensityChanged(v);
-    }
+
+    // How many device pixels the display puts behind one point. Owned by the platform layer,
+    // which reads it from the window server; the user never sets it.
+    float getDevicePixelRatio() const { return m_devicePixelRatio; }
+    void setDevicePixelRatio(const float v) { updateScales(v, m_hudScale); }
+
+    // How much larger than default the user wants the interface. Owned by the user; the platform
+    // never sets it.
+    //
+    // These were ONE variable until 2026-08-25, and the conflation was not harmless. Setting a
+    // HUD scale overwrote the display's pixel ratio, so on a display with a ratio of 2 asking for
+    // HUD scale 1 laid the whole interface out at device resolution - every widget half the size
+    // it should be - while asking for 2 changed nothing at all, because the value was already 2.
+    // In the other direction, moving the window to a display with a different backing scale
+    // silently discarded whatever the user had chosen.
+    float getHUDScale() const { return m_hudScale; }
+    void setHUDScale(const float v) { updateScales(m_devicePixelRatio, v); }
 
     Size getUnmaximizedSize() { return m_unmaximizedSize; }
     Size getSize() { return m_size; }
@@ -221,7 +233,27 @@ protected:
     bool m_fullscreen{ false };
     bool m_maximized{ false };
     bool m_vsync{ false };
+    // m_displayDensity is the cached product of the two below, kept as a member rather than
+    // computed so that platform code reading it directly on a hot path stays cheap.
     float m_displayDensity{ DEFAULT_DISPLAY_DENSITY };
+    float m_devicePixelRatio{ DEFAULT_DISPLAY_DENSITY };
+    float m_hudScale{ 1.f };
+
+    void updateScales(const float ratio, const float hud)
+    {
+        const float safeRatio = ratio > 0.f ? ratio : 1.f;
+        const float safeHud = hud > 0.f ? hud : 1.f;
+        const float effective = safeRatio * safeHud;
+
+        m_devicePixelRatio = safeRatio;
+        m_hudScale = safeHud;
+
+        if (m_displayDensity == effective)
+            return;
+
+        m_displayDensity = effective;
+        onDisplayDensityChanged(effective);
+    }
 
     std::function<void()> m_onClose;
     OnResizeCallback m_onResize;

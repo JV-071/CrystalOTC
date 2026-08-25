@@ -482,7 +482,7 @@ void CocoaWindow::internalCreateWindow()
     // m_size must be in backing pixels and m_displayDensity must be the backing scale
     // before GraphicalApplication::init calls resize(g_window.getSize()); see the header.
     m_backingScale = static_cast<float>([m_impl->window backingScaleFactor]);
-    m_displayDensity = m_backingScale;
+    setDevicePixelRatio(m_backingScale);
 
     const NSRect backing = [view convertRectToBacking:[view bounds]];
     m_size = Size(static_cast<int>(backing.size.width), static_cast<int>(backing.size.height));
@@ -1034,7 +1034,8 @@ void CocoaWindow::onBackingPropertiesChanged()
         return;
 
     m_backingScale = scale;
-    m_displayDensity = scale;
+    // Only the ratio: a display change must not discard the HUD scale the user chose.
+    setDevicePixelRatio(scale);
     if (m_impl->layer)
         m_impl->layer.contentsScale = scale;
     // The new drawable size is picked up by internalApplyPendingGeometry() on the next poll,

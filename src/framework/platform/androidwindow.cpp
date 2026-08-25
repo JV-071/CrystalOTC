@@ -493,27 +493,27 @@ void AndroidWindow::handleCmd(int32_t cmd) {
 
 void AndroidWindow::updateDisplayDensityFromSystem(float screenDensity) {
     if (screenDensity <= 0.f) {
-        m_displayDensity = m_baseDisplayDensity;
+        setDevicePixelRatio(m_baseDisplayDensity);
         return;
     }
 
     if (!m_hasBaseDisplayDensity) {
         m_baseDisplayDensity = screenDensity;
         m_hasBaseDisplayDensity = true;
-        m_displayDensity = screenDensity;
+        setDevicePixelRatio(screenDensity);
         return;
     }
 
     if (m_baseDisplayDensity <= 0.f) {
-        m_displayDensity = screenDensity;
+        setDevicePixelRatio(screenDensity);
         return;
     }
 
     const float ratio = screenDensity / m_baseDisplayDensity;
     if (ratio > 0.9f && ratio < 1.1f) {
-        m_displayDensity = screenDensity;
+        setDevicePixelRatio(screenDensity);
     } else {
-        m_displayDensity = m_baseDisplayDensity;
+        setDevicePixelRatio(m_baseDisplayDensity);
     }
 }
 

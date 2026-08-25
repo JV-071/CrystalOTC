@@ -115,6 +115,12 @@ public:
     float getHUDScale() const;
     void setHUDScale(float v);
 
+    // Changing either scale relayouts the UI, so both go through here rather than through
+    // g_window: PlatformWindow can only record the value, and a setter that silently leaves the
+    // interface laid out for the previous one is a trap.
+    float getDevicePixelRatio() const;
+    void setDevicePixelRatio(float v);
+
     float getCreatureInformationScale() const { return m_creatureInformationScale; }
     void setCreatureInformationScale(const float v) { m_creatureInformationScale = v; }
 

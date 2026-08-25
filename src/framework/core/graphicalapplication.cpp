@@ -505,8 +505,14 @@ void GraphicalApplication::doMapScreenshot(std::string fileName)
     if (m_drawEvents) m_drawEvents->doMapScreenshot(fileName);
 }
 
-float GraphicalApplication::getHUDScale() const { return g_window.getDisplayDensity(); }
+float GraphicalApplication::getHUDScale() const { return g_window.getHUDScale(); }
 void GraphicalApplication::setHUDScale(const float v) {
-    g_window.setDisplayDensity(v);
+    g_window.setHUDScale(v);
+    resize(g_graphics.getViewportSize());
+}
+
+float GraphicalApplication::getDevicePixelRatio() const { return g_window.getDevicePixelRatio(); }
+void GraphicalApplication::setDevicePixelRatio(const float v) {
+    g_window.setDevicePixelRatio(v);
     resize(g_graphics.getViewportSize());
 }

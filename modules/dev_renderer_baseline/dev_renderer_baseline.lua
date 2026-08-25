@@ -65,9 +65,13 @@ end
 -- Cocoa window it is the backing scale, and without the pin every macOS capture would differ from
 -- every reference by widget layout rather than by anything a renderer did.
 local function pinDisplayDensity()
-    -- Read through g_window rather than g_app: getHUDScale is not a Lua binding, and the two
-    -- are the same variable anyway - setHUDScale writes exactly what getDisplayDensity reads.
-    if g_window.getDisplayDensity() ~= 1 then
+    -- Since the device pixel ratio and the HUD scale were split apart, pinning the EFFECTIVE
+    -- density means pinning both: setHUDScale(1) alone would leave a Retina window at its
+    -- backing ratio of 2 and silently unpin every macOS capture.
+    if g_window.getDevicePixelRatio() ~= 1 then
+        g_app.setDevicePixelRatio(1)
+    end
+    if g_window.getHUDScale() ~= 1 then
         g_app.setHUDScale(1)
     end
 end
