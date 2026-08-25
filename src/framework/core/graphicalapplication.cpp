@@ -417,8 +417,12 @@ void GraphicalApplication::resize(const Size& size)
     g_ui.resize(size / scale);
     m_onInputEvent = false;
 
+    // The UI lays out in logical units (above), but the target it composites into is sized in
+    // DEVICE pixels and given the scale as its coordinate space. Sizing it logically and letting
+    // UIManager::render blit it to the full physical viewport is what made the whole UI render at
+    // 1x and get bilinearly upscaled on every Retina display.
     g_mainDispatcher.addEvent([size, scale] {
-        g_drawPool.get(DrawPoolType::FOREGROUND)->setFramebuffer(size / scale);
+        g_drawPool.get(DrawPoolType::FOREGROUND)->setFramebuffer(size, scale);
     });
 }
 
