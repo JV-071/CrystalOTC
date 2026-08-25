@@ -71,7 +71,7 @@ local function getDropTrackerItemPrice(itemId)
 	end
 
 	if thingType:isMarketable() then
-		return tonumber(thingType:getMeanPrice()) or 0
+		return getMarketPrice(itemId, 0)
 	end
 
 	return 0

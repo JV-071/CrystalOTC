@@ -862,6 +862,7 @@ function init()
 		onGameEnd = offlineAnalyser,
 		onSupplyTracker = onSupplyTracker,
 		onLootStats = onLootStats,
+		onItemsPrice = onItemsPrice,
 		onImpactTracker = onImpactTracker,
 		onKillTracker = onKillTracker,
 		onPartyAnalyzer = onPartyAnalyzer,
@@ -930,6 +931,7 @@ function terminate()
 		onGameEnd = offlineAnalyser,
 		onSupplyTracker = onSupplyTracker,
 		onLootStats = onLootStats,
+		onItemsPrice = onItemsPrice,
 		onImpactTracker = onImpactTracker,
 		onKillTracker = onKillTracker,
 		onPartyAnalyzer = onPartyAnalyzer,
@@ -1162,7 +1164,21 @@ function onKillTracker(monsterName, monsterOutfit, dropItems)
 	DropTrackerAnalyser:checkMonsterKilled(monsterName, monsterOutfit, dropItems)
 end
 
-function getCurrentPrice(itemId)
+local function getConfiguredPrice(itemId)
+	local cyclopedia = modules.game_cyclopedia and modules.game_cyclopedia.Cyclopedia
+
+	if cyclopedia and cyclopedia.getItemCustomSalePrice then
+		local customPrice = cyclopedia.getItemCustomSalePrice(itemId)
+
+		if customPrice and customPrice > 0 then
+			return customPrice
+		end
+	end
+
+	return nil
+end
+
+local function getNpcPrice(itemId, priceField)
 	local thingType = g_things.getThingType(itemId, ThingCategoryItem)
 
 	if not thingType then
@@ -1176,25 +1192,62 @@ function getCurrentPrice(itemId)
 
 		if npcSaleData then
 			for _, npcData in pairs(npcSaleData) do
-				if npcData.salePrice and price < npcData.salePrice then
-					price = npcData.salePrice
+				local value = npcData[priceField]
+
+				if value and price < value then
+					price = value
 				end
 			end
 		end
 	end
 
-	if itemId == 3031 then
-		price = 1
-	elseif itemId == 3035 then
-		price = 100
-	elseif itemId == 3043 then
-		price = 10000
-	end
-
 	return price
 end
 
-function getLootPrice(itemId)
+function getMarketPrice(itemId, tier)
+	if not g_game.getItemMarketPrice then
+		return 0
+	end
+
+	return tonumber(g_game.getItemMarketPrice(tonumber(itemId) or 0, tonumber(tier) or 0)) or 0
+end
+
+function getCurrentPrice(itemId, tier)
+	local id = tonumber(itemId)
+
+	if not id then
+		return 0
+	end
+
+	local customPrice = getConfiguredPrice(id)
+
+	if customPrice then
+		return customPrice
+	end
+
+	if id == 3031 then
+		return 1
+	elseif id == 3035 then
+		return 100
+	elseif id == 3043 then
+		return 10000
+	end
+
+	local cyclopedia = modules.game_cyclopedia and modules.game_cyclopedia.Cyclopedia
+	local source = cyclopedia and cyclopedia.getItemLootValueSource and cyclopedia.getItemLootValueSource(id) or "npc"
+
+	if source == "market" then
+		local marketPrice = getMarketPrice(id, tier)
+
+		if marketPrice > 0 then
+			return marketPrice
+		end
+	end
+
+	return getNpcPrice(id, "salePrice")
+end
+
+function getLootPrice(itemId, tier)
 	local id = tonumber(itemId)
 
 	if not id then
@@ -1207,14 +1260,10 @@ function getLootPrice(itemId)
 		return 0
 	end
 
-	local cyclopedia = modules.game_cyclopedia and modules.game_cyclopedia.Cyclopedia
+	local customPrice = getConfiguredPrice(id)
 
-	if cyclopedia and cyclopedia.getItemCustomSalePrice then
-		local customPrice = cyclopedia.getItemCustomSalePrice(id)
-
-		if customPrice and customPrice > 0 then
-			return customPrice
-		end
+	if customPrice then
+		return customPrice
 	end
 
 	if id == 3031 then
@@ -1225,25 +1274,40 @@ function getLootPrice(itemId)
 		return 10000
 	end
 
-	if cyclopedia and cyclopedia.computeLootPrice then
-		return cyclopedia.computeLootPrice(thingType) or 0
-	end
+	local cyclopedia = modules.game_cyclopedia and modules.game_cyclopedia.Cyclopedia
+	local source = cyclopedia and cyclopedia.getItemLootValueSource and cyclopedia.getItemLootValueSource(id) or "npc"
 
-	local price = 0
+	if source == "market" then
+		local marketPrice = getMarketPrice(id, tier)
 
-	if thingType.getNpcSaleData then
-		local npcSaleData = thingType:getNpcSaleData()
-
-		if npcSaleData then
-			for _, npcData in pairs(npcSaleData) do
-				if npcData.buyPrice and price < npcData.buyPrice then
-					price = npcData.buyPrice
-				end
-			end
+		if marketPrice > 0 then
+			return marketPrice
 		end
 	end
 
-	return price
+	return getNpcPrice(id, "buyPrice")
+end
+
+function refreshAnalyserItemPrices(itemId)
+	HuntingAnalyser:refreshItemPrices(itemId)
+	LootAnalyser:refreshItemPrices(itemId)
+	SupplyAnalyser:refreshItemPrices(itemId)
+end
+
+function onItemsPrice()
+	refreshAnalyserItemPrices()
+
+	local cyclopedia = modules.game_cyclopedia and modules.game_cyclopedia.Cyclopedia
+
+	if cyclopedia then
+		if cyclopedia.refreshItemListPrices then
+			cyclopedia.refreshItemListPrices()
+		end
+
+		if cyclopedia.refreshSelectedItemPrices then
+			cyclopedia.refreshSelectedItemPrices()
+		end
+	end
 end
 
 function loadGainAndWastConfigJson()

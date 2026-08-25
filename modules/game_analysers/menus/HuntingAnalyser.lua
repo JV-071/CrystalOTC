@@ -19,11 +19,23 @@ if not HuntingAnalyser then
 		killedMonsters = {},
 		lootedItems = {},
 		suppliesItems = {},
-		healingTicks = {},
-		damageTicks = {},
 		lootedItemsName = {}
 	}
 	HuntingAnalyser.__index = HuntingAnalyser
+end
+
+local function sortedKeys(values)
+	local keys = {}
+
+	for key in pairs(values) do
+		keys[#keys + 1] = key
+	end
+
+	table.sort(keys, function(left, right)
+		return tostring(left):lower() < tostring(right):lower()
+	end)
+
+	return keys
 end
 
 function HuntingAnalyser:create()
@@ -44,8 +56,6 @@ function HuntingAnalyser:create()
 	HuntingAnalyser.killedMonsters = {}
 	HuntingAnalyser.lootedItems = {}
 	HuntingAnalyser.suppliesItems = {}
-	HuntingAnalyser.healingTicks = {}
-	HuntingAnalyser.damageTicks = {}
 	HuntingAnalyser.lootedItemsName = {}
 	HuntingAnalyser.window = openedWindows.huntingButton
 end
@@ -99,8 +109,6 @@ function HuntingAnalyser:reset()
 	HuntingAnalyser.killedMonsters = {}
 	HuntingAnalyser.lootedItems = {}
 	HuntingAnalyser.suppliesItems = {}
-	HuntingAnalyser.healingTicks = {}
-	HuntingAnalyser.damageTicks = {}
 	HuntingAnalyser.lootedItemsName = {}
 
 	HuntingAnalyser:updateWindow(true)
@@ -283,7 +291,8 @@ function HuntingAnalyser:updateWindow(ignoreVisible)
 	else
 		local lines = {}
 
-		for monster, count in pairs(HuntingAnalyser.killedMonsters) do
+		for _, monster in ipairs(sortedKeys(HuntingAnalyser.killedMonsters)) do
+			local count = HuntingAnalyser.killedMonsters[monster]
 			lines[#lines + 1] = string.format("%dx %s", count, monster)
 		end
 
@@ -299,7 +308,8 @@ function HuntingAnalyser:updateWindow(ignoreVisible)
 	else
 		local lines = {}
 
-		for name, count in pairs(HuntingAnalyser.lootedItemsName) do
+		for _, name in ipairs(sortedKeys(HuntingAnalyser.lootedItemsName)) do
+			local count = HuntingAnalyser.lootedItemsName[name]
 			lines[#lines + 1] = string.format("%dx %s", count, name)
 		end
 
@@ -373,14 +383,6 @@ function HuntingAnalyser:getSuppliesItems()
 	return HuntingAnalyser.suppliesItems
 end
 
-function HuntingAnalyser:getHealingTicks()
-	return HuntingAnalyser.healingTicks
-end
-
-function HuntingAnalyser:getDamageTicks()
-	return HuntingAnalyser.damageTicks
-end
-
 function HuntingAnalyser:setLaunchTime(value)
 	HuntingAnalyser.launchTime = value
 end
@@ -445,14 +447,6 @@ function HuntingAnalyser:setSuppliesItems(value)
 	HuntingAnalyser.suppliesItems = value
 end
 
-function HuntingAnalyser:setHealingTicks(value)
-	HuntingAnalyser.healingTicks = value
-end
-
-function HuntingAnalyser:setDamageTicks(value)
-	HuntingAnalyser.damageTicks = value
-end
-
 function HuntingAnalyser:addRawXPGain(value)
 	HuntingAnalyser.rawXPGain = HuntingAnalyser.rawXPGain + value
 end
@@ -464,14 +458,17 @@ end
 function HuntingAnalyser:addLootedItems(item, name)
 	local itemId = item:getId()
 	local count = item:getCount()
-	local data = HuntingAnalyser.lootedItems[itemId]
+	local tier = item.getTier and item:getTier() or 0
+	local itemKey = string.format("%d:%d", itemId, tier)
+	local data = HuntingAnalyser.lootedItems[itemKey]
 
 	if not data then
-		local price = getLootPrice(itemId)
+		local price = getLootPrice(itemId, tier)
 
 		HuntingAnalyser.loot = HuntingAnalyser.loot + price * count
-		HuntingAnalyser.lootedItems[itemId] = {
+		HuntingAnalyser.lootedItems[itemKey] = {
 			itemId = itemId,
+			tier = tier,
 			name = name,
 			count = count,
 			price = price
@@ -506,17 +503,42 @@ function HuntingAnalyser:addSuppliesItems(itemId)
 end
 
 function HuntingAnalyser:updateLootedItemValue(itemId, newPrice)
-	local itemData = HuntingAnalyser.lootedItems[itemId]
+	for _, itemData in pairs(HuntingAnalyser.lootedItems) do
+		if itemData.itemId == tonumber(itemId) then
+			local oldTotalValue = itemData.price * itemData.count
+			local newTotalValue = newPrice * itemData.count
 
-	if not itemData then
-		return
+			HuntingAnalyser.loot = HuntingAnalyser.loot - oldTotalValue + newTotalValue
+			itemData.price = newPrice
+		end
+	end
+end
+
+function HuntingAnalyser:refreshItemPrices(itemId)
+	local filterId = tonumber(itemId)
+	local loot = 0
+	local supplies = 0
+
+	for _, itemData in pairs(HuntingAnalyser.lootedItems) do
+		if not filterId or itemData.itemId == filterId then
+			itemData.price = getLootPrice(itemData.itemId, itemData.tier)
+		end
+
+		loot = loot + itemData.price * itemData.count
 	end
 
-	local oldTotalValue = itemData.price * itemData.count
-	local newTotalValue = newPrice * itemData.count
+	for supplyId, itemData in pairs(HuntingAnalyser.suppliesItems) do
+		if not filterId or tonumber(supplyId) == filterId then
+			itemData.price = getCurrentPrice(supplyId)
+		end
 
-	HuntingAnalyser.loot = HuntingAnalyser.loot - oldTotalValue + newTotalValue
-	itemData.price = newPrice
+		supplies = supplies + itemData.price * itemData.count
+	end
+
+	HuntingAnalyser.loot = loot
+	HuntingAnalyser.supplies = supplies
+	HuntingAnalyser:checkBalance()
+	HuntingAnalyser:updateWindow(true)
 end
 
 function HuntingAnalyser:checkBalance()
@@ -525,18 +547,10 @@ end
 
 function HuntingAnalyser:addHealing(value)
 	HuntingAnalyser.healing = HuntingAnalyser.healing + value
-	HuntingAnalyser.healingTicks[#HuntingAnalyser.healingTicks + 1] = {
-		amount = value,
-		tick = g_clock.millis()
-	}
 end
 
 function HuntingAnalyser:addDealDamage(value)
 	HuntingAnalyser.damage = HuntingAnalyser.damage + value
-	HuntingAnalyser.damageTicks[#HuntingAnalyser.damageTicks + 1] = {
-		amount = value,
-		tick = g_clock.millis()
-	}
 end
 
 function HuntingAnalyser:addMonsterKilled(monsterName)
@@ -572,7 +586,8 @@ local function generateSessionText()
 	else
 		local monsterLines = {}
 
-		for monster, count in pairs(HuntingAnalyser.killedMonsters) do
+		for _, monster in ipairs(sortedKeys(HuntingAnalyser.killedMonsters)) do
+			local count = HuntingAnalyser.killedMonsters[monster]
 			monsterLines[#monsterLines + 1] = string.format("\t%dx %s", count, monster)
 		end
 
@@ -584,7 +599,8 @@ local function generateSessionText()
 	else
 		local lootLines = {}
 
-		for name, count in pairs(HuntingAnalyser.lootedItemsName) do
+		for _, name in ipairs(sortedKeys(HuntingAnalyser.lootedItemsName)) do
+			local count = HuntingAnalyser.lootedItemsName[name]
 			lootLines[#lootLines + 1] = string.format("\t%dx %s", count, name)
 		end
 
@@ -617,7 +633,8 @@ function HuntingAnalyser:saveToJson()
 	huntingData.KilledMonsters = {}
 
 	if not table.empty(HuntingAnalyser.killedMonsters) then
-		for monster, count in pairs(HuntingAnalyser.killedMonsters) do
+		for _, monster in ipairs(sortedKeys(HuntingAnalyser.killedMonsters)) do
+			local count = HuntingAnalyser.killedMonsters[monster]
 			huntingData.KilledMonsters[#huntingData.KilledMonsters + 1] = {
 				Count = count,
 				Name = monster
@@ -629,7 +646,8 @@ function HuntingAnalyser:saveToJson()
 	huntingData.LootedItems = {}
 
 	if not table.empty(HuntingAnalyser.lootedItemsName) then
-		for name, count in pairs(HuntingAnalyser.lootedItemsName) do
+		for _, name in ipairs(sortedKeys(HuntingAnalyser.lootedItemsName)) do
+			local count = HuntingAnalyser.lootedItemsName[name]
 			huntingData.LootedItems[#huntingData.LootedItems + 1] = {
 				Count = count,
 				Name = name

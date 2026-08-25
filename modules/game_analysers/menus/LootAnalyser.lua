@@ -16,6 +16,27 @@ end
 
 local targetMaxMargin = 142
 
+local function sortedLootKeys()
+	local keys = {}
+
+	for key in pairs(LootAnalyser.lootedItems) do
+		keys[#keys + 1] = key
+	end
+
+	table.sort(keys, function(left, right)
+		local leftItem = LootAnalyser.lootedItems[left]
+		local rightItem = LootAnalyser.lootedItems[right]
+
+		if leftItem.itemId == rightItem.itemId then
+			return (leftItem.tier or 0) < (rightItem.tier or 0)
+		end
+
+		return leftItem.itemId < rightItem.itemId
+	end)
+
+	return keys
+end
+
 local function parseLootTargetAmount(text)
 	if not text or text == "" then
 		return 0
@@ -175,23 +196,33 @@ function LootAnalyser:reset()
 end
 
 function LootAnalyser:updateBasePriceFromLootedItems(itemId, newPriceValue)
-	local itemInfo = self.lootedItems[itemId]
+	for _, itemInfo in pairs(self.lootedItems) do
+		if itemInfo.itemId == tonumber(itemId) then
+			local price = newPriceValue or getLootPrice(itemInfo.itemId, itemInfo.tier)
 
-	if itemInfo then
-		if not newPriceValue then
-			local itemPtr = Item.create(itemId, 1)
-
-			newPriceValue = itemPtr:getPriceValue()
-			itemPtr = nil
-		end
-
-		if itemInfo.basePrice ~= newPriceValue then
-			itemInfo.basePrice = newPriceValue
-			LootAnalyser.forceUpdateBalance = true
-
-			LootAnalyser:updateWindow(true, true)
+			if itemInfo.basePrice ~= price then
+				itemInfo.basePrice = price
+				LootAnalyser.forceUpdateBalance = true
+			end
 		end
 	end
+
+	LootAnalyser:checkBalance()
+	LootAnalyser:updateWindow(true, true)
+end
+
+function LootAnalyser:refreshItemPrices(itemId)
+	local filterId = tonumber(itemId)
+
+	for _, itemInfo in pairs(LootAnalyser.lootedItems) do
+		if not filterId or itemInfo.itemId == filterId then
+			itemInfo.basePrice = getLootPrice(itemInfo.itemId, itemInfo.tier)
+		end
+	end
+
+	LootAnalyser.forceUpdateBalance = true
+	LootAnalyser:checkBalance()
+	LootAnalyser:updateWindow(true, true)
 end
 
 function LootAnalyser:checkBalance()
@@ -250,15 +281,16 @@ function LootAnalyser:updateWindow(updateScroll, ignoreVisible)
 		contentsPanel.separatorLootedItems:setVisible(true)
 		LootAnalyser.window.contentsPanel.targetLabel:addAnchor(AnchorTop, "separatorLootedItems", AnchorBottom)
 
-		for itemId, info in pairs(LootAnalyser.lootedItems) do
-			local idStr = tostring(itemId)
+		for _, itemKey in ipairs(sortedLootKeys()) do
+			local info = LootAnalyser.lootedItems[itemKey]
+			local idStr = tostring(itemKey)
 			local widget = contentsPanel.lootedItems:getChildById(idStr)
 
 			if not widget then
 				widget = g_ui.createWidget("LootAnalyserItem", contentsPanel.lootedItems)
 
 				widget:setId(idStr)
-				widget:setItemId(tonumber(itemId) or itemId)
+				widget:setItemId(info.itemId)
 
 				if widget.setFont then
 					widget:setFont("verdana-11px-rounded")
@@ -297,20 +329,24 @@ end
 
 function LootAnalyser:addLootedItems(item, name)
 	local itemId = item:getId()
-	local itemInfo = LootAnalyser.lootedItems[itemId]
+	local tier = item.getTier and item:getTier() or 0
+	local itemKey = string.format("%d:%d", itemId, tier)
+	local itemInfo = LootAnalyser.lootedItems[itemKey]
 
 	if not itemInfo then
-		LootAnalyser.lootedItems[itemId] = {
+		LootAnalyser.lootedItems[itemKey] = {
 			basePrice = 0,
 			count = 0,
+			itemId = itemId,
+			tier = tier,
 			name = name
 		}
-		itemInfo = LootAnalyser.lootedItems[itemId]
+		itemInfo = LootAnalyser.lootedItems[itemKey]
 	end
 
 	local count = item:getCount()
 
-	itemInfo.basePrice = getLootPrice(itemId)
+	itemInfo.basePrice = getLootPrice(itemId, tier)
 	itemInfo.count = itemInfo.count + count
 	LootAnalyser.goldValue = LootAnalyser.goldValue + itemInfo.basePrice * count
 	LootAnalyser.updateBalance = true

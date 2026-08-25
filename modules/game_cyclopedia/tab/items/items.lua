@@ -600,6 +600,10 @@ function Cyclopedia.onOwnValueEditChange()
 
 	Cyclopedia.saveItemPrices()
 	Cyclopedia.refreshSelectedItemPrices()
+
+	if refreshAnalyserItemPrices then
+		refreshAnalyserItemPrices(itemId)
+	end
 end
 
 local ITEM_LIST_NAME_COLOR_DEFAULT = "#c0c0c0"
@@ -727,7 +731,15 @@ function Cyclopedia.onItemTrackCheckChange(widget, checked)
 	updateItemListTrackColorForId(itemId)
 end
 
-function Cyclopedia.computeLootPrice(thingType)
+function Cyclopedia.getItemMarketPrice(itemId, tier)
+	if not g_game.getItemMarketPrice then
+		return 0
+	end
+
+	return tonumber(g_game.getItemMarketPrice(tonumber(itemId) or 0, tonumber(tier) or 0)) or 0
+end
+
+function Cyclopedia.computeLootPrice(thingType, tier)
 	if not thingType then
 		return 0
 	end
@@ -740,7 +752,11 @@ function Cyclopedia.computeLootPrice(thingType)
 	end
 
 	if Cyclopedia.getItemLootValueSource(itemId) == "market" then
-		return thingType:getMeanPrice() or 0
+		local marketPrice = Cyclopedia.getItemMarketPrice(itemId, tier)
+
+		if marketPrice > 0 then
+			return marketPrice
+		end
 	end
 
 	local maxNpcBuy = 0
@@ -780,7 +796,7 @@ function refreshLootValuePanel()
 	UI.InfoBase.ResultGoldBase.Value:setText(Cyclopedia.formatGold(price))
 
 	if UI.InfoBase.MarketGoldPriceBase and UI.InfoBase.MarketGoldPriceBase.Value then
-		UI.InfoBase.MarketGoldPriceBase.Value:setText(Cyclopedia.formatGold(internalData:getMeanPrice() or 0))
+		UI.InfoBase.MarketGoldPriceBase.Value:setText(Cyclopedia.formatGold(Cyclopedia.getItemMarketPrice(itemId, 0)))
 	end
 
 	if price > 0 then
@@ -845,6 +861,10 @@ function Cyclopedia.onLootValueSourceChange(widget, checked)
 				end
 			end
 		end
+	end
+
+	if refreshAnalyserItemPrices and UI and UI.selectItem then
+		refreshAnalyserItemPrices(tonumber(UI.selectItem:getId()))
 	end
 end
 
@@ -1131,7 +1151,7 @@ function Cyclopedia.onItemListRowClick(widget)
 	UI.InfoBase.ResultGoldBase.Value:setText(Cyclopedia.formatGold(price))
 
 	if UI.InfoBase.MarketGoldPriceBase and UI.InfoBase.MarketGoldPriceBase.Value then
-		UI.InfoBase.MarketGoldPriceBase.Value:setText(Cyclopedia.formatGold(internalData:getMeanPrice() or 0))
+		UI.InfoBase.MarketGoldPriceBase.Value:setText(Cyclopedia.formatGold(Cyclopedia.getItemMarketPrice(clickedItemId, 0)))
 	end
 
 	UI.SelectedItem.Sprite:setItemId(clickedItemId)

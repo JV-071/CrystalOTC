@@ -266,6 +266,24 @@ function SupplyAnalyser:addSuppliesItems(itemId)
 	SupplyAnalyser:updateWindow(true, true)
 end
 
+function SupplyAnalyser:refreshItemPrices(itemId)
+	local filterId = tonumber(itemId)
+	local goldValue = 0
+
+	for supplyId, count in pairs(SupplyAnalyser.items) do
+		goldValue = goldValue + getCurrentPrice(supplyId) * count
+
+		if not filterId or tonumber(supplyId) == filterId then
+			SupplyAnalyser:updateWidget(supplyId)
+		end
+	end
+
+	SupplyAnalyser.goldValue = goldValue
+	SupplyAnalyser.updateBalance = true
+	SupplyAnalyser:refreshGoldHour()
+	SupplyAnalyser:updateWindow(true, true)
+end
+
 function SupplyAnalyser:setSupplyPerHourGauge(value)
 	SupplyAnalyser.window.contentsPanel.targetLabel:setVisible(value)
 	SupplyAnalyser.window.contentsPanel.goldLabelIcon:setVisible(value)

@@ -54,3 +54,6 @@ jobs:
           if [ "${failed}" -ne 0 ]; then
             exit 1
           fi
+
+      - name: Test hunt analyzer logic
+        run: luajit tests/lua/hunt_analyser_test.lua
