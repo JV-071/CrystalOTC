@@ -18,6 +18,9 @@ official Tibia client version `15.32.bf29ac`. It is intentionally versioned as
 - `package-metadata/` contains the official asset/package manifests, version
   marker, application metadata, icon, translation catalog, and Qt path config.
 - `raw-archives/` retains the original `graphics_resources.rcc` archive.
+- `qml-resources/` contains the application QML and companion module metadata
+  reconstructed from the official macOS executable's embedded Qt resource
+  tables, preserving their virtual paths.
 - `conflicts/` retains the official title and cursor variants that would
   overwrite active CrystalOTC custom resources.
 
@@ -25,6 +28,8 @@ official Tibia client version `15.32.bf29ac`. It is intentionally versioned as
 
 - `graphics-resources-manifest.json` maps every decoded RCC resource to its
   snapshot path and SHA-256 digest.
+- `qml-resources-manifest.json` maps every recovered embedded application
+  resource to its virtual path, digest, compression, locale, and source table.
 - `active-import-manifest.json` records which previously missing UI resources
   were copied into CrystalOTC's active `data/` tree.
 - `snapshot-manifest.json` inventories every versioned snapshot file and records
@@ -35,6 +40,7 @@ do not load it. Assets should be copied or mapped deliberately when implementing
 protocol 15.30+ features. CrystalOTC's active custom title image and cursors
 therefore remain unchanged.
 
-Generic Qt frameworks, Qt Quick/QML runtime files, executables, BattlEye files,
+Generic Qt frameworks, Qt Quick runtime modules, executables, BattlEye files,
 and user state (`screenshots`, `characterdata`, `conf`, `cache`, and logs) are not
-part of this asset snapshot.
+part of this asset snapshot. Only the official application's embedded QML
+module is retained; the executable itself remains in the installed app bundle.

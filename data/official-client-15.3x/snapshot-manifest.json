@@ -1,12 +1,12 @@
 {
   "official_client_version": "15.32.bf29ac",
   "protocol_asset_family": "15.3x",
-  "snapshot_file_count": 10378,
-  "snapshot_bytes": 266238594,
+  "snapshot_file_count": 10784,
+  "snapshot_bytes": 269643899,
   "categories": {
     "README.md": {
       "files": 1,
-      "bytes": 2065
+      "bytes": 2534
     },
     "active-import-manifest.json": {
       "files": 1,
@@ -32,6 +32,14 @@
       "files": 6248,
       "bytes": 129713352
     },
+    "qml-resources": {
+      "files": 405,
+      "bytes": 3204686
+    },
+    "qml-resources-manifest.json": {
+      "files": 1,
+      "bytes": 200150
+    },
     "raw-archives": {
       "files": 1,
       "bytes": 6749036
@@ -50,7 +58,7 @@
     }
   },
   "excluded_as_non_asset_runtime_or_user_state": [
-    "generic Qt frameworks and Qt Quick/QML runtime",
+    "generic Qt frameworks and Qt Quick runtime modules",
     "client executable and BattlEye",
     "screenshots",
     "characterdata",
@@ -62,8 +70,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 2065,
-      "sha256": "2b8ec6c7086be59d42fccd82566c4c309bbc8ba97326e8fd962a7ae2ae6a2212"
+      "bytes": 2534,
+      "sha256": "37bbdbc9bfc5411b2b7531ae50e9e6f3a8f858f54124eb878fb8f0c98cdae48e"
     },
     {
       "path": "active-import-manifest.json",
@@ -36709,6 +36717,2036 @@
       "path": "protocol-assets/subarea-0539-11840295206c4ffbcfba0c45dd5d52c7607494d47cd90151719f9bfadeb76eef.bmp.lzma",
       "bytes": 679,
       "sha256": "b0acb63339a98b170b4d2f2ca73e25ca466ac199fd2a1c71d9db81b9bb69770e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AboutDialog.qml",
+      "bytes": 4604,
+      "sha256": "efe330ed76a346282acfd4e22c215d92b993bbc75f3cf8c5a64c1284c50ab14e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ActionBar.qml",
+      "bytes": 9086,
+      "sha256": "3a1cbcb66775041f2ba0b88231b5feb1a80e26e9ac91f086b28d90cb67903552"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ActionBarButton.qml",
+      "bytes": 24045,
+      "sha256": "036a6956f8d1afc836f1056ba1b4faadde8111c9830599d3ac7b18f2ab538422"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ActionBarMultiActionButton.qml",
+      "bytes": 1126,
+      "sha256": "10b16fd8923429016ba01e4f87dbc6b73ae155db37725668eae46b54947240c7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ActionBarMultiActionExpandable.qml",
+      "bytes": 8840,
+      "sha256": "581060822dd2f7aa25f87039e5f8e5ceab656a11456eb468ca130384ebd609ef"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AnalyticsSelectorWidget.qml",
+      "bytes": 6216,
+      "sha256": "cca3a4924be46e4cef4a81496524e19d27b3da734cf2b384d46f94b8d63e72c5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ArcProgressBar.qml",
+      "bytes": 10177,
+      "sha256": "d4c7fc63ecad26870d93c17eda9e6812b0850fee184661bfe5bfcd38dccbac6c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AreaCaptionTemplate.qml",
+      "bytes": 3113,
+      "sha256": "86673e68882f07a6fd83607b0c80a53b184a90d5278bc6a3ffdcf145092ce16d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AssignObjectActionDialog.qml",
+      "bytes": 7153,
+      "sha256": "8659a4ae2df96e7471e0c2d2d66700b2631d07ac14b6120ca358311c2b0639a9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AssignPassiveAbilityActionDialog.qml",
+      "bytes": 4028,
+      "sha256": "e56e1290d087b721e83733a00b48d0a9919438fe2858f5705a65805c7d2df08f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AssignSpellActionDialog.qml",
+      "bytes": 9489,
+      "sha256": "f841c65360288774d3f9b4b3fabdee63a5391ca8f8c6f3adc0ffb7af226278f7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/AssignTextActionDialog.qml",
+      "bytes": 2619,
+      "sha256": "1ed07167f1db8baba1594cc5a9c8e9288ada7f070f58085038f4186c05dfaa04"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BattleListEntry.qml",
+      "bytes": 5651,
+      "sha256": "760ddd70f351b06bbf7f5bea42e76c1efc6da11ae4c2edfeb36c21ee2c1f5503"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BlessingsDialog.qml",
+      "bytes": 10134,
+      "sha256": "033b15ad4ee94a4129b33774609bad0b33cc0a6c71d2547ba0c91760b43f9d75"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BossDifficultySelectionDialog.qml",
+      "bytes": 17241,
+      "sha256": "b174af7ecd18ca903110eeefa67c02e0975361d531cc92088b174e88b84460b1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BossSlotNotActive.qml",
+      "bytes": 926,
+      "sha256": "1c1526c63d29e2adebe4622b0e3252cd1bd8a231b13a31c44a6aa471046354ea"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BossSlotsDialog.qml",
+      "bytes": 9580,
+      "sha256": "bef780202ee23347eb7c63fa03a0a13d59f4ab56cc56c4f6e5c95cbb0ba8ead7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BossTrackingWidget.qml",
+      "bytes": 5721,
+      "sha256": "2fd571b850e19af2a86e5fe9f88134584a8007c7189688b96cf1ff0646f2f19f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BosstiaryDialog.qml",
+      "bytes": 12603,
+      "sha256": "12f3065a9978cd770fccd0bcd2812db6a197484e99be9752926c67d603d4f611"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BosstiaryUnlockProgress.qml",
+      "bytes": 2857,
+      "sha256": "ca3564a11498d34d846824398e11940e611901b9d341d0e9555ff2303eb697d6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/BugReportDialog.qml",
+      "bytes": 3158,
+      "sha256": "8a2b068b55a8b69e51c5e347766210a9f6522605786289530dd7a01e05e47a59"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ButtonBarPanel.qml",
+      "bytes": 35919,
+      "sha256": "02c9c69a119c979bf5aa14667cff424a430a58ca1bc5e50f0e7d5719214fd97a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ButtonHighlightAnimation.qml",
+      "bytes": 2496,
+      "sha256": "b916a1107a67d21dcb0de19f33624a39e1bae3ad840232a5f9c33b804b7577e6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CalendarDialog.qml",
+      "bytes": 5911,
+      "sha256": "374cff6a7d1ae155dd6ae0ea12065b794e7b77cc72f45f1d7e8d34707023c0f8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CharacterCombatStatBlock.qml",
+      "bytes": 3372,
+      "sha256": "20f2d5fc0ab31b8cccd3a6eddc9325576ec2d8db8d853b71dc4e46b057d1ed53"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CharacterInfoDialog.qml",
+      "bytes": 112726,
+      "sha256": "2bd2ab915a7e83050d940bab5c41b92b01790f47d105ff88561bcdec90ab3543"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CharacterSelection.qml",
+      "bytes": 20021,
+      "sha256": "641136f0eb963492ed82ee230d538ae9d11f1a86d5922b5d7bf27b3b12211ba0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CharacterWorldTransferDialog.qml",
+      "bytes": 6687,
+      "sha256": "fe4d0313634f1e3608ccd2e92d3b293718d6e1c2aea6740528a4a110b8e5c2eb"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/Chat.qml",
+      "bytes": 23677,
+      "sha256": "247665b41f1251993c94a7d03ed8657d2f8de0068845d4762b1811392771a0d2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ChatInput.qml",
+      "bytes": 6854,
+      "sha256": "0bff9ce851998ca5c01c523c68164923dc284b55b5db5093c6627fd1482938fd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ChatOutput.qml",
+      "bytes": 10410,
+      "sha256": "84885036204e09fbf42dcb0f2062a08f15d5aef85a9bf57d94dbe98aaa4a2e50"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CombatControls.qml",
+      "bytes": 10306,
+      "sha256": "9c9fb96567b72eb75cfcf60171fee0c090f646d2f24bddf35a71322f35087c9c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ComboPointsAndSereneState.qml",
+      "bytes": 2500,
+      "sha256": "353a71a39909536bb5a1acd6d2404902e0d12f82cf2e741fd9c776ab537af941"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ConfiguredBossSlot.qml",
+      "bytes": 3886,
+      "sha256": "b63b2ca71712633ae0b181418e87bc79525a84b49f9fe9b98f2ffe5237b58ffd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ConfirmMoveObjectToStashDialog.qml",
+      "bytes": 1619,
+      "sha256": "eb6d5c621265de2e9e804c0ba6d9295f6ae61738ae1cf1536d06289611f16acc"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ContainerSlot.qml",
+      "bytes": 13054,
+      "sha256": "bae1f455ea5b00f7fa117b1f609fe5ff743c7ecccfa35c20bb5267a8e84c23b3"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ContextMenuTemplate.qml",
+      "bytes": 3686,
+      "sha256": "48e2f9f7a36801169e5b131e8dcae30d57068fd614ba1145ce7232f112b97a15"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CooldownBar.qml",
+      "bytes": 3130,
+      "sha256": "a8a51065e24f05ecf1b04c9d6656df26ee8492b18fab806caab4a8ca9f327b78"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CrashReportDialog.qml",
+      "bytes": 3654,
+      "sha256": "9aa93772ce610d3e398ef5bd95b375e1af262b51ac05cc7c0a49014b8d795a83"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CreatureHUD.qml",
+      "bytes": 17941,
+      "sha256": "9fec3d0681fb5f50b185ed4410433921b28df309bf5d31807bd08fc16ab481d4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CreatureTrackerWidget.qml",
+      "bytes": 5440,
+      "sha256": "34aa5e6c76472bceb15893466d1d123e5296dd3eea234ca9c68956c24a10a923"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CreatureUnlockProgress.qml",
+      "bytes": 3590,
+      "sha256": "852864bd4cbc742efa296b4b67d901284df3e26156e3ad96a17bb2c0d3685d24"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CyclopediaDialog.qml",
+      "bytes": 11582,
+      "sha256": "89ae9c2f8025d9791c1d428240dc2ed0dacdf6eafb0e6f505a70b991490e950d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/CyclopediaMapDialog.qml",
+      "bytes": 50736,
+      "sha256": "f02fb6648deb2834ecffc1640c8274102b111b8c78291af64398d4746231f1ee"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DailyRewardPickItemsDialog.qml",
+      "bytes": 10411,
+      "sha256": "be40c077be2c48ff78b687cdbb93de367f9b8a50dcc553a641cc81819c91da19"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DamageInputWidget.qml",
+      "bytes": 10860,
+      "sha256": "cc9509379ea27e0701ae92ab6f1cacfb7129d92788ceb784cd0d94e2e049859d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DepotSearchWidget.qml",
+      "bytes": 23054,
+      "sha256": "fee8980d852646c48d1ac1d69d2947878c56b97770801aa93e5cdfcb9b482092"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DialogHeaderCrest.qml",
+      "bytes": 376,
+      "sha256": "e59ac238f531781c4c8ce914a863d1fc05279f99ea56e891f66818382bf4eeb9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DialogHeaderDragon.qml",
+      "bytes": 1363,
+      "sha256": "715dbe6051364e7cf90b44071ee6cbc3b15ee20242825901403d76a89bf07691"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/DynamicallyLoadedMultiImage.qml",
+      "bytes": 1594,
+      "sha256": "518d4553cf7a57031d6cd72824736487d4fbf9c4348a267a85960009c1971794"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/EditMinimapMarkerDialog.qml",
+      "bytes": 2662,
+      "sha256": "9550b411d93dfc78c69407b781a6323194cb1996ac0b81d82482a32d257d1c34"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/EditTextDialog.qml",
+      "bytes": 5454,
+      "sha256": "66fa6b0d319e854783b5174d253b2f5690fca2ddbd9cb4620c0d1f0895ced496"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/EditVipDialog.qml",
+      "bytes": 4247,
+      "sha256": "1e6ea6aa406c078b19689b5e250d78c3b10f05591df792ea39100f47a0538c5a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/EnergyBar.qml",
+      "bytes": 1071,
+      "sha256": "b2bd52ce0294f17a8bc93d19786b8168a7ff2a12b2f88b60ee68a5c2cf56e007"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeConversionPage.qml",
+      "bytes": 8142,
+      "sha256": "cdfaced2ab9f2d955fd9d9593e3af9a661271d312a782232114e0f164c8b9428"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeConversionPanel.qml",
+      "bytes": 6570,
+      "sha256": "34c7cb94cf7c195cc48c391350498a092a2c50d66bec93ef6648366847186305"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeDialog.qml",
+      "bytes": 6031,
+      "sha256": "b37284cea1bc9a4b65c0fb7a40245d71eba6a70fe01fc6b1369f3c14d36297f2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeFusionPage.qml",
+      "bytes": 35513,
+      "sha256": "a50e3dedecc7a676cf793db19849898af7fac405a36b3850e21f28cd79283efe"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeHistoryPage.qml",
+      "bytes": 2556,
+      "sha256": "a4234eb666a09cb615a0de96a36d8d798c6ea0bb1ec1139d749ff2401f67b4a0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationForgeTransferPage.qml",
+      "bytes": 20001,
+      "sha256": "34891ac70834f03f5eec0b36c5e742f9307623dcd2ce32cc84ba6a7958812f79"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExaltationResultDialog.qml",
+      "bytes": 18280,
+      "sha256": "e75fe8b40394f16abedbb200fceaab268a62fde2dafbee20db82b2799a6ddf7d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ExivaOptionsDialog.qml",
+      "bytes": 8280,
+      "sha256": "b53bd3c0cd68b9dcdfb3492fbcc832af639b2d6c507572624eb3951b0854e3cb"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FpsLatencyIndicator.qml",
+      "bytes": 2913,
+      "sha256": "06f9b8ace588a27cf5ca32d93fd528f29f159e3d1eab1d80bb7df24d662f6d57"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FriendsAccountSearchPage.qml",
+      "bytes": 21489,
+      "sha256": "15d39bd10cd24e29a26554c7c45e97a038d5d6233321e97e84e387eb3183a60a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FriendsBadgesPage.qml",
+      "bytes": 6509,
+      "sha256": "8e96f9e5e5879be75487e7c643e9fc15b7223d0fa21b8af15151b24732913a5e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FriendsConfigurationPage.qml",
+      "bytes": 3352,
+      "sha256": "ff3ff8aaaee4ac65e78b2f3a8af39133ea82a251848d2d31fe41397c1a14cdc7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FriendsFriendListPage.qml",
+      "bytes": 13291,
+      "sha256": "831611f4a6f18b2ffa6ba751ace5228fe345a30d76ddca467427dc36d81ada40"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/FriendsInvitesPage.qml",
+      "bytes": 7154,
+      "sha256": "f67d050f1d9bd8d29b47f4d63aa3bbd628ef0e96337c5b4a86356b44e97bf1ac"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/GamewindowSplitView.qml",
+      "bytes": 13312,
+      "sha256": "7e64ccbad4fc48cae9f96ac1655287b0e4dee2c24d52d885a73a25018dbfb914"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/GenericConfirmWithDontShowAgainDialog.qml",
+      "bytes": 1803,
+      "sha256": "59de73ed6719c6eabff21401a627f55f07b656da3fd33f957e314340f1019931"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/GenericEnterTextDialog.qml",
+      "bytes": 2609,
+      "sha256": "d9d99725584624dadf7653971ef71d1ae78ccde1edc363d409deb50d50df58e5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/GoldenHighlightTibiaTextDecorator.qml",
+      "bytes": 1680,
+      "sha256": "3acfa18cb6434dbfe5c2ff6b02293b0126b98b278570b8dc415a2f1feb7f7555"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HighscoreColumnContent.qml",
+      "bytes": 757,
+      "sha256": "f296ee2f7792defd09ea9d73bca65a711892d6218fd7a828e4197b23ce05f06f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HighscorePage.qml",
+      "bytes": 16550,
+      "sha256": "9c0d6c558993599f84cd301e2ae71ff8e1dfa70ba71cdc2a5410b793b7b67bae"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HirelingConfigurationDialog.qml",
+      "bytes": 2715,
+      "sha256": "729105ab5ce99f8765e2a00f1c29d06129e180089d8dfe32c7891676b8b76279"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HitpointsManaArcHud.qml",
+      "bytes": 13558,
+      "sha256": "f6ff26d95ec9b194943dca25ea046264efb46faab218fa94768386219739dc3d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HitpointsManaPanel.qml",
+      "bytes": 1466,
+      "sha256": "fa4f043842b264f2f41f45dc44b5460f4797ba7ba9f9c73ef0806723e00bd11b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HorizontalActionBarContainer.qml",
+      "bytes": 1485,
+      "sha256": "3c97b8f5f897a2edef6dc51f8a0530467f94bd5dd4d620bb727209a282a9aea0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HousesInfoDialog.qml",
+      "bytes": 83727,
+      "sha256": "a106e05f45f07c5ba6aca5ef71a27dfe0153d001ec6a1479dbada492b663cb3c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/HuntingSessionWidget.qml",
+      "bytes": 8677,
+      "sha256": "5e8a88efe963019e000e5c9b7edbdb090a983a889ac332b214dda9ee2000f55f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImbuementInfoLayout.qml",
+      "bytes": 2133,
+      "sha256": "de7f20a8a9497720d1f889a0117e5572e729ba0b184e66ff3f1c775e1e79c52f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImbuementTrackerWidget.qml",
+      "bytes": 4769,
+      "sha256": "205b3cca5d3b9f04d43f4bc1546a364146b2995fce19c972f8154d4277a2b4be"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImbuingDialog.qml",
+      "bytes": 26096,
+      "sha256": "3a5ec3216adda2ee4b1c89641a86cc0779021ff39c00a9c14fa25cd2af582331"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImpactView.qml",
+      "bytes": 5177,
+      "sha256": "c80c198608fbcca85980f039c9c0f8b0eb93d0ceb89682fabdfb7d769b4ee56b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImpactWidget.qml",
+      "bytes": 6751,
+      "sha256": "99f168eb662cd8f43d30a7b77a21168d6d0d1e6ef8e212d557f13cfe67e53f4a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ImportantBalancingMessageDialog.qml",
+      "bytes": 7063,
+      "sha256": "daee092cd9e49dbcb395650a4d919c296f6d920831b66058a097b407d4450493"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/InspectObjectDialog.qml",
+      "bytes": 5065,
+      "sha256": "973b9dc4c4475534e3a9e6164e44aa443a667ceeadd85754efdca59ae5d37529"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/InspectPlayerDialog.qml",
+      "bytes": 13727,
+      "sha256": "3e1f74bb73355bd243a3c5ef49b0be651d132000e41ab8cdc1551ddd1fc5031e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/InspectPlayerLayout.qml",
+      "bytes": 8886,
+      "sha256": "d8fd7eb69d029b90fa8d8c0f778f6cddef7f824bdbaa2d2f9839a063d1e95303"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ItemInfoDialog.qml",
+      "bytes": 14099,
+      "sha256": "283beba4d08fbf5563b7ee7a31fd961fcb8a4350d708d6f55e622c8655c59ecd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/LenshelpTemplate.qml",
+      "bytes": 1185,
+      "sha256": "a00d5c06587b6309ceb84d87fa1ee331be08092a0ad0e8066e6c6bbd887ea49c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/LoginConfirmationCodeEnterDialog.qml",
+      "bytes": 6974,
+      "sha256": "e350818d07d7519065bdfbcafec5a9fd3855cbb1866beb9cffa881819fd2ae6f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/LootAndWasteWidget.qml",
+      "bytes": 7328,
+      "sha256": "aebb7e0eb367fb30aea591dc5ee8ca4c02a81f29c6f3794ceb928316856002e2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/LootTrackingWidget.qml",
+      "bytes": 7145,
+      "sha256": "70692d7e1e7cad4412b47944d01f7845973e08b17d78f5f1babda62c422e8f81"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MagicalArchiveDialog.qml",
+      "bytes": 38301,
+      "sha256": "47abf54ef41a2237bc54cfa19d66aa9c0e61ff3da927b7191999e1319144a15c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MagicalArchiveSpellPreview.qml",
+      "bytes": 9844,
+      "sha256": "c6a787741e90463baa2e487a6b6b36bc182a8ee298bf31e1b0101a430df24204"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MainCharacterChangeDialog.qml",
+      "bytes": 3990,
+      "sha256": "42f5be77eee63f9e8cf30e2ab91feedf1d88bba360aa1e7adfa7d36624cc4ef0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ManageLootContainerDialog.qml",
+      "bytes": 21372,
+      "sha256": "9d66e9465bdf289e88055aa594a1236c1683a5c0997ecc2175050e192b769427"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MapWindowPane.qml",
+      "bytes": 15423,
+      "sha256": "7163aabd502d60d768e6f0219201a7307216df9e58838cc81118ace62ed927e0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketCategorySelection.qml",
+      "bytes": 21323,
+      "sha256": "2019022feff753a0cd49d9a9f11b9201b5b5b5ae71c5611d81b9373383348ba0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketCoinTransactionDetails.qml",
+      "bytes": 11431,
+      "sha256": "d3333b7789ce40658e9b3b3f89eb45b304ae993dc666133118a1621e6b3d9c36"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketDetailsView.qml",
+      "bytes": 1466,
+      "sha256": "f8be00acdb901e6003bd07f9248751322c7e2e07edb1ca683853b449bc6a0c05"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketHistoryView.qml",
+      "bytes": 3085,
+      "sha256": "5abf8f207803eaf50180844a4ff71d9db63490a9a0c22013425126717de2ff7b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketOffersView.qml",
+      "bytes": 17883,
+      "sha256": "9e7a1e06902b79bb64b60296ac53e3fe8dfd451826f6483cba193efa6fb0ce60"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MarketOwnOffers.qml",
+      "bytes": 4284,
+      "sha256": "593a1ef13d1a5c2a3b582c15d4b461bf3d4aad9cc75f4730978843bcc8485883"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MenuWithSubMenu.qml",
+      "bytes": 5660,
+      "sha256": "e9705df3e5b436211ef36ed9ab9f714403a10927b7bee28e7ff15bb88ef89b75"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MessageHistoryWidget.qml",
+      "bytes": 5013,
+      "sha256": "bce00d2dbde0fd2e14de9c1e416b16a2a466249883d2a5f424b755cb0ddba46e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MinimapMarker.qml",
+      "bytes": 2620,
+      "sha256": "467f6c7013bffc914546446bc6756754f42fdf9237e597b41d5123a73543e2f9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MinimapPanel.qml",
+      "bytes": 6532,
+      "sha256": "43525c6e5041b9caa5a17498ba4a77546e2c4769ae1ec7ac9ced3bee237c1d25"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MonsterBonusEffectsDialog.qml",
+      "bytes": 38394,
+      "sha256": "180ef0f5b1a529595856d38a0472553f61ac89df47c5fb3559fc15efdf4d1ac4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MonstersDialog.qml",
+      "bytes": 43333,
+      "sha256": "36177df3bba251ccaff2c2d7e3c9506c0db73c68651801de207891499cb936c2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/MultiOfflineTrainingDialog.qml",
+      "bytes": 1892,
+      "sha256": "27638aaf5eb6dfe28a728a7e0220c01e6db38843fd49203a51231f03636720d5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NaggingMessageDialog.qml",
+      "bytes": 2552,
+      "sha256": "0d7e0c4012772e98f40904be6ff4408b90cae59df02bc25b4a9b3e3d2c83b979"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NewsButton.qml",
+      "bytes": 2468,
+      "sha256": "624845e2d6d63a01fe5e2f901938008378ed5a895659e5cdcc59ab4d428ae0b6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NewsDialog.qml",
+      "bytes": 9352,
+      "sha256": "956ea38f5abdd97fda1c41b3315a46a46bd85ca275542264cf32a4c9780617bf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NpcDialog.qml",
+      "bytes": 8769,
+      "sha256": "d95b1c1f0c5796b344fdfaa2037c1d089d3e0750f8bbdc3976fb0c5b8e23448c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NpcTrade.qml",
+      "bytes": 20136,
+      "sha256": "45e398eebedfe8f4482a047e29c04a1f789ced809f43b5862b43b5e25f5b75d5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/NumericalEffectsTemplate.qml",
+      "bytes": 3206,
+      "sha256": "e8fdf950984856d6e66391d8aacca3852d120cce9d6202a3f71919ff8d661cd1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OpenChatChannelDialog.qml",
+      "bytes": 3327,
+      "sha256": "ab3a3b5965c1467b4e4440d520f750529e6e28d77b2103fcc96ba5e74143b68f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/Optimized1PixelBorderImage.qml",
+      "bytes": 858,
+      "sha256": "beaced218d9968b6e472983ff85144bef2be2283f75ed6860376e12b60a96b3f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsMenuDialog.qml",
+      "bytes": 11389,
+      "sha256": "bbcc3cfe46242f6caed9f7bffd1a05fe4a8dd101529dbb7515579fada3cc37bd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageActionBars.qml",
+      "bytes": 8854,
+      "sha256": "8a9bdc49a57b603915ab14bd62dd6578c5ce8b1dab1f3bf180889d04eb9406f4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageActionBarsShowHideSection.qml",
+      "bytes": 6792,
+      "sha256": "78099f10a54c01128bc320015f7525f4422ab2dac52a91702af36c65a5afc6d1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageBasic.qml",
+      "bytes": 12535,
+      "sha256": "9228abc26692c93a5d795a977e2dbb9eed792a604f7173a7d179db20c72322d8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageBattleSounds.qml",
+      "bytes": 11178,
+      "sha256": "6acc6c1c1abf68895a5a1f3247cbaf848bcda6b585ece22544f9b7b5904cf238"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageButtonBar.qml",
+      "bytes": 7982,
+      "sha256": "dc5e203eed2642299807268325bb3fff17353566154864e8cc4523a369e3aef1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageConsole.qml",
+      "bytes": 4112,
+      "sha256": "7a6a649753a635e37b22297983eb1e36e0aba0a3113ae954ddd617353cbb00e7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageControls.qml",
+      "bytes": 7739,
+      "sha256": "e291d3822c1937c2f7692326c8dc3b594d1b188d1a46c4a08ed0722f50d8c87e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageEffects.qml",
+      "bytes": 7489,
+      "sha256": "92a6ab4a8c2878e04c9fcb4c3ab4d871f4ce1f00c483222689b36494edb69123"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageGameWindow.qml",
+      "bytes": 10135,
+      "sha256": "0aa4f8fd38f7fc931a1910d7b80240678ad094033161bef98f8dd3d1067244be"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageGameplay.qml",
+      "bytes": 1784,
+      "sha256": "21cee4aefe0a6f07d3765fcdc190a3606b0dc213852a49df4bee07cc074a92ea"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageGraphics.qml",
+      "bytes": 7346,
+      "sha256": "baebabc1add4912336c23dae0fa8286eb9917b94a60b4bea8c0ff7559c69bbf8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageHelp.qml",
+      "bytes": 9350,
+      "sha256": "ab2d9f9856efc4bc71da6c2dad2652997f1df6b8f53e4383c9732437ef95c4e1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageHotkeys.qml",
+      "bytes": 15400,
+      "sha256": "0ca4fb1edd6f1382f96566c0b08ac1b53801a09c2ccb6a5a41db52da0c296caf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageHud.qml",
+      "bytes": 30783,
+      "sha256": "9f51a87d51170754a80681b2712959e6cbfd7ead4938dfb1f62d95cf5c4946ae"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageInterface.qml",
+      "bytes": 6973,
+      "sha256": "f02665e8560e382c1a57d0fd281c6c0205782fee557307fd2c7283d8a24d7302"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageMisc.qml",
+      "bytes": 4474,
+      "sha256": "e2ad326b2e48235130b761084d684f3710cc940703e30997eb2d6676024816d3"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageScreenshots.qml",
+      "bytes": 10685,
+      "sha256": "c771a3cc733940de5fb7d85dd90dc1bd786fc4a5bb925f504a3be15d8d804aa6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageSound.qml",
+      "bytes": 7573,
+      "sha256": "270ae6c661b93d4b06640cc903bcca86f40b8d50b9d295a6fda6076943b5f37e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OptionsPageUISounds.qml",
+      "bytes": 10638,
+      "sha256": "12a411dc8e0b88d7bebad2e9124199a8df31aca7b2d87a6931ef52bc3cce5088"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OutfitAppearanceInstanceRenderer.qml",
+      "bytes": 2883,
+      "sha256": "a50846597d3bf66df03da5959300e35203738c531973cfc538e7b190864bd6e6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/OutfitMemorialDialog.qml",
+      "bytes": 5008,
+      "sha256": "0fdbe34295fc035917b6f078b79a42b96f76cf87a0e5aa4f7a75b831cc4c231e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/PartyHuntWidget.qml",
+      "bytes": 9184,
+      "sha256": "103633d08de6a35c3ba72682bb813bfeff8abdc948122cdf3c205dc20615f39c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/PassiveAbilityList.qml",
+      "bytes": 6541,
+      "sha256": "47814ad442dab0ea8bf65446b7e9f21deed6a48df40fa45a78916533a0f26fd5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/PlayerGuideWidget.qml",
+      "bytes": 9610,
+      "sha256": "8f6f26ed9b7f3f07c2ec499c9bbfac7402db63593ad9a6ba4d212539b80213d8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/PremiumPanel.qml",
+      "bytes": 3724,
+      "sha256": "d4c7345cab2cfe1fbdd679ff27d69c7c84ed86c0a3e3aec82f432f53dbf0b8a9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ProgressWidget.qml",
+      "bytes": 7120,
+      "sha256": "791db2afd27ceacb01c82bb015979533e2811bac94b8c6ca03de6c6af852ae4f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/QuestlogDialog.qml",
+      "bytes": 17754,
+      "sha256": "985699086b41c81779be0c4b36af4102dbec63999f9b02ea6c22a9a8605a788e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/RaceAppearanceInstanceRenderer.qml",
+      "bytes": 3714,
+      "sha256": "da05e67a095ba5dc57e46fc7f5a48e8d3736f5d50490bb1fe1e30b9327cd53d8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/RecordKeyboardShortcutDialog.qml",
+      "bytes": 3360,
+      "sha256": "9d2e0836cdeaa2edf318d976dba9b7da6a288858a83ac2d34b375e4f9dae3d10"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ReportViolationDialog.qml",
+      "bytes": 12551,
+      "sha256": "feacbe825d8736ec4d7c415ca8dd4fb572fa934dd2bbb61011e1364d285a9679"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ReturnerRewardNotificationDialog.qml",
+      "bytes": 1602,
+      "sha256": "6d7a20a0c6b6f560199916f03bef3eef689df8bcf4c0fd96944a57affc8656dd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/RewardWallDialog.qml",
+      "bytes": 30700,
+      "sha256": "c2c1024ad10866868d0f34efb252b512bfbdde784e24309faafa37eaba316e4b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ScalableObjectDisplay.qml",
+      "bytes": 2741,
+      "sha256": "cc7c7860d0be2bc4d8129484962744c4da710aa0f5f6354c25569f0bbd21823a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SelectBossView.qml",
+      "bytes": 4571,
+      "sha256": "388c9d74e1cb1462a090387212de066565bd8ca489028770b69c3edabbd12d37"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SelectObjectAmountDialog.qml",
+      "bytes": 4262,
+      "sha256": "d879e9224368233eb3fd7023b8378889931b0ce02b88e6aa5874a76eafb89445"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ServerModalDialog.qml",
+      "bytes": 2579,
+      "sha256": "8520228f13ff89b9c5cdbf27f07c6739ad5fdee457d71e74540bb2ce72c89616"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ShowImageDialog.qml",
+      "bytes": 4333,
+      "sha256": "cfc8ae3bfb7558675f17cf229887af0a89adb32f67ce2c11f925b78df40a018f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/ShowSpellBookDialog.qml",
+      "bytes": 3178,
+      "sha256": "14ffbd1ba1176f6b4a14fdd4869d5ed96648191988e0d9b6c8ca0acbdf3449da"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SidebarManager.qml",
+      "bytes": 2678,
+      "sha256": "970b9d9d653e4f2bd755a658ed5addf2af5a27d11974840dbae3b3a097a376ff"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheel.qml",
+      "bytes": 26530,
+      "sha256": "473e93c73269171e6b35e66dff1d7093af443caef9b5ffe950ae5824e38c7805"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelCorner.qml",
+      "bytes": 15470,
+      "sha256": "57100d94ab01ecd525c6323cb227a1d24a8830a5757c3d2a213a52d67b4a9437"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelDialog.qml",
+      "bytes": 9631,
+      "sha256": "b2a35e0f9720b95c873c91476c93e4ebd36796eb66eff63aa235758827e2732d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelFragmentWorkshopPage.qml",
+      "bytes": 54379,
+      "sha256": "c98f91901b18ebd058d83a01de2c7254eb6e0a04a91c50a7f15e6db841473685"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelGemAtelierPage.qml",
+      "bytes": 37024,
+      "sha256": "fdd17e8583e7d90e5c88029c9ce6bc6256de05fb58b4445d54e81c16eb69af7b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelGemSocket.qml",
+      "bytes": 971,
+      "sha256": "8f977a35dde434f13a7c27d9cfe4f02c2ad15cd1a4fc47d6d8fb3ff5e33f143b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelLargePerkInformation.qml",
+      "bytes": 2390,
+      "sha256": "3c263444d24cdc059aa3f758ffed21bc3e674a6e5c0a53a7e6c9d2704dd83f23"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelPage.qml",
+      "bytes": 33785,
+      "sha256": "5585d065491b4bac21f0e00d094633f1bfaae964cef0696d13d0c2e9014aaaf4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelPresetManagmentDialog.qml",
+      "bytes": 6042,
+      "sha256": "3b9adafc526894a4de8ad7945607fc8e96ed595a4728bef5b80a39d5d1f885f0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelTileInformation.qml",
+      "bytes": 11545,
+      "sha256": "bd8453a6d64b0221dd2d0c14de782bf4d25bc02406f486a204b0198cf0585b95"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWheelVesselInformation.qml",
+      "bytes": 4430,
+      "sha256": "d5482a3656dd8c4b999b62b5cae566b96ef6b8d66ef83a5fdbd87d58dcfc2494"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SkillWidgetEntry.qml",
+      "bytes": 6284,
+      "sha256": "f920809bf75c7f3e666b5c7279eccd811fd7530517caff437995f7a9b334c1e2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SlimProgressbar.qml",
+      "bytes": 597,
+      "sha256": "3da59bec8a5ae51c10a277e9e057ed594e128642d2c38542dae615a14ef9b0c1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SlimProgressbarRotated.qml",
+      "bytes": 597,
+      "sha256": "61041c503c89585ff152c3e54dbdc76e0781683b86a3cbcc229fe90203477921"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SocialDialog.qml",
+      "bytes": 7444,
+      "sha256": "16a37204c9201ede09cdaa5ff49f508c23bc8c88447a13481cc0a39fd252d545"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SpeechBubbleTemplate.qml",
+      "bytes": 1948,
+      "sha256": "c593d6074b8922efbb8fdf99693231e8e37f4fbd95ed323f2e88047b450cddf6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SpellList.qml",
+      "bytes": 7546,
+      "sha256": "adad8039d905b75936dbde26ca27a6a8edc28c34b2115d6ce2eff35dce56f689"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StashDialog.qml",
+      "bytes": 10581,
+      "sha256": "feae80063a1234b8f874876eff612ca5aafd2bd8feca156b35b76d1340eda865"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatesBar.qml",
+      "bytes": 1903,
+      "sha256": "2186dee771cdd685618f794d01e62659dc89388bde497fa6d88fb1797d42a9fd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBar.qml",
+      "bytes": 14634,
+      "sha256": "b6610ce165f84b0b7e9999f4d99c963ec8bdfcaa4be93a9da0e7fa2612478d2a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarHealthMana.qml",
+      "bytes": 9757,
+      "sha256": "56a3dd9348596be9d4e8aa00447fecb96e1d3e753c0d06e5c51d9ae88ebbf7d7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarHealthManaParallel.qml",
+      "bytes": 3558,
+      "sha256": "d4183b76117b92d716d0a2cc836ba1ae8d898cb9e9e5643e117a3a90c35d55d5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarHealthManaParallelSides.qml",
+      "bytes": 4788,
+      "sha256": "05c700de349e34cd61051c38be5227114d14b4758a6d5ade4c592762a36ae40f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarHealthManaSides.qml",
+      "bytes": 11518,
+      "sha256": "33e3d439c556d3b544f4c33a398c358145c9f2d53266aebaf4bb36eb3c44b019"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarLeft.qml",
+      "bytes": 14504,
+      "sha256": "13a61d0b6d58163400de2dc2db1cbaed575ca86daa50940c75478763cf667a39"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarProficiencyButton.qml",
+      "bytes": 1130,
+      "sha256": "adaee99814d4bd85c0d0ae293773d68fd19214d96f85399cdcfc1d9c210cdb6e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarRight.qml",
+      "bytes": 14548,
+      "sha256": "ed1eaed04e54c7bd47bd86836063d80a06d4b43d29db3286269fc14c3bfca417"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarSkill.qml",
+      "bytes": 3064,
+      "sha256": "0538d26e103fe507029769e4aa8cdff71326cb7f76bc0535bc1d2f7ae4ae2817"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarSkillLeft.qml",
+      "bytes": 3394,
+      "sha256": "ea0ff595c37b218ca924d36f53b48c64c61692a23ebebe8ccbc8e452e7b73151"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StatusBarSkillRight.qml",
+      "bytes": 3383,
+      "sha256": "d365a04b19c39da91b26a9228ddc124fb80b41aef6eac31c5d020971e2b37bd5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreButton.qml",
+      "bytes": 1477,
+      "sha256": "864b18e15d253aba7c37ba35c8122b8967a85ce57e9c65021ec54120dbe2596b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreCategoryWithSubcategory.qml",
+      "bytes": 4875,
+      "sha256": "75aed4bbfafccdffd9ee23c5456d29c06aceb15cc1a26a285d626ab4841f9f8a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreDialog.qml",
+      "bytes": 8553,
+      "sha256": "bb31a0e330a19846cf5e9bbba2051d11ba5d0c49231a13c78075a26fa893b26c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreHighlightImage.qml",
+      "bytes": 474,
+      "sha256": "2b3650126578092f8573ee5f605768438ef1345c5d57912f08f01bae8fb363d5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreHighlightState.qml",
+      "bytes": 897,
+      "sha256": "0c89b626e191e2ad32f51c8de3455f4f8f6395cdfe2e57eb047e069fd16ee525"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreMainPage.qml",
+      "bytes": 6591,
+      "sha256": "c92dc08c38f7662f2be97a85304bbf94ae9bd51c36ee1af60c8ea95a12604b3f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreOfferDisplay.qml",
+      "bytes": 6753,
+      "sha256": "281dcbfce8dcaca620476de9d90099c581459df255240cec40bcd5a2152c3b86"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreOfferPage.qml",
+      "bytes": 17482,
+      "sha256": "07154828a0081cae22dd0f5b132350dfb2d53ee9fa40c9c14e6e348f83b220de"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreOfferVisualisation.qml",
+      "bytes": 4344,
+      "sha256": "5c478769a255788ec018b2fff0ab89c272decb78d6c9a7e3c3e53caca83e24f6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StorePurchaseConfirmationDialog.qml",
+      "bytes": 6682,
+      "sha256": "e305989fbe7adbc98cb1b4ae23b863813360082050cf56202b34bfe7768fcf70"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StorePurchaseSuccessDialog.qml",
+      "bytes": 5007,
+      "sha256": "c0682fc7c9f7122741e66b567f723d030f0c9c313fa4ad79ca5a4aa163fc3d2d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/StoreTransactionHistoryPage.qml",
+      "bytes": 7379,
+      "sha256": "5c6ce23d403269eecb4bb6dce7306f536d281b93ae817ef7eedb6979a2c17f92"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/SurveyInvitatioDialog.qml",
+      "bytes": 2337,
+      "sha256": "29d5645a5e489e1356d89f33527d8ce17199ced8326c2849428556b9d7fd2695"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TeamAssemblePage.qml",
+      "bytes": 31690,
+      "sha256": "a19879110ae14f58d1897f631a662539ab2e960d84da0e6f87c70581b8e566ea"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TeamJoinPage.qml",
+      "bytes": 23922,
+      "sha256": "29a0056295c0fe308c69ff1ee3c1de98a081bc7810c0e85cb10d1ab9b5b9bfaf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/Tibia2DRenderedText.qml",
+      "bytes": 4304,
+      "sha256": "e2e318083400da42b64be0e18f2881b47644da07aaf1a6a72bbe511d01076fd1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaAutorepeatIconButton.qml",
+      "bytes": 1527,
+      "sha256": "217119765d86cddd906bf28cb36d8fdd77d139c1247152611b60c6a74743460b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaBalanceTextWithIcon.qml",
+      "bytes": 916,
+      "sha256": "eb1a602f5e4071b6df4962244b4dc370ccbe736a91ca9367a2dca3e4c10befdf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaBreathingHighlight.qml",
+      "bytes": 848,
+      "sha256": "1964545494c756abbec9ccfc98feba3b325c0d3438147ddab80c6d65181a618c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaButton.qml",
+      "bytes": 4718,
+      "sha256": "596cb49033abb8f940ca6cd8f97ea31f771ab72786c0c8e563bb51a8c29283a8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCachedOutlineText.qml",
+      "bytes": 741,
+      "sha256": "752189adaaf50fe346e81704824e9b6b62b7ff753bbb39d66fd11d88e602f5f4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCachedOutlineTextBase.qml",
+      "bytes": 1126,
+      "sha256": "43b63e6c6c4dfb87ff8744d91d14ae8820a46db4d53aa066753517e31a790293"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCalendarDatePicker.qml",
+      "bytes": 2254,
+      "sha256": "bb108fed41ff5051c08727e5f318baf4adb857f87d99196ba5b8e39bc2f6f25f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCalendarDay.qml",
+      "bytes": 4223,
+      "sha256": "4de03b66d89063e727dd677e9cc96982b368f6f4cf0e6cb546484d5b01622928"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCalendarDayCaption.qml",
+      "bytes": 601,
+      "sha256": "050b4a62103dc2db8437672cb10594b7feb9a61033c714a60fa9b50dbfb34bb5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCheckBox.qml",
+      "bytes": 1465,
+      "sha256": "4817010b02f5c17e01874072d7982aa4f1b8bcb4aab62be9ed41038bf4248b6d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaClampSelection.qml",
+      "bytes": 832,
+      "sha256": "8db8a7ea00e7b200a79a0d44d668ebc001c854eabf796436f51f5230f02eb7fe"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaClickableLink.qml",
+      "bytes": 545,
+      "sha256": "97951de10593b971033fc6e4920bf17bdba984b4c2a57d48c2db4949bb82ac10"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaClickableText.qml",
+      "bytes": 442,
+      "sha256": "fc6b10e70be8d32457ad07e1603d42735b946bb0a12e2df177e85b90412a9ef8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaColorButton.qml",
+      "bytes": 360,
+      "sha256": "51e7310071bcb9480432533e815ef6564370ee61cd5cd6229d66edb560d4d558"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaComboBox.qml",
+      "bytes": 4185,
+      "sha256": "727d7b00c7c653002010cf0b641ee8549c0713b483811c79fbe9e0b6c6fbafd8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCurrencyView.qml",
+      "bytes": 9203,
+      "sha256": "829a85acab248da6a04b228b4efdd65f020824f4aee85f95b632cce4344d61d1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaCurrentBalanceView.qml",
+      "bytes": 9552,
+      "sha256": "456ad843454a85877d995229ab732cde9e3c8395dd81ad955199df4909cd9722"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDailyRewardStatus.qml",
+      "bytes": 1041,
+      "sha256": "792e17ae917bd2548f7b6a42276631ab8587f7260c76d89c52c1cd3cf29fe807"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDatePicker.qml",
+      "bytes": 2769,
+      "sha256": "e3c89294dc5846f65565bfae87be9606dc830c14bd47b60eddebb5bda65f85b2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDialog.qml",
+      "bytes": 18668,
+      "sha256": "d8e02ba04bed46d77b93289ab9e8a7eeb23f76cd76381eea264e1a33f6f46c9e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDialogFrameWithCaption.qml",
+      "bytes": 1284,
+      "sha256": "ab45fc2970902889a6423370cb4d74af15269edbccd09ee0cffe2f294388bd2c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDialogTabBar.qml",
+      "bytes": 9199,
+      "sha256": "2a57097d6e9f4869963dbe47e5f691b725d326af3574c2de4ee73abbf73977f0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDirectionContainer.qml",
+      "bytes": 133,
+      "sha256": "df954a158f477073f551116a7b6aebe857bb4292e42d63e35573a8391d100f0e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaDisabledOverlay.qml",
+      "bytes": 166,
+      "sha256": "b8373126a05d37037c8ef4619f5bbcf3a1f222174fe250ff19e0a09c1c32b98b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame1PixelDown.qml",
+      "bytes": 422,
+      "sha256": "23b8a5c46c9b7ad90e80488e3cb50ec5c5b7f470862f637abd7ff781e75eefe5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame1PixelDownWithGuiHelp.qml",
+      "bytes": 631,
+      "sha256": "dc0c46e38aa7a08ca327ed0b52963c3ee8045a55537e730a51640310040c5dce"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame2PixelUpFilled.qml",
+      "bytes": 868,
+      "sha256": "38efe18687907db86e48a62cc5025ae2bf4f83e4658c8642351d2e6e0877e2a1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame2PixelUpFilledWithCaption.qml",
+      "bytes": 1248,
+      "sha256": "1bc99b71fbe228074efa2e5dc40c950f63723b7e65471c684e4bb1904b7da902"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame3Pixel.qml",
+      "bytes": 646,
+      "sha256": "1a17f1f71deb6d7753a2188f263e08f534627c6a72afda24af20348700e17085"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame3PixelFilled.qml",
+      "bytes": 406,
+      "sha256": "fe3d2e7863604fca7cde422d23cd9a043ee8dfd2568b2b8201f5e13c2b2df9ff"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame4Pic.qml",
+      "bytes": 1141,
+      "sha256": "9b334fb878d9d536f22a966de4bcc223fb19c2fb6d51078aea34aa15490998cb"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame4Pixel.qml",
+      "bytes": 347,
+      "sha256": "9025ad4f7827d0510b7cd20056942588ca64b77409669f528e4bf69749802bf7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaFrame8Pic.qml",
+      "bytes": 1491,
+      "sha256": "42a5aabbd19ec5a0fc4729a0122ef56e1f0487732fbd5168f263c25eea2a3423"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaGauge.qml",
+      "bytes": 2004,
+      "sha256": "45a746cfc12f70e2f0d3369b6545c54d192bac52ad2d323123e9e8fd4396d9ff"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaGetCoinsButton.qml",
+      "bytes": 278,
+      "sha256": "0d598372d34b7b951f9e3914231dc1aaeb7db8a36d6ff130c098629d09ee69a6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaGraph.qml",
+      "bytes": 6228,
+      "sha256": "f5984e50c5a88376e38d17106192af1ce6b8fa2aa677122eaea7978ec3e13891"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaGuiHelp.qml",
+      "bytes": 428,
+      "sha256": "cba8d23b9837a9163380eb6ed43d7c5db5515dfe2dfd9ff0e56d45df1bb7c663"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaHorizontalSeparator.qml",
+      "bytes": 480,
+      "sha256": "dccb6c5a51dfac144e009c98b8c51535cd30a49a01402bd180a303bbbba7b51a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaHouseActionButton.qml",
+      "bytes": 563,
+      "sha256": "7219500512086c0123427548b4cce5419c22b05b860fe7685510a0a231833be1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaIconButton.qml",
+      "bytes": 2020,
+      "sha256": "e19e4e7d21bf4edf8bfef1dfe90aa5b55711fda417feab5efcbc9f22bb65b9c6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaIconSelectionButton.qml",
+      "bytes": 1007,
+      "sha256": "8eb8fcb8d983e88d4b4676af1a6c05e71a638fe7f59ec50ec963a39dcc8e575b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaIntField.qml",
+      "bytes": 2955,
+      "sha256": "c912a0e7613e36b3cf20ecc0ee23480ef2e42f05777f4afa4d9958f1440743d7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaItemSelectionGrid.qml",
+      "bytes": 4825,
+      "sha256": "fd516583c2372e7671b82b84a8e196a375f43d76981c9a5616d3cbc9a84feb7a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaKeyValueRowLayout.qml",
+      "bytes": 1115,
+      "sha256": "54291e5a50583073b7a3058d371d36b7d05504d15fe4ef2bb57cd2fcc659e91d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMapLayersSlider.qml",
+      "bytes": 7194,
+      "sha256": "48425c2f985e3714a33669344eb09e33d0535837df8b43a13bfb8265f5a54da5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMenuOptionCheckBox.qml",
+      "bytes": 1465,
+      "sha256": "61111ac4d8dbed5618739ed240dc90704f3dd68a4ede7b3a6787e4182f0b461d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMenuSlider.qml",
+      "bytes": 2330,
+      "sha256": "8a248cc70f61577e08ed5af862acfc51d14936dbccdc680ad96de15b58132294"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMessageDialog.qml",
+      "bytes": 4080,
+      "sha256": "e4d6326599699e895e9fe3dacef7a6c8c1db93e094eba02278514391c4cc1479"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMinimapRose.qml",
+      "bytes": 3416,
+      "sha256": "4492bb9d16f0ed1b28f22ded69a84cec4f67c79be28caa59413646b1c60329e3"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaMouseShield.qml",
+      "bytes": 881,
+      "sha256": "609f40c64d07ed2508b2bcc026c3773da8eaae9ade979693e81c89622dba0a4b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaObjectDropArea.qml",
+      "bytes": 110,
+      "sha256": "c24e81e170967af22ca2121a1fef7c07db2a290cbd712a1df0a95c3e782f51de"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaOptionsPage.qml",
+      "bytes": 527,
+      "sha256": "56efa0c7f077771967862f9a5de611d4ccee15621719b6ca8a66ee2e623a7511"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaPanel2PixelUpFilledWithCaption.qml",
+      "bytes": 1968,
+      "sha256": "592d88bf93a4a11a9144f9826d96d832443cc1a87b7a36473b6737f7b5d2d52e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaPanelWithCaption.qml",
+      "bytes": 3206,
+      "sha256": "f75d90f7943c81763ce0e57bffc82c8687e6c536473ca1e2c80bf290e39dc197"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaPremiumStateButton.qml",
+      "bytes": 593,
+      "sha256": "83710eca02845dd53e83b6544cf06ea3a283341238cc874cc809b77c2097517e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProficiencyPerk.qml",
+      "bytes": 8571,
+      "sha256": "e91c81cc5a1ddab29958472d755a1ea60eb83a3068eac9725f8529e6f7a65087"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBar.qml",
+      "bytes": 2054,
+      "sha256": "965e64b3d31cb5f6708768eac85c60036f5f558717d25303a19117ae36264b65"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBarClassicRed.qml",
+      "bytes": 272,
+      "sha256": "62e771b0da36dbf1b2b5dda1213b34d33fe4e64f303fda7c19245c5f6d797f37"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBarDoubleBars.qml",
+      "bytes": 3522,
+      "sha256": "a31bd4fc93efdb9345c1dfb7e4675538e30352cb8972826f02cc78b244bcd132"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBarOrangeToGreen.qml",
+      "bytes": 517,
+      "sha256": "de5e731a407f5d367a48795a97d4a777c3fa1054af944162bd5339b606d93ac5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBarSegmented.qml",
+      "bytes": 6671,
+      "sha256": "02f2f93bb76bcdd68a28aee9f0d4a771d5892c0a5faff788f42275cfd1500a9e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaProgressBarWrapAround.qml",
+      "bytes": 1648,
+      "sha256": "cb6929db982d51651f9d425960f6d3a2af448d678603e8ad45a5a3fd1804ab49"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaRadioButton.qml",
+      "bytes": 970,
+      "sha256": "fbda7abb7c8a2771e32154ea82b20cbf9b85c65d4512e134f70e04c44cca73de"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaRadiusedSemiTranspartentRectangle.qml",
+      "bytes": 252,
+      "sha256": "659ab175571f01a5624f0b36746c0200c8a9ea9f25b26650d63966496924ed43"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaRectangleHighlight.qml",
+      "bytes": 344,
+      "sha256": "98d48d700d131cad6353fb3fa0af405c4e56acf262abec1285669ef1573923b1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaScrollBar.qml",
+      "bytes": 4339,
+      "sha256": "4c3a21c02fd34c69d647e007723353c588fce86cf6591cf28ef5fe9aebf4f936"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaScrollBarHandle.qml",
+      "bytes": 695,
+      "sha256": "747d892a320a2342f2dc8e9edc73ede7581bf68ac015c6c11b08e76f9072f3d5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaScrollView.qml",
+      "bytes": 4151,
+      "sha256": "78650fee0f46cc01573aa2faedc94d313b6f592733a87b8a08cc1b6bf36e5cd2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSidebarPanel.qml",
+      "bytes": 6914,
+      "sha256": "4682092378e8030078c4b823e486ecf71b4e16976168cf044a10614e452941df"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSidebarWidget.qml",
+      "bytes": 29115,
+      "sha256": "2a6e2703ce0ae1242a9a9705701e7e33d306f2b3c59336097973695e5f19aa09"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSlider.qml",
+      "bytes": 2875,
+      "sha256": "29565cd82ad5a6a1ecdec4cad0e03feef0596d5d5e614dc1681c91a9e9ba1e96"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSliderNonLinear.qml",
+      "bytes": 11540,
+      "sha256": "14eed8ed358ce9bac45eef27d59ec55d45ce9935e1e2709b94d48e993c75bc54"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSpinBox.qml",
+      "bytes": 2078,
+      "sha256": "5d5517850084ca273f170bf3d3529cb2609c76aac2b7e79feb2e6a949e29d737"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSplitView.qml",
+      "bytes": 25837,
+      "sha256": "80e535b2266c6817cd7148551f340cb3b6b6c478d5935a66d63717268c1ddc0b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaStyle.qml",
+      "bytes": 31885,
+      "sha256": "0cb21d0c8300283164e632beedd8e862e2f8bef9ced95d781c1d36724b3bc0c2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaStyledSlider.qml",
+      "bytes": 987,
+      "sha256": "aa67ca39446a830f9137842de8f1c22f24a343534b58b4ce995b84964712acb5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSunkenPillLabel.qml",
+      "bytes": 480,
+      "sha256": "ba2497d87709fad8665fcb5edd988e3baee238c2f6c707ccf4671365a584dd54"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaSunkenRectangle.qml",
+      "bytes": 231,
+      "sha256": "eac3a00201b40386849e97790d38a846481a167a38b6ad2c1b1237ef1f51261b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTabBar.qml",
+      "bytes": 193,
+      "sha256": "41fdceb61997dac05780e4abceb125df352384a4b8ba2377c17cb8af447a2da0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTabButton.qml",
+      "bytes": 786,
+      "sha256": "f37f1e11f6cacb3f4cc1a95feb07d5a4973830622e9db0feae06a8b011a900a4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTabCaption.qml",
+      "bytes": 746,
+      "sha256": "079ce420677da4977961c03685b6040b0ec6dd6a55f1d5d1bc3894b4f5154514"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTableView.qml",
+      "bytes": 6093,
+      "sha256": "ae7774037fe0ac4920259e8a27d1f758698a29dfd563ea4cfc8a72189d35c96b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTableViewRowDelegate.qml",
+      "bytes": 446,
+      "sha256": "6726a0aac7e584e20cd8238a3c1fd538e45de4928c976ba885b2195d89a67363"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTeamFinderStatus.qml",
+      "bytes": 1147,
+      "sha256": "63b59e88438a5b29c9a7b66987ed3c22f0247eda29d9bc445dac139ae54c36ea"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaText.qml",
+      "bytes": 729,
+      "sha256": "ea3dddb2d5589de4ca1052bbdf58048113b688c4ac70100aa7977ccb28a64f3f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextArea.qml",
+      "bytes": 4031,
+      "sha256": "4bcc8038a24ef7cf889d359eb306b0dae830d5f9e335282dce9feb04788621a6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextBase.qml",
+      "bytes": 878,
+      "sha256": "2e87a09aca63d4304ebf852478e5a3a4302b53abf3d056826dbeb96c864c03a6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextEdit.qml",
+      "bytes": 297,
+      "sha256": "b772d08598164b22d5c8bd7bedba4b0ce53b4f6c9c47f69697a7982750cb3536"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextField.qml",
+      "bytes": 2803,
+      "sha256": "64cfef6eefdb38ad22e7f5c0f1c779c340222d06faadce37613cae3705bd98c0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextInput.qml",
+      "bytes": 1601,
+      "sha256": "c7fa4f8e4ba774c4339a6b1ee150cb1a8bd3fa2180a9c6bc68d7414edefec793"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTextSearchField.qml",
+      "bytes": 2223,
+      "sha256": "e89d3cc01c1f3bfd916a3d32fd8848979ee40d7428c4695115a03a8a2574a706"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTiledImage.qml",
+      "bytes": 1776,
+      "sha256": "54278a02cb136c8eac0000169017038de18d6d6fd38f291f4f61d4c6302b5b53"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaTimePicker.qml",
+      "bytes": 1519,
+      "sha256": "537381030983b30f4cc51c5e5747a33a076b768aca1a05f68f2d4cacdcbdb394"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaUnjustifiedPointsProgressBar.qml",
+      "bytes": 1119,
+      "sha256": "266c34b1f366dc06ce1825ff8a41fec709b9a41b57d1e2ac12c0a4542b385108"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaUnjustifiedPointsSkull.qml",
+      "bytes": 256,
+      "sha256": "e3ff9e37d729df218ab4eac0f8b7090939af43bf725cf8d025f0dcbdf7cbf2ba"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaVerticalSeparator.qml",
+      "bytes": 432,
+      "sha256": "c8ebb712cdb07bee6a9d65e8fd74a6baf326632fc3160e03712ac6a91f7233a6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaWheelHandler.qml",
+      "bytes": 378,
+      "sha256": "a3cf3a53573a37d87b9573f53202161100473c0c1520f88e852559e87d51e142"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TibiaWhiteBlacklistTableView.qml",
+      "bytes": 4413,
+      "sha256": "91181430813977b100ef208a6b4558b49ec9630957227087711f48506da8536c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/Tooltip.qml",
+      "bytes": 5000,
+      "sha256": "d145c187b1d7cec2e5f1e53e06db03dafe45d13c7f44182079f7446b49fbf8ed"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TooltipBase.qml",
+      "bytes": 3762,
+      "sha256": "37d0c2f9018db8c9bd68d4bba17bb0e740f986ba6dd1aafa51b01f9cd51ee648"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TooltipTemplate.qml",
+      "bytes": 1166,
+      "sha256": "923d16cb81ee7197ea05f28e7746e3238fb6f856707809d4da49ebd8c09da215"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TransferCreditsDialog.qml",
+      "bytes": 2876,
+      "sha256": "f0070cfccca7ef49e1d01e07c120ed34d9fd68a9b3735f940529ffd4f3daf170"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/TwoFactorTextEnterDialog.qml",
+      "bytes": 3799,
+      "sha256": "6c4dff3771450414e9f3c99412c4784aa9c3ff8cf2859fdcb6bd3a1a61a179c8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/VerticalActionBarContainer.qml",
+      "bytes": 2578,
+      "sha256": "db3e436d4d0f6144e5c80fa58563b8e25727b9ad99b77f2bdcfd6becf098d94f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WaitDialog.qml",
+      "bytes": 1461,
+      "sha256": "fe7c2fb18ff85d1d2387f571a3a605955d9937c256538fc0c915ae4142a7efb5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WeaponProficiencyDialog.qml",
+      "bytes": 23685,
+      "sha256": "d300d48121c62c285fc3873b8abdb477b32540f2957f3619d840703aa6cd428e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WeaponProficiencyPerkCard.qml",
+      "bytes": 1707,
+      "sha256": "d9db5517ed5415ebbc78891a8fe2577c44785a4b34cab5d9405b86ecb32bb3a9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WeaponProficiencyReshapeDialog.qml",
+      "bytes": 4372,
+      "sha256": "bfd53ee58a0c1da64735a1321cc132e610a9f6af7359274e851148729d7d6bb8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WeaponProficiencyShapeDialog.qml",
+      "bytes": 9913,
+      "sha256": "02bf8a23502667c7be7577b1f8897e3c064287012fac6b738753b0c4f694c6fd"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WeaponProficiencyShapeOptionsDialog.qml",
+      "bytes": 4796,
+      "sha256": "6676dbfa7c8851f49a3126eecb1d522afe165f1b2ea0ef4507bf5660b843a3f1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/WhiteBlacklistDialog.qml",
+      "bytes": 9852,
+      "sha256": "49fe35e810f3e827b50fe149558bafdd7fbdebb32518df515ebfe810e38948c1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/battlelist.qml",
+      "bytes": 18185,
+      "sha256": "3f5761c62379f8ad0c1595eb52addd22e562697ecafdd916be20a2e7fbd6bc94"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeAuctionEndDateTimePicker.qml",
+      "bytes": 5200,
+      "sha256": "23c8283877dcecab4778d58beaba1c765c120378a5188099f26e669a61f03d9a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeCharacterOverview.qml",
+      "bytes": 11718,
+      "sha256": "b822616fe38f5327321aad5b4e9db450e56eb500164ef9e8db61b37af5ab1396"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeDialog.qml",
+      "bytes": 14076,
+      "sha256": "bba2673f58bc62941afcaee19d486bf0538444905b3e5f14778c6f365a7da8cb"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeDuePaymentDialog.qml",
+      "bytes": 1958,
+      "sha256": "790c57be4a07e46f8600dce2debc3877aa01d03375c22545520b398bfb1e728b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeEnums.qml",
+      "bytes": 209,
+      "sha256": "b9eaa2622f9da88d0d3c3c3eeca4e9ac2e8219fbcf32e0a3e4b1f5cf68c6bc0b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeHighlightPicker.qml",
+      "bytes": 6111,
+      "sha256": "21fd1481eb374093a91ff10e7ed89b7768a2f2940c217edeec840553a3e55b53"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeHintText.qml",
+      "bytes": 380,
+      "sha256": "252176e1aba6c335ddebe93e96f712b236de11fa2e2d73ff3c0bcb22f79a186b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeItemPicker.qml",
+      "bytes": 4846,
+      "sha256": "29b20a5d7317c308b4a6576eb8774952947f99f79fe686156d315deef05f4471"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/CharacterTradeNotifications.qml",
+      "bytes": 2600,
+      "sha256": "3ba25e8a4b4aec959be5c0335804885589fb87bb8d4f92d578875494b527d6a7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/charactertrade/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/clientwindow.qml",
+      "bytes": 4242,
+      "sha256": "b048afbac199bc17b186592c5e1b9fec709bede970e4ed85a2ee2368a1cd0230"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/container.qml",
+      "bytes": 14320,
+      "sha256": "65e623cb6630d810cc9b6c81839ee28c5a86f05d9908b85a6fdd6aa2f06d906c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/createaccountandcharacter/CreateAccountDialog.qml",
+      "bytes": 39932,
+      "sha256": "f1577e423ef3be2a3eb185ee4a7fd9f0bf5b4962fe6fc5efcb7e4ca87a0cce47"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/createaccountandcharacter/CreateCharacterDialog.qml",
+      "bytes": 8197,
+      "sha256": "5dd31cbabb8df807be10eb980b394d32c81678223735ffb2ba28625fa5a4c744"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/createaccountandcharacter/WorldSelection.qml",
+      "bytes": 7569,
+      "sha256": "04eccea170b89fa312390e32c8bf8b0efceac8683783a7eded58969938093240"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/createaccountandcharacter/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/gamewindow.qml",
+      "bytes": 49082,
+      "sha256": "5e08c725936372659097dc543b38ac8ca433d2fb7f2804ac9ac6023f2258976b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/inventory.qml",
+      "bytes": 23759,
+      "sha256": "4def34a6c56e2935b4c75178f2b967cd8cee996f4180eb6533e435138b70edc3"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/market.qml",
+      "bytes": 10040,
+      "sha256": "74ab63e8bb335c24acae844dc47779e3f091c49b858fe4bb3861c02760ff17c0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/massloginwidget.qml",
+      "bytes": 1789,
+      "sha256": "a15feb8775468c921c3f8f8c46fb7e7a061cbcf32217491bc4e3c9e99cfc5a01"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/BossOutfitSelection.qml",
+      "bytes": 6931,
+      "sha256": "5ab1b9b8bee5746bbcc2de4650fd72fe9cd3d2bd0e0947216d5d792d0c5678da"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/ConfigureCreaturePodiumDialog.qml",
+      "bytes": 8944,
+      "sha256": "10204c86d1b974e2f4e5a38be8ebcb97efe68ad8be382a6f6fb67448926fed69"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/OutfitDialog.qml",
+      "bytes": 35182,
+      "sha256": "17b2c9599b93911487ba80275573e6bf74ed54abb594e467aa5b729af875da2f"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/OutfitDialogLayout.qml",
+      "bytes": 2575,
+      "sha256": "b279520ac9b06bb2b6b4d8f2b2f97afc7336f85f04e04d77afe4ab692fe2734c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/OutfitPresetSelection.qml",
+      "bytes": 5523,
+      "sha256": "5e0982c7b5ad7baa4f8a2cef53d669efb4333461cc5925bbff4cd1220145726c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/OutfitPreviewPanel.qml",
+      "bytes": 9772,
+      "sha256": "d23a6778fee1f18560c7e12d689baf18afc969ccbdcaec9c626e1764546c8512"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/OutfitSelection.qml",
+      "bytes": 6639,
+      "sha256": "eadefa83caf0027dd14ba905ddf7d6d7b51c8240d1b9708cf87f069095a3e32c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/TibiaColorSelectionGrid.qml",
+      "bytes": 3020,
+      "sha256": "99a66c6a3148abde499ab06905311a80496e7a5a7961cc687677a1b4aff2e913"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/outfitdialog.js",
+      "bytes": 24954,
+      "sha256": "e024b03f11f7612ea75f969f38fb8d9f03061ae88d85cc0d2be6659f2d8fa35b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/outfitdialog/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/playertrade.qml",
+      "bytes": 7492,
+      "sha256": "2e68259b9d87412615d360c70dba5925a91244cf6e82a62d2ad317bd3513a57e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/prey/KillTrackerWidget.qml",
+      "bytes": 16315,
+      "sha256": "b602c058e5ec9c3195406cf0917bfa0bf479537dcfbbde81a9631f0e774724f5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/prey/PreyDialog.qml",
+      "bytes": 6189,
+      "sha256": "cc6d0138ebe671b8efd0fd407c3a1539b605337116b17eace3a4c8a4b555993b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/prey/PreyPreyPage.qml",
+      "bytes": 3077,
+      "sha256": "743ab813020ea2e94214363a5f6d76c97fcf0b7f1ff275c8894beb7fcf2d9181"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/prey/SinglePreyView.qml",
+      "bytes": 48503,
+      "sha256": "d6d3eff430dda967e61215902f7123b1c54ca0d3e399cdcae0991e811d9dd286"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/prey/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/qmldir",
+      "bytes": 19887,
+      "sha256": "e714531d38bf5fe37683a146c1e0889c085c078ef9f99703e70919a64638e8f4"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/questtrackerwidget.qml",
+      "bytes": 6554,
+      "sha256": "638603d0792fafeed732c51cdf92d009c78444f66708ed78212c1d718f9d386e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/sidebar.qml",
+      "bytes": 11830,
+      "sha256": "66fabd2514f3452ea2ae1202f8fc6bff24a1c226c0879535f1fa8bf706dc8454"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/skillswidget.qml",
+      "bytes": 8847,
+      "sha256": "5e3442a03a471c7695e58ea84912f898d5aa23a6374cc2828ce02e0f430f1f40"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/spelllistwidget.qml",
+      "bytes": 8324,
+      "sha256": "b402768d3de43fb816a0be04ffbd20a829f6781ea22a99e5799a91240eb00ecf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/BountyTaskDialogTab.qml",
+      "bytes": 6856,
+      "sha256": "f88f532748cbb67b191291bbb6b92900a74968313c1cca7d96bde48119c7c7f7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/BountyTaskPanel.qml",
+      "bytes": 3502,
+      "sha256": "a31f77fd5e3818e60af4ed0772c1140392bf6279e0f50ffe563573ca71c403ad"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/BountyTaskSetupPanel.qml",
+      "bytes": 3523,
+      "sha256": "7e74cbc964ce6383dbac1d94117a9d008e017b0240aee00b3705c08d4e1e3906"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/DeliveryTask.qml",
+      "bytes": 3649,
+      "sha256": "bf5bf73e2543fd0f13c6bdf2c639ea9193ecad1ef7390b31660c583e5954d857"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/DeliveryTaskPanel.qml",
+      "bytes": 2112,
+      "sha256": "bcbf470a626d924d1c0c954ef735d16530cacd24d0c87d3aad9e8bd934716f86"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/HuntingTaskRewardPurchaseConfirmationDialog.qml",
+      "bytes": 2229,
+      "sha256": "31280ba51275f36549bc5db9feddedc95fd4dcbd08e3d1ad0e8234c15bdd5ab3"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/MonsterKillTask.qml",
+      "bytes": 2476,
+      "sha256": "8ea8e84e8279a7ad599abc4728daf903c9e0121f8a2b30227cb6a20925322b80"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/MonsterKillTaskPanel.qml",
+      "bytes": 1576,
+      "sha256": "f39a86e22d2102e5b0c0d9f2f5c89d45c2b7cf18c876509bc6da9f5490e54e6a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/MonsterSelectionPanel.qml",
+      "bytes": 2761,
+      "sha256": "94a7dce27eb43c8fe58914982740afc374d21e9586a69104c857e6411556acd5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/PreferredList.qml",
+      "bytes": 2385,
+      "sha256": "733f87c4c67711dabaf3a7978a1d39a6e53edf3c4ba3dcc313ce3394838cbf52"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/PreferredMonsterSlot.qml",
+      "bytes": 5573,
+      "sha256": "0776ab3b6d48b8ea4e47b5c37577bb7b6a5826aca36965731c8b697a1b99ef8c"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/PreferredMonsterSlotPanel.qml",
+      "bytes": 2872,
+      "sha256": "56004b75b7749b512fc3f102ea77674906d743c75bbe2178ab45c173f4d0b3ae"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/SoulSealsDialog.qml",
+      "bytes": 9874,
+      "sha256": "5bbca495e6d2d6b85d2422b8dece01895a90b948c51c6d37db2e12d5afa2f9bf"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/TaskRingPanel.qml",
+      "bytes": 4641,
+      "sha256": "0462b3e24211cf645c979dd93a46bca30da64b0e5a1bdd40c734b4be6265042a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/TaskRingPanelSection.qml",
+      "bytes": 2088,
+      "sha256": "a7ab69dd0e7c530f9e6e9bac489277343e7ae6d60bb6374fdc8e03d0493d41fa"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/TaskboardDialog.qml",
+      "bytes": 4703,
+      "sha256": "d04d820f7f995bf0e2c4b341aec9c0479871a6f5b857fd6e44eb3da0b80d69c7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/TaskboardRewardShopDialogTab.qml",
+      "bytes": 6594,
+      "sha256": "2509eb36d6a0fa06924b9155800611503646542257db3f6ce853de2dab3130fe"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/TaskboardShopOffer.qml",
+      "bytes": 4739,
+      "sha256": "4e63e944da3051843ef39b689e4aea9e0fc0e6ae1d927e905a1cceaae4f6dcc0"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/WeeklyTaskDialogTab.qml",
+      "bytes": 4413,
+      "sha256": "c138ba7235a74480ccb1f3838c644274ed52e1f2cc5b052372a60e65d1690561"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/WeeklyTasksProgressPanel.qml",
+      "bytes": 3879,
+      "sha256": "7c0e2f17698b0be381ecd9df100adee5e1b66acfc4db2329c976723ee9b0f7a9"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/WeeklyTasksResultsPanel.qml",
+      "bytes": 4430,
+      "sha256": "eefa4de7c2c936b262fcdac26f864ef2fc94c30f7b1c87cf460c4ff1221112aa"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/WeeklyTasksRewardsPanel.qml",
+      "bytes": 2810,
+      "sha256": "195bc2d994b159ede8f701e7b8292e578c909184e6f8991430e3d7785954f583"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/taskboard/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/textureatlasviewer.qml",
+      "bytes": 3991,
+      "sha256": "434b22211d3aba5dcf12a66eb2245b18870f91e3f09c7e6de2afb24fd7d90b8d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/DawnportTutorialPopup.qml",
+      "bytes": 16631,
+      "sha256": "75f58b41c87ede12597a4840ac8e168f2330c8550de8b1d51a4041848f87cbb1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/InfoBanner.qml",
+      "bytes": 2487,
+      "sha256": "02736199f69a953c8732e0b40e4aa78c4ef525bfb58b7287ee0d2549c54efd4d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/InfoBannerAnimation.qml",
+      "bytes": 5063,
+      "sha256": "743a6e57245f053fbd6cbc913b60289bdc1ea0595287766cc42989c0f7198491"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/InfoBannerIcon.qml",
+      "bytes": 6288,
+      "sha256": "2b77e267e4864052270b269893661d24a7c5eba9a0df3eb76d74547978ac4b95"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/InfoBannerWrapper.qml",
+      "bytes": 9319,
+      "sha256": "dfc4c18c7ae231c2959f93ee99f698c8ff8a19e76acfad3c21fba2d093456d8b"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TibiaTutorialMarkerTemplate.qml",
+      "bytes": 68,
+      "sha256": "22b30ae6e20f2993878c8b065d824ec2fe7473b043d576393f7f714ada9b03c5"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialAnimationCombat.qml",
+      "bytes": 21736,
+      "sha256": "9a6422b57276ad250911a118ef47d0686a8d36c93d63d580e124b086a4eb7da2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialAnimationLoot.qml",
+      "bytes": 30194,
+      "sha256": "6fb8e7c92f82a38d551a70cc513a91775a29d116b4f317af4a1c7c589d5f81ec"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialEnums.qml",
+      "bytes": 3204,
+      "sha256": "3d0fcaa3c8e68dffe2ca428b60d689cf71df7d0d0df2a69e0609d2228c05fcd8"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialHintDialog.qml",
+      "bytes": 9924,
+      "sha256": "d8fdd6b85a6bfa7a56dcfb0e117fdf90789223d112b9fd5618f020fa67405369"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialMouseCursor.qml",
+      "bytes": 3530,
+      "sha256": "96a0600ed109ce8e691354a6866b23ef1336d769fd8d446d89e9e0498530946a"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialMouseCursorAnimation.qml",
+      "bytes": 7575,
+      "sha256": "d4945c262389a911eab828fa5f6389c4c0caf60e088db9f28e641248f03a4bb2"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialOverlayMouseFilterTemplate.qml",
+      "bytes": 795,
+      "sha256": "cc9cc40cf15cd175dea8205a3b9b83a0c6fbe524e35d5d408f747d095f555f0e"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialOverlayMouseTrailAnimation.qml",
+      "bytes": 2580,
+      "sha256": "01d832365369a68abb4224813e6d2b5d1fb4fa71588385d5bde9f0a4858e57d6"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialOverlayTemplate.qml",
+      "bytes": 6494,
+      "sha256": "163e107b54070590d8c45276d195e0b667cf22fc2c5b0b6ea542777d7ec759f7"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialWorldmapCombat.qml",
+      "bytes": 7983,
+      "sha256": "59419dbab079a3baff9ae0fd8bfc33989f3c94d4872fc69f0cc449c6d265ba79"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/TutorialWorldmapLoot.qml",
+      "bytes": 9367,
+      "sha256": "614501fb2d7bb40cded0d97742c36dc270f017fb1d4fab445293ed4baafc81a1"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/VocationSelectionPopup.qml",
+      "bytes": 16518,
+      "sha256": "716f88e5193464cab1267d00f0f2c963207e895400a9ac65485bbfcd2f10b31d"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/tutorial/qmldir",
+      "bytes": 35,
+      "sha256": "a0cd75bec5cc49b04414daed39180c06d831e945781eba384e0e1679d79fb608"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/unjustifiedpointswidget.qml",
+      "bytes": 4950,
+      "sha256": "a7e224020b554dcef1cd4581e3a877bf55f089fed305a455fde8c10878e2d571"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qml/vipwidget.qml",
+      "bytes": 5172,
+      "sha256": "b64e1535148265385d1ff9a09e8fa2c00eae03c77c8a15b9d0570cd13e613f10"
+    },
+    {
+      "path": "qml-resources/qt/qml/qmlcomponents/qmldir",
+      "bytes": 265,
+      "sha256": "8f6811f84d085df9ef40e7831b3480bf28f739161fad8692ec26210bbba05e0d"
+    },
+    {
+      "path": "qml-resources-manifest.json",
+      "bytes": 200150,
+      "sha256": "4b4488ec123e7e6764f72c59cd2a7eb7fa975714f6bca9ca9f029286e1a32e2f"
     },
     {
       "path": "raw-archives/graphics_resources.rcc",
