@@ -405,6 +405,8 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_window", "setMinimumSize", &PlatformWindow::setMinimumSize, &g_window);
     g_lua.bindSingletonFunction("g_window", "setFullscreen", &PlatformWindow::setFullscreen, &g_window);
     g_lua.bindSingletonFunction("g_window", "setVerticalSync", &PlatformWindow::setVerticalSync, &g_window);
+    g_lua.bindSingletonFunction("g_window", "setVividColors", &PlatformWindow::setVividColors, &g_window);
+    g_lua.bindSingletonFunction("g_window", "isVividColorsSupported", &PlatformWindow::isVividColorsSupported, &g_window);
     g_lua.bindSingletonFunction("g_window", "setIcon", &PlatformWindow::setIcon, &g_window);
     g_lua.bindSingletonFunction("g_window", "setClipboardText", &PlatformWindow::setClipboardText, &g_window);
     g_lua.bindSingletonFunction("g_window", "getDisplaySize", &PlatformWindow::getDisplaySize, &g_window);

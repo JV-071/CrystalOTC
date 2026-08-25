@@ -144,6 +144,16 @@ public:
     void setTitleBarColor(float r, float g, float b);
     void setTitleBarColorRGB(uint8_t r, uint8_t g, uint8_t b);
 
+    // Wide-gamut presentation. macOS colour-matches our rendered frames from sRGB into the
+    // display's space; on a Display P3 panel that is a real gamut compression, and since the
+    // artwork is authored and tagged sRGB it is also the correct thing to do. The official
+    // client does no colour matching at all, so the same bytes land on a P3 panel unconverted
+    // and read as roughly 13% more saturated. Enabling this drops our colour match to reproduce
+    // that look. Only CocoaWindow implements it - every other platform already presents frames
+    // unmanaged, so there is nothing to turn off and both methods stay at their defaults.
+    virtual void setVividColors(bool /*enable*/) {}
+    virtual bool isVividColorsSupported() { return false; }
+
     virtual Size getDisplaySize() = 0;
     virtual std::string getClipboardText() = 0;
     virtual std::string getPlatformType() = 0;

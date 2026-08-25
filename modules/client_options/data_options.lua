@@ -218,6 +218,19 @@ return {
 			g_window.setVerticalSync(value)
 		end
 	},
+	-- Presentation colour matching; see CocoaWindow::internalApplyPresentationColorSpace.
+	-- Off by default because off is the accurate setting: the artwork is authored in sRGB and
+	-- we colour-match it into the display's space. On a wide-gamut (Display P3) Mac the
+	-- official client does no such match, so it reads about 13% more saturated; turn this on
+	-- to reproduce that. macOS only - everywhere else the compositor is already unmanaged and
+	-- g_window.setVividColors is a no-op.
+	vividColors = {
+		deferAction = true,
+		value = false,
+		action = function(value, options, controller, panels, extraWidgets)
+			g_window.setVividColors(value)
+		end
+	},
 	showFps = {
 		deferAction = true,
 		value = true,

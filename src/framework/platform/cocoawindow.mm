@@ -457,18 +457,7 @@ void CocoaWindow::internalCreateWindow()
     m_impl->layer = [CAMetalLayer layer];
     m_impl->layer.device = m_impl->device;
     m_impl->layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    // The renderer performs legacy UI blending on raw sRGB bytes, but the compositor still
-    // needs to be told how to present them. Tagging the layer sRGB is the accurate choice: the
-    // artwork is authored and tagged sRGB, so Core Animation colour-matches it into the
-    // display's space and it looks the way its artists intended on any panel.
-    //
-    // Measured against the official client on a Display P3 Mac: our frames are sRGB->P3(source)
-    // and its frames are the raw source bytes, so it does no colour matching at all and reads
-    // about 13% more saturated. Per CAMetalLayer.h: "If nil, no colormatching occurs." On an
-    // sRGB-gamut display the match is the identity and the two clients are bit-identical.
-    CGColorSpaceRef presentationColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
-    m_impl->layer.colorspace = presentationColorSpace;
-    CGColorSpaceRelease(presentationColorSpace);
+    internalApplyPresentationColorSpace();
     m_impl->layer.framebufferOnly = YES;
     m_impl->layer.opaque = YES;
 
@@ -732,6 +721,40 @@ void CocoaWindow::maximize()
             m_maximized = true;
         }
     });
+}
+
+// The renderer performs legacy UI blending on raw sRGB bytes, but the compositor still needs to
+// be told how to present them. Tagging the layer sRGB is the accurate choice: the artwork is
+// authored and tagged sRGB, so Core Animation colour-matches it into the display's space and it
+// looks the way its artists intended on any panel. The official client leaves its layer
+// unmatched, which on a Display P3 Mac pushes those same bytes across a wider gamut and reads as
+// roughly 13% more saturated - measurably wrong, but what players comparing the two side by side
+// expect to see. m_vividColors picks the official client's unmanaged presentation instead.
+//
+// Per CAMetalLayer.h: "If nil, no colormatching occurs." Both branches are no-ops on an
+// sRGB-gamut display, where the colour match is the identity.
+void CocoaWindow::internalApplyPresentationColorSpace()
+{
+    if (!m_impl || !m_impl->layer)
+        return;
+
+    if (m_vividColors) {
+        m_impl->layer.colorspace = nil;
+        return;
+    }
+
+    CGColorSpaceRef presentationColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    m_impl->layer.colorspace = presentationColorSpace;
+    CGColorSpaceRelease(presentationColorSpace);
+}
+
+void CocoaWindow::setVividColors(const bool enable)
+{
+    if (m_vividColors == enable)
+        return;
+
+    m_vividColors = enable;
+    internalApplyPresentationColorSpace();
 }
 
 void CocoaWindow::setFullscreen(const bool fullscreen)

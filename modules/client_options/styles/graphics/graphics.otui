@@ -90,6 +90,33 @@ UIWidget
       !tooltip: 'Enable this option to use only integral multiples as scale factor (e.g. 50%, 100%, 200%) when scaling the game window. This way you keep the original pixelated look of Tibia when you do not use Antialiasing.'
 
   OnePixelDownFrame
+    id: vividColorsFrame
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-left: 1
+    margin-right: 1
+    margin-top: 6
+    height: 22
+
+    OptionCheckBoxMarked
+      id: vividColors
+      margin-top: -1
+      text-offset: 16 0
+      !text: tr('Vivid Colours')
+      !tooltip: tr('Tibia\'s graphics are authored in the sRGB colour space, and by default this client converts them to whatever colour space your display uses, so they look the way the artists intended. The official client does not convert them. On a wide-gamut display, such as the screen built into a modern MacBook, that makes the official client look noticeably more saturated. Check this option if you prefer that stronger look.')
+      @onSetup: |
+        -- Only the macOS presentation path colour-matches at all; on every other platform
+        -- the frames already reach the screen unconverted, so there is nothing to switch
+        -- off. Collapse the row rather than leaving a control that cannot do anything.
+        if not g_window.isVividColorsSupported() then
+          local frame = self:getParent()
+          frame:setVisible(false)
+          frame:setMarginTop(0)
+          frame:setHeight(0)
+        end
+
+  OnePixelDownFrame
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: prev.bottom

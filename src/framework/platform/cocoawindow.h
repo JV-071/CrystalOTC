@@ -105,6 +105,8 @@ public:
     void setVerticalSync(bool enable) override;
     void setIcon(const std::string& iconFile) override;
     void setClipboardText(std::string_view text) override;
+    void setVividColors(bool enable) override;
+    bool isVividColorsSupported() override { return true; }
 
     Size getDisplaySize() override;
     std::string getClipboardText() override;
@@ -141,6 +143,7 @@ private:
     void internalCreateWindow();
     void internalPumpEvents();
     void internalApplyPendingGeometry();
+    void internalApplyPresentationColorSpace();
 
     CocoaWindowImpl* m_impl{ nullptr };
 
@@ -150,6 +153,11 @@ private:
 
     // Set by a render backend that presents its own frames; see setPresentationOwned.
     bool m_presentationOwned{ false };
+
+    // Presentation colour matching; see PlatformWindow::setVividColors. Applied to the
+    // CAMetalLayer both at creation and whenever the option is toggled, so it must survive
+    // as state rather than being read straight off the layer.
+    bool m_vividColors{ false };
 
     // Previous NSEvent modifier mask. PlatformWindow deliberately does not record modifier
     // keys in m_keyInfo - processKeyDown/processKeyUp return early for Ctrl/Shift/Meta/Alt
