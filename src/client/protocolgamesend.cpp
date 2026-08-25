@@ -598,7 +598,7 @@ void ProtocolGame::sendTalk(const Otc::MessageMode mode, const uint16_t channelI
 
     msg->addString(message);
 
-    if (g_game.getClientVersion() >= 1530) {
+    if (g_game.getClientVersion() >= 1525) {
         // 15.25 say tail: [aimMode u8]; if != 0: [x u16][y u16][z u8][seq u8].
         // Used by needPosition (crosshair) spells; harmless on plain chat (cleared per say).
         if (talkAimPos.isValid()) {
