@@ -479,8 +479,10 @@ void CocoaWindow::internalCreateWindow()
 
     m_impl->queue = [m_impl->device newCommandQueue];
 
-    // m_size must be in backing pixels and m_displayDensity must be the backing scale
-    // before GraphicalApplication::init calls resize(g_window.getSize()); see the header.
+    // m_size must be in backing pixels and the device pixel ratio must be set before
+    // GraphicalApplication::init calls resize(g_window.getSize()); see the header. Note this
+    // sets the RATIO, not the density: since the two were split, m_displayDensity is the
+    // product of this and the user's HUD scale, and writing it directly would discard theirs.
     m_backingScale = static_cast<float>([m_impl->window backingScaleFactor]);
     setDevicePixelRatio(m_backingScale);
 
