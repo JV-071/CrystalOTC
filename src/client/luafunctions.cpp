@@ -367,6 +367,7 @@ void Client::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_game", "getProtocolVersion", &Game::getProtocolVersion, &g_game);
     g_lua.bindSingletonFunction("g_game", "setProtocolVersion", &Game::setProtocolVersion, &g_game);
     g_lua.bindSingletonFunction("g_game", "getClientVersion", &Game::getClientVersion, &g_game);
+    g_lua.bindSingletonFunction("g_game", "getItemMarketPrice", &Game::getItemMarketPrice, &g_game);
     g_lua.bindSingletonFunction("g_game", "setClientVersion", &Game::setClientVersion, &g_game);
     g_lua.bindSingletonFunction("g_game", "setCustomOs", &Game::setCustomOs, &g_game);
     g_lua.bindSingletonFunction("g_game", "getOs", &Game::getOs, &g_game);

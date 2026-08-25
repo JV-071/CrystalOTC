@@ -76,6 +76,8 @@ protected:
     void processContainerUpdateItem(uint8_t containerId, uint16_t slot, const ItemPtr& item);
     void processContainerRemoveItem(uint8_t containerId, uint16_t slot, const ItemPtr& lastItem);
 
+    void processItemsPrice(const std::map<uint16_t, std::map<uint8_t, uint64_t>>& prices);
+
     // channel related
     static void processChannelList(const std::vector<std::tuple<uint16_t, std::string>>& channelList);
     static void processOpenChannel(uint16_t channelId, std::string_view name);
@@ -341,6 +343,7 @@ public:
 
     void setClientVersion(uint16_t version);
     int getClientVersion() { return m_clientVersion; }
+    uint64_t getItemMarketPrice(uint16_t itemId, uint8_t tier) const;
 
     void setCustomOs(const Otc::OperatingSystem_t os) { m_clientCustomOs = os; }
     Otc::OperatingSystem_t getOs();
@@ -557,6 +560,7 @@ private:
 
     stdext::map<int, ContainerPtr> m_containers;
     stdext::map<int, Vip> m_vips;
+    std::map<uint16_t, std::map<uint8_t, uint64_t>> m_itemMarketPrices;
     stdext::timer m_pingTimer;
 
     ticks_t m_ping{ -1 };

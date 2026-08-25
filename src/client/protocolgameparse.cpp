@@ -5593,24 +5593,29 @@ void ProtocolGame::parseUpdateImpactTracker(const InputMessagePtr& msg)
 void ProtocolGame::parseItemsPrice(const InputMessagePtr& msg)
 {
     const uint16_t priceCount = msg->getU16(); // count
+    std::map<uint16_t, std::map<uint8_t, uint64_t>> prices;
 
     for (auto i = 0; i < priceCount; ++i) {
         const uint16_t itemId = msg->getU16(); // item client id
+        uint8_t tier = 0;
+        uint64_t price = 0;
         if (g_game.getClientVersion() >= 1281) {
             const auto& item = Item::create(itemId);
 
             // note: vanilla client allows made-up client ids
             // their classification is assumed as 0
             if (item && item->getId() != 0 && item->getClassification() > 0) {
-                msg->getU8();
+                tier = msg->getU8();
             }
-            msg->getU64(); // price
+            price = msg->getU64();
         } else {
-            msg->getU32(); // price
+            price = msg->getU32();
         }
+
+        prices[itemId][tier] = price;
     }
 
-    // TODO: implement items price usage
+    g_game.processItemsPrice(prices);
 }
 
 void ProtocolGame::parseUpdateSupplyTracker(const InputMessagePtr& msg)

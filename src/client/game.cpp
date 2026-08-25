@@ -95,7 +95,32 @@ void Game::resetGameStates()
     m_containers.clear();
     m_vips.clear();
     m_gmActions.clear();
+    m_itemMarketPrices.clear();
     g_map.resetAwareRange();
+}
+
+void Game::processItemsPrice(const std::map<uint16_t, std::map<uint8_t, uint64_t>>& prices)
+{
+    m_itemMarketPrices = prices;
+    g_lua.callGlobalField("g_game", "onItemsPrice");
+}
+
+uint64_t Game::getItemMarketPrice(const uint16_t itemId, const uint8_t tier) const
+{
+    const auto itemIt = m_itemMarketPrices.find(itemId);
+    if (itemIt == m_itemMarketPrices.end())
+        return 0;
+
+    const auto& tierPrices = itemIt->second;
+    if (const auto tierIt = tierPrices.find(tier); tierIt != tierPrices.end())
+        return tierIt->second;
+
+    // Non-upgradeable items are always sent as tier zero. Falling back to it also
+    // keeps old servers useful when they omit an item's classification tier.
+    if (const auto baseIt = tierPrices.find(0); baseIt != tierPrices.end())
+        return baseIt->second;
+
+    return 0;
 }
 
 void Game::processConnectionError(const std::error_code& ec)
