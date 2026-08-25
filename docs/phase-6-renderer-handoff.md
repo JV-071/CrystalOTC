@@ -438,4 +438,7 @@ reliability matrix, GPU diagnostics, and promoting the macOS job to a required c
   inherit is the check recorded as owed in `known-deviations.md`: `map-core` and `lighting-overlap`
   could not be compared across backends that session, because the available OpenGL binary predates
   roughly thirty commits of UI work and the two disagree on window height (1020x650 against
-  1020x644).
+  1020x644). **Discharged 2026-08-25:** the OpenGL binary was rebuilt from current source and the
+  check ran — all three scenes agree within their own noise, with zero differing pixels inside the
+  map panel on `lighting-overlap` and an exactly-0 pair on `map-screenshot`. See
+  `known-deviations.md`, "Online scenes after the Retina and device-ratio work".

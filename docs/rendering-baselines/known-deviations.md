@@ -800,6 +800,44 @@ entry above already records as the run where world state has not settled; its ot
 noisier one on `lighting-overlap` — neither is consistently steadier, which the Phase 5 entry also
 observed.
 
+## Online scenes after the Retina and device-ratio work — the owed check, discharged
+
+Added 2026-08-25. The "Map shaders on Metal" section above records `map-core` and
+`lighting-overlap` as **owed**: they could not be compared across backends when the map-shader fix
+landed, because the available OpenGL binary predated roughly thirty commits of UI work and the two
+disagreed on window height (1020x650 against 1020x644). The OpenGL binary was rebuilt from current
+source, so the check ran. Three runs per backend per scene, `tools/compare_online_backends.sh`,
+against the pinned fixture server `crystalserver` `f47f6e41`. All eighteen captures succeeded.
+
+| Scene | within OpenGL | within Metal | across backends |
+|---|---:|---:|---|
+| `map-core` (656,880 px) | 678 px | 4 px | 701 / **19** / **19** px |
+| `map-screenshot` (168,960 px) | 24 px | **0** px | **0** / 24 / 24 px |
+| `lighting-overlap` (656,880 px) | 147 px | 783 / 780 px | 167 / 773 / 788 px |
+
+Every cross-backend figure sits at or below the larger of that scene's two floors, and
+`map-screenshot` has an exactly-0 pair. `map-core`'s 701 is its run-1 outlier, the case earlier
+entries already record as the run where world state has not settled; its other two pairs are 19 px.
+
+**The totals are again the less informative half.** By location:
+
+- `lighting-overlap`'s differing pixels are entirely in `x[850..1006]` — the live battle-list and
+  minimap band — with **zero inside the map panel** (`x[177..843]`). Metal's own run-to-run variance
+  occupies the *same* band, so the cross-backend figure is that variance rather than a difference
+  between the backends. The map and the light overlay agree exactly, which is what the scene exists
+  to measure.
+- `map-core`'s 19 px are an 11x3 region at `x[502..512] y[250..252]`: one small sprite, the animated
+  floor decoration Phase 0 first recorded as a "62-pixel animated-decoration residual".
+
+**What this covers.** These three scenes are the only exercise the MAP pool, the light overlay and
+the map readback get, and 2026-08-25 changed shared code all of them run — `FrameBuffer`'s content
+scale, clip-rect scaling in `PoolState::execute` and `PoolCompiler`, and the pass projection extent.
+All of it is inert at content scale 1, which is what every capture pins, but that was an argument
+from construction until this ran. Phase 3 and Phase 4 each found a real defect in exactly these
+scenes after drafting their handoff; this time there was none.
+
+Measured locally; CI is suspended and has seen none of it.
+
 ## `windowing`'s grown capture is bimodal, on both backends
 
 Added 2026-08-21 (Phase 5). Phase 4 recorded all four `windowing` captures matching OpenGL against
