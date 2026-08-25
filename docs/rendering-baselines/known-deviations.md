@@ -339,6 +339,15 @@ of a 2x upscale. It is shared framework code, not a backend behaviour, and the p
 recorded above is why no automated scene can see it. Written up as a follow-up in
 `docs/phase-5-renderer-handoff.md`.
 
+**Fixed 2026-08-25.** The FOREGROUND target is sized in device pixels now and addressed in logical
+units, so the UI rasterises at native resolution and the composition blit is 1:1. The measurement
+above still describes what the client did before that. The pinned density stays, so this remains
+invisible to every automated scene; the check is `windowing`'s HUD-scale-2 capture, compared by mean
+absolute horizontal gradient (3.702 → 5.193). One caution for anyone re-measuring it: the even/odd
+column ratio *falls*, 0.750 → 0.243, and that is not a regression — it detects two-pixel
+periodicity, which bilinear upscaling produces and so does sharp geometry whose integer logical
+coordinates land on even device pixels at exactly 2x.
+
 Also relevant to the `windowing` scene, and the reason it is marked `ciCapture: false`:
 `focus` is **not observable in any captured image** -- `hasFocus()` has zero consumers
 anywhere in the tree, so it is a pure state bit. And under the CI Xvfb there is no window

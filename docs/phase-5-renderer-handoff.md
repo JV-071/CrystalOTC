@@ -262,7 +262,17 @@ observation would have gated `composition-all` at a threshold it crosses at rand
 usage is three — but it is a cap where there was none, and hitting it degrades to unpacked textures
 rather than failing loudly. Widening it is one constant and a `static_assert`.
 
-**The whole UI renders at half resolution on a Retina Mac, and this is unowned rather than
+~~**The whole UI renders at half resolution on a Retina Mac, and this is unowned rather than
+deferred.**~~ **Fixed 2026-08-25.** Part 2 of the three-part plan below was implemented directly;
+part 1 turned out not to be a prerequisite and part 3 is unchanged advice. `FrameBuffer` gained a
+content scale and `RenderPass` a `projectionExtent`, so a target can be addressed in one coordinate
+space and rasterised in a denser one; the FOREGROUND target is now sized in device pixels while the
+UI keeps laying out in logical units, and the composition blit is 1:1. Measured on `windowing`'s
+HUD-scale-2 capture: mean absolute horizontal gradient 3.702 -> 5.193 at a best alignment of (0,0),
+so the image is the same image, sharper. Density 1 is unchanged - both sweeps at every documented
+value. The original write-up follows, because its diagnosis is what the fix was built from.
+
+**The whole UI rendered at half resolution on a Retina Mac, and this was unowned rather than
 deferred.** Found while answering a question about `@2x` assets, not by any gate.
 
 `GraphicalApplication::resize` lays the UI out at `m_size / m_displayDensity` **and** sizes the
@@ -296,7 +306,7 @@ Three separable parts, in order:
 3. Only then evaluate higher-resolution art — and keep game sprites `NEAREST`-filtered at integer
    scale regardless, since 32x32 pixel art is meant to look crisp and blocky rather than resampled.
 
-**On the status:** this is recorded three times — the Phase 1 handoff, design open question 5, and
+**On the status (superseded 2026-08-25 — it was scheduled and done):** this is recorded three times — the Phase 1 handoff, design open question 5, and
 the plan's Phase 1 task 2 — always as "a framework change, not a backend one", and once as "carry
 into Phase 4". Phase 4 honoured it as a constraint (mirroring `m_backingScale` separately) rather
 than as work. So it was classified out of scope and never scheduled, which reads like a deferral
