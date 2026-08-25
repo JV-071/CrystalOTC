@@ -1,0 +1,4415 @@
+{
+  "format": 1,
+  "source_qml_path": "/qt/qml/qmlcomponents/qml/TibiaStyle.qml",
+  "summary": {
+    "token_count": 344,
+    "referenced_token_count": 302
+  },
+  "tokens": [
+    {
+      "name": "maxCharacterNameLength",
+      "type": "int",
+      "readonly": true,
+      "value": "29",
+      "line": 5,
+      "referenced_by": [
+        "BossTrackingWidget",
+        "BosstiaryDialog",
+        "CharacterInfoDialog",
+        "CreateAccountDialog",
+        "CreateCharacterDialog",
+        "FriendsAccountSearchPage",
+        "HirelingConfigurationDialog",
+        "HousesInfoDialog",
+        "MagicalArchiveDialog",
+        "MarketCategorySelection",
+        "MonsterBonusEffectsDialog",
+        "MonsterSelectionPanel",
+        "MonstersDialog",
+        "NpcTrade",
+        "OpenChatChannelDialog",
+        "SinglePreyView",
+        "SkillWheelPresetManagmentDialog",
+        "SoulSealsDialog",
+        "TibiaWhiteBlacklistTableView",
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "maxTextFieldDefaultLength",
+      "type": "int",
+      "readonly": true,
+      "value": "255",
+      "line": 6,
+      "referenced_by": [
+        "StoreDialog",
+        "TibiaIntField",
+        "TibiaTextSearchField"
+      ]
+    },
+    {
+      "name": "white1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#DFDFDF\"",
+      "line": 8,
+      "referenced_by": [
+        "PlayerGuideWidget",
+        "WeeklyTasksRewardsPanel"
+      ]
+    },
+    {
+      "name": "white2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#F7F7F7\"",
+      "line": 9,
+      "referenced_by": [
+        "OptionsPageHotkeys",
+        "SkillWidgetEntry"
+      ]
+    },
+    {
+      "name": "white3",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#F4F4F4\"",
+      "line": 10,
+      "referenced_by": []
+    },
+    {
+      "name": "white4",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#FFFFFF\"",
+      "line": 11,
+      "referenced_by": [
+        "CharacterTradeCharacterOverview",
+        "CharacterTradeHighlightPicker",
+        "ExaltationResultDialog",
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "white5",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#C0C0C0\"",
+      "line": 12,
+      "referenced_by": []
+    },
+    {
+      "name": "red1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#F75F5F\"",
+      "line": 13,
+      "referenced_by": [
+        "BlessingsDialog",
+        "CharacterTradeCharacterOverview",
+        "RecordKeyboardShortcutDialog"
+      ]
+    },
+    {
+      "name": "red2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#D33C3C\"",
+      "line": 14,
+      "referenced_by": [
+        "DailyRewardPickItemsDialog",
+        "DeliveryTask",
+        "ExaltationResultDialog",
+        "MonsterKillTask",
+        "RewardWallDialog",
+        "SinglePreyView",
+        "WeeklyTasksRewardsPanel"
+      ]
+    },
+    {
+      "name": "red3",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#A40F0F\"",
+      "line": 15,
+      "referenced_by": [
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "green1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#44AD25\"",
+      "line": 16,
+      "referenced_by": [
+        "DailyRewardPickItemsDialog",
+        "DeliveryTask",
+        "ExaltationResultDialog",
+        "RewardWallDialog"
+      ]
+    },
+    {
+      "name": "blue1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#0E84DA\"",
+      "line": 17,
+      "referenced_by": []
+    },
+    {
+      "name": "blue2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#1872C3\"",
+      "line": 18,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "gold1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#F7AF48\"",
+      "line": 19,
+      "referenced_by": [
+        "GoldenHighlightTibiaTextDecorator"
+      ]
+    },
+    {
+      "name": "grey1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#BFBFBF\"",
+      "line": 20,
+      "referenced_by": []
+    },
+    {
+      "name": "grey2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#727272\"",
+      "line": 21,
+      "referenced_by": []
+    },
+    {
+      "name": "grey3",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#707070\"",
+      "line": 22,
+      "referenced_by": [
+        "BattleListEntry",
+        "TibiaTabBar"
+      ]
+    },
+    {
+      "name": "grey4",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#393939\"",
+      "line": 23,
+      "referenced_by": [
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "orange1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#FF9854\"",
+      "line": 24,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CreatureHUD",
+        "HitpointsManaArcHud",
+        "MarketCategorySelection",
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "orange2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#C28400\"",
+      "line": 25,
+      "referenced_by": []
+    },
+    {
+      "name": "black1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#242424\"",
+      "line": 26,
+      "referenced_by": [
+        "TibiaGauge"
+      ]
+    },
+    {
+      "name": "black2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#000000\"",
+      "line": 27,
+      "referenced_by": [
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "black3",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#3F3F3F\"",
+      "line": 28,
+      "referenced_by": []
+    },
+    {
+      "name": "yellow1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#F8DB38\"",
+      "line": 29,
+      "referenced_by": []
+    },
+    {
+      "name": "purple1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#9800C1\"",
+      "line": 30,
+      "referenced_by": [
+        "CreatureHUD",
+        "HitpointsManaArcHud"
+      ]
+    },
+    {
+      "name": "purple2",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#D437FF\"",
+      "line": 31,
+      "referenced_by": [
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "purple3",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#9966CC\"",
+      "line": 32,
+      "referenced_by": []
+    },
+    {
+      "name": "teal1",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#00746f\"",
+      "line": 33,
+      "referenced_by": [
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "transparent",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#00000000\"",
+      "line": 34,
+      "referenced_by": [
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "textColors",
+      "type": "variant",
+      "readonly": false,
+      "value": "{ \"Default\": white3",
+      "line": 37,
+      "referenced_by": [
+        "ActionBarButton",
+        "CharacterInfoDialog",
+        "CharacterTradeHighlightPicker",
+        "ChatInput",
+        "FriendsAccountSearchPage",
+        "GoldenHighlightTibiaTextDecorator",
+        "HighscoreColumnContent",
+        "HighscorePage",
+        "HousesInfoDialog",
+        "HuntingSessionWidget",
+        "NpcTrade",
+        "ReportViolationDialog",
+        "SkillWidgetEntry",
+        "TibiaCachedOutlineTextBase",
+        "TibiaCalendarDay",
+        "TibiaTextBase",
+        "TibiaTextEdit",
+        "TibiaTextField",
+        "TutorialAnimationLoot",
+        "WhiteBlacklistDialog"
+      ]
+    },
+    {
+      "name": "defaultOutlineColor",
+      "type": "color",
+      "readonly": false,
+      "value": "\"black\"",
+      "line": 93,
+      "referenced_by": [
+        "TibiaCachedOutlineTextBase",
+        "TibiaTextBase"
+      ]
+    },
+    {
+      "name": "buttonFont",
+      "type": "font",
+      "readonly": false,
+      "value": "smallFont",
+      "line": 116,
+      "referenced_by": [
+        "SkillWheelTileInformation",
+        "TaskboardRewardShopDialogTab",
+        "TibiaButton",
+        "TibiaTabButton"
+      ]
+    },
+    {
+      "name": "threeDigitTextSize",
+      "type": "int",
+      "readonly": true,
+      "value": "24",
+      "line": 118,
+      "referenced_by": [
+        "TeamAssemblePage"
+      ]
+    },
+    {
+      "name": "defaultTextLineHeight",
+      "type": "int",
+      "readonly": false,
+      "value": "13",
+      "line": 122,
+      "referenced_by": [
+        "SkillWheelGemAtelierPage",
+        "SkillWheelPage",
+        "SkillWheelTileInformation",
+        "TibiaTabBar",
+        "TibiaTabButton",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyShapeOptionsDialog",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "buttonTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"Dialog\"]",
+      "line": 125,
+      "referenced_by": [
+        "TibiaTabButton"
+      ]
+    },
+    {
+      "name": "buttonWidthDefault",
+      "type": "int",
+      "readonly": true,
+      "value": "43",
+      "line": 126,
+      "referenced_by": [
+        "PreferredMonsterSlot",
+        "TibiaButton"
+      ]
+    },
+    {
+      "name": "buttonWidthSmall",
+      "type": "int",
+      "readonly": true,
+      "value": "34",
+      "line": 127,
+      "referenced_by": [
+        "SkillWheelTileInformation"
+      ]
+    },
+    {
+      "name": "buttonWidthBroad",
+      "type": "int",
+      "readonly": true,
+      "value": "64",
+      "line": 128,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CharacterTradeDialog",
+        "CharacterWorldTransferDialog",
+        "ChatInput",
+        "EditTextDialog",
+        "HirelingConfigurationDialog",
+        "HousesInfoDialog",
+        "InspectObjectDialog",
+        "InspectPlayerDialog",
+        "MainCharacterChangeDialog",
+        "MarketOwnOffers",
+        "ReportViolationDialog",
+        "ReturnerRewardNotificationDialog",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "StoreDialog",
+        "TibiaHouseActionButton",
+        "TutorialAnimationLoot",
+        "market"
+      ]
+    },
+    {
+      "name": "buttonWidthWide",
+      "type": "int",
+      "readonly": true,
+      "value": "86",
+      "line": 129,
+      "referenced_by": [
+        "AboutDialog",
+        "AssignObjectActionDialog",
+        "CharacterInfoDialog",
+        "CharacterSelection",
+        "CyclopediaDialog",
+        "DepotSearchWidget",
+        "ExaltationForgeHistoryPage",
+        "HighscorePage",
+        "HousesInfoDialog",
+        "OptionsPageHotkeys",
+        "PreferredMonsterSlot",
+        "QuestlogDialog",
+        "SkillWheelGemAtelierPage",
+        "SkillWheelVesselInformation",
+        "StoreTransactionHistoryPage",
+        "gamewindow",
+        "spelllistwidget"
+      ]
+    },
+    {
+      "name": "buttonWidthWider",
+      "type": "int",
+      "readonly": true,
+      "value": "108",
+      "line": 130,
+      "referenced_by": [
+        "BountyTaskSetupPanel",
+        "CharacterSelection",
+        "CrashReportDialog",
+        "CreateAccountDialog",
+        "CreateCharacterDialog",
+        "ExaltationForgeFusionPage",
+        "LootTrackingWidget",
+        "MarketDetailsView",
+        "MarketOffersView",
+        "SkillWheelGemAtelierPage",
+        "TaskRingPanelSection",
+        "TutorialHintDialog",
+        "VocationSelectionPopup",
+        "WeeklyTasksResultsPanel",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "buttonWidthWidest",
+      "type": "int",
+      "readonly": true,
+      "value": "128",
+      "line": 131,
+      "referenced_by": [
+        "ConfiguredBossSlot",
+        "CyclopediaDialog",
+        "DepotSearchWidget",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeTransferPage",
+        "OptionsPageHelp",
+        "OptionsPageHud",
+        "OptionsPageScreenshots",
+        "StashDialog",
+        "TeamAssemblePage"
+      ]
+    },
+    {
+      "name": "buttonWidthExtraWide",
+      "type": "int",
+      "readonly": true,
+      "value": "200",
+      "line": 132,
+      "referenced_by": [
+        "OptionsPageGraphics"
+      ]
+    },
+    {
+      "name": "buttonHeightDefault",
+      "type": "int",
+      "readonly": true,
+      "value": "20",
+      "line": 133,
+      "referenced_by": [
+        "AnalyticsSelectorWidget",
+        "BosstiaryDialog",
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeItemPicker",
+        "CombatControls",
+        "CreateAccountDialog",
+        "CreateCharacterDialog",
+        "DepotSearchWidget",
+        "FriendsAccountSearchPage",
+        "FriendsFriendListPage",
+        "MarketHistoryView",
+        "MonstersDialog",
+        "PlayerGuideWidget",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "StoreDialog",
+        "TibiaButton",
+        "TibiaHouseActionButton",
+        "TibiaTextSearchField",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "buttonHeightHigh",
+      "type": "int",
+      "readonly": true,
+      "value": "26",
+      "line": 134,
+      "referenced_by": [
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyReshapeDialog",
+        "WeaponProficiencyShapeDialog"
+      ]
+    },
+    {
+      "name": "buttonWidthStoreSmall",
+      "type": "int",
+      "readonly": true,
+      "value": "26",
+      "line": 135,
+      "referenced_by": [
+        "ItemInfoDialog",
+        "PreyDialog",
+        "RewardWallDialog",
+        "SkillWheelDialog"
+      ]
+    },
+    {
+      "name": "buttonWidthStoreGetPremium",
+      "type": "int",
+      "readonly": true,
+      "value": "100",
+      "line": 136,
+      "referenced_by": []
+    },
+    {
+      "name": "premiumStateButtonWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "128",
+      "line": 137,
+      "referenced_by": [
+        "BlessingsDialog",
+        "ImbuingDialog",
+        "ManageLootContainerDialog",
+        "TibiaPremiumStateButton"
+      ]
+    },
+    {
+      "name": "premiumStateButtonHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "37",
+      "line": 138,
+      "referenced_by": [
+        "BlessingsDialog",
+        "ImbuingDialog",
+        "ManageLootContainerDialog",
+        "TibiaPremiumStateButton"
+      ]
+    },
+    {
+      "name": "premiumStateButtonHeightFlat",
+      "type": "int",
+      "readonly": true,
+      "value": "23",
+      "line": 139,
+      "referenced_by": [
+        "TibiaPremiumStateButton"
+      ]
+    },
+    {
+      "name": "buttonHeightAppearance",
+      "type": "int",
+      "readonly": true,
+      "value": "36",
+      "line": 140,
+      "referenced_by": [
+        "DepotSearchWidget",
+        "ShowImageDialog"
+      ]
+    },
+    {
+      "name": "iconButtonSize",
+      "type": "int",
+      "readonly": true,
+      "value": "20",
+      "line": 141,
+      "referenced_by": [
+        "ButtonBarPanel",
+        "CharacterInfoDialog",
+        "ItemInfoDialog",
+        "OptionsPageButtonBar",
+        "OutfitDialog",
+        "battlelist"
+      ]
+    },
+    {
+      "name": "tabWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "buttonWidthBroad",
+      "line": 144,
+      "referenced_by": [
+        "TibiaTabButton"
+      ]
+    },
+    {
+      "name": "comboBoxHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "20",
+      "line": 147,
+      "referenced_by": [
+        "OptionsPageBasic",
+        "OptionsPageGameWindow",
+        "OptionsPageGraphics",
+        "OptionsPageInterface",
+        "OptionsPageSound",
+        "TibiaComboBox"
+      ]
+    },
+    {
+      "name": "comboBoxSelectionColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#55808080\"",
+      "line": 148,
+      "referenced_by": [
+        "PassiveAbilityList",
+        "SinglePreyView",
+        "SpellList",
+        "TibiaComboBox"
+      ]
+    },
+    {
+      "name": "comboboxOptionsWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "150",
+      "line": 149,
+      "referenced_by": [
+        "OptionsPageBasic",
+        "OptionsPageControls",
+        "OptionsPageGameWindow",
+        "OptionsPageInterface"
+      ]
+    },
+    {
+      "name": "textFieldFont",
+      "type": "font",
+      "readonly": true,
+      "value": "defaultTextFont",
+      "line": 152,
+      "referenced_by": [
+        "TibiaTextArea"
+      ]
+    },
+    {
+      "name": "textFieldTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"TextFieldText\"]",
+      "line": 153,
+      "referenced_by": [
+        "BlessingsDialog",
+        "CharacterSelection",
+        "ExivaOptionsDialog",
+        "FriendsBadgesPage",
+        "FriendsInvitesPage",
+        "HousesInfoDialog",
+        "MarketCategorySelection",
+        "MarketOffersView",
+        "PassiveAbilityList",
+        "RewardWallDialog",
+        "SinglePreyView",
+        "SpellList",
+        "StoreTransactionHistoryPage",
+        "TibiaComboBox",
+        "TibiaTextArea",
+        "TibiaTextField",
+        "TibiaTextInput",
+        "TibiaWhiteBlacklistTableView"
+      ]
+    },
+    {
+      "name": "textFieldDisabledTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"Disabled\"]",
+      "line": 154,
+      "referenced_by": [
+        "CharacterTradeCharacterOverview",
+        "ExivaOptionsDialog",
+        "MarketCategorySelection",
+        "TibiaTextField",
+        "TibiaTextInput"
+      ]
+    },
+    {
+      "name": "textFieldBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#363636\"",
+      "line": 155,
+      "referenced_by": [
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeItemPicker",
+        "CharacterTradeNotifications",
+        "TibiaTextArea",
+        "TibiaTextField",
+        "TibiaWhiteBlacklistTableView",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyShapeOptionsDialog"
+      ]
+    },
+    {
+      "name": "textFieldSelectionTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"TextFieldTextSelected\"]",
+      "line": 156,
+      "referenced_by": [
+        "BlessingsDialog",
+        "CharacterSelection",
+        "FriendsBadgesPage",
+        "FriendsInvitesPage",
+        "MarketOffersView",
+        "PassiveAbilityList",
+        "RewardWallDialog",
+        "SinglePreyView",
+        "SpellList",
+        "StoreTransactionHistoryPage",
+        "TibiaComboBox",
+        "TibiaTextEdit",
+        "TibiaTextInput",
+        "TibiaWhiteBlacklistTableView"
+      ]
+    },
+    {
+      "name": "textFieldSelectionColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#808080\"",
+      "line": 157,
+      "referenced_by": [
+        "TibiaTextArea",
+        "TibiaTextEdit",
+        "TibiaTextField",
+        "TibiaTextInput"
+      ]
+    },
+    {
+      "name": "textRenderingType",
+      "type": "var",
+      "readonly": true,
+      "value": "Text.NativeRendering",
+      "line": 158,
+      "referenced_by": [
+        "TibiaCachedOutlineTextBase",
+        "TibiaTextArea",
+        "TibiaTextBase",
+        "TibiaTextEdit"
+      ]
+    },
+    {
+      "name": "textFieldHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "16",
+      "line": 159,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "ChatInput",
+        "MarketCategorySelection",
+        "SinglePreyView",
+        "TibiaTextField",
+        "TutorialAnimationLoot"
+      ]
+    },
+    {
+      "name": "regExpSingleNonASCIIChar",
+      "type": "var",
+      "readonly": true,
+      "value": "/[^\\x00-\\xFF]/g",
+      "line": 163,
+      "referenced_by": [
+        "TibiaTextArea",
+        "TibiaTextField",
+        "TibiaTextInput"
+      ]
+    },
+    {
+      "name": "gradToRad",
+      "type": "real",
+      "readonly": true,
+      "value": "Math.PI / 180.0",
+      "line": 166,
+      "referenced_by": [
+        "SkillWheel",
+        "SkillWheelCorner"
+      ]
+    },
+    {
+      "name": "radToGrad",
+      "type": "real",
+      "readonly": true,
+      "value": "180.0 / Math.PI",
+      "line": 167,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "tableViewHeaderHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "16",
+      "line": 170,
+      "referenced_by": [
+        "ImportantBalancingMessageDialog",
+        "TibiaTableView"
+      ]
+    },
+    {
+      "name": "tableViewRowHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "16",
+      "line": 171,
+      "referenced_by": [
+        "OptionsPageHud",
+        "QuestlogDialog",
+        "TibiaTableView",
+        "TibiaTableViewRowDelegate"
+      ]
+    },
+    {
+      "name": "tableViewRowHeight2Lines",
+      "type": "int",
+      "readonly": true,
+      "value": "30",
+      "line": 172,
+      "referenced_by": [
+        "ExaltationForgeHistoryPage",
+        "RewardWallDialog"
+      ]
+    },
+    {
+      "name": "tableViewBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#404040\"",
+      "line": 173,
+      "referenced_by": [
+        "AssignPassiveAbilityActionDialog",
+        "DailyRewardPickItemsDialog",
+        "ManageLootContainerDialog",
+        "MarketCategorySelection",
+        "MarketCoinTransactionDetails",
+        "MonsterBonusEffectsDialog",
+        "NpcTrade",
+        "RewardWallDialog",
+        "StoreTransactionHistoryPage",
+        "TibiaItemSelectionGrid",
+        "TibiaSunkenRectangle",
+        "TibiaTableView",
+        "TibiaTableViewRowDelegate"
+      ]
+    },
+    {
+      "name": "tableViewHeaderBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#363636\"",
+      "line": 174,
+      "referenced_by": [
+        "ImportantBalancingMessageDialog",
+        "TibiaTableView"
+      ]
+    },
+    {
+      "name": "tableViewItemBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#484848\"",
+      "line": 175,
+      "referenced_by": [
+        "CharacterTradeHighlightPicker",
+        "DailyRewardPickItemsDialog",
+        "ImportantBalancingMessageDialog",
+        "ItemInfoDialog",
+        "ManageLootContainerDialog",
+        "MarketCoinTransactionDetails",
+        "RewardWallDialog",
+        "StoreTransactionHistoryPage",
+        "TibiaTableViewRowDelegate"
+      ]
+    },
+    {
+      "name": "tableViewAlternateBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#414141\"",
+      "line": 176,
+      "referenced_by": [
+        "CharacterTradeHighlightPicker",
+        "DailyRewardPickItemsDialog",
+        "ImportantBalancingMessageDialog",
+        "ItemInfoDialog",
+        "ManageLootContainerDialog",
+        "MarketCoinTransactionDetails",
+        "RewardWallDialog",
+        "StoreTransactionHistoryPage",
+        "TibiaTableView",
+        "TibiaTableViewRowDelegate"
+      ]
+    },
+    {
+      "name": "tableViewSelectionColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#585858\"",
+      "line": 177,
+      "referenced_by": [
+        "CharacterTradeHighlightPicker",
+        "ImportantBalancingMessageDialog",
+        "ItemInfoDialog",
+        "MarketCategorySelection",
+        "MarketCoinTransactionDetails",
+        "NpcTrade",
+        "PassiveAbilityList",
+        "RewardWallDialog",
+        "SpellList",
+        "StoreTransactionHistoryPage",
+        "TibiaTableViewRowDelegate"
+      ]
+    },
+    {
+      "name": "contextMenuSelectedBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#808080\"",
+      "line": 180,
+      "referenced_by": [
+        "ContextMenuTemplate"
+      ]
+    },
+    {
+      "name": "contextMenuOutlineColor",
+      "type": "color",
+      "readonly": true,
+      "value": "defaultOutlineColor",
+      "line": 181,
+      "referenced_by": [
+        "ContextMenuTemplate"
+      ]
+    },
+    {
+      "name": "entrySpacingVertical",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 182,
+      "referenced_by": [
+        "ContextMenuTemplate"
+      ]
+    },
+    {
+      "name": "entryPartMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 183,
+      "referenced_by": [
+        "ContextMenuTemplate"
+      ]
+    },
+    {
+      "name": "minAfterEntrySpace",
+      "type": "int",
+      "readonly": true,
+      "value": "40",
+      "line": 184,
+      "referenced_by": [
+        "ContextMenuTemplate"
+      ]
+    },
+    {
+      "name": "tooltipBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#c0c0c0\"",
+      "line": 187,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "Tooltip",
+        "TooltipTemplate",
+        "inventory"
+      ]
+    },
+    {
+      "name": "tooltipTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"Dark\"]",
+      "line": 188,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "Tooltip",
+        "TooltipTemplate"
+      ]
+    },
+    {
+      "name": "tooltipFont",
+      "type": "font",
+      "readonly": true,
+      "value": "defaultTextFont",
+      "line": 189,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "Tooltip",
+        "TooltipTemplate"
+      ]
+    },
+    {
+      "name": "tooltipBorderMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 190,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "Tooltip",
+        "TooltipTemplate",
+        "inventory"
+      ]
+    },
+    {
+      "name": "tooltipRestrictedWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "450",
+      "line": 191,
+      "referenced_by": [
+        "ActionBarMultiActionExpandable",
+        "CharacterCombatStatBlock",
+        "CharacterInfoDialog",
+        "MonsterBonusEffectsDialog",
+        "MonstersDialog",
+        "OptionsPageButtonBar",
+        "OptionsPageGraphics",
+        "OptionsPageHud",
+        "RewardWallDialog",
+        "SkillWheelGemAtelierPage",
+        "SkillWidgetEntry",
+        "TibiaCalendarDay",
+        "TibiaHouseActionButton",
+        "TibiaTableView",
+        "gamewindow",
+        "inventory",
+        "skillswidget"
+      ]
+    },
+    {
+      "name": "creatureHUDFont",
+      "type": "font",
+      "readonly": true,
+      "value": "defaultTextFont",
+      "line": 194,
+      "referenced_by": [
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "playerTradeSmallFont",
+      "type": "font",
+      "readonly": true,
+      "value": "buttonFont",
+      "line": 197,
+      "referenced_by": [
+        "playertrade"
+      ]
+    },
+    {
+      "name": "playerTradeBorderMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "marginNarrow",
+      "line": 198,
+      "referenced_by": [
+        "playertrade"
+      ]
+    },
+    {
+      "name": "currencyViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "buttonHeightDefault",
+      "line": 201,
+      "referenced_by": [
+        "ItemInfoDialog",
+        "SinglePreyView",
+        "TibiaCurrencyView",
+        "TibiaCurrentBalanceView"
+      ]
+    },
+    {
+      "name": "currencyViewWidthNarrow",
+      "type": "int",
+      "readonly": true,
+      "value": "26",
+      "line": 202,
+      "referenced_by": [
+        "ExaltationForgeFusionPage",
+        "RewardWallDialog"
+      ]
+    },
+    {
+      "name": "currencyViewWidthShort",
+      "type": "int",
+      "readonly": true,
+      "value": "2 * currencyViewWidthNarrow",
+      "line": 203,
+      "referenced_by": [
+        "ExaltationForgeDialog",
+        "PreyDialog",
+        "RewardWallDialog",
+        "SoulSealsDialog",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyShapeDialog"
+      ]
+    },
+    {
+      "name": "currencyViewWidthMiddle",
+      "type": "int",
+      "readonly": true,
+      "value": "3 * currencyViewWidthNarrow",
+      "line": 204,
+      "referenced_by": []
+    },
+    {
+      "name": "currencyViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2 * currencyViewWidthShort",
+      "line": 205,
+      "referenced_by": [
+        "CharacterTradeDialog",
+        "ImbuingDialog",
+        "ItemInfoDialog",
+        "SoulSealsDialog",
+        "TaskboardRewardShopDialogTab",
+        "TibiaCurrencyView",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyShapeDialog",
+        "WeaponProficiencyShapeOptionsDialog",
+        "market"
+      ]
+    },
+    {
+      "name": "currencyViewWidthLong",
+      "type": "int",
+      "readonly": true,
+      "value": "5 * currencyViewWidthNarrow",
+      "line": 206,
+      "referenced_by": [
+        "CyclopediaDialog",
+        "ExaltationForgeDialog",
+        "PreyDialog",
+        "SkillWheelDialog",
+        "TaskboardDialog",
+        "market"
+      ]
+    },
+    {
+      "name": "currencyViewWidthVeryLong",
+      "type": "int",
+      "readonly": true,
+      "value": "5 * currencyViewWidthShort",
+      "line": 207,
+      "referenced_by": [
+        "StoreDialog"
+      ]
+    },
+    {
+      "name": "scrollBarWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "12",
+      "line": 210,
+      "referenced_by": [
+        "DailyRewardPickItemsDialog",
+        "FriendsAccountSearchPage",
+        "KillTrackerWidget",
+        "NewsDialog",
+        "OptionsPageHud",
+        "RewardWallDialog",
+        "StashDialog",
+        "TibiaItemSelectionGrid",
+        "TibiaScrollBar",
+        "TibiaScrollView",
+        "TibiaTextArea"
+      ]
+    },
+    {
+      "name": "scrollBarMinHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "12 + 12 + 14",
+      "line": 211,
+      "referenced_by": []
+    },
+    {
+      "name": "containerSlotSize",
+      "type": "int",
+      "readonly": true,
+      "value": "34",
+      "line": 214,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CharacterTradeItemPicker",
+        "ContainerSlot",
+        "DailyRewardPickItemsDialog",
+        "DepotSearchWidget",
+        "ImbuementInfoLayout",
+        "ImbuementTrackerWidget",
+        "ManageLootContainerDialog",
+        "MonstersDialog",
+        "NpcTrade",
+        "StashDialog",
+        "TibiaItemSelectionGrid",
+        "container"
+      ]
+    },
+    {
+      "name": "containerSlotsMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 215,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CharacterTradeItemPicker",
+        "ContainerSlot",
+        "DepotSearchWidget",
+        "ImbuementTrackerWidget",
+        "StashDialog",
+        "TibiaItemSelectionGrid",
+        "container"
+      ]
+    },
+    {
+      "name": "containerContentTopMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 216,
+      "referenced_by": [
+        "ImbuementTrackerWidget",
+        "container"
+      ]
+    },
+    {
+      "name": "containerContentBottomMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "6",
+      "line": 217,
+      "referenced_by": [
+        "ImbuementTrackerWidget",
+        "container"
+      ]
+    },
+    {
+      "name": "containerContentLeftMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "7",
+      "line": 218,
+      "referenced_by": [
+        "DepotSearchWidget",
+        "ImbuementTrackerWidget",
+        "container"
+      ]
+    },
+    {
+      "name": "numberOfContainerSlotsPerRow",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 219,
+      "referenced_by": [
+        "container"
+      ]
+    },
+    {
+      "name": "sliderDefaultPreferredWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "175",
+      "line": 222,
+      "referenced_by": [
+        "TibiaMenuSlider"
+      ]
+    },
+    {
+      "name": "sliderModifierShift",
+      "type": "int",
+      "readonly": true,
+      "value": "10",
+      "line": 223,
+      "referenced_by": [
+        "TibiaSlider",
+        "TibiaSliderNonLinear"
+      ]
+    },
+    {
+      "name": "sliderModifierControl",
+      "type": "int",
+      "readonly": true,
+      "value": "100",
+      "line": 224,
+      "referenced_by": [
+        "TibiaSlider",
+        "TibiaSliderNonLinear"
+      ]
+    },
+    {
+      "name": "searchDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "250",
+      "line": 227,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CharacterSelection",
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeItemPicker",
+        "OptionsPageHotkeys",
+        "TeamAssemblePage",
+        "TeamJoinPage",
+        "TibiaIntField",
+        "TibiaTextSearchField"
+      ]
+    },
+    {
+      "name": "textAsyncValidationDealy",
+      "type": "int",
+      "readonly": true,
+      "value": "500",
+      "line": 228,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "CreateCharacterDialog"
+      ]
+    },
+    {
+      "name": "noShaderBlackoutOpacity",
+      "type": "real",
+      "readonly": true,
+      "value": "0.15",
+      "line": 231,
+      "referenced_by": [
+        "ScalableObjectDisplay"
+      ]
+    },
+    {
+      "name": "columnWidthDateTime",
+      "type": "int",
+      "readonly": true,
+      "value": "150",
+      "line": 234,
+      "referenced_by": [
+        "ExaltationForgeHistoryPage",
+        "MarketHistoryView",
+        "MarketOwnOffers"
+      ]
+    },
+    {
+      "name": "clientMinWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "1020",
+      "line": 238,
+      "referenced_by": [
+        "NaggingMessageDialog",
+        "TibiaMessageDialog",
+        "clientwindow",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "clientMinHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "650",
+      "line": 239,
+      "referenced_by": [
+        "clientwindow"
+      ]
+    },
+    {
+      "name": "eMailAdressLength",
+      "type": "int",
+      "readonly": true,
+      "value": "49",
+      "line": 240,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "passwordLength",
+      "type": "int",
+      "readonly": true,
+      "value": "29",
+      "line": 241,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "dialogHeaderLineHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "17",
+      "line": 246,
+      "referenced_by": [
+        "TibiaDialog",
+        "TibiaDialogFrameWithCaption"
+      ]
+    },
+    {
+      "name": "dialogFrameWidith",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 247,
+      "referenced_by": [
+        "TibiaDialog",
+        "TibiaDialogFrameWithCaption"
+      ]
+    },
+    {
+      "name": "dialogContentToFrameMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "12",
+      "line": 248,
+      "referenced_by": [
+        "ShowImageDialog",
+        "TaskboardRewardShopDialogTab",
+        "TibiaDialogFrameWithCaption"
+      ]
+    },
+    {
+      "name": "dialogMarginBorder",
+      "type": "int",
+      "readonly": true,
+      "value": "dialogContentToFrameMargin + dialogFrameWidith",
+      "line": 249,
+      "referenced_by": [
+        "DawnportTutorialPopup",
+        "GenericEnterTextDialog",
+        "InspectObjectDialog",
+        "LoginConfirmationCodeEnterDialog",
+        "NaggingMessageDialog",
+        "NpcDialog",
+        "PreyPreyPage",
+        "RewardWallDialog",
+        "ShowImageDialog",
+        "StashDialog",
+        "TibiaDialog",
+        "TibiaMessageDialog",
+        "TutorialHintDialog",
+        "TwoFactorTextEnterDialog",
+        "VocationSelectionPopup"
+      ]
+    },
+    {
+      "name": "dialogMaxWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "clientMinWidth - - 2 * marginUnrelated",
+      "line": 250,
+      "referenced_by": [
+        "TibiaDialog"
+      ]
+    },
+    {
+      "name": "dialogMaxHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "clientMinHeight - - 2 * marginUnrelated",
+      "line": 251,
+      "referenced_by": [
+        "TibiaDialog"
+      ]
+    },
+    {
+      "name": "marginRelated",
+      "type": "int",
+      "readonly": true,
+      "value": "5",
+      "line": 254,
+      "referenced_by": [
+        "AboutDialog",
+        "ActionBarMultiActionExpandable",
+        "AnalyticsSelectorWidget",
+        "AssignObjectActionDialog",
+        "AssignPassiveAbilityActionDialog",
+        "AssignSpellActionDialog",
+        "AssignTextActionDialog",
+        "BlessingsDialog",
+        "BossDifficultySelectionDialog",
+        "BossOutfitSelection",
+        "BossSlotNotActive",
+        "BossSlotsDialog",
+        "BossTrackingWidget",
+        "BosstiaryDialog",
+        "BountyTaskDialogTab",
+        "BugReportDialog",
+        "ButtonBarPanel",
+        "CalendarDialog",
+        "CharacterInfoDialog",
+        "CharacterSelection",
+        "CharacterTradeAuctionEndDateTimePicker",
+        "CharacterTradeCharacterOverview",
+        "CharacterTradeDialog",
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeHintText",
+        "CharacterTradeNotifications",
+        "CharacterWorldTransferDialog",
+        "ConfigureCreaturePodiumDialog",
+        "ConfiguredBossSlot",
+        "ConfirmMoveObjectToStashDialog",
+        "CrashReportDialog",
+        "CreateAccountDialog",
+        "CreateCharacterDialog",
+        "CreatureTrackerWidget",
+        "CyclopediaDialog",
+        "CyclopediaMapDialog",
+        "DailyRewardPickItemsDialog",
+        "DamageInputWidget",
+        "DawnportTutorialPopup",
+        "DepotSearchWidget",
+        "EditMinimapMarkerDialog",
+        "EditTextDialog",
+        "EditVipDialog",
+        "ExaltationForgeConversionPage",
+        "ExaltationForgeConversionPanel",
+        "ExaltationForgeDialog",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeHistoryPage",
+        "ExaltationForgeTransferPage",
+        "ExaltationResultDialog",
+        "ExivaOptionsDialog",
+        "FpsLatencyIndicator",
+        "FriendsAccountSearchPage",
+        "FriendsBadgesPage",
+        "FriendsConfigurationPage",
+        "FriendsFriendListPage",
+        "FriendsInvitesPage",
+        "GenericConfirmWithDontShowAgainDialog",
+        "GenericEnterTextDialog",
+        "HighscoreColumnContent",
+        "HighscorePage",
+        "HousesInfoDialog",
+        "HuntingSessionWidget",
+        "HuntingTaskRewardPurchaseConfirmationDialog",
+        "ImbuingDialog",
+        "ImpactView",
+        "ImpactWidget",
+        "ImportantBalancingMessageDialog",
+        "InspectObjectDialog",
+        "InspectPlayerDialog",
+        "InspectPlayerLayout",
+        "ItemInfoDialog",
+        "KillTrackerWidget",
+        "LenshelpTemplate",
+        "LoginConfirmationCodeEnterDialog",
+        "LootTrackingWidget",
+        "MagicalArchiveDialog",
+        "ManageLootContainerDialog",
+        "MarketCategorySelection",
+        "MarketCoinTransactionDetails",
+        "MarketOffersView",
+        "MenuWithSubMenu",
+        "MessageHistoryWidget",
+        "MonsterBonusEffectsDialog",
+        "MonsterSelectionPanel",
+        "MonstersDialog",
+        "MultiOfflineTrainingDialog",
+        "NaggingMessageDialog",
+        "NewsDialog",
+        "NpcDialog",
+        "NpcTrade",
+        "OpenChatChannelDialog",
+        "OptionsMenuDialog",
+        "OptionsPageActionBars",
+        "OptionsPageActionBarsShowHideSection",
+        "OptionsPageBasic",
+        "OptionsPageBattleSounds",
+        "OptionsPageButtonBar",
+        "OptionsPageConsole",
+        "OptionsPageControls",
+        "OptionsPageEffects",
+        "OptionsPageGameWindow",
+        "OptionsPageGameplay",
+        "OptionsPageGraphics",
+        "OptionsPageHelp",
+        "OptionsPageHotkeys",
+        "OptionsPageHud",
+        "OptionsPageInterface",
+        "OptionsPageMisc",
+        "OptionsPageScreenshots",
+        "OptionsPageSound",
+        "OptionsPageUISounds",
+        "OutfitDialog",
+        "OutfitMemorialDialog",
+        "OutfitPresetSelection",
+        "OutfitSelection",
+        "PartyHuntWidget",
+        "PlayerGuideWidget",
+        "PreferredList",
+        "PreferredMonsterSlot",
+        "PreferredMonsterSlotPanel",
+        "PremiumPanel",
+        "PreyDialog",
+        "PreyPreyPage",
+        "ProgressWidget",
+        "QuestlogDialog",
+        "RecordKeyboardShortcutDialog",
+        "ReportViolationDialog",
+        "RewardWallDialog",
+        "SelectBossView",
+        "ServerModalDialog",
+        "ShowImageDialog",
+        "ShowSpellBookDialog",
+        "SinglePreyView",
+        "SkillWheelDialog",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "SkillWheelLargePerkInformation",
+        "SkillWheelPage",
+        "SkillWheelPresetManagmentDialog",
+        "SkillWheelTileInformation",
+        "SkillWheelVesselInformation",
+        "SkillWidgetEntry",
+        "SocialDialog",
+        "SoulSealsDialog",
+        "StashDialog",
+        "StatusBar",
+        "StatusBarHealthMana",
+        "StatusBarLeft",
+        "StatusBarRight",
+        "StatusBarSkillLeft",
+        "StatusBarSkillRight",
+        "StoreCategoryWithSubcategory",
+        "StoreDialog",
+        "StoreMainPage",
+        "StoreOfferDisplay",
+        "StoreOfferPage",
+        "StorePurchaseConfirmationDialog",
+        "StoreTransactionHistoryPage",
+        "SurveyInvitatioDialog",
+        "TaskRingPanel",
+        "TaskRingPanelSection",
+        "TaskboardDialog",
+        "TaskboardRewardShopDialogTab",
+        "TeamAssemblePage",
+        "TeamJoinPage",
+        "TibiaButton",
+        "TibiaCalendarDay",
+        "TibiaComboBox",
+        "TibiaCurrencyView",
+        "TibiaCurrentBalanceView",
+        "TibiaFrame1PixelDownWithGuiHelp",
+        "TibiaFrame2PixelUpFilled",
+        "TibiaFrame2PixelUpFilledWithCaption",
+        "TibiaFrame3Pixel",
+        "TibiaFrame3PixelFilled",
+        "TibiaFrame4Pixel",
+        "TibiaKeyValueRowLayout",
+        "TibiaMenuOptionCheckBox",
+        "TibiaMenuSlider",
+        "TibiaMessageDialog",
+        "TibiaPanel2PixelUpFilledWithCaption",
+        "TibiaPanelWithCaption",
+        "TibiaTableView",
+        "TibiaTextArea",
+        "TibiaTextField",
+        "TibiaWhiteBlacklistTableView",
+        "TransferCreditsDialog",
+        "TutorialAnimationLoot",
+        "TutorialOverlayTemplate",
+        "TwoFactorTextEnterDialog",
+        "VocationSelectionPopup",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyReshapeDialog",
+        "WeaponProficiencyShapeDialog",
+        "WeaponProficiencyShapeOptionsDialog",
+        "WhiteBlacklistDialog",
+        "WorldSelection",
+        "gamewindow",
+        "market",
+        "playertrade",
+        "questtrackerwidget",
+        "skillswidget",
+        "spelllistwidget"
+      ]
+    },
+    {
+      "name": "marginUnrelated",
+      "type": "int",
+      "readonly": true,
+      "value": "2 * marginRelated",
+      "line": 255,
+      "referenced_by": [
+        "AboutDialog",
+        "AssignObjectActionDialog",
+        "AssignPassiveAbilityActionDialog",
+        "AssignSpellActionDialog",
+        "AssignTextActionDialog",
+        "BlessingsDialog",
+        "BossDifficultySelectionDialog",
+        "BossSlotsDialog",
+        "BosstiaryDialog",
+        "BountyTaskDialogTab",
+        "BountyTaskPanel",
+        "BountyTaskSetupPanel",
+        "BugReportDialog",
+        "CalendarDialog",
+        "CharacterCombatStatBlock",
+        "CharacterInfoDialog",
+        "CharacterSelection",
+        "CharacterTradeDuePaymentDialog",
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeItemPicker",
+        "CharacterWorldTransferDialog",
+        "ConfigureCreaturePodiumDialog",
+        "ConfiguredBossSlot",
+        "ConfirmMoveObjectToStashDialog",
+        "CrashReportDialog",
+        "CreateAccountDialog",
+        "CreateCharacterDialog",
+        "CyclopediaDialog",
+        "DamageInputWidget",
+        "DeliveryTask",
+        "DeliveryTaskPanel",
+        "EditMinimapMarkerDialog",
+        "EditTextDialog",
+        "EditVipDialog",
+        "ExaltationForgeConversionPanel",
+        "ExaltationForgeDialog",
+        "ExaltationForgeFusionPage",
+        "ExaltationResultDialog",
+        "ExivaOptionsDialog",
+        "FriendsAccountSearchPage",
+        "FriendsBadgesPage",
+        "FriendsConfigurationPage",
+        "FriendsFriendListPage",
+        "FriendsInvitesPage",
+        "GenericConfirmWithDontShowAgainDialog",
+        "GenericEnterTextDialog",
+        "HirelingConfigurationDialog",
+        "HuntingTaskRewardPurchaseConfirmationDialog",
+        "ImbuingDialog",
+        "ImpactWidget",
+        "ImportantBalancingMessageDialog",
+        "InspectObjectDialog",
+        "InspectPlayerDialog",
+        "ItemInfoDialog",
+        "KillTrackerWidget",
+        "LoginConfirmationCodeEnterDialog",
+        "LootTrackingWidget",
+        "MainCharacterChangeDialog",
+        "MarketDetailsView",
+        "MarketHistoryView",
+        "MarketOffersView",
+        "MarketOwnOffers",
+        "MonsterKillTask",
+        "MonsterKillTaskPanel",
+        "MonsterSelectionPanel",
+        "MonstersDialog",
+        "MultiOfflineTrainingDialog",
+        "NaggingMessageDialog",
+        "NewsDialog",
+        "NpcDialog",
+        "OpenChatChannelDialog",
+        "OptionsMenuDialog",
+        "OptionsPageActionBars",
+        "OptionsPageActionBarsShowHideSection",
+        "OptionsPageControls",
+        "OptionsPageHelp",
+        "OptionsPageSound",
+        "OutfitDialog",
+        "OutfitMemorialDialog",
+        "PlayerGuideWidget",
+        "PreferredList",
+        "PreferredMonsterSlot",
+        "PreyDialog",
+        "PreyPreyPage",
+        "QuestlogDialog",
+        "RecordKeyboardShortcutDialog",
+        "ReportViolationDialog",
+        "ReturnerRewardNotificationDialog",
+        "RewardWallDialog",
+        "SelectBossView",
+        "SelectObjectAmountDialog",
+        "ServerModalDialog",
+        "ShowImageDialog",
+        "ShowSpellBookDialog",
+        "SkillWheelDialog",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "SkillWheelPage",
+        "SkillWheelPresetManagmentDialog",
+        "SocialDialog",
+        "SoulSealsDialog",
+        "StashDialog",
+        "StatusBar",
+        "StoreDialog",
+        "StoreOfferPage",
+        "StorePurchaseConfirmationDialog",
+        "StorePurchaseSuccessDialog",
+        "SurveyInvitatioDialog",
+        "TaskRingPanel",
+        "TaskRingPanelSection",
+        "TaskboardDialog",
+        "TaskboardRewardShopDialogTab",
+        "TeamAssemblePage",
+        "TeamJoinPage",
+        "TibiaDialogFrameWithCaption",
+        "TibiaMessageDialog",
+        "TibiaSunkenPillLabel",
+        "TransferCreditsDialog",
+        "TutorialHintDialog",
+        "TwoFactorTextEnterDialog",
+        "VocationSelectionPopup",
+        "WaitDialog",
+        "WeaponProficiencyDialog",
+        "WeaponProficiencyPerkCard",
+        "WeaponProficiencyReshapeDialog",
+        "WeaponProficiencyShapeDialog",
+        "WeaponProficiencyShapeOptionsDialog",
+        "WeeklyTaskDialogTab",
+        "WeeklyTasksProgressPanel",
+        "WeeklyTasksResultsPanel",
+        "WeeklyTasksRewardsPanel",
+        "WhiteBlacklistDialog",
+        "WorldSelection",
+        "clientwindow",
+        "gamewindow",
+        "market",
+        "skillswidget"
+      ]
+    },
+    {
+      "name": "marginNarrow",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 256,
+      "referenced_by": [
+        "ActionBar",
+        "AnalyticsSelectorWidget",
+        "BlessingsDialog",
+        "BossOutfitSelection",
+        "BossSlotNotActive",
+        "BossSlotsDialog",
+        "BossTrackingWidget",
+        "BosstiaryDialog",
+        "BosstiaryUnlockProgress",
+        "BountyTaskPanel",
+        "ButtonBarPanel",
+        "CharacterInfoDialog",
+        "CharacterSelection",
+        "CharacterTradeAuctionEndDateTimePicker",
+        "CharacterTradeCharacterOverview",
+        "CharacterTradeDuePaymentDialog",
+        "CharacterTradeHighlightPicker",
+        "CharacterTradeNotifications",
+        "Chat",
+        "ComboPointsAndSereneState",
+        "CreateAccountDialog",
+        "CreatureTrackerWidget",
+        "CyclopediaMapDialog",
+        "DailyRewardPickItemsDialog",
+        "DamageInputWidget",
+        "DeliveryTask",
+        "DeliveryTaskPanel",
+        "DepotSearchWidget",
+        "EditVipDialog",
+        "EnergyBar",
+        "ExaltationForgeConversionPanel",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeTransferPage",
+        "FriendsAccountSearchPage",
+        "FriendsBadgesPage",
+        "FriendsFriendListPage",
+        "FriendsInvitesPage",
+        "HighscoreColumnContent",
+        "HighscorePage",
+        "HitpointsManaPanel",
+        "HorizontalActionBarContainer",
+        "HousesInfoDialog",
+        "HuntingSessionWidget",
+        "ImbuingDialog",
+        "ImpactView",
+        "ImpactWidget",
+        "InspectPlayerDialog",
+        "InspectPlayerLayout",
+        "ItemInfoDialog",
+        "KillTrackerWidget",
+        "LootAndWasteWidget",
+        "LootTrackingWidget",
+        "ManageLootContainerDialog",
+        "MarketCategorySelection",
+        "MarketCoinTransactionDetails",
+        "MarketOffersView",
+        "MessageHistoryWidget",
+        "MonsterBonusEffectsDialog",
+        "MonsterKillTask",
+        "MonsterKillTaskPanel",
+        "MonsterSelectionPanel",
+        "MonstersDialog",
+        "NpcTrade",
+        "OptionsPageHotkeys",
+        "OutfitDialog",
+        "OutfitPresetSelection",
+        "OutfitSelection",
+        "PartyHuntWidget",
+        "PassiveAbilityList",
+        "PlayerGuideWidget",
+        "PremiumPanel",
+        "PreyPreyPage",
+        "ProgressWidget",
+        "QuestlogDialog",
+        "RewardWallDialog",
+        "SelectBossView",
+        "ShowImageDialog",
+        "SinglePreyView",
+        "SkillWheelDialog",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "SkillWheelLargePerkInformation",
+        "SkillWheelPage",
+        "SkillWheelTileInformation",
+        "SkillWheelVesselInformation",
+        "SoulSealsDialog",
+        "SpellList",
+        "StatusBar",
+        "StatusBarHealthManaParallel",
+        "StatusBarHealthManaParallelSides",
+        "StatusBarLeft",
+        "StatusBarRight",
+        "StoreOfferDisplay",
+        "StoreOfferPage",
+        "StoreTransactionHistoryPage",
+        "TaskRingPanel",
+        "TaskRingPanelSection",
+        "TaskboardRewardShopDialogTab",
+        "TeamAssemblePage",
+        "TeamJoinPage",
+        "TibiaBalanceTextWithIcon",
+        "TibiaCalendarDay",
+        "TibiaComboBox",
+        "TibiaCurrencyView",
+        "TibiaCurrentBalanceView",
+        "TibiaDatePicker",
+        "TibiaFrame2PixelUpFilledWithCaption",
+        "TibiaGraph",
+        "TibiaPanel2PixelUpFilledWithCaption",
+        "TibiaStyle",
+        "TibiaTableView",
+        "TibiaTextArea",
+        "TibiaTextField",
+        "TibiaTimePicker",
+        "VerticalActionBarContainer",
+        "WeaponProficiencyDialog",
+        "battlelist",
+        "gamewindow",
+        "inventory",
+        "market",
+        "questtrackerwidget",
+        "spelllistwidget",
+        "vipwidget"
+      ]
+    },
+    {
+      "name": "marginWide",
+      "type": "int",
+      "readonly": true,
+      "value": "3 * marginRelated",
+      "line": 257,
+      "referenced_by": [
+        "MarketOffersView",
+        "PlayerGuideWidget",
+        "SkillWheelFragmentWorkshopPage",
+        "SkillWheelGemAtelierPage",
+        "StashDialog",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "margin1PixelFrameToContent",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 258,
+      "referenced_by": [
+        "TibiaFrame1PixelDown"
+      ]
+    },
+    {
+      "name": "paragraphIndentation",
+      "type": "int",
+      "readonly": true,
+      "value": "17",
+      "line": 259,
+      "referenced_by": [
+        "AssignObjectActionDialog",
+        "ExivaOptionsDialog",
+        "OptionsPageBattleSounds",
+        "OptionsPageControls",
+        "OptionsPageEffects",
+        "OptionsPageGraphics",
+        "OptionsPageHud",
+        "OptionsPageScreenshots",
+        "OptionsPageUISounds"
+      ]
+    },
+    {
+      "name": "noGuiHelphIndentation",
+      "type": "int",
+      "readonly": true,
+      "value": "17",
+      "line": 260,
+      "referenced_by": [
+        "OptionsPageEffects"
+      ]
+    },
+    {
+      "name": "alignGuiHelpWithAndWithoutFrame",
+      "type": "int",
+      "readonly": true,
+      "value": "marginRelated",
+      "line": 261,
+      "referenced_by": [
+        "OptionsPageBasic",
+        "OptionsPageControls"
+      ]
+    },
+    {
+      "name": "labelMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "marginRelated - 1",
+      "line": 262,
+      "referenced_by": [
+        "BosstiaryDialog",
+        "TibiaCheckBox",
+        "TibiaRadioButton"
+      ]
+    },
+    {
+      "name": "optionLineFrameHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "22",
+      "line": 264,
+      "referenced_by": [
+        "ManageLootContainerDialog",
+        "OutfitDialog",
+        "TibiaMenuOptionCheckBox",
+        "TibiaMenuSlider"
+      ]
+    },
+    {
+      "name": "sidebarWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "176",
+      "line": 268,
+      "referenced_by": [
+        "TibiaSidebarPanel",
+        "TibiaSidebarWidget",
+        "clientwindow",
+        "inventory",
+        "sidebar"
+      ]
+    },
+    {
+      "name": "sideBarPanelPaneBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 271,
+      "referenced_by": [
+        "TibiaSidebarPanel"
+      ]
+    },
+    {
+      "name": "sideBarPanelVerticalBorderDistance",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 272,
+      "referenced_by": []
+    },
+    {
+      "name": "sideBarPanelVerticalDistance",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 273,
+      "referenced_by": [
+        "TibiaSidebarPanel"
+      ]
+    },
+    {
+      "name": "sideBarPanelHorizontalBorderDistance",
+      "type": "int",
+      "readonly": true,
+      "value": "6",
+      "line": 274,
+      "referenced_by": [
+        "TibiaSidebarPanel"
+      ]
+    },
+    {
+      "name": "sideBarPanelRightSideWith",
+      "type": "int",
+      "readonly": true,
+      "value": "42",
+      "line": 275,
+      "referenced_by": [
+        "ButtonBarPanel",
+        "CombatControls",
+        "EnergyBar",
+        "inventory"
+      ]
+    },
+    {
+      "name": "widgetHeaderLineHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "15",
+      "line": 278,
+      "referenced_by": [
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "widgetBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 279,
+      "referenced_by": [
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "widgetMinimizedHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "widgetHeaderLineHeight + widgetBorderWidth",
+      "line": 280,
+      "referenced_by": [
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "defaultInitialContentHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "57 - widgetMinimizedHeight",
+      "line": 281,
+      "referenced_by": [
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "widgetWithScrollBarMinContentHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "scrollBarMinHeight",
+      "line": 282,
+      "referenced_by": [
+        "DepotSearchWidget",
+        "HuntingSessionWidget",
+        "LootAndWasteWidget",
+        "MarketCategorySelection",
+        "NpcTrade",
+        "PartyHuntWidget",
+        "battlelist",
+        "questtrackerwidget",
+        "spelllistwidget"
+      ]
+    },
+    {
+      "name": "widgetControllButtonSize",
+      "type": "int",
+      "readonly": true,
+      "value": "12",
+      "line": 283,
+      "referenced_by": [
+        "CreatureTrackerWidget",
+        "battlelist",
+        "container",
+        "questtrackerwidget",
+        "skillswidget"
+      ]
+    },
+    {
+      "name": "mapWindowMargins",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 288,
+      "referenced_by": [
+        "MapWindowPane",
+        "clientwindow"
+      ]
+    },
+    {
+      "name": "mapWindowHeightInFields",
+      "type": "int",
+      "readonly": true,
+      "value": "11",
+      "line": 290,
+      "referenced_by": [
+        "CreatureHUD",
+        "MapWindowPane",
+        "SpeechBubbleTemplate"
+      ]
+    },
+    {
+      "name": "mapWindowWidthInFields",
+      "type": "int",
+      "readonly": true,
+      "value": "15",
+      "line": 291,
+      "referenced_by": [
+        "CreatureHUD",
+        "MapWindowPane"
+      ]
+    },
+    {
+      "name": "mapWindowPixelPerField",
+      "type": "int",
+      "readonly": true,
+      "value": "32",
+      "line": 292,
+      "referenced_by": [
+        "ActionBarButton",
+        "CharacterInfoDialog",
+        "CharacterTradeCharacterOverview",
+        "CreatureHUD",
+        "EditTextDialog",
+        "ExaltationForgeConversionPanel",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeTransferPage",
+        "ImbuingDialog",
+        "LootTrackingWidget",
+        "MonstersDialog",
+        "ScalableObjectDisplay",
+        "ShowSpellBookDialog",
+        "SkillWheelGemAtelierPage",
+        "SoulSealsDialog",
+        "SpeechBubbleTemplate",
+        "TaskboardShopOffer",
+        "WeaponProficiencyDialog",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "mapWindowUnscaledHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "mapWindowHeightInFields * mapWindowPixelPerField",
+      "line": 293,
+      "referenced_by": [
+        "CreatureHUD",
+        "MapWindowPane",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "mapWindowUnscaledWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "mapWindowWidthInFields * mapWindowPixelPerField",
+      "line": 294,
+      "referenced_by": [
+        "HitpointsManaArcHud",
+        "MapWindowPane"
+      ]
+    },
+    {
+      "name": "mapWindowMinHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "Math.ceil(mapWindowUnscaledHeight / 2)",
+      "line": 295,
+      "referenced_by": []
+    },
+    {
+      "name": "mapWindowMinWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "Math.ceil(mapWindowUnscaledWidth / 2)",
+      "line": 296,
+      "referenced_by": [
+        "clientwindow"
+      ]
+    },
+    {
+      "name": "chatInputMaxLength",
+      "type": "int",
+      "readonly": true,
+      "value": "maxTextFieldDefaultLength",
+      "line": 301,
+      "referenced_by": [
+        "AssignSpellActionDialog",
+        "AssignTextActionDialog",
+        "ChatInput",
+        "TutorialAnimationLoot"
+      ]
+    },
+    {
+      "name": "consoletextFrameBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 302,
+      "referenced_by": [
+        "Chat",
+        "NpcDialog"
+      ]
+    },
+    {
+      "name": "chatBackgroundToFrameMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 303,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "chatGuiMargins",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 304,
+      "referenced_by": [
+        "Chat",
+        "ChatInput",
+        "TutorialAnimationLoot"
+      ]
+    },
+    {
+      "name": "chatTextToFrameMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 305,
+      "referenced_by": [
+        "Chat",
+        "NpcDialog"
+      ]
+    },
+    {
+      "name": "tabBarHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "16",
+      "line": 306,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "tabOverlapFakeHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 307,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "chatTabWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "96",
+      "line": 308,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "tabTextSideMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "5",
+      "line": 309,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "tabTextTopMarin",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 310,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "tabCaptionOutlineColor",
+      "type": "color",
+      "readonly": true,
+      "value": "defaultOutlineColor",
+      "line": 311,
+      "referenced_by": [
+        "TibiaTabCaption"
+      ]
+    },
+    {
+      "name": "tabCaptionFlashTimeMs",
+      "type": "int",
+      "readonly": true,
+      "value": "1000",
+      "line": 312,
+      "referenced_by": []
+    },
+    {
+      "name": "chatInputSpecialChannelColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"SpecialChannelChatInput\"]",
+      "line": 313,
+      "referenced_by": [
+        "ChatInput"
+      ]
+    },
+    {
+      "name": "chatMinimumHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "90",
+      "line": 314,
+      "referenced_by": [
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "numberOfMinimapMarkers",
+      "type": "int",
+      "readonly": true,
+      "value": "20",
+      "line": 319,
+      "referenced_by": [
+        "CyclopediaMapDialog",
+        "EditMinimapMarkerDialog"
+      ]
+    },
+    {
+      "name": "numberOfMinimapMarkersPerSelectRow",
+      "type": "int",
+      "readonly": true,
+      "value": "10",
+      "line": 320,
+      "referenced_by": [
+        "EditMinimapMarkerDialog"
+      ]
+    },
+    {
+      "name": "minimapViewportHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "111",
+      "line": 321,
+      "referenced_by": [
+        "MinimapPanel"
+      ]
+    },
+    {
+      "name": "minimapViewportWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "108",
+      "line": 322,
+      "referenced_by": [
+        "ButtonBarPanel",
+        "MinimapPanel",
+        "StoreButton",
+        "inventory"
+      ]
+    },
+    {
+      "name": "marginCooldownBar",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 327,
+      "referenced_by": [
+        "CooldownBar",
+        "HighscorePage",
+        "gamewindow"
+      ]
+    },
+    {
+      "name": "opacityOfCooldownBarIconOverlay",
+      "type": "real",
+      "readonly": true,
+      "value": "0.7",
+      "line": 328,
+      "referenced_by": [
+        "CooldownBar",
+        "StoreOfferDisplay"
+      ]
+    },
+    {
+      "name": "cooldownBarHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "24",
+      "line": 329,
+      "referenced_by": [
+        "CooldownBar"
+      ]
+    },
+    {
+      "name": "numberOfEightBitHSVColors",
+      "type": "int",
+      "readonly": true,
+      "value": "133",
+      "line": 334,
+      "referenced_by": []
+    },
+    {
+      "name": "colorSelectionGridNumberOfColorsPerRow",
+      "type": "int",
+      "readonly": true,
+      "value": "19",
+      "line": 335,
+      "referenced_by": [
+        "TibiaColorSelectionGrid"
+      ]
+    },
+    {
+      "name": "outfitMountScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 336,
+      "referenced_by": []
+    },
+    {
+      "name": "vipListBottomMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "5",
+      "line": 340,
+      "referenced_by": [
+        "vipwidget"
+      ]
+    },
+    {
+      "name": "numberOfVipIcons",
+      "type": "int",
+      "readonly": true,
+      "value": "11",
+      "line": 345,
+      "referenced_by": [
+        "EditVipDialog"
+      ]
+    },
+    {
+      "name": "maxDescriptionLength",
+      "type": "int",
+      "readonly": true,
+      "value": "128",
+      "line": 346,
+      "referenced_by": [
+        "EditVipDialog"
+      ]
+    },
+    {
+      "name": "skullBarSpacing",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 351,
+      "referenced_by": [
+        "unjustifiedpointswidget"
+      ]
+    },
+    {
+      "name": "newsCategoriesViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "144",
+      "line": 356,
+      "referenced_by": []
+    },
+    {
+      "name": "newsCategoryEntryHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "36",
+      "line": 357,
+      "referenced_by": []
+    },
+    {
+      "name": "newsTooltipWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "tooltipRestrictedWidth",
+      "line": 358,
+      "referenced_by": []
+    },
+    {
+      "name": "newsMainContentViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "425",
+      "line": 359,
+      "referenced_by": []
+    },
+    {
+      "name": "newsContentWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "667",
+      "line": 360,
+      "referenced_by": [
+        "NewsDialog"
+      ]
+    },
+    {
+      "name": "storeTooltipWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "tooltipRestrictedWidth",
+      "line": 364,
+      "referenced_by": [
+        "StoreOfferDisplay",
+        "StoreOfferPage",
+        "StorePurchaseConfirmationDialog"
+      ]
+    },
+    {
+      "name": "storeColorNew",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"StoreColorNew\"]",
+      "line": 365,
+      "referenced_by": [
+        "StoreHighlightState"
+      ]
+    },
+    {
+      "name": "storeColorSale",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"StoreColorSale\"]",
+      "line": 366,
+      "referenced_by": [
+        "StoreHighlightState",
+        "StorePurchaseConfirmationDialog"
+      ]
+    },
+    {
+      "name": "storeColorTimed",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"StoreColorTimed\"]",
+      "line": 367,
+      "referenced_by": [
+        "StoreHighlightState"
+      ]
+    },
+    {
+      "name": "storeColorGiftRefund",
+      "type": "color",
+      "readonly": true,
+      "value": "storeColorTimed",
+      "line": 368,
+      "referenced_by": [
+        "StoreTransactionHistoryPage"
+      ]
+    },
+    {
+      "name": "storeColorNegativeBalance",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"StoreColorNegativeBalance\"]",
+      "line": 369,
+      "referenced_by": [
+        "StoreTransactionHistoryPage"
+      ]
+    },
+    {
+      "name": "storeColorPositiveBalance",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"StoreColorPositiveBalance\"]",
+      "line": 370,
+      "referenced_by": [
+        "StoreTransactionHistoryPage"
+      ]
+    },
+    {
+      "name": "storeCategoriesViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "185",
+      "line": 371,
+      "referenced_by": []
+    },
+    {
+      "name": "storeCategoryEntryHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "36",
+      "line": 372,
+      "referenced_by": []
+    },
+    {
+      "name": "storeProductViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "120",
+      "line": 373,
+      "referenced_by": []
+    },
+    {
+      "name": "storeProductViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "134",
+      "line": 374,
+      "referenced_by": []
+    },
+    {
+      "name": "storeMainContentViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "339",
+      "line": 375,
+      "referenced_by": []
+    },
+    {
+      "name": "storePurchaseSuccessButtonSize",
+      "type": "int",
+      "readonly": true,
+      "value": "108",
+      "line": 379,
+      "referenced_by": [
+        "StorePurchaseSuccessDialog"
+      ]
+    },
+    {
+      "name": "dragonHeaderMarginToDialog",
+      "type": "int",
+      "readonly": true,
+      "value": "-2",
+      "line": 380,
+      "referenced_by": [
+        "DialogHeaderDragon"
+      ]
+    },
+    {
+      "name": "lenshelpBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#80000000\"",
+      "line": 384,
+      "referenced_by": [
+        "TibiaRadiusedSemiTranspartentRectangle"
+      ]
+    },
+    {
+      "name": "lenshelpBorderColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"grey\"",
+      "line": 385,
+      "referenced_by": [
+        "TibiaRadiusedSemiTranspartentRectangle"
+      ]
+    },
+    {
+      "name": "lenshelpBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 386,
+      "referenced_by": [
+        "TibiaRadiusedSemiTranspartentRectangle"
+      ]
+    },
+    {
+      "name": "lenshelpCornerRadius",
+      "type": "int",
+      "readonly": true,
+      "value": "marginRelated",
+      "line": 387,
+      "referenced_by": [
+        "TibiaRadiusedSemiTranspartentRectangle"
+      ]
+    },
+    {
+      "name": "lenshelpContentMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "lenshelpCornerRadius + lenshelpBorderWidth",
+      "line": 388,
+      "referenced_by": [
+        "LenshelpTemplate",
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "lenshelpCaptionOutlineColor",
+      "type": "color",
+      "readonly": true,
+      "value": "defaultOutlineColor",
+      "line": 389,
+      "referenced_by": [
+        "LenshelpTemplate",
+        "TutorialMouseCursor",
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#AA00A000\"",
+      "line": 393,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialMarkerColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#FF00FF00\"",
+      "line": 394,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialMarkerBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 395,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialMarkerCornerRadius",
+      "type": "int",
+      "readonly": true,
+      "value": "marginRelated",
+      "line": 396,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialMarkerBorderMargins",
+      "type": "int",
+      "readonly": true,
+      "value": "10",
+      "line": 397,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialTextHintStandardOffset",
+      "type": "int",
+      "readonly": true,
+      "value": "15",
+      "line": 398,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "tutorialTextHintWithMarkerVisibleOffset",
+      "type": "int",
+      "readonly": true,
+      "value": "25",
+      "line": 399,
+      "referenced_by": [
+        "TutorialOverlayTemplate"
+      ]
+    },
+    {
+      "name": "noTutorialMarker",
+      "type": "int",
+      "readonly": true,
+      "value": "0",
+      "line": 400,
+      "referenced_by": [
+        "NpcTrade",
+        "container"
+      ]
+    },
+    {
+      "name": "captionFlagTopMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "10",
+      "line": 401,
+      "referenced_by": [
+        "TutorialHintDialog",
+        "VocationSelectionPopup"
+      ]
+    },
+    {
+      "name": "startplayingDecorationMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "6",
+      "line": 402,
+      "referenced_by": [
+        "TutorialHintDialog",
+        "VocationSelectionPopup"
+      ]
+    },
+    {
+      "name": "startplayingDecorationBottomMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "7",
+      "line": 403,
+      "referenced_by": [
+        "VocationSelectionPopup"
+      ]
+    },
+    {
+      "name": "guiHelpDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "0",
+      "line": 407,
+      "referenced_by": [
+        "TibiaGuiHelp"
+      ]
+    },
+    {
+      "name": "guiHelpTooltipWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "tooltipRestrictedWidth",
+      "line": 408,
+      "referenced_by": [
+        "ImbuementInfoLayout",
+        "SkillWheelDialog",
+        "SkillWheelPage",
+        "SkillWheelTileInformation",
+        "TibiaGuiHelp",
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "tooltipDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "500",
+      "line": 409,
+      "referenced_by": [
+        "battlelist"
+      ]
+    },
+    {
+      "name": "preyGridSelectionWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "204",
+      "line": 413,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyMonsterViewSize",
+      "type": "int",
+      "readonly": true,
+      "value": "134",
+      "line": 414,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyBonusViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "66",
+      "line": 415,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyMonsterImageSize",
+      "type": "int",
+      "readonly": true,
+      "value": "128",
+      "line": 416,
+      "referenced_by": [
+        "MonstersDialog",
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyMonsterScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 417,
+      "referenced_by": [
+        "MonstersDialog",
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preySelectionImageSize",
+      "type": "int",
+      "readonly": true,
+      "value": "64",
+      "line": 418,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preySelectionScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "1",
+      "line": 419,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyMiniProgressbarWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "65",
+      "line": 420,
+      "referenced_by": []
+    },
+    {
+      "name": "preyShortCurrencyWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "26",
+      "line": 421,
+      "referenced_by": [
+        "SinglePreyView"
+      ]
+    },
+    {
+      "name": "preyProgressBarColor",
+      "type": "color",
+      "readonly": true,
+      "value": "orange2",
+      "line": 424,
+      "referenced_by": [
+        "KillTrackerWidget"
+      ]
+    },
+    {
+      "name": "preyHuntingTaskFinishedProgressBarColor",
+      "type": "color",
+      "readonly": true,
+      "value": "green1",
+      "line": 425,
+      "referenced_by": [
+        "KillTrackerWidget"
+      ]
+    },
+    {
+      "name": "preyHuntingTaskExpiredProgressBarColor",
+      "type": "color",
+      "readonly": true,
+      "value": "red2",
+      "line": 426,
+      "referenced_by": [
+        "KillTrackerWidget"
+      ]
+    },
+    {
+      "name": "imbuingImbuedItemScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 430,
+      "referenced_by": [
+        "ImbuingDialog"
+      ]
+    },
+    {
+      "name": "imbuingAstralSourcesScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 431,
+      "referenced_by": [
+        "ImbuingDialog"
+      ]
+    },
+    {
+      "name": "exaltationForgeItemScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 435,
+      "referenced_by": [
+        "ExaltationForgeConversionPanel",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeTransferPage",
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "exaltedDustId",
+      "type": "int",
+      "readonly": true,
+      "value": "37160",
+      "line": 436,
+      "referenced_by": [
+        "ExaltationForgeConversionPage",
+        "ExaltationForgeFusionPage",
+        "ExaltationForgeTransferPage",
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "exaltedslivertId",
+      "type": "int",
+      "readonly": true,
+      "value": "37109",
+      "line": 437,
+      "referenced_by": [
+        "ExaltationForgeConversionPage"
+      ]
+    },
+    {
+      "name": "exaltedCoreId",
+      "type": "int",
+      "readonly": true,
+      "value": "37110",
+      "line": 438,
+      "referenced_by": [
+        "ExaltationForgeConversionPage",
+        "ExaltationForgeTransferPage",
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "goldCoinId",
+      "type": "int",
+      "readonly": true,
+      "value": "3031",
+      "line": 439,
+      "referenced_by": [
+        "ExaltationResultDialog"
+      ]
+    },
+    {
+      "name": "progressBarLargeHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "20",
+      "line": 443,
+      "referenced_by": [
+        "CharacterInfoDialog",
+        "CreatureUnlockProgress",
+        "CyclopediaMapDialog",
+        "ImbuingDialog",
+        "MonstersDialog",
+        "RewardWallDialog",
+        "SinglePreyView",
+        "TibiaProgressBarSegmented",
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "progressBarSmallHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "14",
+      "line": 444,
+      "referenced_by": [
+        "BosstiaryUnlockProgress",
+        "CreatureTrackerWidget",
+        "SinglePreyView",
+        "StatusBarHealthMana",
+        "StatusBarHealthManaParallel",
+        "StatusBarHealthManaParallelSides",
+        "StatusBarHealthManaSides",
+        "TibiaProgressBarOrangeToGreen",
+        "WeaponProficiencyDialog"
+      ]
+    },
+    {
+      "name": "progressBarSlimHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "5",
+      "line": 445,
+      "referenced_by": [
+        "BattleListEntry",
+        "KillTrackerWidget",
+        "ProgressWidget",
+        "SkillWidgetEntry",
+        "StatusBarSkill",
+        "StatusBarSkillLeft",
+        "StatusBarSkillRight",
+        "TutorialAnimationCombat"
+      ]
+    },
+    {
+      "name": "inspectObjectScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 449,
+      "referenced_by": [
+        "InspectObjectDialog",
+        "InspectPlayerDialog"
+      ]
+    },
+    {
+      "name": "inspectObjectSpriteViewSize",
+      "type": "int",
+      "readonly": true,
+      "value": "mapWindowPixelPerField * 2",
+      "line": 450,
+      "referenced_by": [
+        "InspectPlayerDialog"
+      ]
+    },
+    {
+      "name": "inspectObjectSpriteOuterSize",
+      "type": "int",
+      "readonly": true,
+      "value": "inspectObjectSpriteViewSize + 2",
+      "line": 451,
+      "referenced_by": [
+        "InspectObjectDialog",
+        "InspectPlayerDialog",
+        "InspectPlayerLayout"
+      ]
+    },
+    {
+      "name": "marketCategoryViewWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "160",
+      "line": 455,
+      "referenced_by": [
+        "MarketCategorySelection"
+      ]
+    },
+    {
+      "name": "marketCategoryViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "137",
+      "line": 456,
+      "referenced_by": [
+        "MarketCategorySelection",
+        "market"
+      ]
+    },
+    {
+      "name": "marketAmountSliderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "150",
+      "line": 457,
+      "referenced_by": [
+        "MarketOffersView"
+      ]
+    },
+    {
+      "name": "market5DigitsNumberSpace",
+      "type": "int",
+      "readonly": true,
+      "value": "45",
+      "line": 458,
+      "referenced_by": [
+        "MarketOffersView"
+      ]
+    },
+    {
+      "name": "market7DigitsNumberSpace",
+      "type": "int",
+      "readonly": true,
+      "value": "72",
+      "line": 459,
+      "referenced_by": [
+        "MarketOffersView"
+      ]
+    },
+    {
+      "name": "marketColumnWidthAmountText",
+      "type": "int",
+      "readonly": true,
+      "value": "60",
+      "line": 460,
+      "referenced_by": [
+        "MarketHistoryView",
+        "MarketOwnOffers"
+      ]
+    },
+    {
+      "name": "marketColumnWidthPriceText",
+      "type": "int",
+      "readonly": true,
+      "value": "85",
+      "line": 461,
+      "referenced_by": [
+        "MarketHistoryView",
+        "MarketOwnOffers"
+      ]
+    },
+    {
+      "name": "marketColumnWidthEndsAtTime",
+      "type": "int",
+      "readonly": true,
+      "value": "150",
+      "line": 462,
+      "referenced_by": []
+    },
+    {
+      "name": "marketColumnWidthStatus",
+      "type": "int",
+      "readonly": true,
+      "value": "70",
+      "line": 463,
+      "referenced_by": [
+        "MarketHistoryView",
+        "MarketOwnOffers"
+      ]
+    },
+    {
+      "name": "actionBarSlotSize",
+      "type": "int",
+      "readonly": true,
+      "value": "34",
+      "line": 467,
+      "referenced_by": [
+        "ActionBar",
+        "ActionBarButton",
+        "ActionBarMultiActionExpandable"
+      ]
+    },
+    {
+      "name": "actionBarSlotMargin",
+      "type": "int",
+      "readonly": true,
+      "value": "marginNarrow",
+      "line": 468,
+      "referenced_by": [
+        "ActionBar"
+      ]
+    },
+    {
+      "name": "actionBarLockButtonWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "12",
+      "line": 469,
+      "referenced_by": [
+        "HorizontalActionBarContainer"
+      ]
+    },
+    {
+      "name": "actionBarLockButtonHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "16",
+      "line": 470,
+      "referenced_by": [
+        "VerticalActionBarContainer"
+      ]
+    },
+    {
+      "name": "actionBarTooltipMaxWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "tooltipRestrictedWidth",
+      "line": 471,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "actionBarAssignObjectScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 472,
+      "referenced_by": [
+        "AssignObjectActionDialog"
+      ]
+    },
+    {
+      "name": "actionBarReapeatDealy",
+      "type": "int",
+      "readonly": true,
+      "value": "500",
+      "line": 473,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "actionBarReapeatTextDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "2500",
+      "line": 474,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "actionBarPressedTriggerDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "500",
+      "line": 475,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "actionBarServerEquipDelay",
+      "type": "int",
+      "readonly": true,
+      "value": "500",
+      "line": 476,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "spellListIconSize",
+      "type": "int",
+      "readonly": true,
+      "value": "32",
+      "line": 480,
+      "referenced_by": [
+        "AssignSpellActionDialog",
+        "PlayerGuideWidget",
+        "SpellList"
+      ]
+    },
+    {
+      "name": "passiveAbilityListIconSize",
+      "type": "int",
+      "readonly": true,
+      "value": "32",
+      "line": 484,
+      "referenced_by": [
+        "AssignPassiveAbilityActionDialog",
+        "PassiveAbilityList"
+      ]
+    },
+    {
+      "name": "battleListMonsterSize",
+      "type": "int",
+      "readonly": true,
+      "value": "18",
+      "line": 488,
+      "referenced_by": [
+        "BattleListEntry",
+        "KillTrackerWidget",
+        "LootTrackingWidget"
+      ]
+    },
+    {
+      "name": "dragThreshold",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 492,
+      "referenced_by": [
+        "ActionBarButton",
+        "ContainerSlot",
+        "DeliveryTask",
+        "MapWindowPane",
+        "PassiveAbilityList",
+        "SpellList",
+        "TibiaMapLayersSlider"
+      ]
+    },
+    {
+      "name": "dragStickTreshold",
+      "type": "int",
+      "readonly": true,
+      "value": "25",
+      "line": 493,
+      "referenced_by": [
+        "Chat",
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "dragKeyChatChannelTab",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-chatchanneltab\"",
+      "line": 494,
+      "referenced_by": [
+        "Chat"
+      ]
+    },
+    {
+      "name": "dragKeyMoveTibiaObject",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-move-tibia-object\"",
+      "line": 495,
+      "referenced_by": [
+        "ActionBarButton",
+        "TibiaObjectDropArea"
+      ]
+    },
+    {
+      "name": "dragKeySidebarPanel",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-sidebarpanel\"",
+      "line": 496,
+      "referenced_by": [
+        "TibiaSidebarPanel"
+      ]
+    },
+    {
+      "name": "dragKeyWidgetInternal",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-sidebarwidget-%1\"",
+      "line": 497,
+      "referenced_by": [
+        "TibiaSidebarWidget"
+      ]
+    },
+    {
+      "name": "dragKeyWidgetSidebar",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-widget-to-sidebar\"",
+      "line": 498,
+      "referenced_by": [
+        "TibiaSidebarWidget",
+        "sidebar"
+      ]
+    },
+    {
+      "name": "dragKeyActionButton",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-action-button\"",
+      "line": 499,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "dragKeySpell",
+      "type": "string",
+      "readonly": true,
+      "value": "\"application/x-spell\"",
+      "line": 500,
+      "referenced_by": [
+        "ActionBarButton",
+        "SpellList"
+      ]
+    },
+    {
+      "name": "dragSourceActionButton",
+      "type": "string",
+      "readonly": true,
+      "value": "\"actionButton\"",
+      "line": 501,
+      "referenced_by": [
+        "ActionBarButton"
+      ]
+    },
+    {
+      "name": "dragSourceSpellIcon",
+      "type": "string",
+      "readonly": true,
+      "value": "\"spellIcon\"",
+      "line": 502,
+      "referenced_by": [
+        "ActionBarButton",
+        "SpellList"
+      ]
+    },
+    {
+      "name": "disabledOverlayOpacity",
+      "type": "real",
+      "readonly": true,
+      "value": "0.6",
+      "line": 506,
+      "referenced_by": []
+    },
+    {
+      "name": "rewardWallItemSize",
+      "type": "int",
+      "readonly": true,
+      "value": "66",
+      "line": 510,
+      "referenced_by": [
+        "RewardWallDialog"
+      ]
+    },
+    {
+      "name": "pickItemWeightWith",
+      "type": "int",
+      "readonly": true,
+      "value": "60",
+      "line": 511,
+      "referenced_by": [
+        "DailyRewardPickItemsDialog"
+      ]
+    },
+    {
+      "name": "slotBackground",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#404040\"",
+      "line": 515,
+      "referenced_by": [
+        "MonsterBonusEffectsDialog"
+      ]
+    },
+    {
+      "name": "sensitivityWeak",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#18ce18\"",
+      "line": 516,
+      "referenced_by": [
+        "MonstersDialog"
+      ]
+    },
+    {
+      "name": "sensitivityNeutral",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#ffffff\"",
+      "line": 517,
+      "referenced_by": [
+        "MonstersDialog"
+      ]
+    },
+    {
+      "name": "sensitivityResist",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#e4c00a\"",
+      "line": 518,
+      "referenced_by": [
+        "MonstersDialog"
+      ]
+    },
+    {
+      "name": "sensitivityImmune",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#ae0f0f\"",
+      "line": 519,
+      "referenced_by": [
+        "MonstersDialog"
+      ]
+    },
+    {
+      "name": "cyclopediaObjectCategoryViewHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "60",
+      "line": 520,
+      "referenced_by": [
+        "DepotSearchWidget",
+        "ItemInfoDialog"
+      ]
+    },
+    {
+      "name": "sidebarButtonHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "56",
+      "line": 524,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "sidebarButtonWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "7",
+      "line": 525,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "statusBarBackgroundBorderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 526,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "healthManaBarLargeHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "27",
+      "line": 527,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarHealthMana",
+        "StatusBarHealthManaSides",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "healthManaBarSmallHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "progressBarSmallHeight",
+      "line": 528,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarHealthMana",
+        "StatusBarHealthManaSides",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "states10Width",
+      "type": "int",
+      "readonly": true,
+      "value": "103",
+      "line": 529,
+      "referenced_by": [
+        "StatusBarHealthMana",
+        "StatusBarHealthManaSides",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "states5Width",
+      "type": "int",
+      "readonly": true,
+      "value": "53",
+      "line": 530,
+      "referenced_by": [
+        "StatusBarHealthMana",
+        "StatusBarHealthManaSides"
+      ]
+    },
+    {
+      "name": "smallString",
+      "type": "string",
+      "readonly": true,
+      "value": "\"small\"",
+      "line": 531,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarHealthMana",
+        "StatusBarHealthManaParallel",
+        "StatusBarHealthManaParallelSides",
+        "StatusBarHealthManaSides",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "largeString",
+      "type": "string",
+      "readonly": true,
+      "value": "\"large\"",
+      "line": 532,
+      "referenced_by": [
+        "StatusBar",
+        "StatusBarHealthMana",
+        "StatusBarHealthManaSides",
+        "StatusBarLeft",
+        "StatusBarRight"
+      ]
+    },
+    {
+      "name": "graphGridColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#000000\"",
+      "line": 553,
+      "referenced_by": [
+        "TibiaGraph"
+      ]
+    },
+    {
+      "name": "graphLineColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#CE1F16\"",
+      "line": 554,
+      "referenced_by": [
+        "TibiaGraph"
+      ]
+    },
+    {
+      "name": "graphGridLineWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "1",
+      "line": 555,
+      "referenced_by": [
+        "TibiaGraph"
+      ]
+    },
+    {
+      "name": "graphLineWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 556,
+      "referenced_by": [
+        "TibiaGraph"
+      ]
+    },
+    {
+      "name": "calendarDayCaptionHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "14",
+      "line": 579,
+      "referenced_by": [
+        "TibiaCalendarDayCaption"
+      ]
+    },
+    {
+      "name": "calendarEventEntryHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "calendarDayCaptionHeight",
+      "line": 580,
+      "referenced_by": [
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "calendarDayCaptionBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewHeaderBackgroundColor",
+      "line": 581,
+      "referenced_by": [
+        "TibiaCalendarDayCaption"
+      ]
+    },
+    {
+      "name": "calenderCurrentDayBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewSelectionColor",
+      "line": 582,
+      "referenced_by": [
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "calenderVisibleMonthBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewItemBackgroundColor",
+      "line": 583,
+      "referenced_by": [
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "calenderOtherMonthBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewAlternateBackgroundColor",
+      "line": 584,
+      "referenced_by": [
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "calenderSelectedDayBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewSelectionColor",
+      "line": 585,
+      "referenced_by": [
+        "TibiaCalendarDay"
+      ]
+    },
+    {
+      "name": "calenderNavigationBarBackgroundColor",
+      "type": "color",
+      "readonly": true,
+      "value": "tableViewItemBackgroundColor",
+      "line": 586,
+      "referenced_by": [
+        "TibiaCalendarDatePicker"
+      ]
+    },
+    {
+      "name": "calenderDisabledTextColor",
+      "type": "color",
+      "readonly": true,
+      "value": "textColors[\"Disabled\"]",
+      "line": 587,
+      "referenced_by": []
+    },
+    {
+      "name": "dialogTabBarHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "36",
+      "line": 591,
+      "referenced_by": [
+        "TibiaDialogTabBar"
+      ]
+    },
+    {
+      "name": "dialogTabBarDefaultWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "150",
+      "line": 592,
+      "referenced_by": [
+        "TibiaDialogTabBar"
+      ]
+    },
+    {
+      "name": "dialogTabBarWiderWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "200",
+      "line": 593,
+      "referenced_by": [
+        "CyclopediaDialog"
+      ]
+    },
+    {
+      "name": "dialogTabBarHugeWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "250",
+      "line": 594,
+      "referenced_by": [
+        "TaskboardDialog"
+      ]
+    },
+    {
+      "name": "propertyInformationKeyWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "100",
+      "line": 598,
+      "referenced_by": [
+        "HousesInfoDialog"
+      ]
+    },
+    {
+      "name": "houseBidWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "100",
+      "line": 599,
+      "referenced_by": [
+        "HousesInfoDialog"
+      ]
+    },
+    {
+      "name": "houseMaxBid",
+      "type": "var",
+      "readonly": true,
+      "value": "Number(10000000000)",
+      "line": 600,
+      "referenced_by": [
+        "HousesInfoDialog"
+      ]
+    },
+    {
+      "name": "teamFinderNumberInputWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "50",
+      "line": 604,
+      "referenced_by": [
+        "TeamAssemblePage",
+        "TeamJoinPage"
+      ]
+    },
+    {
+      "name": "teamFinderCheckBoxWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "75",
+      "line": 605,
+      "referenced_by": [
+        "TeamAssemblePage",
+        "TeamJoinPage"
+      ]
+    },
+    {
+      "name": "fiendishMonsterGlow",
+      "type": "QtObject",
+      "readonly": true,
+      "value": "QtObject {",
+      "line": 612,
+      "referenced_by": [
+        "BattleListEntry",
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "color",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#EE8413\"",
+      "line": 613,
+      "referenced_by": []
+    },
+    {
+      "name": "radius",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 614,
+      "referenced_by": []
+    },
+    {
+      "name": "samples",
+      "type": "int",
+      "readonly": true,
+      "value": "7",
+      "line": 615,
+      "referenced_by": []
+    },
+    {
+      "name": "spread",
+      "type": "real",
+      "readonly": true,
+      "value": "0.4",
+      "line": 616,
+      "referenced_by": []
+    },
+    {
+      "name": "leaderMonsterGlow",
+      "type": "QtObject",
+      "readonly": true,
+      "value": "QtObject {",
+      "line": 619,
+      "referenced_by": [
+        "BattleListEntry",
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "color",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#FF2020\"",
+      "line": 620,
+      "referenced_by": []
+    },
+    {
+      "name": "radius",
+      "type": "int",
+      "readonly": true,
+      "value": "4",
+      "line": 621,
+      "referenced_by": []
+    },
+    {
+      "name": "samples",
+      "type": "int",
+      "readonly": true,
+      "value": "9",
+      "line": 622,
+      "referenced_by": []
+    },
+    {
+      "name": "spread",
+      "type": "real",
+      "readonly": true,
+      "value": "0.5",
+      "line": 623,
+      "referenced_by": []
+    },
+    {
+      "name": "leaderMinionMonsterGlow",
+      "type": "QtObject",
+      "readonly": true,
+      "value": "QtObject {",
+      "line": 626,
+      "referenced_by": [
+        "BattleListEntry",
+        "CreatureHUD"
+      ]
+    },
+    {
+      "name": "color",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#C850C0\"",
+      "line": 627,
+      "referenced_by": []
+    },
+    {
+      "name": "radius",
+      "type": "int",
+      "readonly": true,
+      "value": "3",
+      "line": 628,
+      "referenced_by": []
+    },
+    {
+      "name": "samples",
+      "type": "int",
+      "readonly": true,
+      "value": "7",
+      "line": 629,
+      "referenced_by": []
+    },
+    {
+      "name": "spread",
+      "type": "real",
+      "readonly": true,
+      "value": "0.4",
+      "line": 630,
+      "referenced_by": []
+    },
+    {
+      "name": "skillWheelTopLeftBaseColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#3146b21c\"",
+      "line": 635,
+      "referenced_by": [
+        "SkillWheel",
+        "SkillWheelCorner"
+      ]
+    },
+    {
+      "name": "skillWheelTopLeftFillColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#6b94c412\"",
+      "line": 636,
+      "referenced_by": [
+        "SkillWheel",
+        "SkillWheelCorner"
+      ]
+    },
+    {
+      "name": "skillWheelTopRightBaseColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#31ae1434\"",
+      "line": 637,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelTopRightFillColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#6bef1a38\"",
+      "line": 638,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelBottomLeftBaseColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#31198d40\"",
+      "line": 639,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelBottomLeftFillColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#6b18cd8f\"",
+      "line": 640,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelBottomRightBaseColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#31841d9e\"",
+      "line": 641,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelBottomRightFillColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#6be618da\"",
+      "line": 642,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "skillWheelHoverColor",
+      "type": "color",
+      "readonly": true,
+      "value": "\"#67808080\"",
+      "line": 643,
+      "referenced_by": [
+        "SkillWheel",
+        "SkillWheelCorner"
+      ]
+    },
+    {
+      "name": "skillWheelLineWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 644,
+      "referenced_by": [
+        "SkillWheel"
+      ]
+    },
+    {
+      "name": "selectionAreaInformationHeight",
+      "type": "int",
+      "readonly": true,
+      "value": "179",
+      "line": 645,
+      "referenced_by": [
+        "SkillWheelLargePerkInformation",
+        "SkillWheelTileInformation",
+        "SkillWheelVesselInformation"
+      ]
+    },
+    {
+      "name": "textFieldWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "180",
+      "line": 649,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "CreateCharacterDialog"
+      ]
+    },
+    {
+      "name": "lableTextWidth",
+      "type": "int",
+      "readonly": true,
+      "value": "144",
+      "line": 650,
+      "referenced_by": [
+        "CreateAccountDialog",
+        "CreateCharacterDialog"
+      ]
+    },
+    {
+      "name": "proficiencyPerkSize",
+      "type": "int",
+      "readonly": true,
+      "value": "48",
+      "line": 654,
+      "referenced_by": [
+        "TibiaProficiencyPerk",
+        "WeaponProficiencyShapeOptionsDialog"
+      ]
+    },
+    {
+      "name": "proficiencyPerkScaleFactor",
+      "type": "int",
+      "readonly": true,
+      "value": "2",
+      "line": 655,
+      "referenced_by": [
+        "TibiaProficiencyPerk",
+        "WeaponProficiencyShapeOptionsDialog"
+      ]
+    }
+  ]
+}
