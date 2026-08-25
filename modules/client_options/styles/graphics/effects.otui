@@ -78,7 +78,7 @@ UIWidget
       anchors.right: parent.right
       margin-right: 3
       image-source: /images/icons/show_gui_help_grey
-      !tooltip: tr("Adjust the opacity of spell effects cast by yourself, other players, \nregular creatures and boss area creature separately.\n\nNote that some effects, such as long-lasting map effects, spawn\neffects, and others, are not affected by these settings.")
+      !tooltip: tr("Adjust the opacity of spell effects cast by yourself, other players, \nregular creatures and boss area creatures separately.\n\nNote that some effects, such as long-lasting map effects, spawn\neffects, and others, are not affected by these settings.")
 
     Label
       anchors.top: parent.top
