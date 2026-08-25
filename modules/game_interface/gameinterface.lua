@@ -537,7 +537,32 @@ local NATIVE_MAP_HEIGHT = 352
 local NATIVE_MAP_WIDTH = 480
 local UI_MAP_CONTENT_INSET = 2
 local MAX_MAP_SCALE_PERCENT = 200
-local MAX_RENDER_MULTIPLE = MAX_MAP_SCALE_PERCENT / 100
+
+-- The ceiling is a PHYSICAL size, not a logical one. A snap stop is `multiple * NATIVE / density`
+-- logical units, which is `multiple * NATIVE` device pixels whatever the density - so the stops
+-- were already independent of display scale while the ceiling above them was a bare constant.
+--
+-- That made the interface scale silently decide how large the map could get: turning the
+-- interface down frees a lot of logical room, and the map could not use any of it, because two
+-- multiples is two multiples no matter how much space is going spare.
+--
+-- Dividing by the HUD scale makes the ceiling mean the same physical size at every setting: 200%
+-- at the default, 400% at half interface scale, 100% at double. Only the user's own scale is
+-- divided out, never the display's pixel ratio - the ceiling should not move because the client
+-- was opened on a Retina panel.
+local function getMaxRenderMultiple()
+	local hudScale = g_app.getHUDScale and g_app.getHUDScale() or 1
+
+	if not hudScale or hudScale <= 0 then
+		hudScale = 1
+	end
+
+	return math.max(1, math.floor(MAX_MAP_SCALE_PERCENT / 100 / hudScale + 0.001))
+end
+
+local function getMaxMapScalePercent()
+	return getMaxRenderMultiple() * 100
+end
 
 local SPLITTER_RESIZE_MODE_MAP = 1
 local SPLITTER_RESIZE_MODE_CHAT = 2
@@ -600,7 +625,7 @@ local function updateBottomSplitterScaleLabel()
 	local heightLimitedWidth = math.floor(availableHeight * NATIVE_MAP_WIDTH / NATIVE_MAP_HEIGHT)
 	local mapWidth = math.min(availableWidth, heightLimitedWidth)
 	local scaleInPercent = mapWidth > 0 and math.floor(mapWidth / NATIVE_MAP_WIDTH * 100) or 100
-	bottomSplitterScaleLabel:setText(string.format("%d%%", math.min(scaleInPercent, MAX_MAP_SCALE_PERCENT)))
+	bottomSplitterScaleLabel:setText(string.format("%d%%", math.min(scaleInPercent, getMaxMapScalePercent())))
 end
 
 local function queueBottomSplitterScaleLabelUpdate()
@@ -721,7 +746,7 @@ local function getPixelExactPanelHeights()
 	local chrome = gameMapPanel:getHeight() - contentHeight
 	local heights = {}
 
-	for multiple = 1, MAX_RENDER_MULTIPLE do
+	for multiple = 1, getMaxRenderMultiple() do
 		local mapHeight = math.floor(multiple * NATIVE_MAP_HEIGHT / density + 0.5)
 
 		if mapHeight >= MIN_GAME_MAP_HEIGHT and mapHeight <= widthLimitedHeight then
@@ -3571,7 +3596,7 @@ function getBottomSplitterEffectiveMinMargin(parentH)
 
 		if internalWidth > 0 then
 			local idealInternalHeight = math.floor(internalWidth / getMapAspectRatio() + 0.5)
-			idealInternalHeight = math.min(idealInternalHeight, NATIVE_MAP_HEIGHT * MAX_MAP_SCALE_PERCENT / 100)
+			idealInternalHeight = math.min(idealInternalHeight, NATIVE_MAP_HEIGHT * getMaxRenderMultiple())
 			-- UIMap fits the rendered map inside getPaddingRect().expanded(-1),
 			-- consuming one logical pixel on every edge. Include both vertical
 			-- inset pixels here so the 200% stop produces an actual 960 x 704
