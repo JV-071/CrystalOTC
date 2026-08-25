@@ -53,6 +53,9 @@ struct Uniforms {
 struct FragmentUniforms {
     float4 color;
     float opacity;
+    // Read only by the translated module fragments; declared here so both halves of the ABI
+    // describe the same buffer. See MetalABI::FragmentUniforms.
+    float tex0FlipY;
 };
 
 struct VertexIn {

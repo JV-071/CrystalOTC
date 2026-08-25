@@ -82,6 +82,7 @@ DRAW_PARAMS_GLSL = """\
 layout(std140, set = 0, binding = {binding}) uniform CrystalOTCDrawParams {{
     vec4 u_Color;
     float u_Opacity;
+    float u_Tex0FlipY;
 }};
 """
 
@@ -253,6 +254,39 @@ def strip_declarations(body: str) -> str:
     return "\n".join(kept)
 
 
+
+# GL stores a framebuffer's texture bottom-up and samples it through an `upsideDown` texture
+# matrix; Metal stores a render target top-down and samples it through a plain one. Both fetch
+# the correct texel, but `v_TexCoord.y` therefore runs `1 - t` on GL where it runs `t` here - so
+# a shader that uses the coordinate as a POSITION rather than only as a sampling coordinate sees
+# a vertically mirrored field. Six of the thirteen map shaders do exactly that.
+#
+# The fix keeps Metal's native top-down targets and absorbs the difference here, the same way
+# FRAG_COORD_HELPER absorbs gl_FragCoord's origin: the shader's arithmetic runs in GL coordinate
+# space, and the conversion happens once, at the u_Tex0 fetch. That commutes with any expression
+# the shader builds, offsets included, because only the final fetch converts.
+#
+# `u_Tex0FlipY` is 1.0 when u_Tex0 resolved to a render target and 0.0 when it resolved to an
+# ordinary texture, so both helpers are the identity in the ordinary case. It cannot be a
+# compile-time constant: the same material is bound at both kinds of site - a map shader runs on
+# the map composition blit and on an image widget in the shader-matrix scene - so only the draw
+# knows. u_Tex1..3 are always ordinary module images and are deliberately sampled at the
+# GL-shaped coordinate, which is what GL passes them.
+TEXCOORD_HELPER = """\
+vec2 crystalotc_texCoordGL()
+{
+    return vec2(crystalotc_v_TexCoordIn.x,
+                mix(crystalotc_v_TexCoordIn.y, 1.0 - crystalotc_v_TexCoordIn.y, u_Tex0FlipY));
+}
+"""
+
+SAMPLE_TEX0_HELPER = """\
+vec4 crystalotc_sampleTex0(sampler2D s, vec2 c)
+{
+    return texture(s, vec2(c.x, mix(c.y, 1.0 - c.y, u_Tex0FlipY)));
+}
+"""
+
 def build_fragment_glsl(body: str) -> str:
     stripped = strip_declarations(body)
 
@@ -262,6 +296,18 @@ def build_fragment_glsl(body: str) -> str:
     stripped = re.sub(r"\bgl_FragColor\b", "crystalotc_FragColor", stripped)
     uses_frag_coord = re.search(r"\bgl_FragCoord\b", stripped) is not None
     stripped = re.sub(r"\bgl_FragCoord\b", "crystalotc_fragCoord()", stripped)
+
+    # See TEXCOORD_HELPER. Every shipped sample of u_Tex0 is spelled `texture2D(u_Tex0, ...)`;
+    # anything else would leave the coordinate unconverted, so it is an error rather than a
+    # silently half-corrected shader.
+    stripped = re.sub(r"\btexture2D\s*\(\s*u_Tex0\b", "crystalotc_sampleTex0(u_Tex0", stripped)
+    if re.search(r"\bu_Tex0\b", re.sub(r"crystalotc_sampleTex0\(u_Tex0", "", stripped)):
+        raise SystemExit(
+            "generate_metal_shaders: u_Tex0 is sampled by some spelling other than "
+            "`texture2D(u_Tex0, ...)`; extend the substitution in build_fragment_glsl"
+        )
+    uses_tex_coord = re.search(r"\bv_TexCoord\b", stripped) is not None
+    stripped = re.sub(r"\bv_TexCoord\b", "crystalotc_texCoordGL()", stripped)
 
     used_textures = [
         unit for unit in range(MAX_TEXTURE_UNITS) if re.search(rf"\bu_Tex{unit}\b", stripped)
@@ -275,11 +321,15 @@ def build_fragment_glsl(body: str) -> str:
             f"layout(set = {TEXTURE_SET}, binding = {unit}) uniform sampler2D u_Tex{unit};"
         )
     parts.append("")
-    parts.append("layout(location = 0) in vec2 v_TexCoord;")
+    parts.append("layout(location = 0) in vec2 crystalotc_v_TexCoordIn;")
     parts.append("layout(location = 0) out vec4 crystalotc_FragColor;")
     parts.append("")
     if uses_frag_coord:
         parts.append(FRAG_COORD_HELPER)
+    if uses_tex_coord:
+        parts.append(TEXCOORD_HELPER)
+    if 0 in used_textures:
+        parts.append(SAMPLE_TEX0_HELPER)
     parts.append(stripped)
     return "\n".join(parts) + "\n"
 

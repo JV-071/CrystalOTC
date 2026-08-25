@@ -211,6 +211,7 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
     fragmentUniforms.color[2] = packet.color.bF();
     fragmentUniforms.color[3] = packet.color.aF();
     fragmentUniforms.opacity = packet.opacity;
+    fragmentUniforms.tex0FlipY = (textured && texture.isRenderTarget) ? 1.f : 0.f;
     [encoder setFragmentBytes:&fragmentUniforms length:sizeof(fragmentUniforms)
                       atIndex:MetalABI::FRAGMENT_UNIFORM_BUFFER];
 

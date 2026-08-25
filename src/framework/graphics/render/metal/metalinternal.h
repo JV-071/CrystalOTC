@@ -126,7 +126,14 @@ namespace MetalABI
     {
         float color[4]{ 1.f, 1.f, 1.f, 1.f };
         float opacity{ 1.f };
-        float _pad[3]{};
+
+        // 1.0 when this draw's u_Tex0 resolved to a RENDER TARGET, 0.0 when it resolved to an
+        // ordinary texture. A translated module fragment reads it to run its arithmetic in GL's
+        // coordinate space - GL samples a target through an upside-down texture matrix, so
+        // `v_TexCoord.y` is `1 - t` there and `t` here - and to convert back at the u_Tex0
+        // fetch. Zero for the built-ins, which only ever sample and cannot tell the difference.
+        float tex0FlipY{ 0.f };
+        float _pad[2]{};
     };
 
     static_assert(sizeof(FragmentUniforms) == 32);

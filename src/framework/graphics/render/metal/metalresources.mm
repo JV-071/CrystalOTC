@@ -342,6 +342,7 @@ MetalResources::Resolved MetalResources::resolve(const TextureHandle handle) con
         Resolved resolved;
         resolved.texture = it->second.texture;
         resolved.size = it->second.size;
+        resolved.isRenderTarget = true;
         resolved.sampler = const_cast<MetalResources*>(this)->samplerFor(smooth, false, false);
         return resolved;
     }

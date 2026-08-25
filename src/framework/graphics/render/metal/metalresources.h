@@ -58,6 +58,11 @@ public:
         id<MTLSamplerState> sampler{ nil };
         Size size;
 
+        // True when the handle named a render target rather than an ordinary texture. The two
+        // store their rows in opposite orders on GL and the same order here, which a module
+        // fragment using v_TexCoord as a position can see; see MetalABI::FragmentUniforms.
+        bool isRenderTarget{ false };
+
         [[nodiscard]] bool isValid() const { return texture != nil; }
     };
 
