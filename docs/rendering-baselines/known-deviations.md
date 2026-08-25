@@ -503,6 +503,41 @@ the fixture's residency deterministic — warm the atlas before the shutter, or 
 NEAREST texture. The broad fix is to make atlas-backed sampling agree with standalone for smooth
 textures, which is a renderer change and wants its own measurement.
 
+**Reframed 2026-08-25 by looking at the pixels instead of the totals, which overturns the reading
+above.** The defect is not a small difference amplified by ADD. Sampled values across the card:
+
+| point | mode A | mode B |
+|---|---|---|
+| `(770,323)`, particle body | `(7,64,147)` | `(7,64,147)` — identical |
+| `(810,323)`, disc centre | `(0,0,0)` | `(100,116,139)` |
+| `(810,330)` | `(0,0,0)` | `(248,250,252)` |
+| `(760,300)`, outside | `(100,116,139)` | `(100,116,139)` |
+
+The particle body is **identical in both modes** — `(7,64,147)` is what the yellow tint over the
+slate tile predicts through `(1 - src)(src + dst)`. What differs is a roughly 17-pixel disc at the
+centre, and the two values there are the two extremes rather than neighbours:
+
+- Pure black requires `(1 - src)(src + dst) = 0` in every channel. `dst` is a card tile and is not
+  zero, so this needs `src = (1, 1, 1)` — an opaque WHITE fragment. The yellow tint `#facc15`
+  cannot produce it at any alpha.
+- `(100,116,139)` and `(248,250,252)` are `#64748b` and `#f8fafc`, the card's own checkerboard tiles
+  (`makeParticleCard`). Seeing them raw requires `src = 0` — no contribution at all.
+
+So at one pixel, one mode draws fully opaque white and the other draws nothing. `particle2.png` is
+white with a radial alpha ramp from 255 at the centre to 6 at the edge, so those two outcomes are
+its centre texel and its edge texel. The two modes are sampling **different texels of the same
+texture**, not the same texel with a rounding difference.
+
+That is a much better-posed question than "540 differing pixels", and it is not yet answered. The
+obvious cause — the texture being atlas-resident in one mode and standalone in the other — was
+tested and rejected: keeping `/particles/particle2` out of the atlas while leaving the atlas
+otherwise on (verified by log) leaves the bimodality intact, at exactly 540 px. Yet disabling the
+atlas entirely removes it. Both facts are measured and they are not yet reconciled.
+
+The next step is instrumentation rather than inference: log the source rect, texture id and
+transform-matrix id for that draw across several runs and compare them between modes. Every
+inference made ahead of that on this defect has been wrong.
+
 Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
 preference order: find and remove the source of the bimodality in the emitter (it is a
 single-burst emitter, so a genuinely fixed frame should be reachable); or give the scene a
