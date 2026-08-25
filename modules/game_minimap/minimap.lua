@@ -811,6 +811,44 @@ local function adjustMinimapToContainer(_, container)
 	applyContainerLayout(container)
 end
 
+function applyWorldTimeToRose(rosePanel)
+	if not rosePanel or rosePanel:isDestroyed() then
+		return
+	end
+
+	local ambients = rosePanel.ambients
+
+	if not ambients or ambients:isDestroyed() then
+		return
+	end
+
+	local position = math.floor(0.08611111111111111 * (currentDayTime.h * 60 + currentDayTime.m))
+	local mainWidth = 31
+	local secondaryWidth = 0
+
+	if position + 31 >= 124 then
+		secondaryWidth = position + 31 - 124 + 1
+		mainWidth = 31 - secondaryWidth
+	end
+
+	ambients.main:setWidth(mainWidth)
+	ambients.secondary:setWidth(secondaryWidth)
+
+	if secondaryWidth == 0 then
+		ambients.secondary:hide()
+	else
+		ambients.secondary:setImageClip("0 0 " .. secondaryWidth .. " 31")
+		ambients.secondary:show()
+	end
+
+	if mainWidth == 0 then
+		ambients.main:hide()
+	else
+		ambients.main:setImageClip(position .. " 0 " .. mainWidth .. " 31")
+		ambients.main:show()
+	end
+end
+
 function onChangeWorldTime(hour, minute)
 	currentDayTime = {
 		h = hour % 24,
@@ -829,49 +867,18 @@ function onChangeWorldTime(hour, minute)
 		onChangeWorldTime(nextH, nextM)
 	end, 30000, "dayTime")
 
-	local position = math.floor(0.08611111111111111 * (hour * 60 + minute))
-	local mainWidth = 31
-	local secondaryWidth = 0
-
-	if position + 31 >= 124 then
-		secondaryWidth = position + 31 - 124 + 1
-		mainWidth = 31 - secondaryWidth
-	end
-
-	local function applyWorldTimeToRose(rosePanel)
-		if not rosePanel or rosePanel:isDestroyed() then
-			return
-		end
-
-		local ambients = rosePanel.ambients
-
-		if not ambients or ambients:isDestroyed() then
-			return
-		end
-
-		ambients.main:setWidth(mainWidth)
-		ambients.secondary:setWidth(secondaryWidth)
-
-		if secondaryWidth == 0 then
-			ambients.secondary:hide()
-		else
-			ambients.secondary:setImageClip("0 0 " .. secondaryWidth .. " 31")
-			ambients.secondary:show()
-		end
-
-		if mainWidth == 0 then
-			ambients.main:hide()
-		else
-			ambients.main:setImageClip(position .. " 0 " .. mainWidth .. " 31")
-			ambients.main:show()
-		end
-	end
-
 	local ui = mapController.ui
 
 	if ui and not ui:isDestroyed() then
 		applyWorldTimeToRose(getLayoutWidget(getLayoutRoot(ui, false), "rosePanel"))
 		applyWorldTimeToRose(getLayoutWidget(getLayoutRoot(ui, true), "rosePanel"))
+	end
+
+	local cyclopediaModule = modules.game_cyclopedia
+	local cyclopedia = cyclopediaModule and cyclopediaModule.Cyclopedia
+
+	if cyclopedia and cyclopedia.syncNavigationWorldTime then
+		cyclopedia.syncNavigationWorldTime()
 	end
 end
 

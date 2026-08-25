@@ -298,7 +298,7 @@ UIWidget
               color: #c0c0c0
               text-offset: 15 0
               text-auto-resize: true
-              checked: false
+              checked: true
               enabled: true
               @onCheckChange: modules.game_cyclopedia.Cyclopedia.onSurfaceViewChange(self, self:isChecked())
 
@@ -312,7 +312,7 @@ UIWidget
               color: #c0c0c0
               text-offset: 15 0
               text-auto-resize: true
-              checked: true
+              checked: false
               enabled: true
               @onCheckChange: modules.game_cyclopedia.Cyclopedia.onMapViewChange(self, self:isChecked())
 
@@ -347,7 +347,7 @@ UIWidget
           id: NavigationBase
           margin-top: 5
           margin-left: 11
-          size: 146 97
+          size: 146 139
           fixed-size: true
           image-source: /images/ui/t2pixel-up-frame-borderimage
           image-border: 20
@@ -369,10 +369,50 @@ UIWidget
             @onClick: modules.game_cyclopedia.Cyclopedia.toggleMapSection('navigation')
 
           UIWidget
+            id: currentAreaPanel
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            margin-top: 19
+            margin-left: 7
+            margin-right: 7
+            height: 31
+            visible: false
+
+            UIWidget
+              id: currentAreaHelp
+              anchors.top: parent.top
+              anchors.left: parent.left
+              size: 12 12
+              image-source: /images/skin/show-gui-help-grey
+
+            Label
+              id: currentAreaHeadline
+              anchors.top: parent.top
+              anchors.left: parent.left
+              anchors.right: parent.right
+              height: 14
+              !text: tr('Current area:')
+              font: $var-cip-font-new
+              color: #c0c0c0
+              text-align: center
+
+            Label
+              id: currentAreaName
+              anchors.top: currentAreaHeadline.bottom
+              anchors.left: parent.left
+              anchors.right: parent.right
+              margin-top: 1
+              height: 14
+              font: $var-cip-font-new
+              color: #c0c0c0
+              text-align: center
+
+          UIWidget
             id: rosePanel
             anchors.top: parent.top
             anchors.left: parent.left
-            margin-top: 22
+            margin-top: 58
             margin-left: 39
             size: 43 43
 
@@ -516,7 +556,7 @@ UIWidget
             id: layerSelector
             anchors.top: parent.top
             anchors.right: parent.right
-            margin-top: 21
+            margin-top: 57
             margin-right: 32
             size: 26 68
 

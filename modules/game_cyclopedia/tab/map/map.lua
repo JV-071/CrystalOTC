@@ -5,6 +5,7 @@ local virtualFloor = 7
 local updatingMapFlags = false
 local loadingMapConfig = false
 local MAP_CONFIG_FILE_NAME = "cyclopediaMapConfiguration.json"
+local MAP_CONFIG_VERSION = 1
 local LAYER_FLOOR_MIN = 0
 local LAYER_FLOOR_MAX = 15
 local LEVEL_SEPARATOR_MIDDLE_FLOOR = 7
@@ -31,7 +32,7 @@ local CYCLOPEDIA_AREA_LABEL_SELECTED_COLOR = "#ffff00ff"
 local CYCLOPEDIA_SUBAREA_LABEL_COLOR = "#8f8f8fff"
 local CYCLOPEDIA_SECTION_COLLAPSED_HEIGHT = 19
 local CYCLOPEDIA_DISPLAY_PANEL_HEIGHT = 253
-local CYCLOPEDIA_NAVIGATION_PANEL_HEIGHT = 97
+local CYCLOPEDIA_NAVIGATION_PANEL_HEIGHT = 139
 local CYCLOPEDIA_AREA_PANEL_HEIGHT = 141
 local CYCLOPEDIA_SUBAREA_PANEL_HEIGHT = 202
 local CYCLOPEDIA_SECTION_ICON_COLLAPSED = "0 0 12 12"
@@ -61,6 +62,7 @@ local areaDonationConfirmWindow
 local displayPanelExpanded = true
 local navigationPanelExpanded = true
 local areaPanelExpanded = true
+local refreshCurrentAreaNavigation
 
 local function layerMarginTopForFloor(z)
 	z = math.max(LAYER_FLOOR_MIN, math.min(LAYER_FLOOR_MAX, z))
@@ -84,6 +86,16 @@ local function getNavigationBase()
 	end
 
 	return filterFrame:recursiveGetChildById("NavigationBase")
+end
+
+function Cyclopedia.syncNavigationWorldTime()
+	local navigationBase = getNavigationBase()
+	local rosePanel = navigationBase and navigationBase:recursiveGetChildById("rosePanel")
+	local minimapModule = modules.game_minimap
+
+	if rosePanel and minimapModule and minimapModule.applyWorldTimeToRose then
+		minimapModule.applyWorldTimeToRose(rosePanel)
+	end
 end
 
 local function getDisplayBase()
@@ -167,6 +179,10 @@ local function applyNavigationPanelState()
 	applySectionFrameState(panel, navigationPanelExpanded)
 	panel:setHeight(navigationPanelExpanded and CYCLOPEDIA_NAVIGATION_PANEL_HEIGHT or CYCLOPEDIA_SECTION_COLLAPSED_HEIGHT)
 	setSectionToggleState(panel, "navigationToggleButton", navigationPanelExpanded)
+
+	if refreshCurrentAreaNavigation then
+		refreshCurrentAreaNavigation()
+	end
 end
 
 local function getLayersMark()
@@ -906,6 +922,46 @@ local function cyclopediaAreaIdAtTile(tile)
 	return 0
 end
 
+refreshCurrentAreaNavigation = function()
+	local panel = getNavigationBase()
+
+	if not panel then
+		return
+	end
+
+	local currentAreaPanel = panel:recursiveGetChildById("currentAreaPanel")
+
+	if not currentAreaPanel then
+		return
+	end
+
+	local player = g_game.getLocalPlayer()
+	local position = player and player:getPosition()
+	local _, parentAreaId = cyclopediaAreaIdAtTile(position)
+	local areaName = ""
+	local areaData = parentAreaId and areaDataById[parentAreaId]
+
+	if areaData and areaData.name then
+		areaName = areaData.name
+	elseif parentAreaId and SatelliteZones then
+		for _, zone in ipairs(SatelliteZones) do
+			if zone.areaId == parentAreaId then
+				areaName = zone.area or ""
+
+				break
+			end
+		end
+	end
+
+	local currentAreaName = currentAreaPanel:recursiveGetChildById("currentAreaName")
+
+	if currentAreaName then
+		currentAreaName:setText(areaName)
+	end
+
+	currentAreaPanel:setVisible(navigationPanelExpanded and areaName ~= "")
+end
+
 local function zoneRectsBounds(rects)
 	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
 
@@ -1248,9 +1304,10 @@ end
 
 local function getDefaultMapConfiguration()
 	return {
+		configurationVersion = MAP_CONFIG_VERSION,
 		showAreaAndSubAreaInfo = true,
 		shadingValue = 0,
-		surfaceView = false,
+		surfaceView = true,
 		showPassageMarker = false,
 		showNavigation = true,
 		showNPCMarker = false,
@@ -1297,6 +1354,7 @@ local function buildMapConfiguration()
 	local surfaceCheck = UI and UI:recursiveGetChildById("SurfaceCheck")
 
 	return {
+		configurationVersion = MAP_CONFIG_VERSION,
 		areaID = selectedAreaId > 0 and selectedAreaId or nil,
 		selectedMarkers = collectSelectedMarkers(),
 		shadingValue = shadingValue,
@@ -1348,6 +1406,7 @@ function Cyclopedia.loadMapConfiguration()
 
 	local config = getDefaultMapConfiguration()
 	local file = getMapConfigFilePath()
+	local needsConfigMigration = false
 
 	if file and g_resources.fileExists(file) then
 		local status, loaded = pcall(function()
@@ -1355,6 +1414,8 @@ function Cyclopedia.loadMapConfiguration()
 		end)
 
 		if status and type(loaded) == "table" then
+			needsConfigMigration = loaded.configurationVersion ~= MAP_CONFIG_VERSION
+
 			if type(loaded.areaID) == "number" then
 				local areaId = math.floor(loaded.areaID)
 
@@ -1395,7 +1456,10 @@ function Cyclopedia.loadMapConfiguration()
 				config.showNavigation = loaded.showNavigation
 			end
 
-			if type(loaded.surfaceView) == "boolean" then
+			-- Older Ultia builds defaulted to the palette Map View, while Tibia opens
+			-- Cyclopedia in textured Surface View. Migrate that old default once; after
+			-- the version is written, an explicit Map View choice remains persistent.
+			if not needsConfigMigration and type(loaded.surfaceView) == "boolean" then
 				config.surfaceView = loaded.surfaceView
 			end
 		elseif not status then
@@ -1469,6 +1533,10 @@ function Cyclopedia.loadMapConfiguration()
 	Cyclopedia.syncShowAllBox()
 	Cyclopedia.applyMapFlagFilter()
 	Cyclopedia.applyCyclopediaRenderMode()
+
+	if needsConfigMigration then
+		Cyclopedia.saveMapConfiguration()
+	end
 end
 
 local function prefetchCyclopediaMapCenter()
@@ -2020,6 +2088,8 @@ function showMap()
 	Cyclopedia.loadMapConfiguration()
 	Cyclopedia.applyCyclopediaRenderMode()
 	setupCyclopediaAreas()
+	refreshCurrentAreaNavigation()
+	Cyclopedia.syncNavigationWorldTime()
 	setupLayersMarkDrag(getLayersMark())
 	setupLayersPanelWheel()
 
@@ -2171,6 +2241,7 @@ function Cyclopedia.onUpdateCameraPosition()
 	refreshVirtualFloors()
 	Cyclopedia.updateLevelSeparatorState()
 	prefetchCyclopediaMapCenter()
+	refreshCurrentAreaNavigation()
 end
 
 function Cyclopedia.resetMap()
