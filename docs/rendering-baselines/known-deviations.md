@@ -450,93 +450,25 @@ not the geometry, not the particle count, and not the colour. Candidates that re
 sample at the core (atlas-backed versus standalone residency, or sub-pixel sampling alignment), and
 the draw opacity applied to the card.
 
-**Root cause found 2026-08-25: the CPU texture atlas.** Disabling the FOREGROUND atlas alone
-(`foregroundAtlasSize = -1`, the switch Vulkan already uses) makes the scene fully deterministic —
-six captures, all fifteen pairs at **0 differing pixels**, where the same binary with the atlas on
-splits into two modes at exactly 540. That is decisive on its own, and the two modes are then
-identifiable:
+**Investigated at length 2026-08-25 without resolution; the full record is in
+`docs/particles-blends-investigation.md`.** Four more candidate mechanisms were eliminated that day
+— the colour-interpolation rounding in `Particle::updateColor`, a sub-texel sampling offset, the
+atlas's 1:1 composite blit filtering, and the particle texture's own atlas residency — each tested
+rather than argued, each reverted.
 
-| | black px in the core region | brightest channel-sum |
-|---|---:|---:|
-| atlas off (always standalone) | 0 | 750 |
-| the low mode | 0 | 750 |
-| the high mode | 220 | 352 |
+The useful outcome was a reframing. This is **not** a small difference amplified by ADD, which is
+what every earlier reading here assumed. The particle body is byte-identical in both modes; what
+differs is a roughly 17-pixel disc at the card centre, where one mode produces `(0,0,0)` and the
+other shows the card's own checkerboard tiles raw. Under `(1 - src)(src + dst)` the first requires
+`src = (1,1,1)` — an opaque white fragment the `#facc15` tint cannot produce at any alpha — and the
+second requires `src = 0`. Since `particle2.png` is white with a radial alpha ramp from 255 at the
+centre to 6 at the edge, **the two modes sample different texels of the same texture**.
 
-The atlas-off result matches the low mode (22 px apart, ordinary noise) and differs from the high
-mode by the full 540. The obvious reading is that the low mode is the texture sampled standalone and the high mode the
-same texture sampled through the atlas, with residency at the moment of the shutter deciding which
-— `DrawPool::add` translates a source rect into atlas coordinates only once a region exists, so a
-texture is standalone for its first frames and atlas-backed afterwards. **That reading is not
-established, and one test since has weakened it** (see the eliminations below): turning the atlas
-off also removes its maintenance work from the frame, so it changes frame *timing* and pool content
-hashing as well as sampling. Both are consistent with the measurements above.
-
-**The substantive part is that the two are not the same picture.** Atlas-backed sampling yields a
-*higher* value at the particle's core — high enough to saturate, and `CompositionMode::ADD` is
-`(1 - src) * (src + dst)`, which collapses to black exactly at saturation. That is why the defect is
-confined to the ADD card: NORMAL and MULTIPLY are given the identical difference and do not magnify
-it. `particle2.png` is 32x32 drawn at 96x96, so this is not `SMOOTH_PADDING` bleeding inward — two
-texels of padding reach about six pixels into a 3x-magnified edge, and the differing region is the
-centre. A sub-texel sampling offset across the whole quad was the obvious candidate — it would follow from
-the region's coordinates being normalised against a 2048x2048 layer rather than a 32x32 texture.
-**Measured and rejected 2026-08-25:** across the particle's whole 95x95 quad, 8,081 of 9,025 pixels
-are bit-identical between the two modes, and image-wide only **four** differing pixels lie outside
-the ADD card, two in each of the NORMAL and MULTIPLY cards. A uniform sub-texel shift would move
-every high-gradient pixel, especially at the edges; instead the difference is sparse and the
-underlying quantity is tiny everywhere, with ADD's saturation the only thing that makes it visible.
-
-**Also rejected: the 1:1 composite blit's filtering.** `TextureAtlas::flush` copies a texture into
-its layer with `dest {x, y, w, h}` against `src {0, 0, w, h}` — one to one, blending disabled — but
-samples it with the source's own LINEAR filter, where a 1:1 copy needs no interpolation at all and
-float error at texel centres could plausibly cost a least-significant bit. Forcing `GL_NEAREST`
-around both composite draws changes nothing: six fresh captures still split into two modes at
-exactly 540 px. The probe was reverted.
-
-This qualifies a claim made elsewhere in this file and in `drawpoolmanager.cpp` — that an
-atlas-backed draw and a standalone one "produce the same picture". For a NEAREST-filtered sprite at
-integer scale that holds. For a LINEAR-filtered texture drawn magnified it is off by enough to move
-a saturated value across the boundary, which no scene had noticed because only ADD amplifies it.
-
-Consequences for the three options below: the tolerance and ungating options are unchanged, but
-"find and remove the source of the bimodality" now has a concrete target. The narrow fix is to make
-the fixture's residency deterministic — warm the atlas before the shutter, or give that card a
-NEAREST texture. The broad fix is to make atlas-backed sampling agree with standalone for smooth
-textures, which is a renderer change and wants its own measurement.
-
-**Reframed 2026-08-25 by looking at the pixels instead of the totals, which overturns the reading
-above.** The defect is not a small difference amplified by ADD. Sampled values across the card:
-
-| point | mode A | mode B |
-|---|---|---|
-| `(770,323)`, particle body | `(7,64,147)` | `(7,64,147)` — identical |
-| `(810,323)`, disc centre | `(0,0,0)` | `(100,116,139)` |
-| `(810,330)` | `(0,0,0)` | `(248,250,252)` |
-| `(760,300)`, outside | `(100,116,139)` | `(100,116,139)` |
-
-The particle body is **identical in both modes** — `(7,64,147)` is what the yellow tint over the
-slate tile predicts through `(1 - src)(src + dst)`. What differs is a roughly 17-pixel disc at the
-centre, and the two values there are the two extremes rather than neighbours:
-
-- Pure black requires `(1 - src)(src + dst) = 0` in every channel. `dst` is a card tile and is not
-  zero, so this needs `src = (1, 1, 1)` — an opaque WHITE fragment. The yellow tint `#facc15`
-  cannot produce it at any alpha.
-- `(100,116,139)` and `(248,250,252)` are `#64748b` and `#f8fafc`, the card's own checkerboard tiles
-  (`makeParticleCard`). Seeing them raw requires `src = 0` — no contribution at all.
-
-So at one pixel, one mode draws fully opaque white and the other draws nothing. `particle2.png` is
-white with a radial alpha ramp from 255 at the centre to 6 at the edge, so those two outcomes are
-its centre texel and its edge texel. The two modes are sampling **different texels of the same
-texture**, not the same texel with a rounding difference.
-
-That is a much better-posed question than "540 differing pixels", and it is not yet answered. The
-obvious cause — the texture being atlas-resident in one mode and standalone in the other — was
-tested and rejected: keeping `/particles/particle2` out of the atlas while leaving the atlas
-otherwise on (verified by log) leaves the bimodality intact, at exactly 540 px. Yet disabling the
-atlas entirely removes it. Both facts are measured and they are not yet reconciled.
-
-The next step is instrumentation rather than inference: log the source rect, texture id and
-transform-matrix id for that draw across several runs and compare them between modes. Every
-inference made ahead of that on this defect has been wrong.
+Two measured facts remain unreconciled and are the crux: disabling the FOREGROUND atlas entirely
+makes the scene fully deterministic (fifteen pairs at 0), while keeping the particle texture out of
+that atlas — verified by log, atlas otherwise on — leaves the bimodality at exactly 540 px. The
+investigation document carries the measurements, the eliminations with their evidence, and the
+ordered next steps, which begin with instrumenting the draw rather than inferring again.
 
 Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
 preference order: find and remove the source of the bimodality in the emitter (it is a

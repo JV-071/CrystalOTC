@@ -98,3 +98,4 @@ The command exits nonzero when dimensions differ or more than the allowed fracti
 - Treat coherent shifted edges, missing regions, and alpha halos as structural failures.
 - Store the client log and GL renderer metadata beside every PNG artifact.
 - Record accepted platform-specific differences in [known-deviations.md](known-deviations.md).
+- `particles-blends` has an open, unresolved determinism defect with its own record: [../particles-blends-investigation.md](../particles-blends-investigation.md). Read that before touching the scene, its tolerances or its reference.

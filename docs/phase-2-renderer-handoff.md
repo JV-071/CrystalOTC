@@ -171,7 +171,7 @@ frame is drawn, and the program is compiled on a producer thread before that hap
 `PoolProgram::requiresAtlasMaintenance` states the omission so a compiled frame is never mistaken
 for complete. The work belongs to the frame assembler.
 
-**`particles-blends` can fail its own CI gate.** It is bimodal on one binary: within a mode 0
+**`particles-blends` can fail its own CI gate.** **Investigated further 2026-08-25 without resolution — four more mechanisms eliminated and the defect substantially reframed; the full record is now `docs/particles-blends-investigation.md`, which is the place to start rather than this paragraph.** It is bimodal on one binary: within a mode 0
 differing pixels, between modes ~540-946 px at max channel delta 252, confined to the ADD card.
 The high mode exceeds its own `maxDifferentFraction` of 0.001. Two attractive theories were
 eliminated and recorded in `known-deviations.md` — it is **not** a duplicated burst and **not** a
