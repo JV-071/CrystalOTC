@@ -64,12 +64,16 @@ padding, outfit masks, text and clipping. The eleventh is the one scene designed
 
 `windowing` is not in that sweep — it is `ciCapture: false`, because a headless runner cannot
 produce it — so it was compared by hand, and it is worth doing again after any change to target
-lifetime. It is the only scene that resizes the window and changes HUD scale mid-run, which is
-the only thing that exercises `FrameAssembler::invalidateRetainedTargets`: a resize invalidates a
+lifetime. It is the only scene that resizes the window and changes HUD scale mid-run, which is the
+only thing that exercises `FrameAssembler::invalidateRetainedTargets`: a resize invalidates a
 retained target's contents without changing the objects that drew into them, which is precisely
 the case a content hash cannot see. All four of its captures match at **0 differing pixels**,
 including the one at a different resolution entirely (840,000 px rather than 656,880), and its
-recorded window state is identical.
+recorded window state is identical. **Not re-measured across paths since 2026-08-25** (`b58e805d`,
+`6b03c256`, `07b9597d`), which changed FOREGROUND target sizing and HUD-scale handling — precisely
+the "change to target lifetime" this note asks to re-verify. The scene was re-captured
+build-to-build on that date and its three stable captures were byte-identical, but the
+legacy-versus-frame comparison reported here was not repeated.
 
 The four **online** scenes are outside the sweep too — they need the fixture server — and they
 are the only ones that exercise the MAP pool, the light overlay, the map-shader composition
@@ -96,13 +100,18 @@ not a prerequisite for closing it.
 
 **`GLBackend` draws through `Painter` rather than replacing it.** Painter owns the blend table,
 the scissor y-flip, the colour mask, the projection and the uniform upload sequence — which are
-exactly the things that have to stay identical. Reimplementing them alongside the original would
-have created a second version of the thing under test, and any difference between the two would
-have been indistinguishable from a defect in the frame model. So the split is: the backend owns
-everything the frame model *added* — passes, targets, load actions, materials, handle
-resolution, geometry slices — and `drawCoords` was refactored onto a raw-array primitive so both
-paths reach one draw call. Absorbing the rest is what task 5 is for, when there is no longer a
-legacy path to differ from.
+exactly the things that have to stay identical. Reimplementing them alongside the original would have created a second
+version of the thing under test, and any difference between the two would have been
+indistinguishable from a defect in the frame model. So the split is: the backend owns everything
+the frame model *added* — passes, targets, load actions, materials, handle resolution, geometry
+slices — and `drawCoords` was refactored onto a raw-array primitive so both paths reach one draw
+call. Absorbing the rest is what task 5 is for, when there is no longer a legacy path to differ
+from.
+
+**Qualified 2026-08-25 (`b58e805d`):** Painter still owns the projection *matrix*, but the extent
+it spans became a pass property — `GLBackend` now passes `pass.projectionSize()` where it passed
+`pass.viewport.size()` — and clip-rect clamping plus device scaling moved into `PoolCompiler`. The
+line is now "Painter owns the formula; the frame states the extent."
 
 **`ResourceRegistry` resolves and does not allocate.** Phase 2 re-decided this and the decision
 held on contact. Handles are derived, not issued, and that is what makes compiled output

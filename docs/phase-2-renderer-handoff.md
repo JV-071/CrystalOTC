@@ -178,10 +178,16 @@ eliminated and recorded in `known-deviations.md` — it is **not** a duplicated 
 random size multiplier. The root cause is unknown. Do not reseed the reference; that picks a mode
 at random and leaves the other failing.
 
-**The Windows vcpkg cache fix is unconfirmed.** `11de064` gave the job a working binary cache —
-`run-vcpkg` had been setting `VCPKG_BINARY_SOURCES` to the removed `x-gha` backend, so nothing
-was cached and 52 of the job's 63 minutes went on rebuilding every port. The first run after the
-fix still pays full price because the cache starts empty; the payoff shows on the second.
+~~**The Windows vcpkg cache fix is unconfirmed.**~~ **Confirmed 2026-08-21.** `11de064` gave the
+job a working binary cache — `run-vcpkg` had been setting `VCPKG_BINARY_SOURCES` to the removed
+`x-gha` backend, so nothing was cached and 52 of the job's 63 minutes went on rebuilding every
+port. The first run after the fix still pays full price because the cache starts empty; the payoff
+shows on the second. And it did, almost exactly as predicted: the run on `11de064` itself paid
+full price (`32444488417`, 1h04m32s), and the next successful Windows run dropped to **11m18s**
+(`32452811267`) from 1h03m14s (`32440663105`) — the 63 minutes minus the 52 this diagnosis
+attributed to rebuilding ports, to the minute. It does not stay there: later runs sit at 45-65
+minutes, because whenever `src/**` changes the client build dominates rather than the ports.
+Nothing further will be measured while CI is suspended.
 
 **Golden tests do not consume `scenes.json`.** They use hand-built scenes. Wiring them to the
 Phase 0 fixture manifest remains open.

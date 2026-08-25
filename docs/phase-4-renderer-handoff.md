@@ -105,7 +105,10 @@ recreation and `FrameAssembler::invalidateRetainedTargets`.
 and Metal from itself by 157,428 px — so measuring it once per side, as this did, has a good chance
 of catching both sides in the same mode and reading 0. Same-mode captures do still compare at 0 px
 across the two backends, so the conclusion was right; the evidence was thinner than it looked. See
-`known-deviations.md`.
+`known-deviations.md`. **Further qualified 2026-08-25:** the HUD-scale-2 capture's own pixels changed
+with the Retina fix (`6b03c256`) — it is the capture that fix was measured on. Both backends take the
+same shared-framework change, so the cross-backend result should hold, but it has not been
+re-measured: the available OpenGL binary is too far behind to compare.
 
 The four **online** scenes are outside it too — they need the fixture server — and they were run by
 hand against the pinned `crystalserver` `f47f6e41`. They are the only coverage of the MAP pool, the
@@ -132,10 +135,15 @@ into a buffer and blitted into a private texture inside the frame's own command 
 one multiply-blended quad. Three coloured torches with overlapping gradients render correctly.
 
 `shader-matrix-map` is the fourth, and it is **not comparable**, for the same reason its two offline
-siblings are not: all fourteen cells are map shaders, and every one reports "shader unavailable in this
-environment" on the Metal build because `ShaderManager` registers no GLSL without an OpenGL context. It
-was run anyway as a smoke test of the map-composition route and produced all fourteen captures without
-incident.
+siblings are not: thirteen of its fourteen cells are map shaders and the fourteenth is an unshaded
+control, and every one reports "shader unavailable in this environment" on the Metal build because
+`ShaderManager` registers no GLSL without an OpenGL context. It was run anyway as a smoke test of the
+map-composition route and produced all fourteen captures without incident.
+
+**Superseded 2026-08-21 (Phase 6) and again 2026-08-25:** module programs register without a GL
+context and resolve on Metal, so the scene compares; and since `0ec21a80` all fourteen captures sit
+at or below its unshaded control frame. The "not comparable" verdict above is Phase 4's, and true
+only of Phase 4.
 
 **One capture of four was discarded, with evidence rather than by judgement.** An early `map-screenshot`
 run differed from every other by 90% of the frame at a small mean delta — alarming, and not a rendering
@@ -166,7 +174,13 @@ compensates when sampling it, through the `upsideDown` half of `TextureManager`'
 Metal has no such asymmetry: a render target's row 0 is its top row, exactly like an uploaded
 image's. So the backend computes `1/w, 1/h` from the resolved texture's size and never resolves
 `packet.textureMatrixId`. That is not a shortcut — resolving GL's id would apply GL's flip and
-turn every sampled target upside down.
+turn every sampled target upside down. **Consequence found 2026-08-21 (Phase 6) and closed
+2026-08-25:** both backends fetch the correct texel, but the coordinate *value* differs —
+`v_TexCoord.y` is `1 - t` on GL and `t` here — which six of the thirteen map shaders read as a
+position. Absorbed in the shader translation layer (`u_Tex0FlipY`, per draw, from
+`MetalResources::Resolved::isRenderTarget`) rather than by inverting this decision, which stands.
+Applying the flip unconditionally takes `shader-matrix` from 17 px to 40,688, an exact mirror of the
+defect, so the per-draw gate is load-bearing.
 
 **Two pixel formats, on purpose.** Sampled textures are RGBA8, which is what `Image` already
 holds, so an upload is a copy and never a swizzle. Render targets are BGRA8, matching the layer's
@@ -214,6 +228,10 @@ capture until the suppression moved to scene setup.
 Retina Cocoa window therefore fits half as many logical units into the same PNG as an X11 one, and
 every macOS capture differs from every reference by widget layout rather than by anything a
 renderer did. Pinning the density to 1 for captures is a no-op everywhere it already is 1.
+**Updated 2026-08-25 (`07b9597d`):** device pixel ratio and HUD scale are separate inputs now and `getDisplayDensity()`
+returns their product, so pinning the density means calling **both** `g_app.setDevicePixelRatio(1)`
+and `g_app.setHUDScale(1)`. `setHUDScale(1)` alone leaves a scaled window at its backing ratio and
+silently unpins every macOS capture.
 
 **ARC and non-ARC cannot share a translation unit,** which a unity build will happily try to
 arrange. The Metal sources are compiled with `-fobjc-arc` and `cocoawindow.mm` is not, so they are
@@ -399,6 +417,10 @@ what it is given. What Phase 5 actually owes:
   Metal until Phase 6. The route itself works — the scene captures — but nothing shaded comes out of it.
   **Measured 2026-08-21 (Phase 6):** shaded output comes out of it now, and comparing it for the first
   time found that `v_TexCoord` is vertically mirrored between the backends at that site. See
-  `docs/phase-6-renderer-handoff.md` and `known-deviations.md`.
+  `docs/phase-6-renderer-handoff.md` and `known-deviations.md`. **Fixed 2026-08-25 (`0ec21a80`):**
+  absorbed in the shader translation layer, not by changing the storage convention — see the
+  texture-matrix decision above. All fourteen `shader-matrix-map` captures now sit at or below the
+  scene's unshaded control frame (Fog 197,123 → 111, Pulse 267,328 → 899, control 2,083); offline
+  `shader-matrix` holds at exactly 17 px. Measured locally; CI is suspended.
 - **The performance envelope, on a vehicle that can measure one.** Phase 3's figures are XQuartz
   CPU time at a locked frame rate and are not comparable. Metal's are.

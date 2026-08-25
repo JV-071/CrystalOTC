@@ -59,17 +59,23 @@ Against the exit gate — **met**, every criterion evidenced:
 
 ## Decisions that were not free
 
-**`m_size` is in backing pixels; `m_displayDensity` is the backing scale factor.** Two
-independent analyses disagreed on this, so it was settled from source: `AndroidWindow`'s
-`updateDisplayDensityFromSystem` sets `m_displayDensity` from the *system* screen density,
-`m_size` is the raw surface size, and `Painter` feeds `getSize()` straight to `glViewport`.
+**`m_size` is in backing pixels; `m_displayDensity` is the backing scale factor.**
+**Qualified 2026-08-25 (`07b9597d`):** `m_displayDensity` is now the EFFECTIVE density — the
+device pixel ratio times the user's HUD scale. The backing scale factor alone is
+`getDevicePixelRatio()`. Two independent analyses disagreed on this, so it was settled from
+source: `AndroidWindow`'s `updateDisplayDensityFromSystem` sets `m_displayDensity` from the
+*system* screen density (through `setDevicePixelRatio` since 2026-08-25), `m_size` is the
+raw surface size, and `Painter` feeds `getSize()` straight to `glViewport`.
 `GraphicalApplication::resize` then lays the UI out at `m_size / m_displayDensity`. Getting
 this backwards would have silently multiplied the HUD scale on every Retina Mac.
 
-**A caveat the design must not inherit silently:** `g_app.setHUDScale` writes that *same*
-variable, so device pixel ratio and user HUD scale are conflated framework-wide.
-`m_backingScale` is mirrored separately as the drawable's true sizing source. Separating
-them is a framework change, not a backend one.
+**A caveat the design must not inherit silently:** ~~`g_app.setHUDScale` writes that *same*
+variable, so device pixel ratio and user HUD scale are conflated framework-wide.~~
+**Resolved 2026-08-25 (`07b9597d`):** `PlatformWindow` holds `m_devicePixelRatio` and
+`m_hudScale` as separate inputs and caches their product in `m_displayDensity`, so
+`getDisplayDensity()` keeps its meaning and no consumer changed. Both setters go through
+`g_app`, because either change has to relayout the interface. `m_backingScale` is mirrored separately as
+the drawable's true sizing source. Separating them is a framework change, not a backend one.
 
 **`hasGLContext()` returns false.** This reuses the escape hatch the Windows Vulkan path
 established rather than special-casing macOS, which is why the whole GL stack
@@ -183,8 +189,9 @@ None block Phase 2, which needs no macOS at all.
 **vcpkg deployment-target skew.** vcpkg builds its ports against the host SDK while the
 bundle links at 14.0, so every link emits `ld: warning: object file … was built for newer
 'macOS' version (X) than being linked (14.0)` — 5,124 of them on the runner. It is a warning
-class, not a gap: the same configuration links, tests 22/22 and runs. Closed by pinning
-`VCPKG_OSX_DEPLOYMENT_TARGET` to match, when someone wants a quiet log.
+class, not a gap: the same configuration links, tests 67/67 today (22/22 when this was
+measured) and runs. Closed by pinning `VCPKG_OSX_DEPLOYMENT_TARGET` to match, when someone
+wants a quiet log.
 
 **Resources are symlinked, not staged.** `data/` alone is ~776 MB and a per-build copy would
 dominate the edit/run loop, so this is a bundle that runs rather than one that ships. Real

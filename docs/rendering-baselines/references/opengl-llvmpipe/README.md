@@ -89,6 +89,13 @@ current trade is: do not pin, but record enough to diagnose a drift in one look.
 
 ## Refreshing
 
+**Suspended 2026-08-25.** The GitHub Actions minutes are exhausted, so no
+`workflow_dispatch` run can be made and these references cannot be reseeded. Until
+minutes return, a change that legitimately moves OpenGL output must be recorded as
+known-stale rather than refreshed. The procedure below is unchanged and resumes with
+CI. (Nothing currently outstanding needs a reseed: the 2026-08-25 changes are either
+confined to the Metal backend or inert at density 1, which is what every capture pins.)
+
 Run the workflow with `workflow_dispatch` and `refresh_references: true`, which
 skips the comparison, then copy the captures out of the run artifact and commit
 them with the reason in the message. Treat a container digest bump or a Mesa

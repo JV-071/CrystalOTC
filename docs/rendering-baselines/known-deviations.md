@@ -107,7 +107,16 @@ density is not 1 fits half as many logical units into the same PNG. On X11 and o
 llvmpipe runner the density already is 1 and this changes nothing; on a Retina Cocoa window
 it is the backing scale, and without the pin every macOS capture differed from every
 reference by widget layout rather than by anything a renderer did. `windowing` still varies
-it deliberately, which is what its `4-scaled` step measures.
+it deliberately, which is what its `4-scaled` step measures. **Updated 2026-08-25
+(`07b9597d`):** the device pixel ratio and the user HUD scale were split into two
+independent inputs whose product is the effective density, so the pin now sets
+**both** — `g_app.setDevicePixelRatio(1)` and `g_app.setHUDScale(1)`.
+`setHUDScale(1)` alone would leave a scaled window at its backing ratio and silently
+unpin every macOS capture. Both go through `g_app` rather than `g_window` because
+either change has to relayout the interface: routing the pin through the raw window
+setter left the UI laid out for the previous scale for one frame, measured as
+`windowing`'s first capture differing from its third by 429,850 pixels when the two
+are the same view.
 
 **Suppressed text carets (added 2026-08-21, Phase 4).** The login screen's email field owns
 keyboard focus and its caret blinks on a wall-clock timer. Two runs of one binary start
@@ -390,7 +399,7 @@ exact gate parameters, the six runs above split:
 | high (2 of 6 runs) | 698 px | **0.1063%** | 252 | **FAIL** |
 
 `render-baseline-linux.yml` fails the job on a nonzero comparator exit, so **this scene can fail
-CI spuriously with no change to the client**. An independent four-run measurement taken the same
+CI spuriously with no change to the client**. (**Parked 2026-08-25:** CI is suspended, so it cannot fire until the Actions minutes return — see *CI gating* below.) An independent four-run measurement taken the same
 day put the cross-mode difference at 946 px (0.1440%), so the size of the excursion varies between
 sessions as well; both measurements land above the 0.001 limit against the reference.
 
@@ -539,7 +548,7 @@ measured against **its own noise floor** rather than against zero:
 | `map-core` (656,880 px) | 175 px | 190 px | 34 / 166 / 197 / 305 px |
 | `map-screenshot` (168,960 px) | 0 px | 18 / 221 / 228 px | 316 / 327 px |
 | `lighting-overlap` (656,880 px) | 713 px | 851 px | 60 / 198 / 773 / 911 px |
-| `shader-matrix-map` | - | - | ~~not comparable: all fourteen cells are map shaders~~ **comparable since Phase 6; measured, see below** |
+| `shader-matrix-map` | - | - | ~~not comparable: thirteen of its fourteen cells are map shaders~~ **comparable since Phase 6; measured, see below** |
 
 The two backends differ by no more than each differs from itself. `map-screenshot`'s residual is one
 creature a tile away plus two pixels of an animated floor sparkle - the 62-pixel animated-decoration
@@ -612,7 +621,7 @@ are the only coverage of the MAP pool, the light overlay, the map-composition ma
 readback, and they were run by hand in Phases 3 and 4 - which is how both phases found a defect
 after their handoff had been drafted. Three of them have a harness now: `map-core`,
 `map-screenshot` and `lighting-overlap`. The fourth, `shader-matrix-map`, stays outside it because
-it is not comparable at all until Phase 6 - every one of its fourteen cells is a map shader - so it
+it is not comparable at all until Phase 6 - thirteen of its fourteen cells are map shaders - so it
 is captured by hand as a smoke test of the route rather than compared.
 
 A live server cannot be frozen, so each scene is compared against **its own noise floor** rather
@@ -663,10 +672,10 @@ both `map-core` (1,936 px within OpenGL) and `lighting-overlap`, because the wor
 settled - creatures are still moving into position. The figures above keep it rather than dropping
 it, since a floor computed only from settled runs would understate the noise.
 
-## Map shaders on Metal: `v_TexCoord` is vertically mirrored
+## Map shaders on Metal: `v_TexCoord` is vertically mirrored (fixed 2026-08-25)
 
 Added 2026-08-21 (Phase 6), and the largest single finding of that phase. It came from
-`shader-matrix-map`, which **no phase before this one could compare**: all fourteen of its cells are
+`shader-matrix-map`, which **no phase before this one could compare**: thirteen of its fourteen cells are
 map shaders, and until Phase 6 no module program resolved on Metal at all. The scene is the only
 coverage of a module material on its real bind site — the MAP framebuffer-to-screen blit — which
 `shader-matrix` structurally cannot reach.
@@ -768,8 +777,8 @@ owed the next time a current GL binary exists.
 
 A second, smaller defect surfaced in the same run and **was** fixed (`b951233`): the composition
 packet carried no `extraTex`, so Fog and Snow lost `u_Tex1` at the only site they use it. Fog went
-from 273,805 px at mean channel delta 17.8 to 195,742 at 3.95 — the clouds appear, and what is left
-is the orientation difference above.
+from 273,805 px at mean channel delta 17.8 to 195,742 at 3.95 — the clouds appear, and what was
+left at that point was the orientation difference above, since fixed.
 
 ## Online scenes after the module materials landed
 
@@ -844,6 +853,11 @@ carries roughly a 15-pixel margin of noise and set `maxDifferentFraction` accord
 at the default and assume the 0 px is a property of the scene.
 
 ## CI gating
+
+**Suspended 2026-08-25:** the GitHub Actions minutes are exhausted, so none of the jobs
+described below are running and the references cannot be reseeded. `particles-blends`'
+latent spurious failure is parked with them. Everything here describes the mechanism,
+which resumes with CI.
 
 Three scenes are captured and archived but deliberately **not** gated against a reference:
 `outfit-masks`, `temporary-framebuffers` and `shader-matrix-outfits`. `data/things/*` is

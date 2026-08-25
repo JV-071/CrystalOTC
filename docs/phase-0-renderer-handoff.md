@@ -23,7 +23,7 @@ At this checkpoint:
 - `luac -p` passes on `init.lua` and the capture driver.
 - `python3 tools/renderer_scenes.py validate` exits 0.
 - Every offline scene listed below was captured repeatedly and compared.
-- The llvmpipe workflow runs green on GitHub. Its first run failed; the failure and all four
+- The llvmpipe workflow ran green on GitHub. Its first run failed; the failure and all four
   warnings were diagnosed from the logs and fixed. Run `32381800862` compared six gated scenes
   at 0 differing pixels and `atlas-resources` at 158, inside tolerance.
 
@@ -42,7 +42,7 @@ Against the exit gate:
 
 - [x] The client runs on macOS via XQuartz.
 - [x] A checked-in scene list (`scenes.json`, machine-readable, single source of truth).
-- [x] A CI-generated reference-image set — all 7 seeded and gating green (run `32381800862`). (**Updated 2026-08-20:** 8 gated post-handoff, and all 8 have a committed reference — `shader-matrix`'s was seeded from run `32395555810` in `f037e42`.)
+- [x] A CI-generated reference-image set — all 7 seeded and gating green at the time (run `32381800862`). (**Updated 2026-08-20:** 8 gated post-handoff, and all 8 have a committed reference — `shader-matrix`'s was seeded from run `32395555810` in `f037e42`.)
 - [x] A known-deviations note, including the XQuartz-versus-llvmpipe comparison with evidence.
 
 ### Scenes
@@ -160,8 +160,10 @@ Online, require the fixture server: `map-core`, `map-screenshot`, `lighting-over
 ## Remaining Phase 0 work
 
 None. Every scene in `scenes.json` has a command, all seven gated scenes had a reference at this checkpoint (eight are gated post-handoff, and all eight now have one - `shader-matrix`'s was seeded from run `32395555810` in `f037e42`), and
-the workflow gates them green: run `32381800862` compared six at exactly 0 differing pixels
-and `atlas-resources` at 158, inside its tolerance.
+the workflow gated them green: run `32381800862` compared six at exactly 0 differing pixels
+and `atlas-resources` at 158, inside its tolerance. (**2026-08-25:** CI validation is suspended —
+the Actions minutes are exhausted — so the llvmpipe job is not currently running. Phase 0's exit
+gate was met while it was.)
 
 The exit gate is met. What follows is deferred work that does not block it.
 

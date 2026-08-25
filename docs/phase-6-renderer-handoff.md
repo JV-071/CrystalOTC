@@ -90,13 +90,15 @@ runs in CI"*:
 All of 656,880 pixels, both sides forced onto `--render-path=frame` so the two consume an identical
 `RenderFrame` and a difference is attributable below the renderer boundary.
 
-**The gate is met for the offline matrix and qualified for map shaders.** `shader-matrix-map` — the
-fourteen map shaders on their real bind site, and a scene no earlier phase could compare — splits
-exactly in half. Eight captures sit inside the scene's own noise floor; six differ, and all six are
-shaders that read `v_TexCoord` as a *position* rather than only as a sampling coordinate. That is a
-render-target orientation difference between the backends, not a translation defect, and it is
-unfixed. Mechanism, measurements and the two possible fixes are in `known-deviations.md`, "Map
-shaders on Metal: `v_TexCoord` is vertically mirrored".
+**The gate is met for the offline matrix; it was qualified for map shaders at this checkpoint and is
+met unqualified since 2026-08-25.** `shader-matrix-map` — the fourteen map shaders on their real
+bind site, and a scene no earlier phase could compare — splits exactly in half. Eight captures sit
+inside the scene's own noise floor; six differ, and all six are shaders that read `v_TexCoord` as a
+*position* rather than only as a sampling coordinate. That is a
+render-target orientation difference between the backends, not a translation defect. **Fixed
+2026-08-25 (`0ec21a80`), after this checkpoint:** all fourteen captures now sit at or below the
+scene's unshaded control frame. Measurements, the mechanism and the fix are in `known-deviations.md`,
+"Map shaders on Metal: `v_TexCoord` is vertically mirrored".
 
 The toolchain runs in CI on the Linux baseline job. That is where it belongs for two reasons that
 happen to agree: `modules/**` was already a path filter there and nowhere else, and glslang plus
@@ -257,14 +259,21 @@ fixed in `b951233` by carrying the handles with the material from `MapView`, the
 both. Fog went from 273,805 differing pixels at mean channel delta 17.8 to 195,742 at 3.95 — the
 clouds appear.
 
-**And behind it, the finding this phase could not fix.** The residual on those six map shaders is
-that GL stores a render target bottom-up and samples it through an `upsideDown` texture matrix,
-while Metal stores targets top-down and samples through a plain one. Both fetch the correct texel;
+**And behind it, the finding this phase could not fix — closed 2026-08-25.** The residual on those
+six map shaders is that GL stores a render target bottom-up and samples it through an `upsideDown`
+texture matrix, while Metal stores targets top-down and samples through a plain one. Both fetch the
+correct texel;
 `v_TexCoord.y` runs the opposite way. A shader that only samples cannot tell — which is why
 `shader-matrix` compares at 17 px on the same programs — and a full-screen post-effect that uses the
 coordinate as a position sees a mirrored field. No change to the geometry or the matrix fixes it,
 because the two backends need different texcoords to reach the same pixel; only unifying the storage
-convention does, and that is a phase of work either way.
+convention does, and that is a phase of work either way. **Corrected 2026-08-25 (`0ec21a80`): that
+last clause was wrong.** The two backends do need different texcoords, but the difference does not
+have to be absorbed in the storage convention — the shader translation layer takes it, exactly as it
+already takes `gl_FragCoord`'s origin for `rain.frag`. The shader's arithmetic runs in GL coordinate
+space via `crystalotc_texCoordGL()` and converts once at the `u_Tex0` fetch via
+`crystalotc_sampleTex0()`, both gated per draw on `u_Tex0FlipY`. Metal keeps its top-down targets
+and the Phase 4 decision stands.
 
 **Four deferred lambdas captured a pointer into a string that had already been popped.**
 `ShaderManager`'s `create*` and `setup*` entry points captured `name.data()` — a raw `const char*`
@@ -328,7 +337,7 @@ what the MAP pool draws, which is what made this run worth doing.
 
 **`createFragmentShaderFromCode` is a documented gap rather than a supported feature on Metal.** It
 registers GL-only and falls back to the default built-in with a one-time log. No shipped module
-uses it. Module-author documentation for this does not exist yet.
+uses it. Module-author documentation landed later in the same phase: `docs/shader-authoring.md`.
 
 **`test.frag` and `forge.frag` still ship with no registration site.** `test.frag` is excluded from
 translation with its reason recorded — it is pre-1.20 fixed-function source that no SPIR-V version
@@ -407,7 +416,7 @@ Phase 7 is hardening and distribution: bundle completeness, signing and notariza
 reliability matrix, GPU diagnostics, and promoting the macOS job to a required check.
 
 - **The cross-backend gate is now unconditional**, and that is the thing to protect. Eleven scenes,
-  no exclusions, seven at 0 px. Any future scene that cannot be compared needs a stated reason in
+  no exclusions, eight at 0 px. Any future scene that cannot be compared needs a stated reason in
   the manifest, which `renderer_scenes.py validate` already enforces.
 - **The macOS image matrix is ready to be gated and is not gated.** Phase 5 established that a
   hosted runner captures all eleven offline scenes with no window server, and that nine of them are
@@ -422,8 +431,11 @@ reliability matrix, GPU diagnostics, and promoting the macOS job to a required c
 - **The reliability matrix should include a shader that fails to compile.** Every path is written -
   a missing MSL entry, a library that fails to build, an entry point that is absent - and none has
   ever been exercised, because all 23 materials translate and compile.
-- **The map-shader orientation divergence is the one thing this phase leaves visibly wrong**, and it
-  is a renderer-architecture decision rather than a hardening task. Whoever picks it up should read
-  `known-deviations.md` first: the mechanism is settled and the choice is between two ways of
-  unifying the render-target storage convention, each of which touches a decision the rest of the
-  migration rests on.
+- ~~**The map-shader orientation divergence is the one thing this phase leaves visibly wrong**~~
+  **Closed 2026-08-25 (`0ec21a80`), after this handoff was written.** Absorbed in the shader
+  translation layer rather than by unifying the storage convention; no OpenGL or shared framework
+  file was touched, so no checked-in reference moved. Phase 7 inherits nothing here. What it does
+  inherit is the check recorded as owed in `known-deviations.md`: `map-core` and `lighting-overlap`
+  could not be compared across backends that session, because the available OpenGL binary predates
+  roughly thirty commits of UI work and the two disagree on window height (1020x650 against
+  1020x644).

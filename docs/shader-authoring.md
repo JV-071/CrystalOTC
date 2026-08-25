@@ -130,7 +130,7 @@ rendered into an offscreen target and the shader runs at the blit, on the compos
 than on each draw. `Outfit - Outline` is the only shipped shader that uses it — an outline needs to
 see the finished sprite, not one layer of it.
 
-Several registered names may share one `.frag`; Party, Radial Blur, Heat and Noise each do. The
+Several registered names may share one `.frag`; Party, Radial Blur, Heat, Noise and Grayscale each do. The
 Metal side keys on the **file**, not the name, so sharing costs nothing.
 
 `g_shaders.createFragmentShaderFromCode` exists and is **OpenGL-only by policy**. There is no file
@@ -141,7 +141,7 @@ did, once. If you need your effect on macOS, ship a `.frag`.
 
 ```sh
 tools/generate_metal_shaders.py --write     # regenerate after any .frag change
-tools/generate_metal_shaders.py --check     # what the build and CI run
+tools/generate_metal_shaders.py --check     # what the build runs (and CI, when CI is running)
 tools/generate_metal_shaders.py --list      # the translated material keys
 ```
 

@@ -263,17 +263,21 @@ usage is three — but it is a cap where there was none, and hitting it degrades
 rather than failing loudly. Widening it is one constant and a `static_assert`.
 
 ~~**The whole UI renders at half resolution on a Retina Mac, and this is unowned rather than
-deferred.**~~ **Fixed 2026-08-25.** Part 2 of the three-part plan below was implemented directly;
-part 1 turned out not to be a prerequisite and part 3 is unchanged advice. `FrameBuffer` gained a
-content scale and `RenderPass` a `projectionExtent`, so a target can be addressed in one coordinate
-space and rasterised in a denser one; the FOREGROUND target is now sized in device pixels while the
-UI keeps laying out in logical units, and the composition blit is 1:1. Measured on `windowing`'s
+deferred.**~~ **Fixed 2026-08-25.** Part 2 of the three-part plan below landed first and was the fix
+(`b58e805d`, `6b03c256`); part 1 followed the same day (`07b9597d`) and is also done, though it
+turned out not to be a prerequisite. Part 3 is unchanged advice. Measured locally; CI is suspended.
+`FrameBuffer` gained a content scale and `RenderPass` a `projectionExtent`, so a target can be
+addressed in one coordinate space and rasterised in a denser one; the FOREGROUND target is now sized
+in device pixels while the UI keeps laying out in logical units, and the composition blit is 1:1.
+Measured on `windowing`'s
 HUD-scale-2 capture: mean absolute horizontal gradient 3.702 -> 5.193 at a best alignment of (0,0),
 so the image is the same image, sharper. Density 1 is unchanged - both sweeps at every documented
 value. The original write-up follows, because its diagnosis is what the fix was built from.
 
 **The whole UI rendered at half resolution on a Retina Mac, and this was unowned rather than
 deferred.** Found while answering a question about `@2x` assets, not by any gate.
+
+*As of 2026-08-21, before the fix:*
 
 `GraphicalApplication::resize` lays the UI out at `m_size / m_displayDensity` **and** sizes the
 FOREGROUND target at `m_size / m_displayDensity`; `UIManager::render` then blits that target into
@@ -287,8 +291,9 @@ the opposite until this phase re-corrected it.
 **Nothing about this is Metal.** It is shared framework code and `GLBackend` would do the same on
 the same window. It has been latent since Phase 1 for two compounding reasons: XQuartz reports
 density 1, so the OpenGL reference vehicle never sees it; and every baseline capture pins the
-density to 1 (`g_app.setHUDScale(1)` in the capture driver) so that macOS captures stay comparable
-with llvmpipe references. That pin is correct and should stay — but its side effect is that **the
+density to 1 (`g_app.setDevicePixelRatio(1)` and `g_app.setHUDScale(1)` in the capture driver — a
+single `setHUDScale(1)` before the 2026-08-25 split) so that macOS captures stay comparable with
+llvmpipe references. That pin is correct and should stay — but its side effect is that **the
 one configuration real users get is the one nothing measures.**
 
 Higher-resolution art does **not** fix this and would make it slightly worse: a 2x asset is sampled
@@ -305,15 +310,18 @@ Three separable parts, in order:
    doing on its own merits rather than for the Retina fix: the conflation meant that on a
    ratio-2 display, HUD scale 1 laid the interface out at device resolution and HUD scale 2 was a
    silent no-op, while a display change discarded the user's choice entirely.
-2. Keep laying out in logical units, but size the FOREGROUND target in **physical** pixels and draw
+2. ~~Keep laying out in logical units, but size the FOREGROUND target in **physical** pixels and draw
    into it with a scaled projection, so widgets rasterize at native resolution and the composition
-   blit becomes 1:1.
+   blit becomes 1:1.~~ **Done 2026-08-25 (`b58e805d`, `6b03c256`) — this was the fix.** `FrameBuffer`
+   gained a content scale and `RenderPass` a `projectionExtent`; both backends split the device
+   viewport from the projection extent, and the composition blit is 1:1.
 3. Only then evaluate higher-resolution art — and keep game sprites `NEAREST`-filtered at integer
    scale regardless, since 32x32 pixel art is meant to look crisp and blocky rather than resampled.
 
-**On the status (superseded 2026-08-25 — it was scheduled and done):** this is recorded three times — the Phase 1 handoff, design open question 5, and
-the plan's Phase 1 task 2 — always as "a framework change, not a backend one", and once as "carry
-into Phase 4". Phase 4 honoured it as a constraint (mirroring `m_backingScale` separately) rather
+**On the status (superseded 2026-08-25 — it was done outside the plan, and still owned by no
+phase):** this is recorded three times — the Phase 1 handoff, design open question 5, and the plan's
+Phase 1 task 2 — always as "a framework change, not a backend one", and once as "carry into
+Phase 4". Phase 4 honoured it as a constraint (mirroring `m_backingScale` separately) rather
 than as work. So it was classified out of scope and never scheduled, which reads like a deferral
 while assigning nothing to anyone. It belongs to no phase in this plan; Phase 6 is the shader
 toolchain and Phase 7's reliability matrix does not list it. Recorded here so it stops being an
@@ -406,7 +414,9 @@ registered module programs, and the GL side of the `MaterialParams` ABI.
   is proven and its payload is not. **Payload delivered and measured 2026-08-21 (Phase 6)** — and it
   is where that phase's largest finding came from: comparing the scene for the first time showed
   `v_TexCoord` running the opposite way on a render target between the two backends, which six of
-  the thirteen map shaders can see.
+  the thirteen map shaders can see. **Closed 2026-08-25 (`0ec21a80`):** absorbed in the shader
+  translation layer; all fourteen `shader-matrix-map` captures now sit at or below the scene's
+  unshaded control frame.
 - **The frame is now a complete description**, which changes what a Phase 6 failure means: if a
   module material renders differently on the two backends, the recorded frames will be identical
   and the difference is in the translation. That is the triage `RecordingBackend` was built for and
