@@ -1160,11 +1160,11 @@ endif()
 if(APPLE AND TOGGLE_COCOA_WINDOW)
   set_target_properties(${PROJECT_NAME} PROPERTIES
           MACOSX_BUNDLE TRUE
-          OUTPUT_NAME "CrystalOTC"
+          OUTPUT_NAME "Ultia"
           MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/macos/Info.plist.in"
-          MACOSX_BUNDLE_BUNDLE_NAME "CrystalOTC"
-          MACOSX_BUNDLE_EXECUTABLE_NAME "CrystalOTC"
-          MACOSX_BUNDLE_GUI_IDENTIFIER "com.crystalotc.client"
+          MACOSX_BUNDLE_BUNDLE_NAME "Ultia"
+          MACOSX_BUNDLE_EXECUTABLE_NAME "Ultia"
+          MACOSX_BUNDLE_GUI_IDENTIFIER "com.ultia.client"
           MACOSX_BUNDLE_BUNDLE_VERSION "4.0"
           MACOSX_BUNDLE_SHORT_VERSION_STRING "4.0"
           MACOSX_BUNDLE_COPYRIGHT "Copyright (c) 2010-2026 OTClient contributors"
@@ -1174,10 +1174,10 @@ if(APPLE AND TOGGLE_COCOA_WINDOW)
   # Contents/Resources as a candidate for exactly this. data/ alone is ~776 MB, so a
   # developer build links rather than copies - a real copy per build would dominate the
   # edit/run loop. Phase 7 replaces this with a staged copy for distribution.
-  set(_OTC_BUNDLE_RESOURCES "${CMAKE_BINARY_DIR}/bin/CrystalOTC.app/Contents/Resources")
+  set(_OTC_BUNDLE_RESOURCES "${CMAKE_BINARY_DIR}/bin/Ultia.app/Contents/Resources")
   add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
           COMMAND ${CMAKE_COMMAND} -E make_directory "${_OTC_BUNDLE_RESOURCES}"
-          COMMENT "Linking client resources into CrystalOTC.app/Contents/Resources"
+          COMMENT "Linking client resources into Ultia.app/Contents/Resources"
           VERBATIM
   )
   foreach(_res init.lua data modules mods)

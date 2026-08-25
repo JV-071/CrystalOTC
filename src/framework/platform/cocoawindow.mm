@@ -49,6 +49,7 @@
 
 #include "cocoawindow.h"
 
+#include <framework/core/clock.h>
 #include <framework/core/eventdispatcher.h>
 #include <framework/core/resourcemanager.h>
 #include <framework/graphics/image.h>
@@ -107,9 +108,16 @@ enum : unsigned short
 
 @class CrystalOTCView;
 
+struct CocoaCursorState
+{
+    std::vector<NSCursor*> frames;
+    std::vector<int> delays;
+};
+
 struct CocoaWindowImpl
 {
     NSWindow* window = nil;
+    NSTextField* titleLabel = nil;
     CrystalOTCView* view = nil;
     NSObject* windowDelegate = nil;
     NSObject* appDelegate = nil;
@@ -117,7 +125,10 @@ struct CocoaWindowImpl
     id<MTLDevice> device = nil;
     id<MTLCommandQueue> queue = nil;
 
-    std::vector<NSCursor*> cursors;
+    std::vector<CocoaCursorState> cursors;
+    int currentCursorId = -1;
+    size_t currentCursorFrame = 0;
+    ticks_t cursorFrameStartedAt = 0;
     bool mouseHidden = false;
 };
 
@@ -411,6 +422,30 @@ void CocoaWindow::internalCreateWindow()
     [m_impl->window setRestorable:NO];
     [m_impl->window setContentMinSize:NSMakeSize(m_minimumSize.width(), m_minimumSize.height())];
 
+    // AppKit left-aligns the native title in the modern compact title bar used by this
+    // window. The official client keeps its product title centered, so retain the native
+    // title for accessibility/window management but render a centered title-bar label.
+    [m_impl->window setTitleVisibility:NSWindowTitleHidden];
+    NSView* titleBar = [[m_impl->window standardWindowButton:NSWindowCloseButton] superview];
+    if (titleBar) {
+        NSTextField* titleLabel = [NSTextField labelWithString:@""];
+        titleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        titleLabel.alignment = NSTextAlignmentCenter;
+        titleLabel.font = [NSFont titleBarFontOfSize:0.0];
+        titleLabel.textColor = [NSColor secondaryLabelColor];
+        titleLabel.lineBreakMode = NSLineBreakByTruncatingTail;
+        [titleBar addSubview:titleLabel];
+        [NSLayoutConstraint activateConstraints:@[
+            [titleLabel.centerXAnchor constraintEqualToAnchor:titleBar.centerXAnchor],
+            [titleLabel.centerYAnchor constraintEqualToAnchor:
+                [m_impl->window standardWindowButton:NSWindowCloseButton].centerYAnchor],
+            [titleLabel.leadingAnchor constraintGreaterThanOrEqualToAnchor:
+                [m_impl->window standardWindowButton:NSWindowZoomButton].trailingAnchor constant:12.0],
+            [titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:titleBar.trailingAnchor constant:-12.0]
+        ]];
+        m_impl->titleLabel = titleLabel;
+    }
+
     auto* view = [[CrystalOTCView alloc] initWithFrame:content];
     view->owner = this;
     m_impl->view = view;
@@ -422,6 +457,13 @@ void CocoaWindow::internalCreateWindow()
     m_impl->layer = [CAMetalLayer layer];
     m_impl->layer.device = m_impl->device;
     m_impl->layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    // The renderer deliberately performs legacy UI blending on raw sRGB bytes,
+    // but the compositor still needs to know how to present those bytes.  A
+    // nil CAMetalLayer color space makes the result display-dependent and, on
+    // wide-gamut Macs, visibly duller than Qt's sRGB-managed official client.
+    CGColorSpaceRef presentationColorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+    m_impl->layer.colorspace = presentationColorSpace;
+    CGColorSpaceRelease(presentationColorSpace);
     m_impl->layer.framebufferOnly = YES;
     m_impl->layer.opaque = YES;
 
@@ -467,6 +509,7 @@ void CocoaWindow::terminate()
             [m_impl->window orderOut:nil];
             m_impl->window = nil;
         }
+        m_impl->titleLabel = nil;
         if (m_impl->view) {
             m_impl->view->owner = nullptr;
             m_impl->view = nil;
@@ -505,6 +548,20 @@ void CocoaWindow::poll()
 {
     @autoreleasepool {
         internalPumpEvents();
+
+        if (m_impl->currentCursorId >= 0 &&
+            m_impl->currentCursorId < static_cast<int>(m_impl->cursors.size())) {
+            auto& cursor = m_impl->cursors[m_impl->currentCursorId];
+            if (cursor.frames.size() > 1) {
+                const auto now = g_clock.millis();
+                const int delay = cursor.delays[m_impl->currentCursorFrame];
+                if (now - m_impl->cursorFrameStartedAt >= delay) {
+                    m_impl->currentCursorFrame = (m_impl->currentCursorFrame + 1) % cursor.frames.size();
+                    m_impl->cursorFrameStartedAt = now;
+                    [cursor.frames[m_impl->currentCursorFrame] set];
+                }
+            }
+        }
 
         // NSPasteboard is main-thread work, but getClipboardText() is called from the map
         // thread (uitextedit). Snapshot it here instead.
@@ -691,6 +748,8 @@ void CocoaWindow::setTitle(const std::string_view title)
         @autoreleasepool {
             if (m_impl->window)
                 [m_impl->window setTitle:[NSString stringWithUTF8String:stdext::latin1_to_utf8(copy).c_str()]];
+            if (m_impl->titleLabel)
+                [m_impl->titleLabel setStringValue:[NSString stringWithUTF8String:stdext::latin1_to_utf8(copy).c_str()]];
         }
     });
 }
@@ -758,27 +817,62 @@ void CocoaWindow::setIcon(const std::string& iconFile)
 int CocoaWindow::internalLoadMouseCursor(const ImagePtr& image, const Point& hotSpot)
 {
     @autoreleasepool {
-        const auto size = image->getSize();
-        NSBitmapImageRep* rep =
-            [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nullptr
-                                                   pixelsWide:size.width()
-                                                   pixelsHigh:size.height()
-                                                bitsPerSample:8
-                                              samplesPerPixel:4
-                                                     hasAlpha:YES
-                                                     isPlanar:NO
-                                               colorSpaceName:NSDeviceRGBColorSpace
-                                                  bytesPerRow:size.width() * 4
-                                                 bitsPerPixel:32];
-        memcpy([rep bitmapData], image->getPixelData(), size.area() * 4);
+        CocoaCursorState cursorState;
 
-        // Unlike X11's 1-bit pixmap cursors, this keeps the full RGBA image.
-        NSImage* cursorImage = [[NSImage alloc] initWithSize:NSMakeSize(size.width(), size.height())];
-        [cursorImage addRepresentation:rep];
+        const auto appendFrame = [&](const ImagePtr& frame, const Rect& sourceRect, const int delay) {
+            NSBitmapImageRep* rep =
+                [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:nullptr
+                                                       pixelsWide:sourceRect.width()
+                                                       pixelsHigh:sourceRect.height()
+                                                    bitsPerSample:8
+                                                  samplesPerPixel:4
+                                                         hasAlpha:YES
+                                                         isPlanar:NO
+                                                   colorSpaceName:NSDeviceRGBColorSpace
+                                                      bytesPerRow:sourceRect.width() * 4
+                                                     bitsPerPixel:32];
 
-        NSCursor* cursor = [[NSCursor alloc] initWithImage:cursorImage
-                                                   hotSpot:NSMakePoint(hotSpot.x, hotSpot.y)];
-        m_impl->cursors.push_back(cursor);
+            auto* destination = [rep bitmapData];
+            const auto* source = frame->getPixelData();
+            const int sourceStride = frame->getWidth() * 4;
+            const int destinationStride = sourceRect.width() * 4;
+            for (int y = 0; y < sourceRect.height(); ++y) {
+                memcpy(destination + y * destinationStride,
+                       source + (sourceRect.y() + y) * sourceStride + sourceRect.x() * 4,
+                       destinationStride);
+            }
+
+            // Unlike X11's 1-bit pixmap cursors, this keeps the full RGBA image.
+            NSImage* cursorImage = [[NSImage alloc]
+                initWithSize:NSMakeSize(sourceRect.width(), sourceRect.height())];
+            [cursorImage addRepresentation:rep];
+
+            cursorState.frames.push_back([[NSCursor alloc]
+                initWithImage:cursorImage hotSpot:NSMakePoint(hotSpot.x, hotSpot.y)]);
+            cursorState.delays.push_back(delay);
+        };
+
+        if (image->isAnimated()) {
+            for (const auto& frame : image->getAnimation())
+                appendFrame(frame.image, Rect(Point(), frame.image->getSize()), frame.delay);
+        } else {
+            const auto size = image->getSize();
+            // The official client stores its animated cursors as horizontal square-frame
+            // strips (for example cursor-walk.png is 256x32). AppKit does not interpret
+            // sprite sheets, so handing it the full image creates one malformed cursor.
+            // Split those strips here and let poll() advance the active NSCursor.
+            const bool isHorizontalStrip = size.height() > 0 && size.width() >= size.height() * 2 &&
+                                           size.width() % size.height() == 0;
+            if (isHorizontalStrip) {
+                const int frameSize = size.height();
+                for (int x = 0; x < size.width(); x += frameSize)
+                    appendFrame(image, Rect(x, 0, frameSize, frameSize), 100);
+            } else {
+                appendFrame(image, Rect(Point(), size), 0);
+            }
+        }
+
+        m_impl->cursors.push_back(std::move(cursorState));
         return static_cast<int>(m_impl->cursors.size()) - 1;
     }
 }
@@ -796,7 +890,19 @@ void CocoaWindow::setMouseCursor(const int cursorId)
                 [NSCursor unhide];
                 m_impl->mouseHidden = false;
             }
-            [m_impl->cursors[cursorId] set];
+            auto& cursor = m_impl->cursors[cursorId];
+            if (cursor.frames.empty())
+                return;
+
+            // Map hover updates can select the same semantic cursor again whenever the
+            // pointer crosses a tile boundary. Do not restart an animation in that case,
+            // or a moving pointer remains stuck near its first frame.
+            if (m_impl->currentCursorId != cursorId) {
+                m_impl->currentCursorId = cursorId;
+                m_impl->currentCursorFrame = 0;
+                m_impl->cursorFrameStartedAt = g_clock.millis();
+            }
+            [cursor.frames[m_impl->currentCursorFrame] set];
         }
     });
 }
@@ -809,6 +915,7 @@ void CocoaWindow::restoreMouseCursor()
                 [NSCursor unhide];
                 m_impl->mouseHidden = false;
             }
+            m_impl->currentCursorId = -1;
             [[NSCursor arrowCursor] set];
         }
     });

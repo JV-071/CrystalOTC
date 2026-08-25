@@ -76,9 +76,9 @@ if ENABLE_SERVERS then
     }
 end
 
-g_app.setName("CrystalOTC");
-g_app.setCompactName("crystalotc");
-g_app.setOrganizationName("Crystal");
+g_app.setName("Ultia");
+g_app.setCompactName("ultia");
+g_app.setOrganizationName("Ultia");
 
 -- Renderer baseline captures must be reproducible run to run, and must not disturb the
 -- developer's own client. Persisted state broke both properties: game_interface saves and
@@ -196,8 +196,11 @@ local function loadModules()
         dofile(script)
     end
 
-    -- uncomment the line below so that modules are reloaded when modified. (Note: Use only mod dev)
-    g_modules.enableAutoReload()
+    -- Live reload is deliberately opt-in. A normal player build keeps the stable
+    -- product title; developers can launch with --live-reload when editing modules.
+    if g_app.getStartupOptions():find("--live-reload", 1, true) then
+        g_modules.enableAutoReload()
+    end
 end
 
 -- run updater, must use data.zip
