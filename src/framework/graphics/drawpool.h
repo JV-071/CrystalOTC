@@ -111,7 +111,12 @@ public:
     float getScaleFactor() const { return m_scaleFactor; }
     bool isScaled() const { return m_scaleFactor != DEFAULT_DISPLAY_DENSITY; }
 
-    void setFramebuffer(const Size& size);
+    void setFramebuffer(const Size& size, float contentScale = 1.f);
+    float getContentScale() const { return m_framebuffer ? m_framebuffer->getContentScale() : 1.f; }
+
+    // Logical coordinate space -> device pixels. Clip rects need it because the scissor test is
+    // applied outside the projection; nothing else does.
+    static Rect scaleToDevice(const Rect& rect, float scale);
     void removeFramebuffer();
 
     void onBeforeDraw(std::function<void()>&& f) { m_beforeDraw = std::move(f); }

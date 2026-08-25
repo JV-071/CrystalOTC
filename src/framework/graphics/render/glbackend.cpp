@@ -251,8 +251,11 @@ void GLBackend::runPass(const RenderPass& pass)
         }
         target->bindAsTarget();
     } else {
+        // Resolution drives glViewport and the scissor y-flip, so it is the DEVICE size; the
+        // projection spans the logical extent, which is the same thing everywhere except a
+        // target rasterising above the space its geometry is recorded in.
         g_painter->setResolution(pass.viewport.size(),
-                                 g_painter->getTransformMatrix(pass.viewport.size()));
+                                 g_painter->getTransformMatrix(pass.projectionSize()));
     }
 
     if (pass.load == LoadAction::Clear) {

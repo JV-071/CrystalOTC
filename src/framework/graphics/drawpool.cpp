@@ -562,12 +562,24 @@ void DrawPool::popTransformMatrix()
     m_transformMatrixStack.pop_back();
 }
 
+Rect DrawPool::scaleToDevice(const Rect& rect, const float scale)
+{
+    if (scale == 1.f || !rect.isValid())
+        return rect;
+
+    return { static_cast<int>(rect.left() * scale), static_cast<int>(rect.top() * scale),
+             static_cast<int>(rect.width() * scale), static_cast<int>(rect.height() * scale) };
+}
+
 void DrawPool::PoolState::execute(DrawPool* pool) const {
     g_painter->setColor(color);
     g_painter->setOpacity(opacity);
     g_painter->setCompositionMode(compositionMode);
     g_painter->setBlendEquation(blendEquation);
-    g_painter->setClipRect(clipRect);
+    // A clip rect is recorded in the pool's LOGICAL coordinate space, but glScissor is in device
+    // pixels - the one piece of painter state the projection cannot carry, since it is applied
+    // outside it. Everything else here (geometry, transforms) rides the logical projection.
+    g_painter->setClipRect(scaleToDevice(clipRect, pool ? pool->getContentScale() : 1.f));
     g_painter->setShaderProgram(shaderProgram);
     g_painter->setTransformMatrix(transformMatrix);
     if (action) action();
@@ -581,13 +593,13 @@ void DrawPool::PoolState::execute(DrawPool* pool) const {
         g_painter->setTexture(textureId, textureMatrixId);
 }
 
-void DrawPool::setFramebuffer(const Size& size) {
+void DrawPool::setFramebuffer(const Size& size, const float contentScale) {
     if (!m_framebuffer) {
         m_framebuffer = std::make_shared<FrameBuffer>();
         m_framebuffer->m_isScene = true;
     }
 
-    if (size.isValid() && m_framebuffer->resize(size)) {
+    if (size.isValid() && m_framebuffer->resize(size, contentScale)) {
         m_framebuffer->prepare({}, {});
         repaint();
     }

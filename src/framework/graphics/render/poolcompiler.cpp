@@ -36,6 +36,8 @@ namespace
     {
         RenderTargetHandle target;
         Rect viewport;
+        Size projectionExtent;
+        float contentScale{ 1.f };
         Color clearColor{ Color::alpha };
         LoadAction firstLoad{ LoadAction::Clear };
         bool flushedOnce{ false };
@@ -87,7 +89,14 @@ namespace
 
     // Scissor rects arrive from the producer unclamped. GL forgave out-of-bounds ones; Metal
     // validates and kills the encoder. Clamping here means neither backend has to care.
-    ClampedScissor clampScissor(const Rect& scissor, const Rect& viewport)
+    // A clip rect is recorded in the pool's logical space while the scissor test runs in device
+    // pixels, so it is clamped against the logical extent and scaled on the way out.
+    Rect logicalViewport(const OpenSegment& seg)
+    {
+        return seg.projectionExtent.isValid() ? Rect(0, 0, seg.projectionExtent) : seg.viewport;
+    }
+
+    ClampedScissor clampScissor(const Rect& scissor, const Rect& viewport, const float scale = 1.f)
     {
         if (!scissor.isValid())
             return { {}, false }; // no clipping was requested
@@ -96,7 +105,7 @@ namespace
         if (!clamped.isValid())
             return { Rect(viewport.left(), viewport.top(), 0, 0), true }; // misses the target: clips everything
 
-        return { clamped, true };
+        return { DrawPool::scaleToDevice(clamped, scale), true };
     }
 }
 
@@ -139,7 +148,11 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
     OpenSegment root;
     if (hasTarget) {
         root.target = RenderHandles::poolTarget(pool.m_type);
+        // The viewport is the target in DEVICE pixels; the projection spans its logical extent.
+        // The two differ only for a target that rasterises above the space it is addressed in.
         root.viewport = Rect(0, 0, pool.m_framebuffer->getSize());
+        root.projectionExtent = pool.m_framebuffer->getLogicalSize();
+        root.contentScale = pool.m_framebuffer->getContentScale();
         root.clearColor = pool.m_fbClearColor;
         root.firstLoad = LoadAction::Clear;
         root.alphaWrite = pool.m_framebuffer->hasAlphaWriting();
@@ -209,6 +222,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         pass.load = seg.flushedOnce ? LoadAction::Keep : seg.firstLoad;
         pass.clearColor = seg.clearColor;
         pass.viewport = seg.viewport;
+        pass.projectionExtent = seg.projectionExtent;
         pass.label = seg.label;
         pass.packets.swap(seg.packets);
 
@@ -267,7 +281,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
         packet.material = materialOf(obj.state.shaderProgram);
         emitMultiTextures(packet, obj.state.shaderProgram);
         packet.transform = obj.state.transformMatrix;
-        const auto scissor = clampScissor(obj.state.clipRect, seg.viewport);
+        const auto scissor = clampScissor(obj.state.clipRect, logicalViewport(seg), seg.contentScale);
         packet.scissor = scissor.rect;
         packet.scissorEnabled = scissor.enabled;
         packet.color = obj.state.color;
@@ -354,7 +368,7 @@ void PoolCompiler::compile(const DrawPool& pool, const Size& viewportSize, PoolP
             packet.transform = obj.state.transformMatrix;
             noteResidency(obj.state);
 
-            const auto blitScissor = clampScissor(obj.state.clipRect, seg.viewport);
+            const auto blitScissor = clampScissor(obj.state.clipRect, logicalViewport(seg), seg.contentScale);
             packet.scissor = blitScissor.rect;
             packet.scissorEnabled = blitScissor.enabled;
             continue;

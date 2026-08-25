@@ -120,9 +120,21 @@ struct RenderPass
     RenderTargetHandle target;              // 0 = backbuffer
     LoadAction load{ LoadAction::Clear };
     Color clearColor{ Color::alpha };
-    Rect viewport;                          // defines the projection, top-left pixel space
+    Rect viewport;                          // device pixels, top-left origin
     const VertexArena* arena{ nullptr };    // geometry source for this pass's packets
     std::vector<DrawPacket> packets;
+
+    // The extent the projection spans, in the coordinate space this pass's geometry and scissors
+    // are expressed in. Equal to viewport.size() everywhere except a target that rasterises at a
+    // higher resolution than it is addressed in - the FOREGROUND target on a Retina display,
+    // which lays out in logical units and must still rasterise across every physical pixel.
+    // Invalid means "same as the viewport", which is what keeps this free for every other pass.
+    Size projectionExtent;
+
+    [[nodiscard]] Size projectionSize() const
+    {
+        return projectionExtent.isValid() ? projectionExtent : viewport.size();
+    }
 
     // Debug label. Costs a string per pass and pays for itself the first time a GPU capture
     // or a golden-frame diff has to be read by a human.

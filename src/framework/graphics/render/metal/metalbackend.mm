@@ -323,7 +323,7 @@ void MetalBackend::Impl::encodePass(id<MTLCommandBuffer> commands, const RenderP
                                         static_cast<double>(size.height()),
                                         0.0, 1.0 }];
 
-    const Matrix3 projection = projectionFor(size);
+    const Matrix3 projection = projectionFor(pass.projectionSize());
     const Size targetSize(static_cast<int>([target width]), static_cast<int>([target height]));
 
     for (const auto& packet : pass.packets)

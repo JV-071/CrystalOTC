@@ -57,20 +57,31 @@ FrameBuffer::~FrameBuffer()
     }
 }
 
-bool FrameBuffer::resize(const Size& size)
+bool FrameBuffer::resize(const Size& size, const float contentScale)
 {
     assert(size.isValid());
 
-    if (m_texture && m_texture->getSize() == size)
+    const float scale = contentScale > 0.f ? contentScale : 1.f;
+    const Size logical = scale == 1.f
+        ? size
+        : Size(std::max<int>(1, static_cast<int>(size.width() / scale)),
+               std::max<int>(1, static_cast<int>(size.height() / scale)));
+
+    if (m_texture && m_texture->getSize() == size && m_contentScale == scale)
         return false;
+
+    m_contentScale = scale;
+    m_logicalSize = logical;
 
     m_texture = std::make_shared<Texture>(size);
     m_texture->setSmooth(m_smooth);
     m_texture->setUpsideDown(true);
-    m_textureMatrix = g_painter->getTransformMatrix(size);
+    // The projection spans the LOGICAL extent while the viewport covers the whole device-pixel
+    // texture, so geometry recorded in logical units rasterises across every physical pixel.
+    m_textureMatrix = g_painter->getTransformMatrix(logical);
 
     m_screenCoordsBuffer.clear();
-    m_screenCoordsBuffer.addRect(Rect{ 0, 0, size });
+    m_screenCoordsBuffer.addRect(Rect{ 0, 0, logical });
 
     // Pure Vulkan mode: without a context we do not attach the texture to the FBO (m_fbo == 0).
     if (!g_window.hasGLContext())
