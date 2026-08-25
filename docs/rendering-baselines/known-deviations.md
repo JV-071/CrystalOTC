@@ -422,6 +422,34 @@ What it is NOT, established 2026-08-20 so the next attempt does not start here:
   (`renderer-baseline-particles.otps`), so the remaining candidates are in how the frame is
   composed or when the shutter falls, not in what the emitter produces.
 
+**Two more things it is NOT, and a much sharper description of what it is — established 2026-08-25.**
+
+*Not the colour interpolation.* `Particle::updateColor` runs
+`m_color = m_colors[0] * (1 - factor) + m_colors[1] * factor` every frame even when both stops carry
+the identical colour, which this fixture's cards all do. Both `operator*` and `operator+` construct a
+new `Color`, so that expression rounds three times and its result depends on `factor` — that is, on
+the particle's age at the instant the frame is drawn. It looked like an exact fit for a bimodal
+defect confined to the ADD card. It is not the cause: forcing `m_color = m_colors[0]` when the two
+endpoints are equal, and confirming the branch is taken (the `.otps` parses to two identical
+`Color`s and `operator==` compares hashes), leaves the bimodality completely unchanged — six fresh
+captures still split into two modes at exactly 540 px. The change was reverted rather than kept,
+since it fixes nothing measurable.
+
+*Therefore not the particle's colour at all*, which the above rules out directly.
+
+*And the signature is more specific than "540 differing pixels".* Comparing one capture from each
+mode: the differing region is exactly `x[797..822] y[311..336]`, and within it **220 pixels are pure
+black in one mode and not black in the other**, with the remaining pixels differing by about 4 per
+channel. The modes are not equally bright — mean channel sum 158 against 400.
+
+That black is diagnostic. `CompositionMode::ADD` is `glBlendFunc(ONE_MINUS_SRC_COLOR,
+ONE_MINUS_SRC_COLOR)`, i.e. `out = (1 - src) * (src + dst)`, which goes to **exactly zero when `src`
+saturates to 1** whatever the destination holds. So one mode's core saturates and the other's falls
+just short, and the quantity that varies between runs is `src` sitting on the saturation boundary —
+not the geometry, not the particle count, and not the colour. Candidates that remain: the texture
+sample at the core (atlas-backed versus standalone residency, or sub-pixel sampling alignment), and
+the draw opacity applied to the card.
+
 Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
 preference order: find and remove the source of the bimodality in the emitter (it is a
 single-burst emitter, so a genuinely fixed frame should be reachable); or give the scene a
