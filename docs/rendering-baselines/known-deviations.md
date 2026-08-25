@@ -463,11 +463,13 @@ identifiable:
 | the high mode | 220 | 352 |
 
 The atlas-off result matches the low mode (22 px apart, ordinary noise) and differs from the high
-mode by the full 540. **So the low mode is the texture sampled standalone and the high mode is the
-same texture sampled through the atlas**, and what varies between runs is simply whether the
-particle texture had become atlas-resident by the frame the shutter caught — `DrawPool::add`
-translates a source rect into atlas coordinates only once a region exists, so a texture is
-standalone for its first frames and atlas-backed afterwards.
+mode by the full 540. The obvious reading is that the low mode is the texture sampled standalone and the high mode the
+same texture sampled through the atlas, with residency at the moment of the shutter deciding which
+— `DrawPool::add` translates a source rect into atlas coordinates only once a region exists, so a
+texture is standalone for its first frames and atlas-backed afterwards. **That reading is not
+established, and one test since has weakened it** (see the eliminations below): turning the atlas
+off also removes its maintenance work from the frame, so it changes frame *timing* and pool content
+hashing as well as sampling. Both are consistent with the measurements above.
 
 **The substantive part is that the two are not the same picture.** Atlas-backed sampling yields a
 *higher* value at the particle's core — high enough to saturate, and `CompositionMode::ADD` is
@@ -475,9 +477,20 @@ standalone for its first frames and atlas-backed afterwards.
 confined to the ADD card: NORMAL and MULTIPLY are given the identical difference and do not magnify
 it. `particle2.png` is 32x32 drawn at 96x96, so this is not `SMOOTH_PADDING` bleeding inward — two
 texels of padding reach about six pixels into a 3x-magnified edge, and the differing region is the
-centre. It looks like a sub-texel sampling offset across the whole quad, which would follow from the
-region's coordinates being normalised against a 2048x2048 layer rather than a 32x32 texture. That
-mechanism is inferred and not yet proven; everything above it is measured.
+centre. A sub-texel sampling offset across the whole quad was the obvious candidate — it would follow from
+the region's coordinates being normalised against a 2048x2048 layer rather than a 32x32 texture.
+**Measured and rejected 2026-08-25:** across the particle's whole 95x95 quad, 8,081 of 9,025 pixels
+are bit-identical between the two modes, and image-wide only **four** differing pixels lie outside
+the ADD card, two in each of the NORMAL and MULTIPLY cards. A uniform sub-texel shift would move
+every high-gradient pixel, especially at the edges; instead the difference is sparse and the
+underlying quantity is tiny everywhere, with ADD's saturation the only thing that makes it visible.
+
+**Also rejected: the 1:1 composite blit's filtering.** `TextureAtlas::flush` copies a texture into
+its layer with `dest {x, y, w, h}` against `src {0, 0, w, h}` — one to one, blending disabled — but
+samples it with the source's own LINEAR filter, where a 1:1 copy needs no interpolation at all and
+float error at texel centres could plausibly cost a least-significant bit. Forcing `GL_NEAREST`
+around both composite draws changes nothing: six fresh captures still split into two modes at
+exactly 540 px. The probe was reverted.
 
 This qualifies a claim made elsewhere in this file and in `drawpoolmanager.cpp` — that an
 atlas-backed draw and a standalone one "produce the same picture". For a NEAREST-filtered sprite at
