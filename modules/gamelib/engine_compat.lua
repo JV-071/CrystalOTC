@@ -528,8 +528,8 @@ if Thing then
 end
 
 if LocalPlayer then
-	install(LocalPlayer, "getBlessingsIconColor", function()
-		return "#FFFFFF"
+	install(LocalPlayer, "getBlessingsIconColor", function(self)
+		return self.getBlessingStatus and self:getBlessingStatus() or 1
 	end)
 end
 

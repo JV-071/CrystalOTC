@@ -663,6 +663,8 @@ return {
 			end
 
 			if extraWidgets.audioButton then
+				extraWidgets.audioButton:setOn(not value)
+
 				if value then
 					extraWidgets.audioButton:setIcon("/images/topbuttons/button_mute_up")
 				else
@@ -1125,7 +1127,9 @@ return {
 	},
 	showStatusBars = {
 		deferAction = true,
-		value = true,
+		-- The official-compatible shell keeps hitpoints and mana in the top
+		-- status dock. The compact sidebar bars remain available as an option.
+		value = false,
 		action = function(value, options, controller, panels, extraWidgets)
 			if modules.game_healthinfo and modules.game_healthinfo.setSidebarVisible then
 				modules.game_healthinfo.setSidebarVisible(value)
@@ -1509,7 +1513,9 @@ return {
 		end
 	},
 	showLeftPanel = {
-		value = true,
+		-- The official default shell starts with one right sidebar and no left
+		-- sidebar. Users can still add the left column with the sidebar manager.
+		value = false,
 		action = function(value, options, controller, panels, extraWidgets)
 			modules.game_interface.getLeftPanel():setOn(value)
 		end
@@ -1521,7 +1527,10 @@ return {
 		end
 	},
 	showRightHorizontalPanel = {
-		value = true,
+		-- Horizontal miniwindow shelves are an Ultia-only extension. Keep the
+		-- feature available, but do not reserve an empty 200-pixel strip in the
+		-- official-compatible default shell.
+		value = false,
 		action = function(value, options, controller, panels, extraWidgets)
 			local panel = modules.game_interface.getRightTopPanel()
 
@@ -1553,7 +1562,7 @@ return {
 		end
 	},
 	showLeftHorizontalPanel = {
-		value = true,
+		value = false,
 		action = function(value, options, controller, panels, extraWidgets)
 			local panel = modules.game_interface.getLeftTopPanel()
 

@@ -1,17 +1,17 @@
 GameSidePanel < UIMiniWindowContainer
-  image-source: /images/ui/2pixel_up_frame_borderimage
+  image-source: /images/2pixel-up-frame-borderimage
   image-border: 2
   padding-top: 2
-  width: 178
+  width: 176
   layout:
     type: verticalBox
     //spacing: 1
 
 GameTopHorizontalPanel < UIMiniWindowContainer
-  image-source: /images/ui/2pixel_up_frame_borderimage
+  image-source: /images/2pixel-up-frame-borderimage
   image-border: 2
   height: 200
-  width: 353
+  width: 352
   &ignoreFillAll: true
   &isHorizontalPanel: true
   layout:
@@ -24,7 +24,7 @@ SelectColumnButton < CheckBox
     opacity: 1
 
 GameBottomPanel < UIWindow
-  image-source: /images/ui/background_dark
+  image-source: /images/background-dark
   image-repeated: true
   padding-top: 6
   margin-left: 1
@@ -32,7 +32,7 @@ GameBottomPanel < UIWindow
   draggable:false
 
   UIWidget
-    image-source: /images/ui/divider_horizontal
+    image-source: /images/divider-horizontal
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: parent.top
@@ -65,9 +65,12 @@ GameBottomPanel < UIWindow
 
 GameMapPanel < UIGameMap
   click-sound: false
-  padding: 5 5 5 5
-  margin: 1 1 1 1
-  image-source: /images/ui/background
+  // MapWindowPane.qml leaves four background pixels around the one-pixel
+  // down-frame. UIGameMap adds that final pixel internally while fitting the
+  // 15x11 viewport, so the OTUI padding is the QML margin itself.
+  padding: 4 4 4 4
+  margin: 0 0 0 0
+  image-source: /images/background
   image-repeated: true
 
   $on:
@@ -93,6 +96,10 @@ UIWidget
     id: gameRightTopPanel
     anchors.right: parent.right
     anchors.top: parent.top
+    // The official shell starts the complete right rail four pixels below the
+    // root edge. Keeping the offset on the top panel also carries the fixed
+    // inventory/options stack with it, preserving their internal spacing.
+    margin-top: 4
     padding-left: 2
     focusable: false
     visible: true
@@ -209,7 +216,7 @@ UIWidget
     id: gameMainRightPanel
     anchors.right: parent.right
     anchors.top: gameRightTopPanel.bottom
-    margin-top: 1
+    margin-top: -3
     padding-top: 2
     &ignoreFillAll: true
     &onlyPhantomDrop: true
@@ -223,7 +230,7 @@ UIWidget
     anchors.right: parent.right
     anchors.top: gameRightTopPanel.bottom
     anchors.bottom: parent.bottom
-    margin-top: 1
+    margin-top: -3
     padding-top: 200
     focusable: false
     on: true
@@ -233,7 +240,7 @@ UIWidget
     anchors.right: prev.left
     anchors.top: gameRightTopPanel.bottom
     anchors.bottom: parent.bottom
-    margin-top: 1
+    margin-top: -3
     margin-right: 1
     padding-top: 0
     focusable: false
@@ -275,6 +282,74 @@ UIWidget
     @canUpdateMargin: function(self, newMargin) return modules.game_interface.bottomSplitterCanUpdateMargin(self, newMargin) end
     @onGeometryChange: function(self) modules.game_interface.bottomSplitterOnGeometryChange(self) end
     @onMouseRelease: function(self) modules.game_interface.onBottomSplitterMouseRelease(self) end
+
+  UIWidget
+    id: bottomSplitterResizeFeedback
+    anchors.left: parent.left
+    anchors.top: bottomSplitter.top
+    margin-top: -22
+    size: 60 60
+    visible: false
+    focusable: false
+    phantom: true
+
+    UIWidget
+      id: bottomSplitterScaleBackground
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+      height: 22
+      image-source: /images/background
+      image-repeated: true
+      phantom: true
+
+    UIWidget
+      id: bottomSplitterScaleFrame
+      anchors.fill: bottomSplitterScaleBackground
+      image-source: /images/1pixel-up-frame
+      image-border: 1
+      phantom: true
+
+    Label
+      id: bottomSplitterScaleLabel
+      anchors.fill: bottomSplitterScaleBackground
+      text: 100%
+      text-align: center
+      text-offset: 0 1
+      font: $var-cip-font
+      color: #c0c0c0
+      phantom: true
+
+    UIWidget
+      id: bottomSplitterResizeModeFrame
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-top: 29
+      size: 31 31
+      image-source: /images/background
+      image-repeated: true
+      @onHoverChange: modules.game_interface.onBottomSplitterFeedbackWidgetHoverChange(self, self:isHovered())
+
+      UIWidget
+        anchors.fill: parent
+        image-source: /images/1pixel-up-frame
+        image-border: 1
+        phantom: true
+
+      Button
+        id: bottomSplitterResizeModeButton
+        anchors.centerIn: parent
+        size: 23 23
+        padding: 0
+        !tooltip: tr('Resize Map Window')
+        @onClick: modules.game_interface.cycleBottomSplitterResizeMode()
+
+        UIWidget
+          id: bottomSplitterResizeModeIcon
+          anchors.centerIn: parent
+          size: 13 13
+          image-source: /images/icon-resize-mapwindow
+          phantom: true
 
   UIWidget
     id: mouseGrabber

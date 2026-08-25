@@ -1,5 +1,5 @@
 ConsoleLabel < UITextEdit
-  font: $var-cip-font-new
+  font: $var-cip-font
   height: 15
   color: #f0f000
   margin-left: 0
@@ -16,7 +16,7 @@ ConsoleLabel < UITextEdit
   focusable: false
 
 ConsolePhantomLabel < UILabel
-  font: $var-cip-font-new
+  font: $var-cip-font
   height: 15
   color: #f0f000
   text-wrap: true

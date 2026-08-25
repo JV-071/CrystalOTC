@@ -102,16 +102,7 @@ local PANEL_CONSTANTS = {
 local DEFAULT_SHORTCUT_ORDER = {
 	"skillsButton",
 	"battleButton",
-	"spellListWidget",
-	"vipListButton",
-	"unjustifiedPointsButton",
-	"questLogButton",
-	"preyButton",
-	"CyclopediaButton",
-	"highscoresButton",
-	"ProciencyButton",
-	"helperButton",
-	"manageShortcuts"
+	"spellListWidget"
 }
 local optionsShrink = false
 
@@ -254,7 +245,7 @@ local function refreshOptionsSizes()
 
 		if resizer then
 			resizer:show()
-			resizer:setImageClip("0 20 42 20")
+			resizer:setImageClip("0 0 42 20")
 		end
 
 		if offBtn then

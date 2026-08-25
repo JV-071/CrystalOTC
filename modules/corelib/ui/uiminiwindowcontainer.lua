@@ -2,9 +2,6 @@
 
 UIMiniWindowContainer = extends(UIWidget, "UIMiniWindowContainer")
 
-local SIDEBAR_FREE_SPACE_IMAGE = "/images/ui/2pixel_up_frame_borderimage"
-local SIDEBAR_FREE_SPACE_BORDER = 2
-
 function UIMiniWindowContainer.create()
 	local container = UIMiniWindowContainer.internalCreate()
 
@@ -12,6 +9,9 @@ function UIMiniWindowContainer.create()
 
 	container:setFocusable(false)
 	container:setPhantom(true)
+	-- The official sidebar behaves like a fixed, bottom-aligned curtain: miniwindows
+	-- reveal or cover the panel texture without moving the texture itself.
+	container:setImageRepeatedFromBottom(true)
 	connect(container, {
 		onGeometryChange = function(widget)
 			if type(widget.scheduleSidebarFreeSpaceRefresh) == "function" then
@@ -33,42 +33,6 @@ end
 
 local function isSidebarSystemWidget(widget)
 	return isSidebarFreeSpaceWidget(widget) or isSidebarDragPlaceholder(widget)
-end
-
-local function shouldManageSidebarFreeSpace(container)
-	if not container or container:isDestroyed() or not container:isVisible() then
-		return false
-	end
-
-	if container.ignoreFillAll or container.isHorizontalPanel or container.onlyPhantomDrop then
-		return false
-	end
-
-	return true
-end
-
-local function ensureSidebarFreeSpaceWidget(container)
-	local widget = container._sidebarFreeSpaceWidget
-
-	if widget and not widget:isDestroyed() then
-		return widget
-	end
-
-	widget = g_ui.createWidget("UIWidget")
-
-	widget:setId("sidebarFreeSpace")
-
-	widget._sidebarFreeSpaceWidget = true
-
-	widget:setPhantom(true)
-	widget:setFocusable(false)
-	widget:setImageSource(SIDEBAR_FREE_SPACE_IMAGE)
-	widget:setImageBorder(SIDEBAR_FREE_SPACE_BORDER)
-	widget:setImageRepeatedFromBottom(true)
-
-	container._sidebarFreeSpaceWidget = widget
-
-	return widget
 end
 
 function UIMiniWindowContainer:scheduleSidebarFreeSpaceRefresh()
@@ -99,56 +63,18 @@ function UIMiniWindowContainer:refreshSidebarFreeSpace()
 		self._sidebarFreeSpaceRefreshing = nil
 	end
 
+	-- Older layouts appended a resizable filler child below the miniwindows. Its
+	-- top edge moved whenever a container was resized, making the grey sidebar
+	-- background look as though it was being pushed. The side panel already owns
+	-- this exact frame texture, so keep it fixed on the parent and let its normal
+	-- clipping reveal the free space behind the miniwindows.
 	local filler = self._sidebarFreeSpaceWidget
 
-	if not shouldManageSidebarFreeSpace(self) then
-		if filler and not filler:isDestroyed() then
-			filler:destroy()
-		end
-
-		self._sidebarFreeSpaceWidget = nil
-
-		finish()
-
-		return
+	if filler and not filler:isDestroyed() then
+		filler:destroy()
 	end
 
-	local usedHeight = 0
-	local children = self:getChildren()
-
-	for i = 1, #children do
-		local child = children[i]
-
-		if child:isVisible() and not isSidebarFreeSpaceWidget(child) then
-			usedHeight = usedHeight + child:getHeight()
-		end
-	end
-
-	local availableHeight = self:getHeight() - self:getPaddingTop() - self:getPaddingBottom()
-	local freeHeight = math.max(0, availableHeight - usedHeight)
-
-	if freeHeight <= 0 then
-		if filler and not filler:isDestroyed() then
-			filler:hide()
-			filler:setHeight(0)
-		end
-
-		finish()
-
-		return
-	end
-
-	filler = ensureSidebarFreeSpaceWidget(self)
-
-	if filler:getParent() ~= self then
-		self:addChild(filler)
-	else
-		self:moveChildToIndex(filler, self:getChildCount())
-	end
-
-	filler:setWidth(math.max(0, self:getWidth() - self:getPaddingLeft() - self:getPaddingRight()))
-	filler:setHeight(freeHeight)
-	filler:show()
+	self._sidebarFreeSpaceWidget = nil
 	finish()
 end
 

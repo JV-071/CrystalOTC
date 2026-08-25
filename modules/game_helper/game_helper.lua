@@ -3008,9 +3008,10 @@ function init()
 	validateHelperRuntime()
 
 	if modules.game_mainpanel then
-		-- Special-buttons grid (top-right, next to the settings gear) instead of the bottom
-		-- button row, at the user's request.
-		helperButton = modules.game_mainpanel.addSpecialToggleButton("helperButton", tr("Open Helper Stats"), "/images/options/button_helper", toggleHelperStatsWindow, false, 1002, "HelperMainToggleButton")
+		-- Helper has no fixed counterpart in the official sidebar. Keep it in
+		-- the managed shortcut catalog so users can opt in without forcing a
+		-- second row in the official Options/Logout column.
+		helperButton = modules.game_mainpanel.addToggleButton("helperButton", tr("Open Helper Stats"), "/images/options/button_helper", toggleHelperStatsWindow, false, 1002, "HelperMainToggleButton")
 
 		helperButton:setImageBorder(0)
 	end

@@ -43,6 +43,10 @@ local function clearExitWindow()
 end
 
 bottomSplitter = nil
+bottomSplitterResizeFeedback = nil
+bottomSplitterScaleLabel = nil
+bottomSplitterResizeModeButton = nil
+bottomSplitterResizeModeIcon = nil
 limitedZoom = false
 currentViewMode = 0
 leftIncreaseSidePanels = nil
@@ -51,14 +55,19 @@ rightIncreaseSidePanels = nil
 rightDecreaseSidePanels = nil
 hookedMenuOptions = {}
 
-local SIDEBAR_COLUMN_WIDTH = 178
+-- Shell constants recovered from TibiaStyle.qml. Keep the content width at
+-- 176: the official screenshot's right column occupies x=1336..1511 in a
+-- 1512-point client, including its own frame.
+local SIDEBAR_COLUMN_WIDTH = 176
 local SIDEBAR_INNER_BORDER_GAP = 2
 local ABSOLUTE_MIN_MAP_WIDTH = 160
 local DEFAULT_WINDOW_MIN_WIDTH = 1020
-local DEFAULT_WINDOW_MIN_HEIGHT = 644
+local DEFAULT_WINDOW_MIN_HEIGHT = 650
 local MAX_HORIZONTAL_SIDEBAR_COLUMNS = 2
 local VERTICAL_COLUMNS_UNDER_HORIZONTAL = 2
 local pendingSidebarLayoutEvent
+local bottomSplitterFeedbackHideEvent
+local bottomSplitterResizeMode = 1
 local lastStopAction = 0
 local supplyStashMenuEnabled = false
 local mobileConfig = {
@@ -101,6 +110,13 @@ function init()
 	mouseGrabberWidget = gameRootPanel:getChildById("mouseGrabber")
 	mouseGrabberWidget.onMouseRelease = onMouseGrabberRelease
 	bottomSplitter = gameRootPanel:getChildById("bottomSplitter")
+	bottomSplitterResizeFeedback = gameRootPanel:getChildById("bottomSplitterResizeFeedback")
+	bottomSplitterScaleLabel = bottomSplitterResizeFeedback:recursiveGetChildById("bottomSplitterScaleLabel")
+	bottomSplitterResizeModeButton = bottomSplitterResizeFeedback:recursiveGetChildById("bottomSplitterResizeModeButton")
+	bottomSplitterResizeModeIcon = bottomSplitterResizeFeedback:recursiveGetChildById("bottomSplitterResizeModeIcon")
+	bottomSplitter.splitterFeedbackHoverChange = onBottomSplitterFeedbackHoverChange
+	bottomSplitter.splitterFeedbackMouseMove = onBottomSplitterFeedbackMouseMove
+	bottomSplitter.splitterFeedbackMouseRelease = onBottomSplitterFeedbackMouseRelease
 	gameMapPanel = gameRootPanel:getChildById("gameMapPanel")
 
 	gameMainRightPanel = gameRootPanel:getChildById("gameMainRightPanel")
@@ -195,7 +211,7 @@ function init()
 		onGeometryChange = onSidebarVisibilityChange
 	})
 
-	logoutButton = modules.client_topmenu.addTopRightToggleButton("logoutButton", tr("Exit"), "/images/topbuttons/logout", tryLogout, true)
+	logoutButton = modules.client_topmenu.addTopRightLogoutButton("logoutButton", tr("Exit"), tryLogout, true)
 	showTopMenuButton = gameMapPanel:getChildById("showTopMenuButton")
 
 	function showTopMenuButton.onClick()
@@ -461,10 +477,12 @@ function hide()
 	modules.client_background.show()
 end
 
-CHAT_MIN_HEIGHT = 98
+CHAT_MIN_HEIGHT = 90
 COOLDOWN_PANEL_HEIGHT = 26
 
-local MIN_GAME_MAP_HEIGHT = 300
+-- Half of the native 352-pixel map height. The surrounding four-pixel margin
+-- and one-pixel frame are widget chrome and are accounted for separately.
+local MIN_GAME_MAP_HEIGHT = 176
 local BOTTOM_STATS_BAR_GAP_BELOW_ACTION_BAR = 4
 local CENTER_TO_SIDE_DOCK_GAP = 0
 local MAP_ASPECT_RATIO = 1.3636363636363635
@@ -513,10 +531,170 @@ end
 
 -- The map blit is pixel exact only when the map rect is a whole multiple of the native sprite
 -- grid: 15x11 tiles of 32 px, i.e. 480x352 device pixels per step. Those are the heights this
--- option is supposed to offer - upstream quantises the splitter to three of them, while this fork
--- had collapsed it to a single fixed size. MapView::getIdealRenderScale caps the multiple at 4.
+-- option is supposed to offer. The official client exposes 100% and 200% whole-map stops, while
+-- this fork had collapsed them to a single fixed size.
 local NATIVE_MAP_HEIGHT = 352
-local MAX_RENDER_MULTIPLE = 4
+local NATIVE_MAP_WIDTH = 480
+local UI_MAP_CONTENT_INSET = 2
+local MAX_MAP_SCALE_PERCENT = 200
+local MAX_RENDER_MULTIPLE = MAX_MAP_SCALE_PERCENT / 100
+
+local SPLITTER_RESIZE_MODE_MAP = 1
+local SPLITTER_RESIZE_MODE_CHAT = 2
+local SPLITTER_RESIZE_MODE_BOTH = 3
+
+local splitterResizeModeVisuals = {
+	[SPLITTER_RESIZE_MODE_MAP] = {
+		icon = "/images/icon-resize-mapwindow",
+		size = 13,
+		tooltip = tr("Resize Map Window")
+	},
+	[SPLITTER_RESIZE_MODE_CHAT] = {
+		icon = "/images/icon-resize-chat",
+		size = 13,
+		tooltip = tr("Resize Chat")
+	},
+	[SPLITTER_RESIZE_MODE_BOTH] = {
+		icon = "/images/icon-resize-mapwindow-and-chat",
+		size = 14,
+		tooltip = tr("Resize Map Window and Chat")
+	}
+}
+
+local function cancelBottomSplitterFeedbackHide()
+	if bottomSplitterFeedbackHideEvent then
+		removeEvent(bottomSplitterFeedbackHideEvent)
+		bottomSplitterFeedbackHideEvent = nil
+	end
+end
+
+local function updateBottomSplitterResizeModeVisual()
+	if not bottomSplitterResizeModeIcon or bottomSplitterResizeModeIcon:isDestroyed() then
+		return
+	end
+
+	local visual = splitterResizeModeVisuals[bottomSplitterResizeMode] or splitterResizeModeVisuals[SPLITTER_RESIZE_MODE_MAP]
+
+	bottomSplitterResizeModeIcon:setImageSource(visual.icon)
+	bottomSplitterResizeModeIcon:setSize({
+		width = visual.size,
+		height = visual.size
+	})
+
+	if bottomSplitterResizeModeButton and not bottomSplitterResizeModeButton:isDestroyed() then
+		bottomSplitterResizeModeButton:setTooltip(visual.tooltip)
+	end
+end
+
+local function updateBottomSplitterScaleLabel()
+	if not bottomSplitterScaleLabel or bottomSplitterScaleLabel:isDestroyed() then
+		return
+	end
+
+	-- Match MapWindowPane.qml's visible-world-map width. UIMap's internal render
+	-- rectangle can remain at the native 480 x 352 texture size while that texture
+	-- is scaled on a Retina display, so it is not a reliable percentage source.
+	local contentWidth, contentHeight = getMapContentSize()
+	local availableWidth = math.max(0, contentWidth - UI_MAP_CONTENT_INSET)
+	local availableHeight = math.max(0, contentHeight - UI_MAP_CONTENT_INSET)
+	local heightLimitedWidth = math.floor(availableHeight * NATIVE_MAP_WIDTH / NATIVE_MAP_HEIGHT)
+	local mapWidth = math.min(availableWidth, heightLimitedWidth)
+	local scaleInPercent = mapWidth > 0 and math.floor(mapWidth / NATIVE_MAP_WIDTH * 100) or 100
+	bottomSplitterScaleLabel:setText(string.format("%d%%", math.min(scaleInPercent, MAX_MAP_SCALE_PERCENT)))
+end
+
+local function queueBottomSplitterScaleLabelUpdate()
+	-- UISplitter applies its new margin through an event. Queue this after it so
+	-- anchored map geometry has settled before the percentage is sampled.
+	addEvent(function()
+		if bottomSplitterResizeFeedback and not bottomSplitterResizeFeedback:isDestroyed() and bottomSplitterResizeFeedback:isVisible() then
+			updateBottomSplitterScaleLabel()
+		end
+	end)
+end
+
+local function positionBottomSplitterFeedback(mousePos)
+	if not bottomSplitterResizeFeedback or bottomSplitterResizeFeedback:isDestroyed() or not bottomSplitter or bottomSplitter:isDestroyed() then
+		return
+	end
+
+	mousePos = mousePos or g_window.getMousePosition()
+
+	local rootX = gameRootPanel:getX()
+	local splitterX = bottomSplitter:getX() - rootX
+	local mouseX = mousePos.x - rootX
+	local feedbackWidth = bottomSplitterResizeFeedback:getWidth()
+	local minimumX = splitterX
+	local maximumX = splitterX + bottomSplitter:getWidth() - feedbackWidth
+	local feedbackX = math.max(minimumX, math.min(mouseX - math.floor(feedbackWidth / 2), maximumX))
+
+	bottomSplitterResizeFeedback:setMarginLeft(feedbackX)
+end
+
+local function showBottomSplitterFeedback(mousePos)
+	if not bottomSplitterResizeFeedback or bottomSplitterResizeFeedback:isDestroyed() then
+		return
+	end
+
+	cancelBottomSplitterFeedbackHide()
+	positionBottomSplitterFeedback(mousePos)
+	updateBottomSplitterScaleLabel()
+	updateBottomSplitterResizeModeVisual()
+	bottomSplitterResizeFeedback:show()
+	bottomSplitterResizeFeedback:raise()
+	queueBottomSplitterScaleLabelUpdate()
+end
+
+local function scheduleBottomSplitterFeedbackHide()
+	cancelBottomSplitterFeedbackHide()
+	bottomSplitterFeedbackHideEvent = scheduleEvent(function()
+		bottomSplitterFeedbackHideEvent = nil
+
+		if not bottomSplitterResizeFeedback or bottomSplitterResizeFeedback:isDestroyed() then
+			return
+		end
+
+		local splitterActive = bottomSplitter and not bottomSplitter:isDestroyed() and (bottomSplitter:isHovered() or bottomSplitter:isPressed())
+		local feedbackActive = bottomSplitterResizeFeedback:isHovered()
+
+		if splitterActive or feedbackActive then
+			return
+		end
+
+		bottomSplitterResizeFeedback:hide()
+	end, 500)
+end
+
+function onBottomSplitterFeedbackHoverChange(splitter, hovered)
+	if hovered then
+		showBottomSplitterFeedback()
+	elseif not splitter:isPressed() then
+		scheduleBottomSplitterFeedbackHide()
+	end
+end
+
+function onBottomSplitterFeedbackMouseMove(splitter, mousePos)
+	showBottomSplitterFeedback(mousePos)
+end
+
+function onBottomSplitterFeedbackMouseRelease(splitter, mousePos, mouseButton)
+	showBottomSplitterFeedback(mousePos)
+	scheduleBottomSplitterFeedbackHide()
+end
+
+function onBottomSplitterFeedbackWidgetHoverChange(widget, hovered)
+	if hovered then
+		cancelBottomSplitterFeedbackHide()
+	else
+		scheduleBottomSplitterFeedbackHide()
+	end
+end
+
+function cycleBottomSplitterResizeMode()
+	bottomSplitterResizeMode = bottomSplitterResizeMode % SPLITTER_RESIZE_MODE_BOTH + 1
+	updateBottomSplitterResizeModeVisual()
+	save()
+end
 
 -- Heights of gameMapPanel at which the map lands on a whole render multiple, smallest first.
 local function getPixelExactPanelHeights()
@@ -539,7 +717,7 @@ local function getPixelExactPanelHeights()
 	-- UIMap::updateMapSize insets the padding rect by a pixel on every edge and then fits the 15:11
 	-- box into it, so whichever of width or height binds first decides the map size. Only heights
 	-- below the width-limited one actually change anything.
-	local widthLimitedHeight = math.floor((contentWidth - 2) / getMapAspectRatio())
+	local widthLimitedHeight = math.floor((contentWidth - UI_MAP_CONTENT_INSET) / getMapAspectRatio())
 	local chrome = gameMapPanel:getHeight() - contentHeight
 	local heights = {}
 
@@ -547,7 +725,7 @@ local function getPixelExactPanelHeights()
 		local mapHeight = math.floor(multiple * NATIVE_MAP_HEIGHT / density + 0.5)
 
 		if mapHeight >= MIN_GAME_MAP_HEIGHT and mapHeight <= widthLimitedHeight then
-			heights[#heights + 1] = mapHeight + 2 + chrome
+			heights[#heights + 1] = mapHeight + UI_MAP_CONTENT_INSET + chrome
 		end
 	end
 
@@ -790,9 +968,17 @@ function bottomSplitterOnGeometryChange(splitter)
 	if clamped ~= m then
 		splitter:setMarginBottom(clamped)
 	end
+
+	if bottomSplitterResizeFeedback and bottomSplitterResizeFeedback:isVisible() then
+		updateBottomSplitterScaleLabel()
+		queueBottomSplitterScaleLabelUpdate()
+	end
 end
 
 function onBottomSplitterMouseRelease(splitter)
+	showBottomSplitterFeedback()
+	scheduleBottomSplitterFeedbackHide()
+
 	if not splitter:isHovered() then
 		if splitter.cursortype then
 			g_mouse.popCursor(splitter.cursortype)
@@ -814,6 +1000,7 @@ function save()
 
 	if bottomSplitter and not bottomSplitter:isDestroyed() then
 		settings.splitterMarginBottom = bottomSplitter:getMarginBottom()
+		settings.splitterResizeMode = bottomSplitterResizeMode
 	end
 
 	if gameMainRightPanel and not gameMainRightPanel:isDestroyed() then
@@ -846,6 +1033,13 @@ function applyGameInterfaceLayoutSettings()
 	restoreSidebarColumnCounts()
 
 	local settings = g_settings.getNode("game_interface")
+	local savedResizeMode = settings and tonumber(settings.splitterResizeMode)
+
+	if savedResizeMode and splitterResizeModeVisuals[savedResizeMode] then
+		bottomSplitterResizeMode = savedResizeMode
+	end
+
+	updateBottomSplitterResizeModeVisual()
 
 	if settings and settings.splitterMarginBottom and bottomSplitter and not bottomSplitter:isDestroyed() then
 		bottomSplitter:setMarginBottom(settings.splitterMarginBottom)
@@ -3377,7 +3571,12 @@ function getBottomSplitterEffectiveMinMargin(parentH)
 
 		if internalWidth > 0 then
 			local idealInternalHeight = math.floor(internalWidth / getMapAspectRatio() + 0.5)
-			local idealWidgetHeight = idealInternalHeight + paddingV
+			idealInternalHeight = math.min(idealInternalHeight, NATIVE_MAP_HEIGHT * MAX_MAP_SCALE_PERCENT / 100)
+			-- UIMap fits the rendered map inside getPaddingRect().expanded(-1),
+			-- consuming one logical pixel on every edge. Include both vertical
+			-- inset pixels here so the 200% stop produces an actual 960 x 704
+			-- map instead of stopping one percentage point early at 199%.
+			local idealWidgetHeight = idealInternalHeight + UI_MAP_CONTENT_INSET + paddingV
 			local currentWidgetHeight = gameMapPanel:getHeight()
 			local currentSplitterMargin = bottomSplitter:getMarginBottom()
 			local totalHeight = currentWidgetHeight + currentSplitterMargin

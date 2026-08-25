@@ -51,6 +51,10 @@ function UISplitter:onHoverChange(hovered)
 
 		self.hovering = false
 	end
+
+	if self.splitterFeedbackHoverChange then
+		self.splitterFeedbackHoverChange(self, hovered)
+	end
 end
 
 function UISplitter:onMouseMove(mousePos, mouseMoved)
@@ -85,7 +89,15 @@ function UISplitter:onMouseMove(mousePos, mouseMoved)
 			end
 		end
 
+		if self.splitterFeedbackMouseMove then
+			self.splitterFeedbackMouseMove(self, mousePos)
+		end
+
 		return true
+	end
+
+	if self.splitterFeedbackMouseMove then
+		self.splitterFeedbackMouseMove(self, mousePos)
 	end
 end
 
@@ -95,6 +107,10 @@ function UISplitter:onMouseRelease(mousePos, mouseButton)
 		g_effects.fadeOut(self)
 
 		self.hovering = false
+	end
+
+	if self.splitterFeedbackMouseRelease then
+		self.splitterFeedbackMouseRelease(self, mousePos, mouseButton)
 	end
 end
 

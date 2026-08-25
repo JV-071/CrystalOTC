@@ -61,6 +61,7 @@ PhantomMiniWindow
       margin-bottom: -1
       image-source: /images/options/store-highlight
       image-border: 2
+      visible: false
 
     UIWidget
       id: storeFlagNew
@@ -72,6 +73,7 @@ PhantomMiniWindow
       margin-top: 1
       margin-left: 1
       image-source: /images/options/button-store-new
+      visible: false
 
     UIWidget
       id: storeFlagSale
@@ -83,6 +85,7 @@ PhantomMiniWindow
       margin-top: 1
       margin-right: 1
       image-source: /images/options/button-store-sale
+      visible: false
 
     UIWidget
       id: storeAnimation
@@ -91,6 +94,7 @@ PhantomMiniWindow
       focusable: false
       image-source: /images/animations/button-store-animation
       opacity: 0.6
+      visible: false
 
     Button
       id: resizer

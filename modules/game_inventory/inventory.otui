@@ -230,72 +230,73 @@ PhantomMiniWindow
 
     MainInventoryItem
       id: amulet
-      anchors.top: changeSize.bottom
+      anchors.top: parent.top
       anchors.left: changeSize.left
-      margin-top: 3
+      margin-top: 16
       &slotPosition: {x = 65535, y = 2, z = 0}
 
     MainInventoryItem
       id: helmet
-      anchors.top: changeSize.top
+      anchors.top: parent.top
       anchors.left: amulet.right
-      margin-left: 4
+      margin-top: 4
+      margin-left: 3
       &slotPosition: {x = 65535, y = 1, z = 0}
 
     MainInventoryItem
       id: backpack
       anchors.top: amulet.top
       anchors.left: helmet.right
-      margin-left: 4
+      margin-left: 3
       &slotPosition: {x = 65535, y = 3, z = 0}
 
     MainInventoryItem
       id: sword
       anchors.top: amulet.bottom
       anchors.left: amulet.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 6, z = 0}
 
     MainInventoryItem
       id: ring
       anchors.top: sword.bottom
       anchors.left: amulet.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 9, z = 0}
 
     MainInventoryItem
       id: armor
       anchors.top: helmet.bottom
       anchors.left: helmet.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 4, z = 0}
 
     MainInventoryItem
       id: legs
       anchors.top: armor.bottom
       anchors.left: helmet.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 7, z = 0}
 
     MainInventoryItem
       id: boots
       anchors.top: legs.bottom
       anchors.left: helmet.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 8, z = 0}
 
     MainInventoryItem
       id: shield
       anchors.top: backpack.bottom
       anchors.left: backpack.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 5, z = 0}
 
     MainInventoryItem
       id: tools
       anchors.top: shield.bottom
       anchors.left: backpack.left
-      margin-top: 3
+      margin-top: 2
       &slotPosition: {x = 65535, y = 10, z = 0}
 
     UIWidget
@@ -305,7 +306,8 @@ PhantomMiniWindow
       image-smooth: true
       anchors.left: amulet.left
       anchors.right: amulet.right
-      anchors.bottom: boots.bottom
+      anchors.top: ring.bottom
+      margin-top: 2
 
       Label
         id: soul
@@ -325,7 +327,8 @@ PhantomMiniWindow
       image-smooth: true
       anchors.left: backpack.left
       anchors.right: backpack.right
-      anchors.bottom: boots.bottom
+      anchors.top: tools.bottom
+      margin-top: 2
 
       Label
         id: capacity

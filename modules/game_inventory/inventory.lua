@@ -499,7 +499,7 @@ local function applyBlessingsIcon(status, tooltip)
 	end
 end
 
-local function onBlessingsChange(player, blessings, iconColor)
+local function onBlessingsChange(player, blessings, oldBlessings, iconColor)
 	if not player then
 		return
 	end
@@ -508,10 +508,14 @@ local function onBlessingsChange(player, blessings, iconColor)
 
 	toggleAdventurerStyle(hasAdventurerBlessing)
 
-	local status = iconColor
+	local status = tonumber(iconColor)
 
 	if not status or status == 0 then
-		status = player:getBlessingsIconColor()
+		status = tonumber(player:getBlessingsIconColor())
+	end
+
+	if not status or status == 0 then
+		status = player:getBlessingStatus()
 	end
 
 	applyBlessingsIcon(status, buildBlessingsTooltip(blessings))
