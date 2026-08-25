@@ -1618,7 +1618,13 @@ return {
 		deferAction = true,
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
-			g_app.setHUDScale(math.max(50, math.min(300, value)) / 100)
+			-- Clamped against the same ceiling the slider offers, so a value restored from
+			-- settings that no longer fits - a smaller window, a different monitor - cannot put
+			-- the interface somewhere the user has no way to click their way back from.
+			local maxPercent = modules.client_options.getMaxInterfaceScalePercent and
+				modules.client_options.getMaxInterfaceScalePercent() or 300
+
+			g_app.setHUDScale(math.max(50, math.min(maxPercent, value)) / 100)
 		end
 	},
 	dontStretchShrink = {

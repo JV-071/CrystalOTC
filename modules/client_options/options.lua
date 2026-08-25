@@ -334,6 +334,57 @@ local function getEffectiveOptionValue(key)
 	return opt.value
 end
 
+-- The Options window is a fixed logical size (options.otui, MainWindow#optionsWindow) and it is
+-- the largest thing the interface scale can push off the screen: past a certain scale the root
+-- shrinks below it and Ok/Apply go out of reach, which turns a curious click on the slider into
+-- something the user has to know a keyboard shortcut to escape.
+--
+-- The ceiling is therefore computed from the CURRENT window rather than written down: a different
+-- monitor, a resized window, a display change or a machine with another pixel ratio all move it
+-- on their own. Only the display's own ratio is divided out - the interface at 100% is whatever
+-- the display intends, and the question is how far above that it can go before the window stops
+-- fitting.
+local OPTIONS_WINDOW_LOGICAL_WIDTH = 685
+local OPTIONS_WINDOW_LOGICAL_HEIGHT = 559
+local INTERFACE_SCALE_CEILING_PERCENT = 300
+
+function getMaxInterfaceScalePercent()
+	local ratio = g_window.getDevicePixelRatio and g_window.getDevicePixelRatio() or 1
+
+	if not ratio or ratio <= 0 then
+		ratio = 1
+	end
+
+	local size = g_window.getSize and g_window.getSize()
+
+	if not size or not size.width or size.width <= 0 or size.height <= 0 then
+		return INTERFACE_SCALE_CEILING_PERCENT
+	end
+
+	-- What the interface measures at 100%: device pixels over the display's own ratio.
+	local baseWidth = size.width / ratio
+	local baseHeight = size.height / ratio
+	local needWidth = OPTIONS_WINDOW_LOGICAL_WIDTH
+	local needHeight = OPTIONS_WINDOW_LOGICAL_HEIGHT
+
+	-- Prefer the live window when there is one, so a skin that resizes it is accounted for and the
+	-- constants above are only a fallback.
+	if controller and controller.ui and not controller.ui:isDestroyed() then
+		local live = controller.ui:getSize()
+
+		if live and live.width and live.width > 0 and live.height > 0 then
+			needWidth = math.max(needWidth, live.width)
+			needHeight = math.max(needHeight, live.height)
+		end
+	end
+
+	local percent = math.floor(math.min(baseWidth / needWidth, baseHeight / needHeight) * 100)
+
+	-- 100% is always reachable. A window too small to hold the Options panel at the display's own
+	-- scale is already a problem, and refusing to offer the default would only add to it.
+	return math.max(100, math.min(INTERFACE_SCALE_CEILING_PERCENT, percent))
+end
+
 function updateInterfaceScalePreview(panelsArg)
 	local p = panelsArg or panels
 
@@ -347,14 +398,18 @@ function updateInterfaceScalePreview(panelsArg)
 		return
 	end
 
+	local maxPercent = getMaxInterfaceScalePercent()
 	local value = getEffectiveOptionValue("interfaceScale") or 100
-	value = math.max(50, math.min(300, value))
+	value = math.max(50, math.min(maxPercent, value))
 
 	scroll:setText(tr("Interface Scale: %d %%", value))
 
 	local valueBar = scroll:recursiveGetChildById("valueBar")
 
 	if valueBar then
+		-- Re-applied on every refresh rather than fixed at setup, so the ceiling follows the
+		-- window instead of freezing at whatever it was when the panel was first built.
+		valueBar:setMaximum(maxPercent)
 		valueBar:setValue(value)
 	end
 end

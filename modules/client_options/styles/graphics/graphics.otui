@@ -104,6 +104,9 @@ UIWidget
       text-offset: 17 0
       margin-top: -1
       &minimumScrollValue: 50
+      # Replaced at setup by modules.client_options.getMaxInterfaceScalePercent(), which works out
+      # how far the interface can scale before the Options window stops fitting on screen. This is
+      # only the value the widget starts life with.
       &maximumScrollValue: 300
       &scrollSize: 26
       @onSetup: |
