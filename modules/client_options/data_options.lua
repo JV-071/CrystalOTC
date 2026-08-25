@@ -144,6 +144,21 @@ local function moveChildToTop(child, targetPanel)
 	signalcall(child.onContainerChanged, child, targetPanel)
 end
 
+-- The light pass draws both the ambience and the indoor shading, so it has to stay on while
+-- EITHER of them still asks for it: Ambient Light at 100% means there is no ambience left to
+-- draw, but the Clouds & Indoor Effect can still have something to say. Each action passes its
+-- own pending value in, because options[key].value is not yet updated while that action runs.
+local function updateDrawLights(options, panels, enableLights, ambientLight, cloudsLabel)
+	if enableLights == nil then
+		enableLights = options.enableLights.value
+	end
+
+	ambientLight = ambientLight or options.ambientLight.value
+	cloudsLabel = cloudsLabel or options.cloudsLabel.value
+
+	panels.gameMapPanel:setDrawLights(enableLights and (ambientLight < 100 or cloudsLabel > 0))
+end
+
 return {
 	openMaximized = false,
 	showInfoMessagesInConsole = true,
@@ -838,8 +853,17 @@ return {
 	enableLights = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)
-			panels.gameMapPanel:setDrawLights(value and options.ambientLight.value < 100)
-			panels.graphicsEffectsPanel:recursiveGetChildById("ambientLight"):setEnabled(value)
+			updateDrawLights(options, panels, value)
+
+			-- The three sliders below the checkbox are only meaningful while light
+			-- effects are drawn, so they grey out with it, as the tooltip promises.
+			for _, id in ipairs({ "ambientLight", "levelSeparator", "cloudsLabel" }) do
+				local slider = panels.graphicsEffectsPanel:recursiveGetChildById(id)
+
+				if slider then
+					slider:setEnabled(value)
+				end
+			end
 		end
 	},
 	limitVisibleDimension = {
@@ -859,7 +883,7 @@ return {
 		action = function(value, options, controller, panels, extraWidgets)
 			panels.graphicsEffectsPanel:recursiveGetChildById("ambientLight"):setText(string.format("Ambient Light: %s%%", value))
 			panels.gameMapPanel:setMinimumAmbientLight(value / 100)
-			panels.gameMapPanel:setDrawLights(options.enableLights.value)
+			updateDrawLights(options, panels, nil, value)
 		end
 	},
 	levelSeparator = {
@@ -870,9 +894,16 @@ return {
 		end
 	},
 	cloudsLabel = {
-		value = 100,
+		-- The official client ships this at 0.75; its stored keys are lightAttenuationClouds
+		-- and lightAttenuationIndoor, both fed from this one slider.
+		value = 75,
 		action = function(value, options, controller, panels, extraWidgets)
-			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s%%", value))
+			-- Reads as how much SHADING roofed tiles get, which is why the official client tags
+			-- 0% "(off)": nothing is drawn there, and 100% is the full indoor darkening.
+			local state = value == 0 and (" (%s)"):format(tr("off")) or ""
+			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s%%%s", value, state))
+			panels.gameMapPanel:setCloudsIndoorIntensity(value / 100)
+			updateDrawLights(options, panels, nil, nil, value)
 		end
 	},
 	showHudForOwnCharacter = {

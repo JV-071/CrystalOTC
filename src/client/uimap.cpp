@@ -159,6 +159,7 @@ bool UIMap::isDrawingManaBar() { return m_mapView->isDrawingManaBar(); }
 bool UIMap::isSwitchingShader() { return m_mapView->isSwitchingShader(); }
 
 void UIMap::setShadowFloorIntensity(const float intensity) { m_mapView->setShadowFloorIntensity(intensity); }
+void UIMap::setCloudsIndoorIntensity(const float intensity) { m_mapView->setCloudsIndoorIntensity(intensity); }
 
 std::vector<CreaturePtr> UIMap::getSpectators(const bool multiFloor) { return m_mapView->getSpectators(multiFloor); }
 

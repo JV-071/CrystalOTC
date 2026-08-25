@@ -72,6 +72,11 @@ public:
     void setShadowFloorIntensity(const float intensity) { m_shadowFloorIntensity = intensity; updateLight(); }
     float getShadowFloorIntensity() const { return m_shadowFloorIntensity; }
 
+    // "Clouds & Indoor Effect", 0..1: how far roofed tiles darken relative to open air.
+    // 0 is the option switched off; 1 is the full shading its 100% asks for.
+    void setCloudsIndoorIntensity(const float intensity) { m_cloudsIndoorIntensity = intensity; updateLight(); }
+    float getCloudsIndoorIntensity() const { return m_cloudsIndoorIntensity; }
+
     void setDrawNames(const bool enable) { m_drawNames = enable; }
     bool isDrawingNames() const { return m_drawNames; }
 
@@ -266,6 +271,7 @@ private:
     float m_fadeInTime{ 0 };
     float m_fadeOutTime{ 0 };
     float m_shadowFloorIntensity{ 0 };
+    float m_cloudsIndoorIntensity{ 0 };
 
     Rect m_rectDimension;
 
@@ -288,6 +294,7 @@ private:
     bool m_updateVisibleTiles{ true };
     bool m_updateMapPosInfo{ true };
     bool m_resetCoveredCache{ true };
+    bool m_resetIndoorCache{ true };
     bool m_shaderSwitchDone{ true };
     bool m_drawHealthBars{ true };
     bool m_drawOwnName{ true };

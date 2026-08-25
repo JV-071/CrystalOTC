@@ -777,6 +777,18 @@ bool Tile::isCovered(const int8_t firstFloor)
     return (m_isCovered & idState) == idState;
 }
 
+// Drops the cached isCovered() answer for one firstFloor so the next call rescans. The only
+// existing reset runs inside isCompletelyCovered(), which the light pass never calls; and since
+// each firstFloor owns its own pair of bits, clearing one cannot disturb the floor-visibility
+// answers cached under another.
+void Tile::resetCoveredCache(const int8_t firstFloor)
+{
+    const uint32_t idChecked = 1 << firstFloor;
+    const uint32_t idState = 1 << (firstFloor + g_gameConfig.getMapMaxZ());
+
+    m_isCovered &= ~(idChecked | idState);
+}
+
 bool Tile::isClickable()
 {
     bool hasGround = false;

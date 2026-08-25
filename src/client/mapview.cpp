@@ -422,6 +422,12 @@ void MapView::drawFloor()
 void MapView::drawLights() {
     const auto& cameraPosition = m_posInfo.camera;
 
+    // onTileUpdate flips this when an opaque thing comes or goes. The stock reset path runs
+    // inside isCompletelyCovered(), which this pass never calls, so without it a roof answer
+    // would stay cached long after the roof itself was gone.
+    const bool resetIndoorCache = m_resetIndoorCache;
+    m_resetIndoorCache = false;
+
     for (int_fast8_t z = m_floorMax; z >= m_floorMin; --z) {
         const float fadeLevel = getFadeLevel(z);
         if (fadeLevel == 0.f) break;
@@ -440,8 +446,20 @@ void MapView::drawLights() {
             }
         }
 
-        for (const auto& tile : map.tiles)
-            tile->drawLight(transformPositionTo2D(tile->getPosition()), m_lightView.get());
+        for (const auto& tile : map.tiles) {
+            const auto& point = transformPositionTo2D(tile->getPosition());
+
+            // Floors run deepest first, so the tile the player actually sees at this screen
+            // position is the last to write its mark and wins the slot. firstFloor 0 asks "is
+            // anything at all drawn above me", i.e. am I under a roof - a different question
+            // from the m_cachedFirstVisibleFloor queries elsewhere, cached in its own bits.
+            if (resetIndoorCache)
+                tile->resetCoveredCache(0);
+
+            m_lightView->markIndoor(point, tile->isCovered(0));
+
+            tile->drawLight(point, m_lightView.get());
+        }
 
         for (const auto& missile : g_map.getFloorMissiles(z))
             missile->draw(transformPositionTo2D(missile->getPosition()), false, m_lightView.get());
@@ -843,18 +861,55 @@ void MapView::onGlobalLightChange(const Light&)
     updateLight();
 }
 
+// How far the option may attenuate a roofed tile at 100%: down to half the open-air light.
+// The official client names this setting lightAttenuationCloudsIndoor and splits it internally
+// into lightAttenuationClouds and lightAttenuationIndoor, so it reduces the light a tile
+// receives rather than substituting a light of its own. Its interiors stay dim but readable at
+// full slider, so this is a bounded attenuation, not a blackout.
+static constexpr float MAX_INDOOR_ATTENUATION = .5f;
+
 void MapView::updateLight()
 {
-    Light ambientLight = getCameraPosition().z > g_gameConfig.getMapSeaFloor() ? Light() : g_map.getLight();
-    ambientLight.intensity = std::max<uint8_t >(m_minimumAmbientLight * 255, ambientLight.intensity);
+    // Underground is not "indoors": there is no sky being blocked, and the dark ambience down
+    // there is the point rather than something to attenuate further. Left at 0, a cave is lit
+    // exactly as it was before any of this existed.
+    const bool underground = getCameraPosition().z > g_gameConfig.getMapSeaFloor();
+    const float attenuation = underground ? 0.f : m_cloudsIndoorIntensity;
+
+    Light ambientLight = underground ? Light() : g_map.getLight();
+
+    // Roofed tiles receive this attenuated light instead of the open-air one. Attenuating the
+    // light rather than painting over the scene is what keeps torches working indoors: the
+    // light overlay multiplies over the finished frame, so anything drawn on top of it could
+    // only ever darken what it covers, torchlight included.
+    Light indoorLight = ambientLight;
+    indoorLight.intensity = static_cast<uint8_t>(ambientLight.intensity * (1.f - MAX_INDOOR_ATTENUATION * attenuation));
+
+    // The Ambient Light option is the player's brightness floor and still wins, so an interior
+    // bottoms out at the ambience they asked for rather than at black. Applied after the
+    // attenuation rather than before, so the floor stays a floor.
+    ambientLight.intensity = std::max<uint8_t>(m_minimumAmbientLight * 255, ambientLight.intensity);
+    indoorLight.intensity = std::max<uint8_t>(m_minimumAmbientLight * 255, indoorLight.intensity);
+
+    // Same hue as the open air, only dimmer - an attenuation changes how much light a tile
+    // gets, not what colour it is.
+    const auto& indoorColor = Color::from8bit(ambientLight.color, indoorLight.intensity / static_cast<float>(UINT8_MAX));
+
     m_lightView->setGlobalLight(ambientLight);
+    m_lightView->setIndoorLight(indoorColor, indoorLight.intensity);
     m_lightView->setEnabled(isDrawingLights());
 }
 
 void MapView::onTileUpdate(const Position& pos, const ThingPtr& thing, const Otc::Operation op)
 {
-    if (thing && thing->isOpaque() && op == Otc::OPERATION_REMOVE)
-        m_resetCoveredCache = true;
+    if (thing && thing->isOpaque()) {
+        if (op == Otc::OPERATION_REMOVE)
+            m_resetCoveredCache = true;
+
+        // A roof going up changes the indoor shading exactly as much as one coming down, and
+        // nothing else invalidates the firstFloor-0 answers that pass caches.
+        m_resetIndoorCache = true;
+    }
 
     if (op == Otc::OPERATION_CLEAN) {
         if (m_lastHighlightTile && m_lastHighlightTile->getPosition() == pos)

@@ -75,6 +75,7 @@ public:
     bool isDrawingManaBar();
     bool isSwitchingShader();
     void setShadowFloorIntensity(float intensity);
+    void setCloudsIndoorIntensity(float intensity);
     std::vector<CreaturePtr> getSpectators(bool multiFloor = false);
     std::vector<CreaturePtr> getSightSpectators(bool multiFloor = false);
     bool isInRange(const Position& pos);

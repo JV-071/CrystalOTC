@@ -46,6 +46,7 @@ void LightView::resize(const Size& size, const uint16_t tileSize) {
     m_pool->setScaleFactor(tileSize / g_gameConfig.getSpriteSize());
 
     m_lightData.tiles.resize(size.area());
+    m_lightData.indoor.assign(size.area(), 0);
     m_lightData.lights.clear();
 
     for (auto& pixels : m_pixels)
@@ -87,12 +88,28 @@ void LightView::resetShade(const Point& pos)
     m_lightData.tiles[index] = m_lightData.lights.size();
 }
 
+void LightView::markIndoor(const Point& pos, const bool indoor)
+{
+    const size_t index = (pos.y / m_tileSize) * m_mapSize.width() + (pos.x / m_tileSize);
+    if (index >= m_lightData.indoor.size()) return;
+
+    m_lightData.indoor[index] = indoor ? 1 : 0;
+
+    // The pixel cache is keyed on what draw() feeds the hash controller, and stepping through a
+    // doorway moves neither a light nor the global colour. Without the shaded set in that key
+    // the texture keeps whatever shading the frame you walked in on had.
+    if (indoor)
+        stdext::hash_combine(m_indoorHash, index);
+}
+
 void LightView::draw(const Rect& dest, const Rect& src)
 {
     static std::atomic_bool updatePixel;
 
     m_pool->getHashController().put(src.hash());
     m_pool->getHashController().put(m_globalLightColor.hash());
+    m_pool->getHashController().put(m_indoorLightColor.hash());
+    m_pool->getHashController().put(m_indoorHash);
     if (m_pool->getHashController().wasModified()) {
         updatePixels();
 
@@ -163,9 +180,15 @@ void LightView::updatePixels()
             const auto centerY = y * m_tileSize + tileCenterOffset;
             const auto index = y * mapWidth + x;
 
-            auto r = m_globalLightColor.r();
-            auto g = m_globalLightColor.g();
-            auto b = m_globalLightColor.b();
+            // A roofed tile starts from the shaded light instead of the open-air one. Light
+            // sources are max()'d over this below, so a torch indoors still lights the room -
+            // which is the reason this shades the base colour rather than painting over the
+            // finished scene, where a multiply could only ever darken it further.
+            const auto& baseColor = m_lightData.indoor[index] ? m_indoorLightColor : m_globalLightColor;
+
+            auto r = baseColor.r();
+            auto g = baseColor.g();
+            auto b = baseColor.b();
 
             for (auto i = m_lightData.tiles[index]; i < lightSize; ++i) {
                 const auto& light = m_lightData.lights[i];
