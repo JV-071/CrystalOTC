@@ -450,6 +450,46 @@ not the geometry, not the particle count, and not the colour. Candidates that re
 sample at the core (atlas-backed versus standalone residency, or sub-pixel sampling alignment), and
 the draw opacity applied to the card.
 
+**Root cause found 2026-08-25: the CPU texture atlas.** Disabling the FOREGROUND atlas alone
+(`foregroundAtlasSize = -1`, the switch Vulkan already uses) makes the scene fully deterministic —
+six captures, all fifteen pairs at **0 differing pixels**, where the same binary with the atlas on
+splits into two modes at exactly 540. That is decisive on its own, and the two modes are then
+identifiable:
+
+| | black px in the core region | brightest channel-sum |
+|---|---:|---:|
+| atlas off (always standalone) | 0 | 750 |
+| the low mode | 0 | 750 |
+| the high mode | 220 | 352 |
+
+The atlas-off result matches the low mode (22 px apart, ordinary noise) and differs from the high
+mode by the full 540. **So the low mode is the texture sampled standalone and the high mode is the
+same texture sampled through the atlas**, and what varies between runs is simply whether the
+particle texture had become atlas-resident by the frame the shutter caught — `DrawPool::add`
+translates a source rect into atlas coordinates only once a region exists, so a texture is
+standalone for its first frames and atlas-backed afterwards.
+
+**The substantive part is that the two are not the same picture.** Atlas-backed sampling yields a
+*higher* value at the particle's core — high enough to saturate, and `CompositionMode::ADD` is
+`(1 - src) * (src + dst)`, which collapses to black exactly at saturation. That is why the defect is
+confined to the ADD card: NORMAL and MULTIPLY are given the identical difference and do not magnify
+it. `particle2.png` is 32x32 drawn at 96x96, so this is not `SMOOTH_PADDING` bleeding inward — two
+texels of padding reach about six pixels into a 3x-magnified edge, and the differing region is the
+centre. It looks like a sub-texel sampling offset across the whole quad, which would follow from the
+region's coordinates being normalised against a 2048x2048 layer rather than a 32x32 texture. That
+mechanism is inferred and not yet proven; everything above it is measured.
+
+This qualifies a claim made elsewhere in this file and in `drawpoolmanager.cpp` — that an
+atlas-backed draw and a standalone one "produce the same picture". For a NEAREST-filtered sprite at
+integer scale that holds. For a LINEAR-filtered texture drawn magnified it is off by enough to move
+a saturated value across the boundary, which no scene had noticed because only ADD amplifies it.
+
+Consequences for the three options below: the tolerance and ungating options are unchanged, but
+"find and remove the source of the bimodality" now has a concrete target. The narrow fix is to make
+the fixture's residency deterministic — warm the atlas before the shutter, or give that card a
+NEAREST texture. The broad fix is to make atlas-backed sampling agree with standalone for smooth
+textures, which is a renderer change and wants its own measurement.
+
 Recorded rather than fixed, because the fix is a choice, not a correction. Three options, in
 preference order: find and remove the source of the bimodality in the emitter (it is a
 single-burst emitter, so a genuinely fixed frame should be reachable); or give the scene a
