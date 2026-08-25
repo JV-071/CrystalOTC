@@ -277,23 +277,29 @@ local function moveToolTip(first)
 	end
 
 	local pos = g_window.getMousePosition()
-	local windowSize = g_window.getSize()
+	local viewport = rootWidget:getRect()
 	local labelSize = toolTipLabel:getSize()
+	local margin = 10
+	local right = viewport.x + viewport.width - margin
+	local bottom = viewport.y + viewport.height - margin
 
 	pos.x = pos.x + 1
 	pos.y = pos.y + 1
 
-	if windowSize.width - (pos.x + labelSize.width) < 10 then
+	if pos.x + labelSize.width > right then
 		pos.x = pos.x - labelSize.width
 	else
 		pos.x = pos.x - 1
 	end
 
-	if pos.y - labelSize.height - 3 < 10 then
+	if pos.y - labelSize.height - 3 < viewport.y + margin then
 		pos.y = pos.y + 10
 	else
 		pos.y = pos.y - labelSize.height
 	end
+
+	pos.x = math.max(viewport.x + margin, math.min(pos.x, right - labelSize.width))
+	pos.y = math.max(viewport.y + margin, math.min(pos.y, bottom - labelSize.height))
 
 	toolTipLabel:setPosition(pos)
 end
@@ -304,23 +310,29 @@ local function moveSpecialToolTip(first)
 	end
 
 	local pos = g_window.getMousePosition()
-	local windowSize = g_window.getSize()
+	local viewport = rootWidget:getRect()
 	local labelSize = SpecialToolTipLabel:getSize()
+	local margin = 10
+	local right = viewport.x + viewport.width - margin
+	local bottom = viewport.y + viewport.height - margin
 
 	pos.x = pos.x + 1
 	pos.y = pos.y + 1
 
-	if windowSize.width - (pos.x + labelSize.width) < 10 then
+	if pos.x + labelSize.width > right then
 		pos.x = pos.x - labelSize.width
 	else
 		pos.x = pos.x - 1
 	end
 
-	if pos.y - labelSize.height - 3 < 10 then
+	if pos.y - labelSize.height - 3 < viewport.y + margin then
 		pos.y = pos.y + 10
 	else
 		pos.y = pos.y - labelSize.height
 	end
+
+	pos.x = math.max(viewport.x + margin, math.min(pos.x, right - labelSize.width))
+	pos.y = math.max(viewport.y + margin, math.min(pos.y, bottom - labelSize.height))
 
 	SpecialToolTipLabel:setPosition(pos)
 end
