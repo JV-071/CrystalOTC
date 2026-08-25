@@ -1,12 +1,12 @@
 Panel
   id: background
-  image-source: /images/background_crystal1
+  # The official resource is a JPEG, but OTClient's runtime loader does not
+  # decode it on this path. This PNG is a lossless pixel-preserving conversion
+  # of the same extracted 15.3x title.jpg, not a legacy Crystal background.
+  image-source: /images/title-official
   // smoothing enabled: backgrounds are scaled to the window size, without smooth pixels are visible
   image-smooth: true
-  // fixed-ratio = "cover" mode: fills the window keeping the aspect ratio, excess is cropped
-  // CENTERED along one axis. Backgrounds are ~16:9, so with a typical window the cropping is
-  // negligible. (There used to be margin-top: -90 here for the old background - it stretched the
-  // widget beyond the window and cut off the top of the image with the logo.)
+  // Match the official client's Image.PreserveAspectCrop title treatment.
   image-fixed-ratio: true
   anchors.top: parent.top
   anchors.left: parent.left
@@ -25,3 +25,14 @@ Panel
     focusable: false
     phantom: true
     visible: false
+
+  UIWidget
+    id: cipSoftLogo
+    size: 163 44
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.bottom: parent.bottom
+    # Official gamewindow.qml anchors this mark to the 117 px bottom bar.
+    margin-bottom: 117
+    image-source: /images/skin/classic/cipsoft-logo
+    focusable: false
+    phantom: true

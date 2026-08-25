@@ -1,15 +1,7 @@
 ﻿-- chunkname: @/client_background/background.lua
 
 local background
--- The only pool of login screen backgrounds - randomized once at every client startup.
-local BACKGROUNDS = {
-	"/images/background_crystal1",
-	"/images/background_crystal2",
-	"/images/background_crystal3",
-	"/images/background_crystal4",
-	"/images/background_crystal5",
-	"/images/background_crystal6"
-}
+local OFFICIAL_LOGIN_BACKGROUND = "/images/title-official"
 local toggleState = true
 local timeLoopBackgroundEffect = 5000
 local mapReadyEvent
@@ -106,9 +98,7 @@ end
 function init()
 	background = g_ui.displayUI("background")
 
-	math.randomseed(g_clock.realMillis())
-
-	background:setImageSource(BACKGROUNDS[math.random(#BACKGROUNDS)])
+	background:setImageSource(OFFICIAL_LOGIN_BACKGROUND)
 	background:lower()
 
 	connect(g_game, {

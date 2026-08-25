@@ -76,7 +76,7 @@ CharacterWidget < UIWidget
     image-size: 12 12
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 264
+    margin-left: 276
     margin-top: 2
     visible: false
     focusable: false
@@ -90,7 +90,7 @@ CharacterWidget < UIWidget
     size: 11 19
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 281
+    margin-left: 293
     margin-top: 2
     image-source: /images/game/entergame/dailyreward_collected
     image-clip: 0 0 11 19
@@ -104,7 +104,7 @@ CharacterWidget < UIWidget
     size: 11 19
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 281
+    margin-left: 293
     margin-top: 2
     image-source: /images/game/entergame/hidden
     image-clip: 0 0 11 19
@@ -118,7 +118,7 @@ CharacterWidget < UIWidget
     color: #bbbbbb
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 335
+    margin-left: 347
     color: $var-text-cip-color
     font: $var-cip-font
     text-auto-resize: true
@@ -136,7 +136,7 @@ CharacterWidget < UIWidget
     color: #bbbbbb
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 385
+    margin-left: 397
     color: $var-text-cip-color
     font: $var-cip-font
     text-auto-resize: true
@@ -154,7 +154,7 @@ CharacterWidget < UIWidget
     color: #bbbbbb
     anchors.top: parent.top
     anchors.left: parent.left
-    margin-left: 500
+    margin-left: 512
     color: $var-text-cip-color
     font: $var-cip-font
     text-auto-resize: true
@@ -162,7 +162,7 @@ CharacterWidget < UIWidget
     &baseText: '(%s)'
     @onSetup: |
       self:addAnchor(AnchorLeft, 'parent', AnchorLeft)
-      self:setMarginLeft(500)
+      self:setMarginLeft(512)
       self.baseText = '%s'
 
     $on:
@@ -180,7 +180,7 @@ CharacterWidget < UIWidget
     @onSetup: |
       self:addAnchor(AnchorLeft, 'parent', AnchorLeft)
       self:setMarginTop(-1)
-      self:setMarginLeft(500)
+      self:setMarginLeft(512)
       self.baseText = '%s'
 
     $on:
@@ -261,10 +261,10 @@ MainWindow
     @onSetup: |
       self:breakAnchors()
       if g_game.getFeature(GameEnterGameShowAppearance) then
-        self:setSize({ width = 713, height = 263 })
+        self:setSize({ width = 713, height = 147 })
         self:addAnchor(AnchorTop, 'recoverySetupLabel', AnchorBottom)
         self:addAnchor(AnchorLeft, 'parent', AnchorLeft)
-        self:setMarginTop(8)
+        self:setMarginTop(29)
         self:setMarginLeft(1)
         self:setMarginBottom(0)
       else
@@ -317,44 +317,44 @@ MainWindow
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           !text: tr('Character') .. ''
-          font: verdana-11px-monochrome
+          font: $var-cip-font
           color: #c0c0c0
           text-align: center
           text-offset: 0 0
 
         Label
-          margin-left: 281
+          margin-left: 293
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           !text: tr('Status') .. ''
-          font: verdana-11px-monochrome
+          font: $var-cip-font
           color: #c0c0c0
           text-align: center
 
         Label
-          margin-left: 336
+          margin-left: 348
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           !text: tr('Level') .. ''
-          font: verdana-11px-monochrome
+          font: $var-cip-font
           color: #c0c0c0
           text-align: center
 
         Label
-          margin-left: 386
+          margin-left: 398
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           !text: tr('Vocation') .. ''
-          font: verdana-11px-monochrome
+          font: $var-cip-font
           color: #c0c0c0
           text-align: center
 
         Label
-          margin-left: 501
+          margin-left: 513
           anchors.left: parent.left
           anchors.verticalCenter: parent.verticalCenter
           !text: tr('World') .. ''
-          font: verdana-11px-monochrome
+          font: $var-cip-font
           color: #c0c0c0
           text-align: center
 
@@ -391,7 +391,7 @@ MainWindow
         anchors.left: parent.left
         anchors.top: charactersTableHeader.top
         anchors.bottom: characters.bottom
-        margin-left: 277
+        margin-left: 289
         @onSetup: |
           if not(g_game.getFeature(GameEnterGameShowAppearance)) then
             self:hide()
@@ -401,7 +401,7 @@ MainWindow
         anchors.left: parent.left
         anchors.top: charactersTableHeader.top
         anchors.bottom: characters.bottom
-        margin-left: 332
+        margin-left: 344
         @onSetup: |
           if not(g_game.getFeature(GameEnterGameShowAppearance)) then
             self:hide()
@@ -411,7 +411,7 @@ MainWindow
         anchors.left: parent.left
         anchors.top: charactersTableHeader.top
         anchors.bottom: characters.bottom
-        margin-left: 382
+        margin-left: 394
         @onSetup: |
           if not(g_game.getFeature(GameEnterGameShowAppearance)) then
             self:hide()
@@ -421,7 +421,7 @@ MainWindow
         anchors.left: parent.left
         anchors.top: charactersTableHeader.top
         anchors.bottom: characters.bottom
-        margin-left: 497
+        margin-left: 509
         @onSetup: |
           if not(g_game.getFeature(GameEnterGameShowAppearance)) then
             self:hide()
@@ -451,15 +451,14 @@ MainWindow
   UIButton
     id: getPremiumButton
     anchors.right: parent.right
-    anchors.bottom: separator.top
-    margin-bottom: 12
+    anchors.verticalCenter: accountStatusIcon.verticalCenter
     image-border: 5
     cursor: pointer
     image-source: /images/ui/button-green-up
     size: 85 20
     text: "Get Premium"
     text-offset: 0 1
-    font: cipsoftFont
+    font: verdana-bold-8px-antialiased
     visible: false
     @onClick: |
       local url = Services and Services.premium or "https://google.com"
@@ -473,18 +472,24 @@ MainWindow
     id: accountStatusCaption
     !text: tr('Account Status') .. ':'
     anchors.left: parent.left
-    anchors.bottom: next.top
+    anchors.top: charactersListFrame.bottom
+    margin-top: 8
     color: $var-text-cip-color
     font: $var-cip-font
     @onSetup: |
-      self:setMarginBottom(6)
+      if not g_game.getFeature(GameEnterGameShowAppearance) then
+        self:breakAnchors()
+        self:addAnchor(AnchorLeft, 'parent', AnchorLeft)
+        self:addAnchor(AnchorBottom, 'separator', AnchorTop)
+        self:setMarginBottom(6)
+      end
 
   Label
     id: accountStatusIcon
     size: 22 20
     anchors.left: parent.left
-    anchors.bottom: next.bottom
-    margin-bottom: 1
+    anchors.top: accountStatusCaption.bottom
+    margin-top: 3
     margin-left: 1
     image-source: /images/game/entergame/premium
     image-clip: 0 0 22 20
@@ -492,15 +497,139 @@ MainWindow
   Label
     id: accountStatusLabel
     !text: tr('Free Account')
-    anchors.left: parent.left
+    anchors.left: accountStatusIcon.right
+    anchors.verticalCenter: accountStatusIcon.verticalCenter
+    margin-left: 5
     text-auto-resize: true
     font: $var-cip-font
     color: $var-text-cip-color
-    @onSetup: |
-      self:setMarginBottom(10)
-      self:setPaddingBottom(4)
-      self:setTextOffset({x = 27, y = 0})
-      self:addAnchor(AnchorBottom, 'next', AnchorBottom)
+
+  UIWidget
+    id: freeAccountBenefits
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: accountStatusIcon.bottom
+    anchors.bottom: separator.top
+    margin-top: 13
+    margin-bottom: 8
+    visible: false
+
+    HorizontalSeparator
+      id: premiumBenefitsSeparator
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.top: parent.top
+
+    Label
+      id: premiumBenefitsCaption
+      !text: tr('Premium Benefits include:')
+      anchors.top: premiumBenefitsSeparator.bottom
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-top: 6
+      font: $var-cip-font
+      color: $var-text-cip-color
+      text-auto-resize: true
+
+    UIWidget
+      id: quickLootBenefit
+      width: 230
+      height: 70
+      anchors.left: parent.left
+      anchors.top: premiumBenefitsCaption.bottom
+      margin-top: 5
+
+      UIWidget
+        id: icon
+        size: 32 32
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        image-source: /images/game/entergame/premium-icons-32x32
+        image-clip: 992 0 32 32
+
+      Label
+        !text: tr('Customise quick looting to your liking')
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: icon.bottom
+        margin-left: -6
+        margin-right: -6
+        margin-top: 4
+        height: 30
+        text-wrap: true
+        text-align: center
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+    UIWidget
+      id: promotionBenefit
+      width: 230
+      height: 70
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: premiumBenefitsCaption.bottom
+      margin-top: 5
+
+      UIWidget
+        id: icon
+        size: 32 32
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        image-source: /images/game/entergame/premium-icons-32x32
+        image-clip: 384 0 32 32
+
+      Label
+        !text: tr('Get stronger with a promotion')
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: icon.bottom
+        margin-top: 4
+        height: 30
+        text-wrap: true
+        text-align: center
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+    UIWidget
+      id: wheelBenefit
+      width: 230
+      height: 70
+      anchors.right: parent.right
+      anchors.top: premiumBenefitsCaption.bottom
+      margin-top: 5
+
+      UIWidget
+        id: icon
+        size: 32 32
+        anchors.top: parent.top
+        anchors.horizontalCenter: parent.horizontalCenter
+        image-source: /images/game/entergame/premium-icons-32x32
+        image-clip: 1120 0 32 32
+
+      Label
+        !text: tr('Use the Wheel of Destiny to greatly increase your power!')
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: icon.bottom
+        margin-top: 4
+        height: 30
+        text-wrap: true
+        text-align: center
+        font: $var-cip-font
+        color: $var-text-cip-color
+
+    UIButton
+      id: morePremiumBenefits
+      !text: tr('... and many more!')
+      anchors.left: parent.left
+      anchors.bottom: parent.bottom
+      margin-bottom: 6
+      width: 150
+      height: 15
+      font: Verdana-11px-lowspace-underline
+      color: $var-text-cip-color
+      text-align: left
+      @onClick: |
+        local url = Services and Services.premium
+        if url then g_platform.openUrl(url) end
 
   HorizontalSeparator
     id: separator

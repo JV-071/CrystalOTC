@@ -73,6 +73,33 @@ local function addButton(id, description, icon, callback, panel, toggle, front, 
 	return button
 end
 
+local function addOfficialIconButton(id, description, callback, panel, className, front)
+	local button = panel:getChildById(id)
+
+	if not button then
+		button = g_ui.createWidget(className)
+
+		if front then
+			panel:insertChild(1, button)
+		else
+			panel:addChild(button)
+		end
+	end
+
+	button:setId(id)
+	button:setTooltip(description)
+
+	function button.onMouseRelease(widget, mousePos, mouseButton)
+		if widget:containsPoint(mousePos) and mouseButton ~= MouseMidButton then
+			callback()
+
+			return true
+		end
+	end
+
+	return button
+end
+
 local function updateZoomButtons()
 	if zoomInButton then
 		zoomInButton:setEnabled(zoomLevel < 6)
@@ -126,18 +153,18 @@ function init()
 	topLeftYoutubeLink = topMenu:recursiveGetChildById("youtubeIcon")
 	topLeftTwitchLink = topMenu:recursiveGetChildById("discordIcon")
 
-	if Services.websites then
-		if not managerAccountsButton then
-			managerAccountsButton = modules.client_topmenu.addTopRightRegularButton("hotkeysButton", tr("Manage Account"), nil, openManagerAccounts)
-		end
+	-- These controls are part of the official start-screen chrome even when a
+	-- custom server does not advertise account-management URLs.
+	if not managerAccountsButton then
+		managerAccountsButton = modules.client_topmenu.addTopRightRegularButton("hotkeysButton", tr("Manage Account"), nil, openManagerAccounts)
+	end
 
-		if not managerClientsButton then
-			managerClientsButton = modules.client_topmenu.addTopRightRegularButton("clientsButton", tr("Manage Clients"), nil, openLauncher)
-		end
+	if not managerClientsButton then
+		managerClientsButton = modules.client_topmenu.addTopRightRegularButton("clientsButton", tr("Manage Clients"), nil, openLauncher)
+	end
 
-		if not lastUpdatesButton then
-			lastUpdatesButton = modules.client_topmenu.addTopRightBlueButton("lastUpdatesButton", tr("Last Updates"), nil, openLastUpdates, true)
-		end
+	if Services.websites and not lastUpdatesButton then
+		lastUpdatesButton = modules.client_topmenu.addTopRightBlueButton("lastUpdatesButton", tr("Last Updates"), nil, openLastUpdates, true)
 	end
 
 	if g_platform.isMobile() then
@@ -556,6 +583,14 @@ end
 
 function addTopRightToggleButton(id, description, icon, callback, front)
 	return addButton(id, description, icon, callback, topLeftTogglesPanel, true, front)
+end
+
+function addTopRightOptionsButton(id, description, callback, front)
+	return addOfficialIconButton(id, description, callback, topLeftTogglesPanel, "OfficialOptionsButton", front)
+end
+
+function addTopRightLogoutButton(id, description, callback, front)
+	return addOfficialIconButton(id, description, callback, topLeftTogglesPanel, "OfficialLogoutButton", front)
 end
 
 function showGameButtons()

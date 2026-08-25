@@ -36,6 +36,9 @@ function init()
 
 	terminalWindow.onDoubleClick = popWindow
 	terminalButton = modules.client_topmenu.addTopRightToggleButton("terminalButton", tr("Terminal") .. " (Ctrl + T)", "/images/topbuttons/terminal", toggle)
+	-- Keep developer access on Ctrl+T without adding non-official chrome to the
+	-- login/game top bar.
+	terminalButton:hide()
 
 	Keybind.new("Misc.", "Toggle Terminal", "Ctrl+T", "")
 	Keybind.bind("Misc.", "Toggle Terminal", {

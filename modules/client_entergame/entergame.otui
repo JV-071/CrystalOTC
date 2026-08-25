@@ -115,15 +115,25 @@ EnterGameWindow
   UIButton
     !text: tr('Forgot password and/or email')
     id: Forgot_password_email
-    font: Verdana-11px-lowspace-underline
+    ttf-font: verdana-bold
+    ttf-font-size: 11
     text-align: left
+    text-auto-resize: true
     anchors.left: rememberEmailBox.left
-    anchors.right: parent.right
     anchors.top: rememberEmailBox.bottom
     color: $var-text-cip-color
     margin-top: 6
     margin-left: 1
     @onClick: EnterGame.openAccountRecovery()
+
+    UIWidget
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      height: 1
+      background-color: $var-text-cip-color
+      phantom: true
+      focusable: false
 
   HorizontalSeparator
     anchors.left: parent.left

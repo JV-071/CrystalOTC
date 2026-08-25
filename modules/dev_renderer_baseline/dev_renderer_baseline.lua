@@ -300,11 +300,8 @@ local function stabilizeOnlineUi()
     end
 end
 
--- client_background picks one of six login backgrounds at random on every startup, seeded
--- from the wall clock (modules/client_background/background.lua). Any scene that shows the
--- login screen -- startup-ui and windowing -- is therefore only one-in-six likely to match a
--- previous capture. Pin it to the first background so those scenes are comparable at all.
-local BASELINE_LOGIN_BACKGROUND = "/images/background_crystal1"
+-- Keep login captures pinned to the same official title art used by the runtime.
+local BASELINE_LOGIN_BACKGROUND = "/images/title-official"
 
 local function pinLoginBackground()
     local backgroundModule = modules.client_background
@@ -316,6 +313,64 @@ local function pinLoginBackground()
     if background and not background:isDestroyed() then
         background:setImageSource(BASELINE_LOGIN_BACKGROUND)
     end
+end
+
+local function showCharacterSelectionFixture()
+    if not CharacterList or not CharacterList.create or not CharacterList.show then
+        fail("character-selection fixture requires client_entergame")
+        return false
+    end
+
+    if EnterGame and EnterGame.hide then
+        EnterGame.hide()
+    end
+
+    CharacterList.create({
+        {
+            name = "Crystal Vanguard",
+            worldName = "Antica",
+            worldIp = "127.0.0.1",
+            worldPort = 7171,
+            worldPvpType = 0,
+            level = 81,
+            vocation = "Druid",
+            main = true,
+            dailyreward = 1,
+            hidden = false,
+            outfitid = 128,
+            headcolor = 95,
+            torsocolor = 95,
+            legscolor = 95,
+            detailcolor = 95,
+            addonsflags = 3
+        },
+        {
+            name = "Crystal Pathfinder",
+            worldName = "Antica",
+            worldIp = "127.0.0.1",
+            worldPort = 7171,
+            worldPvpType = 0,
+            level = 9,
+            vocation = "Sorcerer",
+            main = false,
+            dailyreward = 0,
+            hidden = false,
+            outfitid = 130,
+            headcolor = 78,
+            torsocolor = 78,
+            legscolor = 78,
+            detailcolor = 78,
+            addonsflags = 3
+        }
+    }, {
+        status = 0,
+        subStatus = SubscriptionStatus.Free,
+        premDays = 0,
+        recoverySetupComplete = true
+    })
+    CharacterList.show()
+
+    return true
 end
 
 local function suppressCaptureTooltip()
@@ -1493,6 +1548,10 @@ function RendererBaseline.onRun()
     activeScenario = optionValue("renderer-baseline")
     if activeScenario == "startup-ui" then
         RendererBaseline.captureScene(activeScenario, 2500)
+    elseif activeScenario == "character-selection-ui" then
+        if showCharacterSelectionFixture() then
+            RendererBaseline.captureScene(activeScenario, 2500)
+        end
     elseif activeScenario == "map-core" or activeScenario == "map-screenshot"
         or activeScenario == "lighting-overlap" or activeScenario == "shader-matrix-map" then
         RendererBaseline.loginFixtureServer()

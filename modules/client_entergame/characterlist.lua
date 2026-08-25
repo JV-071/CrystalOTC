@@ -848,6 +848,17 @@ function CharacterList.create(characters, account, otui)
 	end
 
 	local premiumButton = charactersWindow:getChildById("getPremiumButton")
+	local freeAccountBenefits = charactersWindow:getChildById("freeAccountBenefits")
+	local charactersListFrame = charactersWindow:getChildById("charactersListFrame")
+	local showFreeAccountBenefits = g_game.getFeature(GameEnterGameShowAppearance) and account.subStatus == SubscriptionStatus.Free
+
+	if freeAccountBenefits then
+		freeAccountBenefits:setVisible(showFreeAccountBenefits)
+	end
+
+	if charactersListFrame and g_game.getFeature(GameEnterGameShowAppearance) then
+		charactersListFrame:setHeight(showFreeAccountBenefits and 147 or 263)
+	end
 
 	if account.subStatus == SubscriptionStatus.Free then
 		accountStatusLabel:setText(("%s%s"):format(tr("Free Account"), status))
