@@ -334,6 +334,31 @@ local function getEffectiveOptionValue(key)
 	return opt.value
 end
 
+function updateInterfaceScalePreview(panelsArg)
+	local p = panelsArg or panels
+
+	if not p or not p.graphicsPanel then
+		return
+	end
+
+	local scroll = p.graphicsPanel:recursiveGetChildById("interfaceScale")
+
+	if not scroll then
+		return
+	end
+
+	local value = getEffectiveOptionValue("interfaceScale") or 100
+	value = math.max(50, math.min(300, value))
+
+	scroll:setText(tr("Interface Scale: %d %%", value))
+
+	local valueBar = scroll:recursiveGetChildById("valueBar")
+
+	if valueBar then
+		valueBar:setValue(value)
+	end
+end
+
 function updateBackgroundFrameRatePreview(panelsArg)
 	local p = panelsArg or panels
 
@@ -2638,6 +2663,10 @@ function setOption(key, value, force)
 				updateBackgroundFrameRatePreview(panels)
 			end
 
+			if key == "interfaceScale" then
+				updateInterfaceScalePreview(panels)
+			end
+
 			return
 		end
 
@@ -2660,6 +2689,10 @@ function setOption(key, value, force)
 
 		if key == "noFrameRateLimit" or key == "backgroundFrameRate" then
 			updateBackgroundFrameRatePreview(panels)
+		end
+
+		if key == "interfaceScale" then
+			updateInterfaceScalePreview(panels)
 		end
 
 		if type(value) == "boolean" then

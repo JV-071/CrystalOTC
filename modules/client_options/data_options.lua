@@ -1606,6 +1606,21 @@ return {
 			modules.game_cooldown.setSpellGroupCooldownsVisible(value)
 		end
 	},
+	interfaceScale = {
+		-- Percentage, so 100 is "as the display intends". It multiplies the display's own pixel
+		-- ratio rather than replacing it, which is what the two being one variable used to do:
+		-- on a Retina display, asking for 100 laid the whole interface out at device resolution
+		-- and asking for 200 was a silent no-op.
+		--
+		-- Deferred like its neighbours, and for a reason of its own: applying it relayouts the
+		-- entire interface, so doing that on every tick of the slider would drag the Options
+		-- window itself out from under the cursor. The label previews the value live instead.
+		deferAction = true,
+		value = 100,
+		action = function(value, options, controller, panels, extraWidgets)
+			g_app.setHUDScale(math.max(50, math.min(300, value)) / 100)
+		end
+	},
 	dontStretchShrink = {
 		deferAction = true,
 		value = false,
