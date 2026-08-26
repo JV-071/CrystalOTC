@@ -45,15 +45,23 @@ void Missile::draw(const Point& dest, const bool drawThings, LightView* lightVie
 
     const float fraction = m_duration > 0 ? m_animationTimer.ticksElapsed() / m_duration : 1;
 
-    if (g_drawPool.getCurrentType() == DrawPoolType::MAP) {
-        g_drawPool.setDrawOrder(DrawOrder::FOURTH);
-
+    // Same two passes as Effect::draw, and for the same reason: a missile dimmed this far is
+    // dropped rather than faded, so it stops lighting the tiles it flies over.
+    const auto poolType = g_drawPool.getCurrentType();
+    if (poolType == DrawPoolType::MAP || poolType == DrawPoolType::LIGHT) {
         float alpha = g_client.getMissileAlpha();
         if (m_source != Otc::ME_SOURCE_DEFAULT)
             alpha = g_client.getEffectAlpha(m_source);
 
-        if (drawThings && alpha < 1.f)
-            g_drawPool.setOpacity(alpha, true);
+        if (!Client::isEffectVisibleAtOpacity(alpha))
+            return;
+
+        if (poolType == DrawPoolType::MAP) {
+            g_drawPool.setDrawOrder(DrawOrder::FOURTH);
+
+            if (drawThings && alpha < 1.f)
+                g_drawPool.setOpacity(alpha, true);
+        }
     }
 
     if (drawThings && hasShader())

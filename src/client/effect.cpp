@@ -88,12 +88,20 @@ void Effect::draw(const Point& dest, const bool drawThings, LightView* lightView
     if (!thingType || thingType->isNull() || thingType->getAnimationPhases() == 0)
         return;
 
-    if (g_drawPool.getCurrentType() == DrawPoolType::MAP) {
-        if (drawThings) {
-            float alpha = g_client.getEffectAlpha(m_source);
-            if (alpha < 1.f)
-                g_drawPool.setOpacity(alpha, true);
-        }
+    // Both map passes, because the light one runs under its own pool and would otherwise keep
+    // lighting the tile for an effect nobody can see. UI previews are left alone, as before.
+    const auto poolType = g_drawPool.getCurrentType();
+    if (poolType == DrawPoolType::MAP || poolType == DrawPoolType::LIGHT) {
+        const float alpha = g_client.getEffectAlpha(m_source);
+
+        // Bail before the light source is handed over, not just before the sprite: the parser
+        // already refuses to spawn effects this dim, and this covers the ones that were
+        // already on the map when the slider was dragged down.
+        if (!Client::isEffectVisibleAtOpacity(alpha))
+            return;
+
+        if (drawThings && alpha < 1.f)
+            g_drawPool.setOpacity(alpha, true);
     }
 
     if (drawThings && hasShader())

@@ -64,6 +64,13 @@ public:
         return m_effectAlphas[source];
     }
 
+    // The official client never spawns an effect whose source is dimmed below 1%, so its
+    // sprite, its animation and its light all go away together. Our draw pool opacity only
+    // silences the sprite - ThingType::draw hands the light source to the LightView no
+    // matter how transparent the thing is - so the effect has to be dropped, not faded.
+    static bool isEffectVisibleAtOpacity(const float alpha) { return alpha >= 0.01f; }
+    bool isEffectSourceVisible(const uint8_t source) const { return isEffectVisibleAtOpacity(getEffectAlpha(source)); }
+
     float getMissileAlpha() const { return m_missileAlpha; }
     void setMissileAlpha(const float v) { m_missileAlpha = v; }
 

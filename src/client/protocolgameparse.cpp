@@ -23,6 +23,7 @@
 #include "animatedtext.h"
 #include "attachedeffect.h"
 #include "attachedeffectmanager.h"
+#include "client.h"
 #include "effect.h"
 #include "game.h"
 #include "gameconfig.h"
@@ -1983,6 +1984,9 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                         return;
                     }
 
+                    if (!g_client.isEffectSourceVisible(static_cast<uint8_t>(effectSource)))
+                        break;
+
                     const auto& missile = std::make_shared<Missile>();
                     missile->setId(shotId);
                     missile->setSource(static_cast<Otc::MagicEffectSources>(effectSource));
@@ -2012,6 +2016,9 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                         g_logger.traceError("invalid effect id {}", effectId);
                         break;
                     }
+
+                    if (!g_client.isEffectSourceVisible(static_cast<uint8_t>(effectSource)))
+                        break;
 
                     const auto& effect = std::make_shared<Effect>();
                     effect->setId(effectId);
