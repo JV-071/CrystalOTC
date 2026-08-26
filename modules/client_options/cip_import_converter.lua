@@ -25,6 +25,21 @@ local function newStats()
 	}
 end
 
+-- The official client keeps its slider options as 0..1 floats and rounds them back to whole
+-- percent, clamped, whenever it draws them. Mirroring that here means an imported option
+-- shows the same number on our slider that it showed on theirs.
+local function percentFromFloat(value, mapping)
+	if type(value) ~= "number" then
+		return nil
+	end
+
+	if mapping.invert then
+		value = 1 - value
+	end
+
+	return math.max(0, math.min(100, math.floor(value * (mapping.scale or 100) + 0.5)))
+end
+
 function CipImportConverter.convertOptions(cipOptions, stats)
 	stats = stats or newStats()
 
@@ -43,10 +58,16 @@ function CipImportConverter.convertOptions(cipOptions, stats)
 			else
 				if mapping.invert and mapping.type == "bool" then
 					value = not value
+				elseif mapping.type == "percent" then
+					value = percentFromFloat(value, mapping)
 				end
 
-				result[mapping.key] = value
-				stats.optionsImported = stats.optionsImported + 1
+				if value == nil then
+					stats.optionsIgnored = stats.optionsIgnored + 1
+				else
+					result[mapping.key] = value
+					stats.optionsImported = stats.optionsImported + 1
+				end
 			end
 		end
 	end

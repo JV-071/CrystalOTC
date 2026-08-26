@@ -136,6 +136,42 @@ CipImportMappings.OPTION_KEYS = {
 	gameWindowShowMessages = {
 		type = "bool",
 		key = "consoleMessages"
+	},
+	lightEffectsEnabled = {
+		type = "bool",
+		key = "enableLights"
+	},
+	lightAmbientLevel = {
+		type = "percent",
+		key = "ambientLight"
+	},
+	lightLevelSeparatorLevel = {
+		type = "percent",
+		key = "levelSeparator"
+	},
+	lightAttenuationCloudsIndoor = {
+		-- Stored inverted and over half the range: the official float is 1 - 0.005 * percent,
+		-- so the 0.75 it ships reads 50 on our slider.
+		invert = true,
+		scale = 200,
+		type = "percent",
+		key = "cloudsLabel"
+	},
+	ownEffectsOpacity = {
+		type = "percent",
+		key = "ownSpellEffectOpacity"
+	},
+	otherPlayersEffectsOpacity = {
+		type = "percent",
+		key = "othersPlayersEffectOpacity"
+	},
+	monsterEffectsOpacity = {
+		type = "percent",
+		key = "creatureSpellEffectsOpacity"
+	},
+	monsterBossAreaEffectsOpacity = {
+		type = "percent",
+		key = "bossAreaCreatureSpellEffectOpacity"
 	}
 }
 CipImportMappings.CONTROL_BUTTON_IDS = {
