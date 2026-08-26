@@ -674,12 +674,12 @@ void ProtocolGame::sendCloseNpcChannel()
     send(msg);
 }
 
-void ProtocolGame::sendChangeFightModes(const Otc::FightModes fightMode, const Otc::ChaseModes chaseMode, const bool safeFight, const Otc::PVPModes pvpMode)
+void ProtocolGame::encodeChangeFightModes(const OutputMessagePtr& msg, const int clientVersion, const bool pvpModeFeature,
+                                         const Otc::FightModes fightMode, const Otc::ChaseModes chaseMode,
+                                         const bool safeFight, const Otc::PVPModes pvpMode)
 {
-    const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientChangeFightModes);
-    if (g_game.getClientVersion() >= 1530) {
-        // 15.25: fight mode byte removed; wire = [chase][secure][pvpMode][junk]
+    if (clientVersion >= Proto::FirstVersionWithoutFightMode) {
         msg->addU8(chaseMode);
         msg->addU8(safeFight);
         msg->addU8(pvpMode);
@@ -688,9 +688,16 @@ void ProtocolGame::sendChangeFightModes(const Otc::FightModes fightMode, const O
         msg->addU8(fightMode);
         msg->addU8(chaseMode);
         msg->addU8(safeFight);
-        if (g_game.getFeature(Otc::GamePVPMode))
+        if (pvpModeFeature)
             msg->addU8(pvpMode);
     }
+}
+
+void ProtocolGame::sendChangeFightModes(const Otc::FightModes fightMode, const Otc::ChaseModes chaseMode, const bool safeFight, const Otc::PVPModes pvpMode)
+{
+    const auto& msg = std::make_shared<OutputMessage>();
+    encodeChangeFightModes(msg, g_game.getClientVersion(), g_game.getFeature(Otc::GamePVPMode),
+                           fightMode, chaseMode, safeFight, pvpMode);
     send(msg);
 }
 

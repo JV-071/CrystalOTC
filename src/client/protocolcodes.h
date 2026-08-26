@@ -26,6 +26,19 @@
 
 namespace Proto
 {
+    // 15.25 dropped the offensive/balanced/defensive fight mode, so ClientChangeFightModes
+    // starts its payload at the chase byte from this version on. Not a guess and not the asset
+    // catalogue number that sits next to it in the logs: the 15.25 client's own combat panel
+    // carries only stand, chase, expert, secure and the four PvP modes, and the 15.32 binary
+    // exports TGameActionSetChaseMode, TGameActionSetSecureMode and TGameActionSetPvPMode with
+    // no fight-mode action beside them.
+    //
+    // Getting this boundary wrong is silent in both directions - the server reads one byte per
+    // field either way and never sees a length mismatch - so it costs a whole feature rather
+    // than a disconnect. Off by five versions, the server reads the fight mode as the chase
+    // mode, and since that byte is only ever 1, 2 or 3 the player chases forever.
+    inline constexpr int FirstVersionWithoutFightMode = 1525;
+
     enum LoginServerOpts
     {
         LoginServerError = 10,

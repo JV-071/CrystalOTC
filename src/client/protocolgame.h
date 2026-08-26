@@ -84,6 +84,13 @@ public:
     void sendCancelRuleViolation();
     void sendCloseNpcChannel();
     void sendChangeFightModes(Otc::FightModes fightMode, Otc::ChaseModes chaseMode, bool safeFight, Otc::PVPModes pvpMode);
+
+    // Split out from the send so the wire layout can be asserted byte for byte without a
+    // connection. The version boundary it turns on is the kind that fails silently, so it is
+    // worth a test rather than a comment.
+    static void encodeChangeFightModes(const OutputMessagePtr& msg, int clientVersion, bool pvpModeFeature,
+                                       Otc::FightModes fightMode, Otc::ChaseModes chaseMode,
+                                       bool safeFight, Otc::PVPModes pvpMode);
     void sendAttack(uint32_t creatureId, uint32_t seq);
     void sendFollow(uint32_t creatureId, uint32_t seq);
     void sendInviteToParty(uint32_t creatureId);
