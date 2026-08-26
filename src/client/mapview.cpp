@@ -422,6 +422,13 @@ void MapView::drawFloor()
 void MapView::drawLights() {
     const auto& cameraPosition = m_posInfo.camera;
 
+    // Where light-grid cell (0,0) sits in the world. Inverting transformPositionTo2D leaves
+    // exactly this, floor offset and all, so a tile keeps the same cloud sample whichever floor
+    // it is seen from - and the shadows slide past the player as they walk instead of riding
+    // along with the camera.
+    m_lightView->setCloudOrigin({ cameraPosition.x - m_virtualCenterOffset.x,
+                                  cameraPosition.y - m_virtualCenterOffset.y });
+
     // onTileUpdate flips this when an opaque thing comes or goes. The stock reset path runs
     // inside isCompletelyCovered(), which this pass never calls, so without it a roof answer
     // would stay cached long after the roof itself was gone.
@@ -868,6 +875,12 @@ void MapView::onGlobalLightChange(const Light&)
 // full slider, so this is a bounded attenuation, not a blackout.
 static constexpr float MAX_INDOOR_ATTENUATION = .5f;
 
+// Clouds ride the same slider but shade shallower than a roof does, which is the relationship
+// the official client has too - it floors a cloud shadow at the option's own value and an
+// interior at its square. A third here means that at the 75% both clients ship, the deepest
+// shadow lands on exactly the official client's 0.75.
+static constexpr float MAX_CLOUD_ATTENUATION = 1.f / 3.f;
+
 void MapView::updateLight()
 {
     // Underground is not "indoors": there is no sky being blocked, and the dark ambience down
@@ -895,8 +908,19 @@ void MapView::updateLight()
     // gets, not what colour it is.
     const auto& indoorColor = Color::from8bit(ambientLight.color, indoorLight.intensity / static_cast<float>(UINT8_MAX));
 
+    // The Ambient Light floor governs a cloud shadow for the same reason it governs an
+    // interior: it is the brightness the player asked never to fall below. Capping the depth
+    // here rather than clamping per tile keeps that policy in this one function, where the
+    // rest of it already lives.
+    float cloudDepth = MAX_CLOUD_ATTENUATION * attenuation;
+    if (ambientLight.intensity > 0) {
+        const float floorRatio = (m_minimumAmbientLight * 255.f) / ambientLight.intensity;
+        cloudDepth = std::min(cloudDepth, std::max(0.f, 1.f - floorRatio));
+    }
+
     m_lightView->setGlobalLight(ambientLight);
     m_lightView->setIndoorLight(indoorColor, indoorLight.intensity);
+    m_lightView->setCloudShading(cloudDepth);
     m_lightView->setEnabled(isDrawingLights());
 }
 

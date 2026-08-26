@@ -58,6 +58,17 @@ public:
         updateDarkness();
     }
 
+    // How deep a cloud shadow may cut, 0..1, and where the light grid sits in world tile
+    // coordinates. Depth 0 is the option switched off, and then none of this costs anything:
+    // no time is mixed into the pixel cache's key, so the texture is reused exactly as before.
+    void setCloudShading(const float depth)
+    {
+        m_cloudDepth = depth;
+        updateDarkness();
+    }
+
+    void setCloudOrigin(const Point& origin) { m_cloudOrigin = origin; }
+
     bool isDark() const { return m_isDark; }
     bool isEnabled() const;
     void setEnabled(const bool v);
@@ -90,10 +101,12 @@ private:
     void updateCoords(const Rect& dest, const Rect& src);
     void updatePixels();
 
-    // Dark when EITHER light is dark. A shaded interior has to be drawn even while the open
-    // air outside sits at full daylight - and that is exactly the case that would otherwise
-    // keep the whole pass off, since the server's LIGHT_LEVEL_DAY is this same 250.
-    void updateDarkness() { m_isDark = m_globalLightIntensity < 250 || m_indoorLightIntensity < 250; }
+    // Dark when ANY of the three has something to draw. A shaded interior has to be drawn even
+    // while the open air outside sits at full daylight - and that is exactly the case that would
+    // otherwise keep the whole pass off, since the server's LIGHT_LEVEL_DAY is this same 250.
+    // Cloud shadows join the test for the same reason and are the stronger case for it: broad
+    // daylight is precisely when they are worth seeing.
+    void updateDarkness() { m_isDark = m_globalLightIntensity < 250 || m_indoorLightIntensity < 250 || m_cloudDepth > 0.f; }
 
     bool m_isDark{ false };
 
@@ -104,6 +117,10 @@ private:
     uint8_t m_globalLightIntensity{ UINT8_MAX };
     uint8_t m_indoorLightIntensity{ UINT8_MAX };
     size_t m_indoorHash{ 0 };
+
+    float m_cloudDepth{ 0.f };
+    ticks_t m_cloudTime{ 0 };
+    Point m_cloudOrigin;
 
     DrawPool* m_pool{ nullptr };
 
