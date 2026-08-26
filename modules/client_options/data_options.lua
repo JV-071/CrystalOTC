@@ -144,19 +144,16 @@ local function moveChildToTop(child, targetPanel)
 	signalcall(child.onContainerChanged, child, targetPanel)
 end
 
--- The light pass draws both the ambience and the indoor shading, so it has to stay on while
--- EITHER of them still asks for it: Ambient Light at 100% means there is no ambience left to
--- draw, but the Clouds & Indoor Effect can still have something to say. Each action passes its
--- own pending value in, because options[key].value is not yet updated while that action runs.
-local function updateDrawLights(options, panels, enableLights, ambientLight, cloudsLabel)
+-- The checkbox alone decides this. Ambient Light at 100% is NOT the light pass switched off in
+-- the official client: the option only ever lifts a scene about halfway, so a night at full
+-- slider still wants the light map drawn. Whether it is actually worth drawing is decided in
+-- C++ by LightView::isDark(), which looks at the finished colours rather than at slider values.
+local function updateDrawLights(options, panels, enableLights)
 	if enableLights == nil then
 		enableLights = options.enableLights.value
 	end
 
-	ambientLight = ambientLight or options.ambientLight.value
-	cloudsLabel = cloudsLabel or options.cloudsLabel.value
-
-	panels.gameMapPanel:setDrawLights(enableLights and (ambientLight < 100 or cloudsLabel > 0))
+	panels.gameMapPanel:setDrawLights(enableLights)
 end
 
 return {
@@ -896,7 +893,6 @@ return {
 		action = function(value, options, controller, panels, extraWidgets)
 			panels.graphicsEffectsPanel:recursiveGetChildById("ambientLight"):setText(string.format("Ambient Light: %s%%", value))
 			panels.gameMapPanel:setMinimumAmbientLight(value / 100)
-			updateDrawLights(options, panels, nil, value)
 		end
 	},
 	levelSeparator = {
@@ -918,7 +914,6 @@ return {
 			local state = value == 0 and (" (%s)"):format(tr("off")) or ""
 			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s%%%s", value, state))
 			panels.gameMapPanel:setCloudsIndoorIntensity(value / 100)
-			updateDrawLights(options, panels, nil, nil, value)
 		end
 	},
 	showHudForOwnCharacter = {
