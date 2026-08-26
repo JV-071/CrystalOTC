@@ -394,6 +394,7 @@ function Cyclopedia.characterAppearancesFilter(widget)
 	end
 
 	widget:setChecked(true)
+	Cyclopedia.rebuildCharacterAppearancesShowCombo(widget:getId())
 	Cyclopedia.applyCharacterAppearancesVisibility()
 end
 
@@ -403,6 +404,65 @@ function Cyclopedia.characterAppearancesShowFilter(widget)
 	end
 
 	Cyclopedia.applyCharacterAppearancesVisibility()
+end
+
+-- The source filter is per appearance type, and the three lists are not the same: the official
+-- client offers Standard only for outfits and familiars, and Store only for outfits and mounts.
+-- Values are the server's CyclopediaCharacterInfo_OutfitType_t (NONE 0, QUEST 1, STORE 2), which
+-- crystalserver sends for all three types - so the filter applies to all three, not just outfits.
+local APPEARANCE_SOURCE_FILTERS = {
+	outfits = {
+		{ text = "Show All" },
+		{ text = "Show Standard Outfits", data = 0 },
+		{ text = "Show Quest Outfits", data = 1 },
+		{ text = "Show Store Outfits", data = 2 }
+	},
+	mounts = {
+		{ text = "Show All" },
+		{ text = "Show Quest Mounts", data = 1 },
+		{ text = "Show Store Mounts", data = 2 }
+	},
+	familiars = {
+		{ text = "Show All" },
+		{ text = "Show Standard Familiars", data = 0 },
+		{ text = "Show Quest Familiars", data = 1 }
+	}
+}
+
+-- showCombo is passed explicitly from the .otui @onSetup, which runs before UI is wired up.
+function Cyclopedia.rebuildCharacterAppearancesShowCombo(tabType, showCombo)
+	if not showCombo then
+		if not UI or UI:isDestroyed() or not UI.CharacterAppearances or UI.CharacterAppearances:isDestroyed() then
+			return
+		end
+
+		local listFilter = UI.CharacterAppearances.listFilter
+
+		if not listFilter or listFilter:isDestroyed() then
+			return
+		end
+
+		showCombo = listFilter.show
+	end
+
+	if not showCombo or showCombo:isDestroyed() then
+		return
+	end
+
+	local options = APPEARANCE_SOURCE_FILTERS[tabType] or APPEARANCE_SOURCE_FILTERS.outfits
+	local wasResetting = Cyclopedia.Character.AppearancesFilterResetting
+
+	Cyclopedia.Character.AppearancesFilterResetting = true
+
+	showCombo:clearOptions()
+
+	for _, option in ipairs(options) do
+		showCombo:addOption(option.text, option.data)
+	end
+
+	showCombo:setCurrentOption(options[1].text, true)
+
+	Cyclopedia.Character.AppearancesFilterResetting = wasResetting
 end
 
 function Cyclopedia.getCharacterAppearancesTabFilter()
@@ -469,11 +529,7 @@ function Cyclopedia.resetCharacterAppearancesFiltersUI()
 			end
 		end
 
-		local showCombo = listFilter.show
-
-		if showCombo and not showCombo:isDestroyed() and showCombo.setCurrentOption then
-			showCombo:setCurrentOption("Show All", true)
-		end
+		Cyclopedia.rebuildCharacterAppearancesShowCombo("outfits")
 	end
 
 	Cyclopedia.Character.AppearancesFilterResetting = false
@@ -496,7 +552,7 @@ function Cyclopedia.applyCharacterAppearancesVisibility()
 		local tabMatch = data.type == tabType
 		local categoryMatch = true
 
-		if tabType == "outfits" and categoryFilter ~= nil then
+		if categoryFilter ~= nil then
 			categoryMatch = (data.category or 0) == categoryFilter
 		end
 
@@ -2137,9 +2193,9 @@ function Cyclopedia.configureCharacterCategories()
 						text = "Offence Stats"
 					})
 					table.insert(categories, {
-						open = "DeffenceStats",
+						open = "DefenceStats",
 						icon = "/images/icons/icon-character-generalstats-defence",
-						text = "Deffence Stats"
+						text = "Defence Stats"
 					})
 					table.insert(categories, {
 						open = "MiscStats",
@@ -2256,7 +2312,7 @@ function Cyclopedia.configureCharacterCategories()
 						g_game.requestCharacterInfo(0, CyclopediaCharacterInfoTypes.CombatStats)
 					elseif subWidget.open == "OffenceStats" then
 						g_game.requestCharacterInfo(0, CyclopediaCharacterInfoTypes.Offencestats)
-					elseif subWidget.open == "DeffenceStats" then
+					elseif subWidget.open == "DefenceStats" then
 						g_game.requestCharacterInfo(0, CyclopediaCharacterInfoTypes.Defencestats)
 					elseif subWidget.open == "MiscStats" then
 						g_game.requestCharacterInfo(0, CyclopediaCharacterInfoTypes.Miscstats)
@@ -4096,11 +4152,11 @@ function Cyclopedia.onCyclopediaCharacterOffenceStats(data)
 end
 
 function Cyclopedia.onCyclopediaCharacterDefenceStats(data)
-	UI.DeffenceStats.rightPanel:destroyChildren()
-	UI.DeffenceStats.leftPanel:destroyChildren()
+	UI.DefenceStats.rightPanel:destroyChildren()
+	UI.DefenceStats.leftPanel:destroyChildren()
 
-	local leftPanel = UI.DeffenceStats.leftPanel
-	local rightPanel = UI.DeffenceStats.rightPanel
+	local leftPanel = UI.DefenceStats.leftPanel
+	local rightPanel = UI.DefenceStats.rightPanel
 
 	local function getDefenceSkillDescription(skillType)
 		local descriptions = {

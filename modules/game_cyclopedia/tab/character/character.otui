@@ -939,7 +939,7 @@ UIWidget
           margin: 1
           background-color: #363636
         Label
-          !text: tr('Data and Time')
+          !text: tr('Date and Time')
           font: $var-cip-font-new
           anchors.top: parent.top
           anchors.bottom: parent.bottom
@@ -1060,7 +1060,7 @@ UIWidget
           margin: 1
           background-color: #363636
         Label
-          !text: tr('Data and Time')
+          !text: tr('Date and Time')
           font: $var-cip-font-new
           anchors.top: parent.top
           anchors.bottom: parent.bottom
@@ -1761,11 +1761,10 @@ UIWidget
         anchors.left: familiars.right
         text-offset: -12 1
         
-        @onSetup: |
-          self:addOption("Show All")
-          self:addOption("Show Standard Outfits", 0)
-          self:addOption("Show Quest Outfits", 1)
-          self:addOption("Show Store Outfits", 2)
+        # Options are rebuilt per appearance type by
+        # Cyclopedia.rebuildCharacterAppearancesShowCombo - outfits, mounts and familiars
+        # each expose a different set of sources.
+        @onSetup: modules.game_cyclopedia.Cyclopedia.rebuildCharacterAppearancesShowCombo("outfits", self)
         @onOptionChange: modules.game_cyclopedia.Cyclopedia.characterAppearancesShowFilter(self)
 
     UIWidget
@@ -2566,7 +2565,7 @@ UIWidget
         spacing: 2
 
   UIWidget
-    id: DeffenceStats
+    id: DefenceStats
     size: 494 415
     anchors.top: CharacterBase.top
     anchors.left: CharacterBase.right
