@@ -5285,7 +5285,11 @@ void ProtocolGame::parseMonkData(const InputMessagePtr& msg) {
             break;
         }
         case Otc::TYPES_MONK_VIRTUE: {
-            if (g_game.getClientVersion() >= 1530) {
+            // 1525, not 1530: the boundary never fired, so this read one byte and left the
+            // spell ids in the message - the stance highlight never lit, and the leftover bytes
+            // were parsed as the next opcode. crystalserver's sendStanceProtocol always writes
+            // [0xC1][0x02][u8 count]{u16 spellId}, so the list form is the only form on the wire.
+            if (g_game.getClientVersion() >= 1525) {
                 // crystal 15.25: sub 0x02 = stance highlight whole-replace list [u8 count]{u16 spellId}
                 const uint8_t count = msg->getU8();
                 std::vector<uint16_t> spellIds;
