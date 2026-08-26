@@ -1943,12 +1943,27 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
 {
     const auto& pos = getPosition(msg);
     if (g_game.getProtocolVersion() >= 1203) {
+        // Both MAGIC_EFFECTS_DELTA and MAGIC_EFFECTS_DELAY carry state forward to the
+        // entries that follow them in the same packet, so it lives out here.
+        Position currentPos = pos;
+        uint32_t deltaAccumulator = 0;
+        uint16_t pendingDelay = 0;
+
         uint8_t effectType = msg->getU8();
         while (effectType != Otc::MAGIC_EFFECTS_END_LOOP) {
             switch (effectType) {
-                case Otc::MAGIC_EFFECTS_DELAY:
                 case Otc::MAGIC_EFFECTS_DELTA: {
-                    msg->getU8(); // ?
+                    // Deltas add up, and the total is decoded against the position the
+                    // packet opened with - not the previously offset one - as an index into
+                    // rows of 18 tiles.
+                    deltaAccumulator += msg->getU8();
+                    currentPos = Position(pos.x + static_cast<int32_t>(deltaAccumulator % 18),
+                                          pos.y + static_cast<int32_t>(deltaAccumulator / 18), pos.z);
+                    break;
+                }
+
+                case Otc::MAGIC_EFFECTS_DELAY: {
+                    pendingDelay = msg->getU16();
                     break;
                 }
 
@@ -1958,6 +1973,11 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     const auto offsetX = static_cast<int8_t>(msg->getU8());
                     const auto offsetY = static_cast<int8_t>(msg->getU8());
                     const uint16_t effectSource = g_game.getFeature(Otc::GameEffectSource) ? msg->getU8() : 0;
+
+                    // A distance effect swallows a pending delay without honouring it, which
+                    // is what the official client does with the slot it shares between them.
+                    pendingDelay = 0;
+
                     if (!g_things.isValidDatId(shotId, ThingCategoryMissile)) {
                         g_logger.traceError("invalid missile id {}", shotId);
                         return;
@@ -1967,28 +1987,46 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     missile->setId(shotId);
                     missile->setSource(static_cast<Otc::MagicEffectSources>(effectSource));
 
+                    const Position offsetPos(currentPos.x + offsetX, currentPos.y + offsetY, currentPos.z);
                     if (effectType == Otc::MAGIC_EFFECTS_CREATE_DISTANCEEFFECT) {
-                        missile->setPath(pos, Position(pos.x + offsetX, pos.y + offsetY, pos.z));
+                        missile->setPath(currentPos, offsetPos);
                     } else {
-                        missile->setPath(Position(pos.x + offsetX, pos.y + offsetY, pos.z), pos);
+                        missile->setPath(offsetPos, currentPos);
                     }
 
-                    g_map.addThing(missile, pos);
+                    g_map.addThing(missile, currentPos);
                     break;
                 }
 
                 case Otc::MAGIC_EFFECTS_CREATE_EFFECT: {
+                    // Both fields are read before anything can bail out: dropping out between
+                    // them left the source byte in the stream and misparsed the rest of the
+                    // packet.
                     const uint16_t effectId = g_game.getFeature(Otc::GameEffectU16) ? msg->getU16() : msg->getU8();
+                    const uint16_t effectSource = g_game.getFeature(Otc::GameEffectSource) ? msg->getU8() : 0;
+
+                    const uint16_t delay = pendingDelay;
+                    pendingDelay = 0;
+
                     if (!g_things.isValidDatId(effectId, ThingCategoryEffect)) {
                         g_logger.traceError("invalid effect id {}", effectId);
-                        continue;
+                        break;
                     }
-                    const uint16_t effectSource = g_game.getFeature(Otc::GameEffectSource) ? msg->getU8() : 0;
 
                     const auto& effect = std::make_shared<Effect>();
                     effect->setId(effectId);
                     effect->setSource(static_cast<Otc::MagicEffectSources>(effectSource));
-                    g_map.addThing(effect, pos);
+
+                    if (delay > 0) {
+                        // Held-back effects are spawned when the delay expires rather than
+                        // hidden after the fact, so their animation and their removal timer
+                        // both start where the server asked them to.
+                        g_dispatcher.scheduleEvent([effect, effectPos = currentPos] {
+                            g_map.addThing(effect, effectPos);
+                        }, delay);
+                    } else {
+                        g_map.addThing(effect, currentPos);
+                    }
                     break;
                 }
 
@@ -1997,9 +2035,9 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     const uint16_t soundId = msg->getU16();
                     const auto& center = g_map.getCentralPosition();
                     const Point soundPosition(
-                        (pos.x - center.x) * g_gameConfig.getSpriteSize(),
-                        (pos.y - center.y) * g_gameConfig.getSpriteSize());
-                    g_sounds.tracePacketSoundEffect(soundId, soundSource, pos.x, pos.y, pos.z, soundPosition, false);
+                        (currentPos.x - center.x) * g_gameConfig.getSpriteSize(),
+                        (currentPos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.tracePacketSoundEffect(soundId, soundSource, currentPos.x, currentPos.y, currentPos.z, soundPosition, false);
                     g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
@@ -2010,9 +2048,9 @@ void ProtocolGame::parseMagicEffect(const InputMessagePtr& msg)
                     const uint16_t soundId = msg->getU16();
                     const auto& center = g_map.getCentralPosition();
                     const Point soundPosition(
-                        (pos.x - center.x) * g_gameConfig.getSpriteSize(),
-                        (pos.y - center.y) * g_gameConfig.getSpriteSize());
-                    g_sounds.tracePacketSoundEffect(soundId, soundSource, pos.x, pos.y, pos.z, soundPosition, true);
+                        (currentPos.x - center.x) * g_gameConfig.getSpriteSize(),
+                        (currentPos.y - center.y) * g_gameConfig.getSpriteSize());
+                    g_sounds.tracePacketSoundEffect(soundId, soundSource, currentPos.x, currentPos.y, currentPos.z, soundPosition, true);
                     g_sounds.playPositionedSoundEffect(soundId, soundSource, soundPosition);
                     break;
                 }
