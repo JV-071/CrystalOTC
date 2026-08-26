@@ -22,7 +22,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('ambientLight')
-        self:setText(string.format('Ambient Light: %s%%', value))
+        self:setText(string.format('Ambient Light: %s %%', value))
 
     OptionScaleScroll
       id: levelSeparator
@@ -33,7 +33,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('levelSeparator')
-        self:setText(string.format('Level Separator: %s%%', value))
+        self:setText(string.format('Level Separator: %s %%', value))
 
     OptionScaleScroll
       id: cloudsLabel
@@ -44,7 +44,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('cloudsLabel')
-        self:setText(string.format('Clouds & Indoor Effect: %s%%', value))
+        self:setText(string.format('Clouds & Indoor Effect: %s %%', value))
 
     OptionScaleScroll
       id: floorFading
@@ -96,7 +96,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('ownSpellEffectOpacity')
-        self:setText(tr('Own Spell Effects: %s%%', value))
+        self:setText(tr('Own Spell Effects: %s %%', value))
 
     OptionScaleScroll
       id: othersPlayersEffectOpacity
@@ -107,7 +107,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('othersPlayersEffectOpacity')
-        self:setText(tr('Other Players\' Effects: %s%%', value))
+        self:setText(tr('Other Players\' Effects: %s %%', value))
 
     OptionScaleScroll
       id: creatureSpellEffectsOpacity
@@ -118,7 +118,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('creatureSpellEffectsOpacity')
-        self:setText(tr('Creature Spell Effects: %s%%', value))
+        self:setText(tr('Creature Spell Effects: %s %%', value))
 
     OptionScaleScroll
       id: bossAreaCreatureSpellEffectOpacity
@@ -129,7 +129,7 @@ UIWidget
       &scrollSize: 21
       @onSetup: |
         local value = modules.client_options.getOption('bossAreaCreatureSpellEffectOpacity')
-        self:setText(tr('Boss Area Creature Spell Effects: %s%%', value))
+        self:setText(tr('Boss Area Creature Spell Effects: %s %%', value))
 
   SmallReversedQtPanel
     id: clientMissileOpacity
@@ -145,6 +145,9 @@ UIWidget
       &minimumScrollValue: 10
       &maximumScrollValue: 100
       &scrollSize: 21
+      @onSetup: |
+        local value = modules.client_options.getOption('setMissileAlphaScroll')
+        self:setText(tr('Missile Opacity: %s %%', value))
 
   SmallReversedQtPanel
     anchors.left: parent.left

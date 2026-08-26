@@ -891,14 +891,14 @@ return {
 	ambientLight = {
 		value = 25,
 		action = function(value, options, controller, panels, extraWidgets)
-			panels.graphicsEffectsPanel:recursiveGetChildById("ambientLight"):setText(string.format("Ambient Light: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("ambientLight"):setText(string.format("Ambient Light: %s %%", value))
 			panels.gameMapPanel:setMinimumAmbientLight(value / 100)
 		end
 	},
 	levelSeparator = {
 		value = 80,
 		action = function(value, options, controller, panels, extraWidgets)
-			panels.graphicsEffectsPanel:recursiveGetChildById("levelSeparator"):setText(string.format("Level Separator: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("levelSeparator"):setText(string.format("Level Separator: %s %%", value))
 			panels.gameMapPanel:setShadowFloorIntensity(1 - value / 100)
 		end
 	},
@@ -912,7 +912,7 @@ return {
 			-- client tags 0% "(off)": at that end its float is 1, nothing is taken away, and it
 			-- skips the cloud field outright.
 			local state = value == 0 and (" (%s)"):format(tr("off")) or ""
-			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s%%%s", value, state))
+			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s %%%s", value, state))
 			panels.gameMapPanel:setCloudsIndoorIntensity(value / 100)
 		end
 	},
@@ -1681,28 +1681,38 @@ return {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			g_client.setOwnSpellEffectOpacity(value)
-			panels.graphicsEffectsPanel:recursiveGetChildById("ownSpellEffectOpacity"):setText(tr("Own Spell Effects: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("ownSpellEffectOpacity"):setText(tr("Own Spell Effects: %s %%", value))
 		end
 	},
 	othersPlayersEffectOpacity = {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			g_client.setOthersPlayersEffectOpacity(value)
-			panels.graphicsEffectsPanel:recursiveGetChildById("othersPlayersEffectOpacity"):setText(tr("Other Players' Effects: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("othersPlayersEffectOpacity"):setText(tr("Other Players' Effects: %s %%", value))
 		end
 	},
 	creatureSpellEffectsOpacity = {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			g_client.setCreatureSpellEffectsOpacity(value)
-			panels.graphicsEffectsPanel:recursiveGetChildById("creatureSpellEffectsOpacity"):setText(tr("Creature Spell Effects: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("creatureSpellEffectsOpacity"):setText(tr("Creature Spell Effects: %s %%", value))
 		end
 	},
 	bossAreaCreatureSpellEffectOpacity = {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)
 			g_client.setBossAreaCreatureSpellEffectOpacity(value)
-			panels.graphicsEffectsPanel:recursiveGetChildById("bossAreaCreatureSpellEffectOpacity"):setText(tr("Boss Area Creature Spell Effects: %s%%", value))
+			panels.graphicsEffectsPanel:recursiveGetChildById("bossAreaCreatureSpellEffectOpacity"):setText(tr("Boss Area Creature Spell Effects: %s %%", value))
+		end
+	},
+	setMissileAlphaScroll = {
+		-- Not an official option: it dims the distance effects the server sends without a
+		-- source, which the four sliders above have no say over. The widget shipped without
+		-- an entry here, so it drew a bar that moved and changed nothing.
+		value = 100,
+		action = function(value, options, controller, panels, extraWidgets)
+			g_client.setMissileAlpha(value / 100)
+			panels.graphicsEffectsPanel:recursiveGetChildById("setMissileAlphaScroll"):setText(tr("Missile Opacity: %s %%", value))
 		end
 	},
 	distFromCenScrollbar = {
