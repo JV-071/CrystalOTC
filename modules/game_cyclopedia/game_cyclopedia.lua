@@ -661,7 +661,15 @@ function controllerCyclopedia:onInit()
 	Cyclopedia.storedTrackerData = {}
 	Cyclopedia.storedBosstiaryTrackerData = {}
 
+	-- The Cyclopedia Map messages are pushed during login, and the first of them (sub-type 1,
+	-- DiscoveryData) lands BEFORE onGameStart finishes registering that batch - which showed up
+	-- as only the last two sub-types ever arriving, intermittently. Register these at onInit,
+	-- which runs at module load, so they are connected before any login traffic exists.
 	controllerCyclopedia:registerEvents(g_game, {
+		onCyclopediaMapDiscoveryData = Cyclopedia.onCyclopediaMapDiscoveryData,
+		onCyclopediaMapDonations = Cyclopedia.onCyclopediaMapDonations,
+		onCyclopediaMapCurrentArea = Cyclopedia.onCyclopediaMapCurrentArea,
+		onCyclopediaMapExploringArea = Cyclopedia.onCyclopediaMapExploringArea,
 		onParseCyclopediaTracker = Cyclopedia.onParseCyclopediaTracker,
 		onParseBestiaryRaces = Cyclopedia.loadBestiaryCategories,
 		onParseBestiaryOverview = Cyclopedia.loadBestiaryOverview,

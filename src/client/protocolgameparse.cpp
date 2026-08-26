@@ -3782,15 +3782,25 @@ void ProtocolGame::parseAutomapFlag(const InputMessagePtr& msg)
                     break;
                 }
                 case 9: { // Donations
+                    // The rows MUST stay std::vector<std::vector<int>>. A nested
+                    // vector<double> pushes nothing through the Lua bridge - no error, no
+                    // warning, the handler is simply never called - while the identical
+                    // nested-int shape in the DiscoveryData case above works. Learned the
+                    // hard way: the message parsed correctly and still vanished.
+                    //
+                    // Gold is u64 on the wire, so clamp rather than wrap on the way across.
+                    // The goal goes over as a scalar double, which does marshal, so it keeps
+                    // its range; a per-area total past 2^31 gold is not reachable here.
                     const uint64_t goal = msg->getU64();
                     std::vector<std::vector<int>> areas;
                     for (int k = 0, n = msg->getU8(); k < n; ++k) {
                         const int areaId = msg->getU16();
                         const int improvedRespawnActive = msg->getU8();
                         const uint64_t donatedAmount = msg->getU64();
-                        areas.push_back({ areaId, improvedRespawnActive, static_cast<int>(donatedAmount) });
+                        areas.push_back({ areaId, improvedRespawnActive,
+                                          static_cast<int>(std::min<uint64_t>(donatedAmount, std::numeric_limits<int>::max())) });
                     }
-                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<int>(goal), areas);
+                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<double>(goal), areas);
                     break;
                 }
                 case 10: { // SetCurrentArea

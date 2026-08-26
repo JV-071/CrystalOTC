@@ -676,19 +676,27 @@ UIWidget
             image-source: /images/ui/item66
             image-border: 10
 
+            # The amount and the coin both used to be centred independently, with the text
+            # nudged 5px left - fine for "0", but any wider value ran underneath the coin.
+            # Straddling the centre instead keeps the pair looking centred and makes the
+            # overlap impossible whatever the number grows to.
             Label
-              anchors.fill: parent
+              id: respawnRateAmount
+              anchors.right: parent.horizontalCenter
+              anchors.verticalCenter: parent.verticalCenter
+              margin-right: 1
               !text: tr('0')
               font: $var-cip-font-new
               color: #c0c0c0
-              text-align: center
-              text-offset: -5 0
+              text-auto-resize: true
+              text-align: right
 
             UIWidget
+              id: respawnRateCoin
               size: 9 9
+              anchors.left: parent.horizontalCenter
               anchors.verticalCenter: parent.verticalCenter
-              anchors.horizontalCenter: parent.horizontalCenter
-              margin-left: 5
+              margin-left: 3
               image-auto-resize: true
               image-source: /images/icons/icon-goldcoin
               phantom: true

@@ -51,6 +51,64 @@ local dragStartMouseY = 0
 local dragStartMargin = 0
 local mapPositionEvent, areaLabelData
 local areaDataById = {}
+
+-- Cyclopedia Map state pushed by the server over 0xDD (sub-types 1, 9, 10, 11).
+-- Everything here is authoritative: before this existed the tab drew the static zone
+-- geometry with a hardcoded "0%" and a Donate button the server ignored.
+--
+-- Server ids vs client ids: the server speaks main-area ids (same on both sides) and
+-- subarea "sid"s. The UI addresses subareas as 100000 + index into SatelliteZones, so
+-- mapSubAreaIndexBySid bridges the two.
+local mapState = {
+	areaProgress = {},
+	discovered = {},
+	discoverable = {},
+	currentAreaId = 0,
+	exploringSubAreaId = 0,
+	donationGoal = 0,
+	donations = {}
+}
+local mapSubAreaIndexBySid = nil
+
+local function getSubAreaIndexBySid(sid)
+	if not mapSubAreaIndexBySid then
+		mapSubAreaIndexBySid = {}
+
+		if SatelliteZones then
+			for i, zone in ipairs(SatelliteZones) do
+				if zone.sid then
+					mapSubAreaIndexBySid[zone.sid] = i
+				end
+			end
+		end
+	end
+
+	return mapSubAreaIndexBySid[sid]
+end
+
+-- The client id (100000 + index) for a server subarea id, or nil when the two zone
+-- tables have drifted apart - which is exactly the symptom to look for if a subarea
+-- never lights up after being walked through.
+local function clientAreaIdForSid(sid)
+	local index = getSubAreaIndexBySid(sid)
+
+	return index and (100000 + index) or nil
+end
+
+function Cyclopedia.getMapAreaProgress(areaId)
+	local entry = mapState.areaProgress[areaId]
+
+	return entry and entry.progress or 0
+end
+
+function Cyclopedia.isMapSubAreaDiscovered(sid)
+	return mapState.discovered[sid] == true
+end
+
+function Cyclopedia.getMapDonation(areaId)
+	return mapState.donations[areaId]
+end
+
 local areaLabelWidgets = {}
 local areaLabelRefreshEvent
 local selectedAreaId = -1
@@ -534,7 +592,23 @@ local function updateAreaInfoPanel()
 
 	panel:setText(isSubarea and tr("Subarea") or tr("Area"))
 	setElidedAreaPanelText(panel:recursiveGetChildById("areaName"), parentData and parentData.name or data.name)
-	panel:recursiveGetChildById("discoveryPercent"):setText("0%")
+
+	-- The percentage belongs to the MAIN area even when a subarea is selected, which is
+	-- what the panel's caption already says: the area name sits above it either way.
+	-- parentData.id is the real main-area id on both sides: subarea selections resolve it
+	-- through selectedParentAreaId, and main-area selections are keyed by it directly.
+	local progressAreaId = (parentData and parentData.id) or data.id
+
+	panel:recursiveGetChildById("discoveryPercent"):setText(string.format("%d%%", Cyclopedia.getMapAreaProgress(progressAreaId)))
+
+	local donation = Cyclopedia.getMapDonation(progressAreaId)
+	local respawnAmount = panel:recursiveGetChildById("respawnRateAmount")
+
+	if respawnAmount then
+		respawnAmount:setText(comma_value(donation and donation.amount or 0))
+		-- Green once the world has met the goal and the improved respawn is live.
+		respawnAmount:setColor(donation and donation.improved and "#44ad25" or "#c0c0c0")
+	end
 
 	local description = panel:recursiveGetChildById("areaDescription")
 
@@ -542,6 +616,82 @@ local function updateAreaInfoPanel()
 	updateAreaDonationButtons(panel)
 	applyAreaPanelState(panel, data)
 	panel:setVisible(true)
+end
+
+-- --- server-pushed Cyclopedia Map state (0xDD sub-types 1, 9, 10, 11) -------------
+
+local function refreshMapPanelsIfVisible()
+	local panel = getAreaInfoPanel()
+
+	if panel and not panel:isDestroyed() and panel:isVisible() then
+		updateAreaInfoPanel()
+	end
+
+	refreshCurrentAreaNavigation()
+end
+
+-- sub 1: per-area progress plus the discovered / still-discoverable subarea lists.
+function Cyclopedia.onCyclopediaMapDiscoveryData(mains, discovered, discoverable)
+	mapState.areaProgress = {}
+	mapState.discovered = {}
+	mapState.discoverable = {}
+
+	for _, row in ipairs(mains or {}) do
+		local areaId, status, progress = row[1], row[2], row[3]
+
+		if areaId then
+			mapState.areaProgress[areaId] = {
+				status = status or 0,
+				progress = math.min(100, math.max(0, progress or 0))
+			}
+		end
+	end
+
+	for _, sid in ipairs(discovered or {}) do
+		mapState.discovered[sid] = true
+	end
+
+	for _, sid in ipairs(discoverable or {}) do
+		mapState.discoverable[sid] = true
+	end
+
+	refreshMapPanelsIfVisible()
+end
+
+-- sub 9: the world's donation totals. goal is shared by every area.
+function Cyclopedia.onCyclopediaMapDonations(goal, areas)
+	mapState.donationGoal = goal or 0
+	mapState.donations = {}
+
+	for _, row in ipairs(areas or {}) do
+		local areaId, improved, amount = row[1], row[2], row[3]
+
+		if areaId then
+			mapState.donations[areaId] = {
+				improved = improved == 1,
+				amount = amount or 0
+			}
+		end
+	end
+
+	refreshMapPanelsIfVisible()
+end
+
+-- sub 10 / sub 11: where the player is. The main area drives the navigation panel's
+-- "Current area"; the subarea is what discovery is credited against.
+function Cyclopedia.onCyclopediaMapCurrentArea(areaId)
+	mapState.currentAreaId = areaId or 0
+	refreshMapPanelsIfVisible()
+end
+
+function Cyclopedia.onCyclopediaMapExploringArea(subAreaId)
+	mapState.exploringSubAreaId = subAreaId or 0
+
+	-- Nothing is drawn from this yet, but keeping it means the client id is resolvable
+	-- the moment points of interest land, and it surfaces a zone-table mismatch early.
+	if subAreaId and subAreaId ~= 0 and not clientAreaIdForSid(subAreaId) then
+		g_logger.warning(string.format("[cyclopedia-map] server subarea %d is not in SatelliteZones - the client and server zone tables have drifted", subAreaId))
+	end
 end
 
 function Cyclopedia.toggleMapSection(section)
