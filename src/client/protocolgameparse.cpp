@@ -3743,8 +3743,11 @@ void ProtocolGame::parseTutorialHint(const InputMessagePtr& msg)
 
 void ProtocolGame::parseAutomapFlag(const InputMessagePtr& msg)
 {
-    if (g_game.getClientVersion() >= 1530) {
-        // 15.26 Cyclopedia Map: every 0xDD starts with a sub-type byte; sub 0 = classic minimap marker.
+    // Cyclopedia Map: every 0xDD starts with a sub-type byte; sub 0 = classic minimap marker.
+    // The server writes it for every non-old-protocol session (sendAddMarker), so the boundary
+    // is 1525, not 1530 - a 1530 test never fires and the sub-type byte was being read as the
+    // low byte of position.x, which shifted the description length into the thousands and threw.
+    if (g_game.getClientVersion() >= 1525) {
         const uint8_t sub = msg->getU8();
         if (sub != 0) {
             switch (sub) {
@@ -3801,7 +3804,15 @@ void ProtocolGame::parseAutomapFlag(const InputMessagePtr& msg)
                     break;
                 }
                 default:
-                    throw Exception("unknown 0xDD cyclopedia map sub-type {}", sub);
+                    // CyclopediaMapData_t declares eleven sub-types; the ones not handled above
+                    // (ActiveRaid, ImminentRaid*, Passage, SubAreaMonsters, MonsterBestiary) carry
+                    // Cyclopedia Map data this client does not render yet. Throwing here would
+                    // abort the whole packet and drop the session, so skip the rest of the
+                    // message instead and leave a breadcrumb.
+                    g_logger.warning("[{}] Unhandled 0xDD cyclopedia map sub-type {} with {} unread bytes",
+                                     g_game.getClientVersion(), sub, msg->getUnreadSize());
+                    msg->setReadPos(msg->getMessageSize());
+                    break;
             }
             return;
         }
