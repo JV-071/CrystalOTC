@@ -907,12 +907,14 @@ return {
 		end
 	},
 	cloudsLabel = {
-		-- The official client ships this at 0.75; its stored keys are lightAttenuationClouds
-		-- and lightAttenuationIndoor, both fed from this one slider.
-		value = 75,
+		-- 50, not 75. The official client stores this option inverted - its float is
+		-- 1 - 0.005 * percent - so the 0.75 it ships is what a shaded tile KEEPS, and the
+		-- slider it draws for that float reads 50%.
+		value = 50,
 		action = function(value, options, controller, panels, extraWidgets)
-			-- Reads as how much SHADING roofed tiles get, which is why the official client tags
-			-- 0% "(off)": nothing is drawn there, and 100% is the full indoor darkening.
+			-- Reads as how much SHADING roofed and clouded tiles get, which is why the official
+			-- client tags 0% "(off)": at that end its float is 1, nothing is taken away, and it
+			-- skips the cloud field outright.
 			local state = value == 0 and (" (%s)"):format(tr("off")) or ""
 			panels.graphicsEffectsPanel:recursiveGetChildById("cloudsLabel"):setText(string.format("Clouds & Indoor Effect: %s%%%s", value, state))
 			panels.gameMapPanel:setCloudsIndoorIntensity(value / 100)

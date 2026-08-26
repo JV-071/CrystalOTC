@@ -27,6 +27,7 @@
 #include <framework/graphics/drawpoolmanager.h>
 #include <framework/sound/soundmanager.h>
 
+#include "ambientlight.h"
 #include "animatedtext.h"
 #include "creature.h"
 #include "game.h"
@@ -896,19 +897,6 @@ void MapView::onGlobalLightChange(const Light& light)
     updateLight();
 }
 
-// How far the option may attenuate a roofed tile at 100%: down to half the open-air light.
-// The official client names this setting lightAttenuationCloudsIndoor and splits it internally
-// into lightAttenuationClouds and lightAttenuationIndoor, so it reduces the light a tile
-// receives rather than substituting a light of its own. Its interiors stay dim but readable at
-// full slider, so this is a bounded attenuation, not a blackout.
-static constexpr float MAX_INDOOR_ATTENUATION = .5f;
-
-// Clouds ride the same slider but shade shallower than a roof does, which is the relationship
-// the official client has too - it floors a cloud shadow at the option's own value and an
-// interior at its square. A third here means that at the 75% both clients ship, the deepest
-// shadow lands on exactly the official client's 0.75.
-static constexpr float MAX_CLOUD_ATTENUATION = 1.f / 3.f;
-
 AmbientFade::Value MapView::blendedAmbient() const
 {
     if (!m_ambientFading)
@@ -938,48 +926,36 @@ void MapView::updateAmbientFade()
 void MapView::updateLight()
 {
     // Underground is not "indoors": there is no sky being blocked, and the dark ambience down
-    // there is the point rather than something to attenuate further. Left at 0, a cave is lit
-    // exactly as it was before any of this existed.
+    // there is the point rather than something to attenuate further. The official client draws
+    // the same line at the sea floor - below it the whole light grid starts from black, and
+    // neither the cloud field nor the roof factor runs at all.
     const bool underground = getCameraPosition().z > g_gameConfig.getMapSeaFloor();
     const float attenuation = underground ? 0.f : m_cloudsIndoorIntensity;
 
-    // Underground substitutes the dark ambience outright instead of fading into it: a floor
-    // change is not a time of day, and a 10-second ramp on the way down a ladder would read as
-    // a bug rather than as dusk. White base at zero intensity is what Light() resolved to.
-    const AmbientFade::Value world = underground ? AmbientFade::Value{ Color::white, 0.f } : blendedAmbient();
+    // Underground the world light is gone outright rather than faded away: a floor change is
+    // not a time of day, and a ten-second ramp down a ladder would read as a bug. Everywhere
+    // else this is the cross-faded world light with its level folded into the colour, which is
+    // the form the ambient lift below expects - it works on a finished 8-bit colour, exactly
+    // as the official client's does.
+    const AmbientFade::Value world = blendedAmbient();
+    const Color worldColor = underground ? Color::black
+                                         : world.base * (world.intensity / static_cast<float>(UINT8_MAX));
 
-    // Roofed tiles receive this attenuated light instead of the open-air one. Attenuating the
-    // light rather than painting over the scene is what keeps torches working indoors: the
-    // light overlay multiplies over the finished frame, so anything drawn on top of it could
-    // only ever darken what it covers, torchlight included.
-    const float indoorIntensity = world.intensity * (1.f - MAX_INDOOR_ATTENUATION * attenuation);
+    const Color ambientColor = AmbientLight::lift(worldColor, AmbientLight::level(m_minimumAmbientLight),
+                                                  underground ? AmbientLight::TINT_UNDERGROUND
+                                                              : AmbientLight::TINT_SURFACE);
 
-    // The Ambient Light option is the player's brightness floor and still wins, so an interior
-    // bottoms out at the ambience they asked for rather than at black. Applied after the
-    // attenuation rather than before, so the floor stays a floor.
-    const float ambientFloor = m_minimumAmbientLight * 255.f;
-    const float ambientIntensity = std::max(ambientFloor, world.intensity);
-    const float shadedIntensity = std::max(ambientFloor, indoorIntensity);
+    // A roofed tile is shaded after the ambience is mixed in, not before, and by the square of
+    // what an open tile keeps. Both are the official client's ordering, and together they mean
+    // Ambient Light is not a floor an interior bottoms out at - an interior loses its share of
+    // the ambience along with everything else. Torches still work indoors because this shades
+    // the light a tile receives rather than painting over the finished scene, where a multiply
+    // could only ever darken what it covers.
+    const Color indoorColor = ambientColor * AmbientLight::indoorFactor(attenuation);
 
-    // Brightness is applied to the faded hue here rather than inside LightView, so the open air
-    // and the interior stay the same colour at different strengths - an attenuation changes how
-    // much light a tile gets, not what colour it is.
-    const auto& ambientColor = world.base * (ambientIntensity / static_cast<float>(UINT8_MAX));
-    const auto& indoorColor = world.base * (shadedIntensity / static_cast<float>(UINT8_MAX));
-
-    // The Ambient Light floor governs a cloud shadow for the same reason it governs an
-    // interior: it is the brightness the player asked never to fall below. Capping the depth
-    // here rather than clamping per tile keeps that policy in this one function, where the
-    // rest of it already lives.
-    float cloudDepth = MAX_CLOUD_ATTENUATION * attenuation;
-    if (ambientIntensity > 0.f) {
-        const float floorRatio = ambientFloor / ambientIntensity;
-        cloudDepth = std::min(cloudDepth, std::max(0.f, 1.f - floorRatio));
-    }
-
-    m_lightView->setGlobalLight(ambientColor, static_cast<uint8_t>(ambientIntensity));
-    m_lightView->setIndoorLight(indoorColor, static_cast<uint8_t>(shadedIntensity));
-    m_lightView->setCloudShading(cloudDepth);
+    m_lightView->setGlobalLight(ambientColor, AmbientLight::brightestChannel(ambientColor));
+    m_lightView->setIndoorLight(indoorColor, AmbientLight::brightestChannel(indoorColor));
+    m_lightView->setCloudShading(1.f - AmbientLight::keptUnderAttenuation(attenuation));
     m_lightView->setEnabled(isDrawingLights());
 }
 

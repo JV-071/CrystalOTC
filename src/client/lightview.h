@@ -54,6 +54,8 @@ public:
     // MapView hands over a finished colour rather than a Light so the policy stays in one place;
     // `intensity` comes along only so the darkness test can read it. With the option off MapView
     // produces exactly m_globalLightColor, so the branch in updatePixels is then a no-op.
+    // Note this is the open-air colour scaled, ambience included: the official client shades a
+    // roofed tile after mixing the ambience in, so the option is not floored by Ambient Light.
     void setIndoorLight(const Color& color, const uint8_t intensity)
     {
         m_indoorLightIntensity = intensity;
@@ -104,11 +106,13 @@ private:
     void updateCoords(const Rect& dest, const Rect& src);
     void updatePixels();
 
-    // Dark when ANY of the three has something to draw. A shaded interior has to be drawn even
-    // while the open air outside sits at full daylight - and that is exactly the case that would
-    // otherwise keep the whole pass off, since the server's LIGHT_LEVEL_DAY is this same 250.
-    // Cloud shadows join the test for the same reason and are the stronger case for it: broad
-    // daylight is precisely when they are worth seeing.
+    // Dark when ANY of the three has something to draw. The two intensities are the brightest
+    // channel of the colours above, not the server's light level: what decides whether this
+    // pass is worth running is what the light map would multiply by, and the ambient tint means
+    // those two stopped being the same number. A shaded interior has to be drawn even while the
+    // open air outside sits at full daylight, which is exactly the case that would otherwise
+    // keep the whole pass off. Cloud shadows join the test for the same reason and are the
+    // stronger case for it: broad daylight is precisely when they are worth seeing.
     void updateDarkness() { m_isDark = m_globalLightIntensity < 250 || m_indoorLightIntensity < 250 || m_cloudDepth > 0.f; }
 
     bool m_isDark{ false };
