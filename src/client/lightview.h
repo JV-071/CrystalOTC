@@ -40,10 +40,13 @@ public:
     void resetShade(const Point& pos);
     void markIndoor(const Point& pos, bool indoor);
 
-    void setGlobalLight(const Light& light)
+    // The open-air light. Like setIndoorLight below, MapView hands over a finished colour
+    // rather than a Light: the world light is cross-faded between two server values, and a
+    // palette index cannot represent a colour part-way between two entries.
+    void setGlobalLight(const Color& color, const uint8_t intensity)
     {
-        m_globalLightIntensity = light.intensity;
-        m_globalLightColor = Color::from8bit(light.color, light.intensity / static_cast<float>(UINT8_MAX));
+        m_globalLightIntensity = intensity;
+        m_globalLightColor = color;
         updateDarkness();
     }
 

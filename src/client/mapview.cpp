@@ -49,6 +49,13 @@
 
 MapView::MapView() : m_lightView(std::make_unique<LightView>(Size())), m_pool(g_drawPool.get(DrawPoolType::MAP))
 {
+    // A map view opened mid-session inherits the world light that is already in effect, so it
+    // does not have to spend a fade catching up to a sky everyone else can already see. Having
+    // inherited one, it also has something to fade *from*, so it need not snap the next value.
+    const auto& worldLight = g_map.getLight();
+    m_ambientFrom = m_ambientTo = AmbientFade::resolve(worldLight.color, worldLight.intensity);
+    m_ambientSeeded = worldLight.intensity != 0;
+
     m_floors.resize(g_gameConfig.getMapMaxZ() + 1);
     m_floorThreads.resize(g_asyncDispatcher.get_thread_count());
     for (auto& thread : m_floorThreads)
@@ -335,6 +342,8 @@ void MapView::updateItemAmbientSounds()
 
 void MapView::drawFloor()
 {
+    updateAmbientFade();
+
     const auto& cameraPosition = m_posInfo.camera;
 
     const uint32_t flags = Otc::DrawThings;
@@ -863,8 +872,27 @@ void MapView::onFloorChange(const uint8_t /*floor*/, const uint8_t /*previousFlo
     updateLight();
 }
 
-void MapView::onGlobalLightChange(const Light&)
+void MapView::onGlobalLightChange(const Light& light)
 {
+    const auto& target = AmbientFade::resolve(light.color, light.intensity);
+
+    if (!m_ambientSeeded) {
+        // Nothing to fade from on the first value of the session - the map has never been lit,
+        // and ramping up out of black over ten seconds would look like a bug at login.
+        m_ambientSeeded = true;
+        m_ambientFrom = m_ambientTo = target;
+        m_ambientFading = false;
+    } else {
+        // Start from where the light is right now, not from the last value the server sent.
+        // Updates land every 10 s while a fade runs for 10.2, so a new one nearly always
+        // interrupts one in flight, and continuing from the interrupted midpoint is exactly
+        // what makes consecutive fades read as a single ramp instead of a series of them.
+        m_ambientFrom = blendedAmbient();
+        m_ambientTo = target;
+        m_ambientFading = true;
+        m_ambientFadeTimer.restart();
+    }
+
     updateLight();
 }
 
@@ -881,6 +909,32 @@ static constexpr float MAX_INDOOR_ATTENUATION = .5f;
 // shadow lands on exactly the official client's 0.75.
 static constexpr float MAX_CLOUD_ATTENUATION = 1.f / 3.f;
 
+AmbientFade::Value MapView::blendedAmbient() const
+{
+    if (!m_ambientFading)
+        return m_ambientTo;
+
+    return AmbientFade::blend(m_ambientFrom, m_ambientTo,
+                              AmbientFade::progress(m_ambientFadeTimer.ticksElapsed()));
+}
+
+// Driven from drawFloor(), which is the always-drawn pane: the light pass switches itself off
+// in broad daylight, so ticking there would leave the first fade out of day with nothing to
+// start it. LightView's pixel cache is keyed on the colour's 8-bit form, so running this every
+// frame only rebuilds the light grid on the frames a channel actually moves.
+void MapView::updateAmbientFade()
+{
+    if (!m_ambientFading)
+        return;
+
+    if (m_ambientFadeTimer.ticksElapsed() >= AmbientFade::DURATION_MS) {
+        m_ambientFading = false;
+        m_ambientFrom = m_ambientTo;
+    }
+
+    updateLight();
+}
+
 void MapView::updateLight()
 {
     // Underground is not "indoors": there is no sky being blocked, and the dark ambience down
@@ -889,37 +943,42 @@ void MapView::updateLight()
     const bool underground = getCameraPosition().z > g_gameConfig.getMapSeaFloor();
     const float attenuation = underground ? 0.f : m_cloudsIndoorIntensity;
 
-    Light ambientLight = underground ? Light() : g_map.getLight();
+    // Underground substitutes the dark ambience outright instead of fading into it: a floor
+    // change is not a time of day, and a 10-second ramp on the way down a ladder would read as
+    // a bug rather than as dusk. White base at zero intensity is what Light() resolved to.
+    const AmbientFade::Value world = underground ? AmbientFade::Value{ Color::white, 0.f } : blendedAmbient();
 
     // Roofed tiles receive this attenuated light instead of the open-air one. Attenuating the
     // light rather than painting over the scene is what keeps torches working indoors: the
     // light overlay multiplies over the finished frame, so anything drawn on top of it could
     // only ever darken what it covers, torchlight included.
-    Light indoorLight = ambientLight;
-    indoorLight.intensity = static_cast<uint8_t>(ambientLight.intensity * (1.f - MAX_INDOOR_ATTENUATION * attenuation));
+    const float indoorIntensity = world.intensity * (1.f - MAX_INDOOR_ATTENUATION * attenuation);
 
     // The Ambient Light option is the player's brightness floor and still wins, so an interior
     // bottoms out at the ambience they asked for rather than at black. Applied after the
     // attenuation rather than before, so the floor stays a floor.
-    ambientLight.intensity = std::max<uint8_t>(m_minimumAmbientLight * 255, ambientLight.intensity);
-    indoorLight.intensity = std::max<uint8_t>(m_minimumAmbientLight * 255, indoorLight.intensity);
+    const float ambientFloor = m_minimumAmbientLight * 255.f;
+    const float ambientIntensity = std::max(ambientFloor, world.intensity);
+    const float shadedIntensity = std::max(ambientFloor, indoorIntensity);
 
-    // Same hue as the open air, only dimmer - an attenuation changes how much light a tile
-    // gets, not what colour it is.
-    const auto& indoorColor = Color::from8bit(ambientLight.color, indoorLight.intensity / static_cast<float>(UINT8_MAX));
+    // Brightness is applied to the faded hue here rather than inside LightView, so the open air
+    // and the interior stay the same colour at different strengths - an attenuation changes how
+    // much light a tile gets, not what colour it is.
+    const auto& ambientColor = world.base * (ambientIntensity / static_cast<float>(UINT8_MAX));
+    const auto& indoorColor = world.base * (shadedIntensity / static_cast<float>(UINT8_MAX));
 
     // The Ambient Light floor governs a cloud shadow for the same reason it governs an
     // interior: it is the brightness the player asked never to fall below. Capping the depth
     // here rather than clamping per tile keeps that policy in this one function, where the
     // rest of it already lives.
     float cloudDepth = MAX_CLOUD_ATTENUATION * attenuation;
-    if (ambientLight.intensity > 0) {
-        const float floorRatio = (m_minimumAmbientLight * 255.f) / ambientLight.intensity;
+    if (ambientIntensity > 0.f) {
+        const float floorRatio = ambientFloor / ambientIntensity;
         cloudDepth = std::min(cloudDepth, std::max(0.f, 1.f - floorRatio));
     }
 
-    m_lightView->setGlobalLight(ambientLight);
-    m_lightView->setIndoorLight(indoorColor, indoorLight.intensity);
+    m_lightView->setGlobalLight(ambientColor, static_cast<uint8_t>(ambientIntensity));
+    m_lightView->setIndoorLight(indoorColor, static_cast<uint8_t>(shadedIntensity));
     m_lightView->setCloudShading(cloudDepth);
     m_lightView->setEnabled(isDrawingLights());
 }

@@ -25,6 +25,7 @@
 #include <framework/graphics/declarations.h>
 #include <framework/luaengine/luaobject.h>
 
+#include "ambientfade.h"
 #include "framework/core/timer.h"
 #include "staticdata.h"
 #include "framework/core/inputevent.h"
@@ -209,6 +210,9 @@ private:
     void updateHighlightTile(const Position& mousePos);
     void destroyHighlightTile();
 
+    AmbientFade::Value blendedAmbient() const;
+    void updateAmbientFade();
+
     void updateLight();
     void updateViewportDirectionCache();
     void updateGeometry(const Size& visibleDimension);
@@ -268,6 +272,16 @@ private:
     uint16_t m_floorFading = 500;
 
     float m_minimumAmbientLight{ 0 };
+
+    // Endpoints of the world-light cross-fade and the clock it runs on. `from` is whatever the
+    // light was when the last server value landed - not the last value itself - so a fade
+    // interrupted mid-way continues from where the eye left it.
+    AmbientFade::Value m_ambientFrom;
+    AmbientFade::Value m_ambientTo;
+    Timer m_ambientFadeTimer;
+    bool m_ambientFading{ false };
+    bool m_ambientSeeded{ false };
+
     float m_fadeInTime{ 0 };
     float m_fadeOutTime{ 0 };
     float m_shadowFloorIntensity{ 0 };
