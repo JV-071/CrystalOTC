@@ -694,7 +694,7 @@ UIWidget
 
   CheckBox
     id: aimTargetBox
-    !text: tr('Aim at Target')
+    !text: tr('Aim at target')
     !tooltip: tr('When enabled, directional spells will aim towards your target instead of straight ahead.')
     anchors.left: assignSpellBtn.right
     anchors.verticalCenter: assignSpellBtn.verticalCenter

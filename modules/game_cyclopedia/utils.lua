@@ -2550,7 +2550,7 @@ ACHIEVEMENTS = {
 	[410] = {
 		points = 5,
 		grade = 2,
-		description = "You sucessfully fought against all odds to protect your world from an ascending god! - You weren't there for the hat only after all?",
+		description = "You successfully fought against all odds to protect your world from an ascending god! - You weren't there for the hat only after all?",
 		name = "Hat Hunter"
 	},
 	[411] = {

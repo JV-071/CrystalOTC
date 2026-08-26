@@ -2010,7 +2010,7 @@ bestiaryTrackerMenu < PopupMenu
 
   ImbuementTrackerMenuOption
     id: ShortByPercentage
-    !text: tr('Short by completion percentage')
+    !text: tr('Sort by completion percentage')
 
   ImbuementTrackerMenuOption
     id: sortByKills
