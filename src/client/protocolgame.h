@@ -382,6 +382,14 @@ private:
     void parseUpdateLootTracker(const InputMessagePtr& msg);
     void parseBestiaryEntryChanged(const InputMessagePtr& msg);
     void parseCyclopediaCharacterInfo(const InputMessagePtr& msg);
+
+public:
+    // Split out from the parse so the wire layout can be asserted byte for byte without a
+    // connection, for the same reason as encodeChangeFightModes above: the version boundary
+    // it turns on fails by reading past the end of the message, not by reading the wrong value.
+    static CyclopediaCharacterDefenceStats decodeCyclopediaDefenceStats(const InputMessagePtr& msg, int clientVersion);
+
+private:
     void parseDailyRewardCollectionState(const InputMessagePtr& msg);
     void parseOpenRewardWall(const InputMessagePtr& msg);
     void parseDailyReward(const InputMessagePtr& msg);

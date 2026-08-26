@@ -5687,6 +5687,63 @@ void ProtocolGame::parseBestiaryEntryChanged(const InputMessagePtr& msg)
     // TODO: implement bestiary entry changed usage
 }
 
+// Cyclopedia -> Character -> Defence Stats (0xDA sub-type 14).
+//
+// The version boundary below is 1525, not 1530. getClientVersion() returns the protocol number
+// configured in Servers_init, which is 1525, so a `< 1530` test is always true - the client kept
+// reading a u16 after defenseWheel and a sixth mitigation double that 15.25 stopped sending.
+// crystalserver emits exactly five defence fields and five mitigation doubles, so those two reads
+// ran 10 bytes past the end of the message and threw before the page was ever populated, which is
+// why the panel rendered blank. See defence_stats_test.cpp for the captured message this decodes.
+CyclopediaCharacterDefenceStats ProtocolGame::decodeCyclopediaDefenceStats(const InputMessagePtr& msg, const int clientVersion)
+{
+    CyclopediaCharacterDefenceStats data;
+
+    data.dodgeTotal = msg->getDouble();
+    data.dodgeBase = msg->getDouble();
+    data.dodgeBonus = msg->getDouble();
+    msg->getDouble(); // unused
+    data.dodgeWheel = msg->getDouble();
+
+    data.magicShieldCapacity = msg->getU32();
+    data.magicShieldCapacityFlat = msg->getU16();
+    data.magicShieldCapacityPercent = msg->getDouble();
+
+    data.reflectPhysical = msg->getU16();
+    data.armor = msg->getU16();
+    if (clientVersion >= 1500) {
+        msg->getU16(); // MANTRA
+    }
+
+    data.defense = msg->getU16();
+    data.defenseEquipment = msg->getU16();
+    data.defenseSkillType = msg->getU8();
+    data.shieldingSkill = msg->getU16();
+    data.defenseWheel = msg->getU16();
+    if (clientVersion < 1525)
+        msg->getU16(); // unused (removed in 15.25)
+
+    data.mitigation = msg->getDouble();
+    data.mitigationBase = msg->getDouble();
+    data.mitigationEquipment = msg->getDouble();
+    data.mitigationShield = msg->getDouble();
+    data.mitigationWheel = msg->getDouble();
+    data.mitigationCombatTactics = (clientVersion < 1525) ? msg->getDouble() : 0.0; // removed in 15.25
+
+    const uint8_t combatsCount = msg->getU8();
+    for (int i = 0; i < combatsCount; ++i) {
+        const uint8_t elementType = msg->getU8();
+        if (elementType == 0x04) {
+            CyclopediaCharacterDefenceStats::ElementalResistance resistance;
+            resistance.element = msg->getU8();
+            resistance.value = msg->getDouble();
+            data.resistances.push_back(resistance);
+        }
+    }
+
+    return data;
+}
+
 void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
 {
     const auto type = static_cast<Otc::CyclopediaCharacterInfoType_t>(msg->getU8());
@@ -6325,50 +6382,8 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         }
         case Otc::CYCLOPEDIA_CHARACTERINFO_DEFENCESTATS:
         {
-            CyclopediaCharacterDefenceStats data;
-
-            data.dodgeTotal = msg->getDouble();
-            data.dodgeBase = msg->getDouble();
-            data.dodgeBonus = msg->getDouble();
-            msg->getDouble(); // unused
-            data.dodgeWheel = msg->getDouble();
-
-            data.magicShieldCapacity = msg->getU32();
-            data.magicShieldCapacityFlat = msg->getU16();
-            data.magicShieldCapacityPercent = msg->getDouble();
-
-            data.reflectPhysical = msg->getU16();
-            data.armor = msg->getU16();
-            if (g_game.getClientVersion() >= 1500) {
-                msg->getU16(); // MANTRA
-            }
-
-            data.defense = msg->getU16();
-            data.defenseEquipment = msg->getU16();
-            data.defenseSkillType = msg->getU8();
-            data.shieldingSkill = msg->getU16();
-            data.defenseWheel = msg->getU16();
-            if (g_game.getClientVersion() < 1530)
-                msg->getU16(); // unused (removed in 15.25)
-
-            data.mitigation = msg->getDouble();
-            data.mitigationBase = msg->getDouble();
-            data.mitigationEquipment = msg->getDouble();
-            data.mitigationShield = msg->getDouble();
-            data.mitigationWheel = msg->getDouble();
-            data.mitigationCombatTactics = (g_game.getClientVersion() < 1530) ? msg->getDouble() : 0.0; // removed in 15.25
-            const uint8_t combatsCount = msg->getU8();
-            for (int i = 0; i < combatsCount; ++i) {
-                uint8_t elementType = msg->getU8();
-                if (elementType == 0x04) {
-                    CyclopediaCharacterDefenceStats::ElementalResistance resistance;
-                    resistance.element = msg->getU8();
-                    resistance.value = msg->getDouble();
-                    data.resistances.push_back(resistance);
-                }
-            }
-
-            g_game.processCyclopediaCharacterDefenceStats(data);
+            g_game.processCyclopediaCharacterDefenceStats(
+                decodeCyclopediaDefenceStats(msg, g_game.getClientVersion()));
             break;
         }
         case Otc::CYCLOPEDIA_CHARACTERINFO_MISCSTATS:
