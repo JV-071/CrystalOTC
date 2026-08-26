@@ -3277,6 +3277,11 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 
 	player:stopAutoWalk()
 
+	-- Dropping out of Chase Opponent on a manual walk is game_inventory's walkEvent, which is
+	-- connected to onWalk and onAutoWalk and so already covers this click. Doing it again here
+	-- meant doing it without the "Auto Chase Off" check that walkEvent makes, so deselecting
+	-- that option changed nothing for click-to-walk: the stance was dropped anyway, and the
+	-- chase the official client would have resumed never came back.
 	if autoWalkPos and keyboardModifiers == KeyboardNoModifier and mouseButton == MouseLeftButton then
 		local classic = classicControl == "classic" or classicControl == true
 		local lootSide = modules.client_options.getOption("lootSide") or "right"
@@ -3286,17 +3291,9 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 
 			if not lootTarget and (not lookThing or lookThing:isCreature() or not lookThing:isPickupable()) then
 				player:autoWalk(autoWalkPos)
-
-				if g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
-					g_game.setChaseMode(DontChase)
-				end
 			end
 		else
 			player:autoWalk(autoWalkPos)
-
-			if g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
-				g_game.setChaseMode(DontChase)
-			end
 		end
 
 		return true
