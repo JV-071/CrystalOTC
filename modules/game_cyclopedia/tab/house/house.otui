@@ -1689,7 +1689,7 @@ UIWidget
     UIWidget
       id: transferDateHelp
       size: 12 12
-      !tooltip: tr('Yhe transfer takes place at the daily server save of the selected day.')
+      !tooltip: tr('The transfer takes place at the daily server save of the selected day.')
       anchors.right: parent.right
       anchors.verticalCenter: day.verticalCenter
       margin-right: 1

@@ -1652,33 +1652,106 @@ function Cyclopedia.requestHouseList(cityName)
 	g_game.sendCyclopediaHouseAuction(Cyclopedia.HouseAction.OPEN, 0, 0, 0, payload)
 end
 
-Cyclopedia.HouseActionErrors = {
-	nil,
-	"Your character does not belong to this world.",
-	"Rookgaard / mainland mismatch.",
-	"A character with this name does not exist.",
-	"Your character is not the leader of a guild.",
-	"Only guild leaders can bid on guildhalls.",
-	nil,
-	"This house is not in auction.",
-	"The auction has already ended.",
-	"Bid is below the minimum required.",
-	"Your account already has a leading bid on another house.",
-	"You reached the regular house limit for this account.",
-	"A character of this account has already accepted a house transfer. You need to wait until the first transfer has been completed before you can transfer this house.",
-	"You reached the guildhall limit for this account.",
-	nil,
-	nil,
-	"Your bank balance is insufficient.",
-	"A world transfer is pending on this character.",
-	"A character with this name does not exist.",
-	"This house is scheduled for renovation.",
-	nil,
-	"There is a pending transfer on your character."
+-- The server picks the error-code space from the action, so the same number means
+-- different things: crystalserver has three enums (BidErrorMessage, TransferErrorMessage,
+-- AcceptTransferErrorMessage) and the official client has three matching string tables
+-- (houses_error_message_bid* / _own_house* / _incoming_transfer*). One flat table indexed by
+-- the code alone described every non-bid failure in the bid vocabulary - a Premium-required
+-- rejection on a bid (code 5) read as "not the leader of a guild".
+-- Text is taken verbatim from the official client's client.en.qm, except bid 4/12/13, whose
+-- official wording interpolates auction dates and house limits this protocol does not carry.
+
+local HOUSE_ERRORS_BID = {
+	"Incorrect character name or password.", -- 1
+	"Your character does not live on this game world.", -- 2
+	"Characters on the beginner's island are not allowed to rent houses.", -- 3
+	"You have been excluded from any auction because you still owe your old landlord the rent for the last month.", -- 4
+	"Houses can only be rented by characters on Premium accounts.", -- 5
+	"A guildhall may only be rented by a leader of an active guild.", -- 6
+	"You cannot bid for a house as long as one of your characters has still an open house transfer.", -- 7
+	"This house is not auctioned.", -- 8
+	"Auction has already ended.", -- 9
+	"Your bid limit must be higher than the current highest bid.", -- 10
+	"A character of your account already holds the highest bid for another house. You may only bid for one house at the same time.", -- 11
+	"The characters of your account already own the maximum number of houses.", -- 12
+	"The characters of your account already own the maximum number of houses on this world.", -- 13
+	"A character of your account already owns a guildhall. You cannot own more than one guildhall per account.", -- 14
+	"A character of your account already owns a guildhall. You cannot own more than one guildhall per account.", -- 15
+	"You may not raise bids while you are online. Please log out first.", -- 16
+	"Your character's bank account balance is too low to pay the bid and the rent for the first month.", -- 17
+	"You cannot bid for a house as long as there is a pending Character World Transfer for this character.", -- 18
+	"You cannot bid for a house as long as your account is frozen.", -- 19
+	"This house is scheduled for renovation and cannot be rented.", -- 20
+	"The balances of your guild bank account and your character's bank account are too low to pay the bid and the rent for the first month.", -- 21
+	"You need to wait until your current house transfer has been completed before you can bid for another house.", -- 22
+	"You cannot bid for a house while your character is listed on the character bazaar.", -- 23
 }
 
+local HOUSE_ERRORS_OWN_HOUSE = {
+	"Incorrect password.", -- 1
+	"You are not the owner of this house.", -- 2
+	"You cannot change the status of this guildhall because you are no longer the leader of an active guild.", -- 3
+	"A character with this name does not exist.", -- 4
+	"This character does not live on this game world.", -- 5
+	"This character is currently excluded from all auctions and may not rent any new houses.", -- 6
+	"Houses may only be transferred to characters on Premium accounts.", -- 7
+	"A guildhall may only be transferred to a leader of an active guild.", -- 8
+	"A character of this account already owns a guildhall. It is not possible to own more than one guildhall per account.", -- 9
+	"The characters of this account may not rent more houses.", -- 10
+	"The characters of this account may not rent more houses on this world.", -- 11
+	"This character cannot accept a house transfer because a character of this account is currently bidding for a house.", -- 12
+	"A character of this account has already accepted a house transfer. You need to wait until the first transfer has been completed before you can transfer this house.", -- 13
+	"Internal error.", -- 14
+	"The transfer has already been accepted.", -- 15
+	"Characters on the beginner's island are not allowed to rent houses.", -- 16
+	"Please select a date in the future.", -- 17
+	"Please select a date within the next 30 days.", -- 18
+	"You already own this house.", -- 19
+	"You cannot accept a transfer of a guildhall if you are about to resign from leadership.", -- 20
+	"Internal error.", -- 21
+	"You cannot transfer the house to another account because your account is scheduled for deletion or already deleted.", -- 22
+	"You have an unacknowledged rule violation record in your account.", -- 23
+	"Your account is frozen.", -- 24
+	"You can only transfer one house at a time.", -- 25
+	"You may not transfer this house as long as you are bidding for a house.", -- 26
+	"You cannot transfer or terminate this house, or cancel a pending transfer while your character is listed on the character bazaar.", -- 27
+	"You cannot transfer this house to a character which is currently listed on the character bazaar.", -- 28
+}
+
+local HOUSE_ERRORS_INCOMING_TRANSFER = {
+	"Incorrect password.", -- 1
+	"This character is not the designated new owner of this house.", -- 2
+	"You cannot accept a house transfer as long as one of your characters is bidding for a house.", -- 3
+	"A character of your account has already accepted a house transfer. You need to wait until the first transfer has been completed before you can accept a further transfer.", -- 4
+	"You cannot accept a transfer of a guildhall because you are not the leader of an active guild.", -- 5
+	"You may not rent any new houses as long as you are banished.", -- 6
+	"The transfer has already been accepted.", -- 7
+	"Characters on the beginner's island are not allowed to rent houses.", -- 8
+	"Houses may only be transferred to characters on Premium accounts.", -- 9
+	"You are currently excluded from all auctions.", -- 10
+	"You may not rent more houses.", -- 11
+	"You may not rent more houses on this world.", -- 12
+	"You cannot rent more than one guildhall on an account.", -- 13
+	"You cannot accept a transfer of a guildhall if you want to resign from leadership.", -- 14
+	"You may not rent any new houses as long as your account is frozen.", -- 15
+	"The house is scheduled for renovation and can not be rented.", -- 16
+	"You may not rent any new houses as long as you have an unacknowledged rule violation record in your account.", -- 17
+	"You cannot rent a new house while your character is listed on the character bazaar.", -- 18
+}
+
+local function houseErrorTable(action)
+	if action == Cyclopedia.HouseAction.BID then
+		return HOUSE_ERRORS_BID
+	elseif action == Cyclopedia.HouseAction.ACCEPT_TRANSFER or action == Cyclopedia.HouseAction.REJECT_TRANSFER then
+		return HOUSE_ERRORS_INCOMING_TRANSFER
+	end
+
+	-- MOVEOUT, TRANSFER, CANCEL_MOVEOUT, CANCEL_TRANSFER all report through TransferErrorMessage.
+	return HOUSE_ERRORS_OWN_HOUSE
+end
+
 local function describeActionError(action, result)
-	local msg = Cyclopedia.HouseActionErrors[result]
+	local msg = houseErrorTable(action)[result]
 
 	if msg then
 		return msg
@@ -1875,7 +1948,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 	if type == 1 then
 		if message == 0 then
 			if not confirmWindow then
-				confirmWindow = displayGeneralBox(tr("Summary"), tr("Your bid was successfull. You are currently holding the highest bid."), {
+				confirmWindow = displayGeneralBox(tr("Summary"), tr("Your bid was successful. You are currently holding the highest bid."), {
 					{
 						text = tr("Ok"),
 						callback = yesCallback
@@ -1888,7 +1961,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 				toggleCyclopedia(true, false)
 			end
 		elseif message == 17 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("Bid failed.\nYour character's bank acocunt balance is too low to pay the bid and the rent for the first month."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("Bid failed.\nYour character's bank account balance is too low to pay the bid and the rent for the first month."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1902,7 +1975,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 2 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have sucessfully iniated your move out."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have successfully initiated your move out."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1917,7 +1990,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 4 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have sucessfully cancelled your move out. You will keep the house."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have successfully cancelled your move out. You will keep the house."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1932,7 +2005,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 3 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have sucessfully initiated the transfer of your house."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have successfully initiated the transfer of your house."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1958,7 +2031,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 5 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have sucessfully cancelled the transfer. You will keep the house."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have successfully cancelled the transfer. You will keep the house."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1972,7 +2045,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 6 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have sucessfully accepted the transfer."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You have successfully accepted the transfer."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
@@ -1986,7 +2059,7 @@ function Cyclopedia.houseMessage(houseId, type, message)
 		end
 	elseif type == 7 then
 		if message == 0 then
-			confirmWindow = displayGeneralBox(tr("Summary"), tr("You rejected the house transfer sucessfully. The old owner will keep the house."), {
+			confirmWindow = displayGeneralBox(tr("Summary"), tr("You rejected the house transfer successfully. The old owner will keep the house."), {
 				{
 					text = tr("Ok"),
 					callback = yesCallback
