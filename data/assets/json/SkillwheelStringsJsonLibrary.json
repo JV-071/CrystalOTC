@@ -3019,7 +3019,7 @@
         "17": {
             "FormatType": "NoEffectDisplay",
             "LongInfo": "Gain +3 distance fighting while no monster is within 1 squares. Otherwise gain +3 holy magic level and +3 healing magic level.",
-            "Name": "Ballistic Mastery",
+            "Name": "Positional Tactics",
             "SummaryPriority": 0
         },
         "18": {

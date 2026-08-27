@@ -61,7 +61,7 @@ WheelConsts = {
 			"Gain +6 shielding and +1 sword/axe/club fighting when 5\ncreatures are on adjacent squares.\nFor each additional creature, up to a maximum of 8, you get +6\nshielding and +1 sword/axe/club fighting more."
 		},
 		{
-			"Positional Tatic",
+			"Positional Tactics",
 			"Gain +3 distance fighting while no monster is within 1 squares.\nOtherwise gain +3 holy magic level and +3 healing magic level."
 		},
 		{
@@ -1176,9 +1176,9 @@ function getConvictionBonus(index, fullMessage)
 			end
 		elseif vocation == PALADIN then
 			if not fullMessage then
-				return "Ballistic Mastery\nGain +3 distance fighting\nwhile no monster is within 1\nsquares. Otherwise gain +3\nholy magic level and +3 hea..."
+				return "Positional Tactics\nGain +3 distance fighting\nwhile no monster is within 1\nsquares. Otherwise gain +3\nholy magic level and +3 hea..."
 			else
-				return "Ballistic Mastery\nGain +3 distance fighting\nwhile no monster is within 1\nsquares. Otherwise gain +3\nholy magic level and +3\nhealing magic level."
+				return "Positional Tactics\nGain +3 distance fighting\nwhile no monster is within 1\nsquares. Otherwise gain +3\nholy magic level and +3\nhealing magic level."
 			end
 		elseif vocation == SORCERER then
 			if not fullMessage then

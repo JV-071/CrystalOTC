@@ -23,7 +23,7 @@ MediumPerkIconNames = {
 	"Augmented Shield Slam|Aug. Shield Slam",
 	"Distance Skill Boost",
 	"Ballistic Mastery",
-	"Ballistic Mastery",
+	"Positional Tactics",
 	"Augmented Divine Caldera|Aug. Divine Caldera",
 	"Augmented Swift Foot|Aug. Swift Foot",
 	"Augmented Divine Dazzle|Aug. Divine Dazzle",
