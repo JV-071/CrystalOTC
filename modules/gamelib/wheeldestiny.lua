@@ -1,5 +1,11 @@
 ﻿-- chunkname: @/gamelib/wheeldestiny.lua
 
+-- NOTE: this file is not loaded. gamelib.otmod's @onLoad list does not dofile it, so nothing here
+-- runs and nothing outside it reads WheelDestiny. The live wheel data is modules/game_wheel:
+-- WheelBonus/WheelConsts/WheelAugments in classes/bonus.lua and WheelIcons in classes/icons.lua.
+-- The tables below are kept in step with those so they cannot mislead, but editing them changes
+-- nothing on screen.
+
 WheelDestiny = {}
 WheelDestiny.Sides = {
 	topLeft = {
@@ -843,7 +849,7 @@ WheelDestiny.MediumPerkInfos = {
 	},
 	{
 		FormatType = "NoEffectDisplay",
-		Name = "Ballistic Mastery",
+		Name = "Positional Tactics",
 		LongInfo = "Gain +3 distance fighting while no monster is within 1 squares. Otherwise gain +3 holy magic level and +3 healing magic level.",
 		SummaryPriority = 0
 	},
@@ -855,7 +861,7 @@ WheelDestiny.MediumPerkInfos = {
 		SummaryPriority = 1
 	},
 	{
-		Name = "Augmented Divine Barrage|Aug. Divine Barrage",
+		Name = "Augmented Swift Foot|Aug. Swift Foot",
 		Aug2Info = "+15% Base Damage",
 		FormatType = "RomanNumerals",
 		Aug1Info = "+10% Base Damage",
@@ -876,7 +882,7 @@ WheelDestiny.MediumPerkInfos = {
 		SummaryPriority = 1
 	},
 	{
-		Name = "Augmented Ethereal Barrage|Aug. Ethereal Barrage",
+		Name = "Augmented Sharpshooter|Aug. Sharpshooter",
 		Aug2Info = "+10% Critical Chance",
 		FormatType = "RomanNumerals",
 		Aug1Info = "+10% Life Leech",
@@ -1019,7 +1025,7 @@ WheelDestiny.MediumPerkInfos = {
 		SummaryPriority = 0
 	},
 	{
-		Name = "Augmented Thousand Fist Blows|Aug. Thousand Fist Blows",
+		Name = "Augmented Sweeping Takedown|Aug. Sweeping Takedown",
 		Aug2Info = "Adds 25% critical extra damage for this spell and grants a 10% chance (non-cumulative) for a critical hit.",
 		FormatType = "RomanNumerals",
 		Aug1Info = "Adds 3% mana leech to this spell",
@@ -1334,7 +1340,7 @@ WheelDestiny.AddSlotData(8, VocationsClient.Knight, {
 		convictions = {
 			medium = {
 				{
-					id = 14
+					id = 15
 				}
 			}
 		}
@@ -1392,7 +1398,7 @@ WheelDestiny.AddSlotData(11, VocationsClient.Knight, {
 		convictions = {
 			medium = {
 				{
-					id = 15
+					id = 14
 				}
 			}
 		}
@@ -1643,7 +1649,7 @@ WheelDestiny.AddSlotData(24, VocationsClient.Knight, {
 		convictions = {
 			medium = {
 				{
-					id = 14
+					id = 15
 				}
 			}
 		}
@@ -1682,7 +1688,7 @@ WheelDestiny.AddSlotData(26, VocationsClient.Knight, {
 		convictions = {
 			medium = {
 				{
-					id = 15
+					id = 14
 				}
 			}
 		}
@@ -2044,7 +2050,7 @@ WheelDestiny.AddSlotData(8, VocationsClient.Paladin, {
 		convictions = {
 			medium = {
 				{
-					id = 39
+					id = 22
 				}
 			}
 		}
@@ -2756,7 +2762,7 @@ WheelDestiny.AddSlotData(8, VocationsClient.Sorcerer, {
 		convictions = {
 			medium = {
 				{
-					id = 37
+					id = 27
 				}
 			}
 		}
@@ -2814,7 +2820,7 @@ WheelDestiny.AddSlotData(11, VocationsClient.Sorcerer, {
 		convictions = {
 			medium = {
 				{
-					id = 27
+					id = 37
 				}
 			}
 		}
@@ -3066,7 +3072,7 @@ WheelDestiny.AddSlotData(24, VocationsClient.Sorcerer, {
 		convictions = {
 			medium = {
 				{
-					id = 37
+					id = 27
 				}
 			}
 		}
@@ -3105,7 +3111,7 @@ WheelDestiny.AddSlotData(26, VocationsClient.Sorcerer, {
 		convictions = {
 			medium = {
 				{
-					id = 27
+					id = 37
 				}
 			}
 		}
@@ -4142,7 +4148,7 @@ WheelDestiny.AddSlotData(6, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 45
+					id = 48
 				}
 			}
 		}
@@ -4199,7 +4205,7 @@ WheelDestiny.AddSlotData(9, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 6,
+					id = 7,
 					quantity = 0.75
 				}
 			}
@@ -4277,7 +4283,7 @@ WheelDestiny.AddSlotData(13, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 48
+					id = 49
 				}
 			}
 		}
@@ -4335,7 +4341,7 @@ WheelDestiny.AddSlotData(16, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 49
+					id = 45
 				}
 			}
 		}
@@ -4354,7 +4360,7 @@ WheelDestiny.AddSlotData(17, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 6,
+					id = 7,
 					quantity = 0.75
 				}
 			}
@@ -4432,7 +4438,7 @@ WheelDestiny.AddSlotData(21, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 45
+					id = 48
 				}
 			}
 		}
@@ -4509,7 +4515,7 @@ WheelDestiny.AddSlotData(25, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 6,
+					id = 7,
 					quantity = 0.75
 				}
 			}
@@ -4587,7 +4593,7 @@ WheelDestiny.AddSlotData(29, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 48
+					id = 49
 				}
 			}
 		}
@@ -4629,7 +4635,7 @@ WheelDestiny.AddSlotData(31, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 49
+					id = 45
 				}
 			}
 		}
@@ -4706,7 +4712,7 @@ WheelDestiny.AddSlotData(35, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 6,
+					id = 7,
 					quantity = 0.75
 				}
 			}
@@ -4730,7 +4736,7 @@ WheelDestiny.AddSlotData(36, VocationsClient.Monk, {
 		convictions = {
 			medium = {
 				{
-					id = 44
+					id = 42
 				}
 			}
 		}
