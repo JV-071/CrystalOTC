@@ -1665,7 +1665,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo flam hur",
 			id = 19,
-			exhaustion = 3000,
+			exhaustion = 4000,
 			name = "Fire Wave",
 			premium = false,
 			range = 0,
@@ -2134,7 +2134,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo gran frigo hur",
 			id = 43,
-			exhaustion = 8000,
+			exhaustion = 4000,
 			name = "Strong Ice Wave",
 			premium = false,
 			range = 0,
@@ -2784,7 +2784,7 @@ SpellInfo = {
 			needTarget = false,
 			words = "exevo gran mort",
 			id = 92,
-			exhaustion = 1200000,
+			exhaustion = 1800000,
 			name = "Conjure Wand of Darkness",
 			premium = true,
 			range = 0,
@@ -2827,7 +2827,7 @@ SpellInfo = {
 			words = "adevo grav vita",
 			id = 94,
 			range = 0,
-			exhaustion = 0,
+			exhaustion = 2000,
 			name = "Wild Growth",
 			premium = true,
 			source = 3147,
@@ -3164,7 +3164,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo frigo hur",
 			id = 121,
-			exhaustion = 3000,
+			exhaustion = 4000,
 			name = "Ice Wave",
 			premium = false,
 			range = 0,
@@ -3406,7 +3406,7 @@ SpellInfo = {
 			range = 0,
 			group = {
 				[3] = 2000,
-				[7] = 2000
+				[11] = 2000
 			},
 			vocations = {
 				4,
@@ -3428,7 +3428,7 @@ SpellInfo = {
 			range = 0,
 			group = {
 				[3] = 2000,
-				[7] = 2000
+				[11] = 2000
 			},
 			vocations = {
 				4,
@@ -3472,7 +3472,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 10000
 			},
 			vocations = {
 				3,
@@ -3594,7 +3595,7 @@ SpellInfo = {
 			needTarget = true,
 			words = "utori san",
 			id = 143,
-			exhaustion = 10000,
+			exhaustion = 40000,
 			name = "Holy Flash",
 			premium = false,
 			range = 3,
@@ -3722,7 +3723,7 @@ SpellInfo = {
 			needTarget = false,
 			words = "exori amp vis",
 			id = 149,
-			exhaustion = 6000,
+			exhaustion = 8000,
 			name = "Lightning",
 			premium = true,
 			range = 4,
@@ -4008,7 +4009,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo dis flam hur",
 			id = 167,
-			exhaustion = 3000,
+			exhaustion = 4000,
 			name = "Practise Fire Wave",
 			premium = false,
 			range = 0,
@@ -4187,7 +4188,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo infir flam hur",
 			id = 178,
-			exhaustion = 3000,
+			exhaustion = 4000,
 			name = "Scorch",
 			premium = false,
 			range = 0,
@@ -4214,7 +4215,7 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 4000
+				[3] = 2000
 			},
 			vocations = {
 				8
@@ -4234,7 +4235,7 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 4000
+				[3] = 2000
 			},
 			vocations = {
 				7
@@ -4254,7 +4255,7 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 4000
+				[3] = 2000
 			},
 			vocations = {
 				5
@@ -4274,7 +4275,7 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 4000
+				[3] = 2000
 			},
 			vocations = {
 				6
@@ -4419,14 +4420,14 @@ SpellInfo = {
 			level = 175,
 			needTarget = false,
 			words = "exori moe tempo",
-			id = 311,
+			id = 312,
 			exhaustion = 30000,
 			name = "Aura of Exposed Weakness",
 			premium = false,
 			range = 0,
 			group = {
 				[3] = 2000,
-				[6] = 2000
+				[6] = 30000
 			},
 			vocations = {
 				1,
@@ -4441,14 +4442,14 @@ SpellInfo = {
 			level = 175,
 			needTarget = false,
 			words = "exori kor tempo",
-			id = 312,
+			id = 311,
 			exhaustion = 30000,
 			name = "Aura of Sapped Strength",
 			premium = false,
 			range = 0,
 			group = {
 				[3] = 2000,
-				[6] = 2000
+				[6] = 30000
 			},
 			vocations = {
 				1,
@@ -4540,7 +4541,7 @@ SpellInfo = {
 			directional = true,
 			words = "exevo max mort",
 			id = 260,
-			exhaustion = 10000,
+			exhaustion = 6000,
 			name = "Great Death Beam",
 			type = "Instant",
 			premium = false,
@@ -4564,7 +4565,7 @@ SpellInfo = {
 			words = "exori amp kor",
 			id = 261,
 			special = true,
-			exhaustion = 2000,
+			exhaustion = 18000,
 			name = "Executioner's Throw",
 			premium = false,
 			range = 5,
@@ -4584,15 +4585,15 @@ SpellInfo = {
 			level = 300,
 			needTarget = false,
 			words = "exevo ulus frigo",
-			id = 262,
+			id = 263,
 			special = true,
-			exhaustion = 2000,
+			exhaustion = 22000,
 			name = "Ice Burst",
 			premium = false,
 			range = 0,
 			group = {
 				[1] = 2000,
-				[10] = 2000
+				[10] = 22000
 			},
 			vocations = {
 				2,
@@ -4608,15 +4609,15 @@ SpellInfo = {
 			level = 300,
 			needTarget = false,
 			words = "exevo ulus tera",
-			id = 263,
+			id = 262,
 			special = true,
-			exhaustion = 2000,
+			exhaustion = 22000,
 			name = "Terra Burst",
 			premium = false,
 			range = 0,
 			group = {
 				[1] = 2000,
-				[10] = 2000
+				[10] = 22000
 			},
 			vocations = {
 				2,
@@ -4960,7 +4961,7 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 4000
+				[3] = 2000
 			},
 			vocations = {
 				9,
@@ -5130,7 +5131,7 @@ SpellInfo = {
 			needLearn = true,
 			words = "exori amp pug",
 			id = 290,
-			exhaustion = 20000,
+			exhaustion = 12000,
 			name = "Mystic Repulse",
 			premium = true,
 			range = 7,
@@ -5312,7 +5313,7 @@ SpellInfo = {
 			needTarget = true,
 			needLearn = true,
 			words = "exori infir amp pug",
-			id = 298,
+			id = 300,
 			exhaustion = 20000,
 			name = "Lesser Mystic Repulse",
 			premium = false,
@@ -5408,7 +5409,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 30000
 			},
 			vocations = {
 				5
@@ -5428,7 +5430,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 30000
 			},
 			vocations = {
 				5
@@ -5448,7 +5451,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 30000
 			},
 			vocations = {
 				5
@@ -5468,7 +5472,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 10000
 			},
 			vocations = {
 				6
@@ -5488,7 +5493,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 10000
 			},
 			vocations = {
 				6
@@ -5531,7 +5537,8 @@ SpellInfo = {
 			premium = false,
 			range = 0,
 			group = {
-				[3] = 2000
+				[3] = 2000,
+				[11] = 10000
 			},
 			vocations = {
 				3,
@@ -5595,8 +5602,7 @@ SpellInfo = {
 			premium = false,
 			range = 7,
 			group = {
-				[1] = 2000,
-				[4] = 6000
+				[1] = 2000
 			},
 			vocations = {
 				2,
@@ -5618,8 +5624,7 @@ SpellInfo = {
 			premium = false,
 			range = 7,
 			group = {
-				[1] = 2000,
-				[4] = 6000
+				[1] = 2000
 			},
 			vocations = {
 				2,
