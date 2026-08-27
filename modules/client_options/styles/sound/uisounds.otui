@@ -85,13 +85,6 @@ UIWidget
       margin-top: 5
       !text: tr('Guild')
 
-    OptionCheckBox
-      id: privateMessagesLocalChat
-      anchors.top: prev.bottom
-      margin-left: 18
-      margin-top: 5
-      !text: tr('Private Messages in Local Chat')
-
     OptionCheckBoxMarked
       id: privateMessages
       anchors.top: prev.bottom
@@ -99,6 +92,13 @@ UIWidget
       margin-top: 5
       !text: tr('Private Messages')
       !tooltip: tr('Tick this box if you like to hear a sound when a new message\nappears in a private chat channel or in a private conversation with\nanother player.')
+
+    OptionCheckBox
+      id: privateMessagesLocalChat
+      anchors.top: prev.bottom
+      margin-left: 18
+      margin-top: 5
+      !text: tr('Private Messages in Local Chat')
 
     OptionCheckBox
       id: npcs
