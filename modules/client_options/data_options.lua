@@ -805,7 +805,7 @@ return {
 				state = string.format(" (%s)", tr("off"))
 			end
 
-			panels.battleSoundsPanel:recursiveGetChildById("ownBattleVolume"):setText(tr("Own Players Sounds: %d %%", value) .. state)
+			panels.battleSoundsPanel:recursiveGetChildById("ownBattleVolume"):setText(tr("Own Battle Sounds: %d %%", value) .. state)
 		end
 	},
 	otherPlayersVolume = {

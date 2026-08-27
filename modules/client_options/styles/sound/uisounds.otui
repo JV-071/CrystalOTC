@@ -39,7 +39,7 @@ UIWidget
 
     OptionCheckBox
       id: uiInteractions
-      !text: tr('UI Interactions')
+      !text: tr('UI interactions')
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -135,4 +135,4 @@ UIWidget
       margin-left: 18
       margin-top: 5
       !text: tr('System Announcements')
-      !tooltip: tr('Tick this box if you like yo hear a sound when a new message for\nthe whole game world appears, e.g. the game world is goind down\nor a CipSoft member makes an important announcement.')
+      !tooltip: tr('Tick this box if you like to hear a sound when a new message for\nthe whole game world appears, e.g. the game world is going down\nor a CipSoft member makes an important announcement.')

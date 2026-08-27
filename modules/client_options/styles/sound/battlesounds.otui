@@ -144,6 +144,6 @@ UIWidget
 
     OptionCheckBox
       id: attackAndSpells
-      !text: tr('Attack and Spells')
+      !text: tr('Attacks and Spells')
       anchors.top: prev.bottom
       margin-top: 5
