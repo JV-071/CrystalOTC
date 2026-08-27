@@ -528,6 +528,24 @@ function onSpellCooldown(iconId, duration)
 	sortSpellCooldownIcons()
 end
 
+-- The bar's icons carry their own &groupId, so match on that rather than on the display
+-- name: names with spaces ("Ultimate Strikes", "Bursts of Nature") never matched a widget id.
+local function findGroupWidgets(groupId)
+	if not contentsPanel then
+		return nil, nil
+	end
+
+	for _, child in ipairs(contentsPanel:getChildren()) do
+		local id = child:getId()
+
+		if id and id:sub(1, 9) == "groupIcon" and child.groupId == groupId then
+			return child, contentsPanel:getChildById("progressRect" .. id:sub(10))
+		end
+	end
+
+	return nil, nil
+end
+
 function onSpellGroupCooldown(groupId, duration)
 	if not cooldownWindow:isVisible() then
 		return
@@ -537,8 +555,7 @@ function onSpellGroupCooldown(groupId, duration)
 		return
 	end
 
-	local icon = contentsPanel:getChildById("groupIcon" .. SpellGroups[groupId])
-	local progressRect = contentsPanel:getChildById("progressRect" .. SpellGroups[groupId])
+	local icon, progressRect = findGroupWidgets(groupId)
 
 	if icon then
 		removeEvent(icon.event)

@@ -5980,7 +5980,7 @@ SpellGroups = {
 	"Ultimate Strikes",
 	"Great Beams",
 	"Bursts of Nature",
-	"Virtue"
+	"Stance"
 }
 SpellGroupIconFile = "/images/game/spells/spellgroup-icons-20x20"
 SpellGroupIconSize = {
