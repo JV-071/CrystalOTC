@@ -389,13 +389,42 @@ void CocoaWindow::internalCreateApplication()
     [NSApp setDelegate:(id<NSApplicationDelegate>)delegate];
 
     // Without a menu bar the application cannot become active properly and Cmd-Q is dead.
-    // The Quit item is routed through applicationShouldTerminate:, which cancels and hands
-    // the request to the client instead.
+    //
+    // The item set mirrors the app menu Qt's QCocoaMenuLoader installs, which is what the
+    // official client ends up with on macOS: Hide, Hide Others, Show All, Quit. That is the
+    // parity target, and it is also the reason Minimize (Cmd-M), Zoom and Close (Cmd-W) are
+    // deliberately absent -- the official client ships no Window menu, and adding one here
+    // would silently shadow the default "Ctrl+M" keybind, which resolves to Cmd-M on macOS.
+    //
+    // Cmd-H is the one collision we accept, because the official client has it too: its
+    // shipped "Ctrl+H" binding (Open Help Channel) is likewise shadowed by Hide on macOS.
+    //
+    // No Edit menu either, and that one is load-bearing rather than cosmetic. Menu key
+    // equivalents are matched before the event reaches the view, so an Edit menu carrying
+    // Cmd-C/V/X/A would swallow those and route them to copy:/paste:/cut:/selectAll: on the
+    // first responder -- selectors the engine does not implement. Leaving them out lets the
+    // events fall through to keyDown: and into UITextEdit, which already handles them.
     NSMenu* menuBar = [[NSMenu alloc] init];
     NSMenuItem* appMenuItem = [[NSMenuItem alloc] init];
     [menuBar addItem:appMenuItem];
     NSMenu* appMenu = [[NSMenu alloc] init];
     NSString* appName = [[NSProcessInfo processInfo] processName];
+
+    // These three act on NSApplication itself, so they need no cooperation from the engine.
+    [appMenu addItemWithTitle:[@"Hide " stringByAppendingString:appName]
+                       action:@selector(hide:)
+                keyEquivalent:@"h"];
+    NSMenuItem* hideOthers = [appMenu addItemWithTitle:@"Hide Others"
+                                                action:@selector(hideOtherApplications:)
+                                         keyEquivalent:@"h"];
+    [hideOthers setKeyEquivalentModifierMask:NSEventModifierFlagOption | NSEventModifierFlagCommand];
+    [appMenu addItemWithTitle:@"Show All"
+                       action:@selector(unhideAllApplications:)
+                keyEquivalent:@""];
+    [appMenu addItem:[NSMenuItem separatorItem]];
+
+    // The Quit item is routed through applicationShouldTerminate:, which cancels and hands
+    // the request to the client instead.
     [appMenu addItemWithTitle:[@"Quit " stringByAppendingString:appName]
                        action:@selector(terminate:)
                 keyEquivalent:@"q"];
