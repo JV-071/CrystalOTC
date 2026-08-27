@@ -298,7 +298,16 @@ local function getIconId(entry)
 		end
 	end
 
-	return (tonumber(entry.iconIndex) or 0) + 1
+	local iconIndex = tonumber(entry.iconIndex)
+
+	-- A few spells genuinely have no artwork on the sheet (the official table
+	-- leaves their iconIndex null). Returning nil lets the caller hide the
+	-- icon rather than showing slot 0, which belongs to another spell.
+	if not iconIndex then
+		return nil
+	end
+
+	return iconIndex + 1
 end
 
 local function getIconClip(iconId, size)
@@ -1236,8 +1245,12 @@ local function selectSpellDetails(spell)
 	local spellIcon = spellDetails:recursiveGetChildById("spellIcon")
 
 	if spellIcon then
-		spellIcon:setImageSource(SPELL_ICON_FILE)
-		spellIcon:setImageClip(getIconClip(spell.iconId, 32))
+		spellIcon:setVisible(spell.iconId ~= nil)
+
+		if spell.iconId then
+			spellIcon:setImageSource(SPELL_ICON_FILE)
+			spellIcon:setImageClip(getIconClip(spell.iconId, 32))
+		end
 	end
 
 	local spellName = spellDetails:recursiveGetChildById("spellName")
@@ -1324,8 +1337,12 @@ function updateSpellListUI()
 			local spellIcon = widget:getChildById("spellIcon")
 
 			if spellIcon then
-				spellIcon:setImageSource(SPELL_ICON_SMALL_FILE)
-				spellIcon:setImageClip(getIconClip(spell.iconId, 20))
+				spellIcon:setVisible(spell.iconId ~= nil)
+
+				if spell.iconId then
+					spellIcon:setImageSource(SPELL_ICON_SMALL_FILE)
+					spellIcon:setImageClip(getIconClip(spell.iconId, 20))
+				end
 			end
 
 			local nameLabel = widget:getChildById("spellName")
