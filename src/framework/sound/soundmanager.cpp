@@ -23,6 +23,7 @@
 #include "soundmanager.h"
 #include <AL/alext.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -924,10 +925,17 @@ namespace
     // private one. The Console Messages sub-options are applied by
     // game_console instead, which knows the channel and plays the effect
     // itself - so this box is the parent of that decision, not a replacement.
+    //
+    // SPELL_GENERIC needs a third shape: the official client gates it on the
+    // grouping box AND on at least one of the three specific boxes being
+    // ticked, so unticking Attack, Healing and Support silences generic spells
+    // even while "Spells" itself stays on. anyOf carries those alternatives;
+    // an empty first entry means the rule does not apply.
     struct SoundFilterCategories
     {
         std::string_view group;
         std::string_view specific;
+        std::array<std::string_view, 3> anyOf{};
     };
 
     SoundFilterCategories soundFilterCategories(const ClientSoundType type, const uint8_t source)
@@ -949,8 +957,10 @@ namespace
                 if (otherPlayer) return { "otherSpells", "otherSupport" };
                 return { "attackAndSpells", {} };
             case NUMERIC_SOUND_TYPE_SPELL_GENERIC:
-                if (own) return { "ownSpells", {} };
-                if (otherPlayer) return { "otherSpells", {} };
+                // No specific box of its own, so the official client asks
+                // whether any of the three would let a spell through.
+                if (own) return { "ownSpells", {}, { "ownAttack", "ownHealing", "ownSupport" } };
+                if (otherPlayer) return { "otherSpells", {}, { "otherAttack", "otherHealing", "otherSupport" } };
                 return { "attackAndSpells", {} };
             case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
                 if (own) return { "ownWeapons", {} };
@@ -1091,12 +1101,17 @@ void SoundManager::playSoundEffectInternal(const uint32_t effectId, const uint8_
     const auto& effect = it->second;
 
     const auto categories = soundFilterCategories(effect.type, source);
-    if (!isFilterEnabled(categories.group) || !isFilterEnabled(categories.specific)) {
+    const bool anyOfSatisfied = categories.anyOf[0].empty() ||
+        std::ranges::any_of(categories.anyOf, [this](const std::string_view c) {
+            return !c.empty() && isFilterEnabled(c);
+        });
+    if (!isFilterEnabled(categories.group) || !isFilterEnabled(categories.specific) || !anyOfSatisfied) {
         traceSoundEvent("effect.drop", json({
             { "effect_id", effectId },
             { "reason", "filtered" },
             { "group", std::string(categories.group) },
             { "specific", std::string(categories.specific) },
+            { "any_of_satisfied", anyOfSatisfied },
         }).dump());
         return;
     }
