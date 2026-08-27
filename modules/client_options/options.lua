@@ -2026,18 +2026,24 @@ local function migrateLegacyScreenshotSettings()
 	end
 end
 
+-- Whether the profile named showStatusBars itself, as opposed to inheriting the
+-- default. It can only be asked before onInit fills the defaults in, so it is
+-- captured there and read later by the semantics migration in setup().
+local hadExplicitStatusBars = false
+
+-- Both of these run from onInit BEFORE the setDefault loop. They used to ask
+-- g_settings.getNode() for the whole settings tree, but Config::getNode takes a
+-- key and nothing exposes the root as a table, so it always came back nil: the
+-- migration below never ran at all, and the showStatusBars one always took its
+-- "no explicit value" branch. exists() answers the same question, but only
+-- while it still means "the player's profile has this", which stops being true
+-- the moment setDefault writes a value for every option.
 local function migrateGameWindowScreenMessageKeys()
-	local root = g_settings.getNode()
-
-	if type(root) ~= "table" then
-		return
-	end
-
-	if root.showLootMessagesOnScreen ~= nil and root.showLootMessages == nil then
+	if g_settings.exists("showLootMessagesOnScreen") and not g_settings.exists("showLootMessages") then
 		g_settings.set("showLootMessages", g_settings.getBoolean("showLootMessagesOnScreen"))
 	end
 
-	if root.showPrivateMessagesOnScreen ~= nil and root.showPrivateMessages == nil then
+	if g_settings.exists("showPrivateMessagesOnScreen") and not g_settings.exists("showPrivateMessages") then
 		g_settings.set("showPrivateMessages", g_settings.getBoolean("showPrivateMessagesOnScreen"))
 	end
 end
@@ -2096,7 +2102,6 @@ end
 local function setup()
 	panels.gameMapPanel = modules.game_interface.getMapPanel()
 
-	migrateGameWindowScreenMessageKeys()
 	dropRetiredAudioFlags()
 	setupComboBox()
 	setupOptionsCheckboxes()
@@ -2116,8 +2121,7 @@ local function setup()
 				if not g_settings.getBoolean("showStatusBars_semantics_v2") then
 					g_settings.set("showStatusBars_semantics_v2", true)
 
-					local root = g_settings.getNode()
-					local explicit = type(root) == "table" and root.showStatusBars ~= nil
+					local explicit = hadExplicitStatusBars
 					local raw
 
 					if explicit then
@@ -2255,6 +2259,11 @@ controller:setUI("options")
 
 function controller:onInit()
 	migrateLegacyScreenshotSettings()
+	migrateGameWindowScreenMessageKeys()
+
+	-- Last chance to tell an inherited default from a value the player saved:
+	-- the loop below writes a value for every option that has none.
+	hadExplicitStatusBars = g_settings.exists("showStatusBars")
 
 	for k, obj in pairs(options) do
 		if type(obj) ~= "table" then
