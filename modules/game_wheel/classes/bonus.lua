@@ -451,10 +451,10 @@ WheelAugments = {
 			aug2 = "Affected area enlarged"
 		},
 		{
-			name = "Sharpshooter",
-			short = "Aug. Sharpshooter",
-			aug1 = "Enables the casting of support spells while active and Focus secondary group cooldown -8s",
-			aug2 = "-6s Cooldown; distance skill bonus increased by +5%"
+			name = "Ethereal Barrage",
+			short = "Aug. Ethereal Barrage",
+			aug1 = "+10% Life Leech",
+			aug2 = "+10% Critical Hit Chance"
 		},
 		{
 			name = "Focus Spells",
@@ -544,13 +544,13 @@ WheelAugments = {
 			name = "Intense Wound Cleansing",
 			short = "Aug. Intense Wound C.",
 			aug1 = "+125% Base Healing",
-			aug2 = "-300s Cooldown"
+			aug2 = "-60s Cooldown"
 		},
 		{
-			name = "Swift Foot",
-			short = "Aug. Swift Foot",
-			aug1 = "Focus secondary group cooldown -8s. Attacks and spells are enabled but dealt damage is reduced by 50%.",
-			aug2 = "-6s Cooldown and the damage dealt is no longer reduced."
+			name = "Divine Barrage",
+			short = "Aug. Divine Barrage",
+			aug1 = "+10% Base Damage",
+			aug2 = "+15% Base Damage"
 		},
 		{
 			name = "Energy Wave",
@@ -568,7 +568,7 @@ WheelAugments = {
 			name = "Flurry of Blows",
 			short = "Aug. Flurry of Blows",
 			aug1 = "Affected area enlarged",
-			aug2 = "+15% Base Damage"
+			aug2 = "+12% Base Damage"
 		}
 	},
 	spell_5 = {
@@ -597,10 +597,10 @@ WheelAugments = {
 			aug2 = "Affected area enlarged"
 		},
 		{
-			name = "Sweeping Takedown",
-			short = "Aug. Sweeping Takedown",
-			aug1 = "Adds 3% mana leech to this spell",
-			aug2 = "Adds 25% critical extra damage for this spell and grants a 10% chance (non-cumulative) for a critical hit."
+			name = "Thousand Fist Blows",
+			short = "Aug. Thousand Fist Blows",
+			aug1 = "Adds 40% critical extra damage for this spell",
+			aug2 = "-6s Cooldown"
 		}
 	}
 }

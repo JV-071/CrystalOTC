@@ -2978,7 +2978,7 @@
         },
         "11": {
             "Aug1Info": "+125% Base Healing",
-            "Aug2Info": "-300s Cooldown",
+            "Aug2Info": "-60s Cooldown",
             "FormatType": "RomanNumerals",
             "Name": "Augmented Intense Wound Cleansing|Aug. Intense Wound Cleansing",
             "SummaryPriority": 1
@@ -3030,10 +3030,10 @@
             "SummaryPriority": 1
         },
         "19": {
-            "Aug1Info": "Focus secondary group cooldown -8s. Attacks and spells are enabled but dealt damage is reduced by 50%.",
-            "Aug2Info": "-6s Cooldown and the damage dealt is no longer reduced.",
+            "Aug1Info": "+10% Base Damage",
+            "Aug2Info": "+15% Base Damage",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Swift Foot|Aug. Swift Foot",
+            "Name": "Augmented Divine Barrage|Aug. Divine Barrage",
             "SummaryPriority": 1
         },
         "2": {
@@ -3057,10 +3057,10 @@
             "SummaryPriority": 1
         },
         "22": {
-            "Aug1Info": "Enables the casting of support spells while active and Focus secondary group cooldown -8s",
-            "Aug2Info": "-6s Cooldown; distance skill bonus increased by +5%",
+            "Aug1Info": "+10% Life Leech",
+            "Aug2Info": "+10% Critical Hit Chance",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Sharpshooter|Aug. Sharpshooter",
+            "Name": "Augmented Ethereal Barrage|Aug. Ethereal Barrage",
             "SummaryPriority": 1
         },
         "23": {
@@ -3212,10 +3212,10 @@
             "SummaryPriority": 0
         },
         "44": {
-            "Aug1Info": "Adds 3% mana leech to this spell",
-            "Aug2Info": "Adds 25% critical extra damage for this spell and grants a 10% chance (non-cumulative) for a critical hit.",
+            "Aug1Info": "Adds 40% critical extra damage for this spell",
+            "Aug2Info": "-6s Cooldown",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Sweeping Takedown|Aug. Sweeping Takedown",
+            "Name": "Augmented Thousand Fist Blows|Aug. Thousand Fist Blows",
             "SummaryPriority": 1
         },
         "45": {
