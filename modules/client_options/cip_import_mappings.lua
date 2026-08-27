@@ -2,14 +2,249 @@
 
 CipImportMappings = {}
 CipImportMappings.OPTION_KEYS = {
-	keyboardDelayMs = {
-		type = "number",
-		key = "hotkeyDelay"
+	-- Interface
+	mouseHighlightTarget = {
+		type = "bool",
+		key = "enableHighlightMouseTarget"
 	},
-	autoChaseEnabled = {
-		invert = true,
-		key = "autoChaseOff",
-		type = "bool"
+	mouseSystemCursor = {
+		type = "bool",
+		key = "useNativeMouseCursor"
+	},
+	mouseAnimatedCursor = {
+		type = "bool",
+		key = "showAnimatedMouseCursor"
+	},
+	mouseBigCursor = {
+		type = "bool",
+		key = "showBigMouseCursor"
+	},
+	cooldownBarEnabled = {
+		type = "bool",
+		key = "showSpellGroupCooldowns"
+	},
+	linkCopyWarningEnabled = {
+		type = "bool",
+		key = "showLinkCopyWarning"
+	},
+	-- 0 None / 1 Frames / 2 Corners, in the official combo's own order.
+	colorizeLootStyle = {
+		type = "enum",
+		key = "framesRarity",
+		values = {
+			[0] = "none",
+			[1] = "frames",
+			[2] = "corners"
+		}
+	},
+	showExpireInInventory = {
+		type = "bool",
+		key = "showExpiryInInvetory"
+	},
+	showExpireInContainers = {
+		type = "bool",
+		key = "showExpiryInContainers"
+	},
+	showExpireWhenUnused = {
+		type = "bool",
+		key = "showExpiryOnUnusedItems"
+	},
+
+	-- HUD
+	playerHudEnabled = {
+		type = "bool",
+		key = "showHudForOwnCharacter"
+	},
+	playerHudShowBars = {
+		type = "bool",
+		key = "showOwnBars"
+	},
+	playerShowName = {
+		type = "bool",
+		key = "showOwnName"
+	},
+	playerShowHealth = {
+		type = "bool",
+		key = "showOwnHealth"
+	},
+	playerShowMana = {
+		type = "bool",
+		key = "showOwnMana"
+	},
+	playerShowHarmonySerene = {
+		type = "bool",
+		key = "showOwnHarmony"
+	},
+	-- One official flag, two checkboxes here: left means beside the health arc.
+	playerHudShowHarmonyLeft = {
+		type = "bool",
+		key = "harmonyNextToHealth",
+		also = {
+			invert = true,
+			key = "harmonyNextToMana"
+		}
+	},
+	playerShowMarks = {
+		type = "bool",
+		key = "showOwnMarks"
+	},
+	playerHudShowArcs = {
+		type = "bool",
+		key = "showArcs"
+	},
+	playerHudArcDistance = {
+		type = "percent",
+		key = "showArcsDistanceScroll"
+	},
+	playerHudArcOpacity = {
+		type = "percent",
+		key = "showArcsOpacityScroll"
+	},
+	creatureHudEnabled = {
+		type = "bool",
+		key = "showHudForOtherCreatures"
+	},
+	creatureShowName = {
+		type = "bool",
+		key = "showOtherName"
+	},
+	creatureShowHealth = {
+		type = "bool",
+		key = "showOtherHealth"
+	},
+	creatureShowMarks = {
+		type = "bool",
+		key = "showOtherMarks"
+	},
+	-- Misspelled in the official file ("creatue"); it has to be matched verbatim.
+	creatueShowNpcIcon = {
+		type = "bool",
+		key = "showOtherNpcIcons"
+	},
+	statusBarEnabled = {
+		type = "bool",
+		key = "showCustomisableStatusBars"
+	},
+	statusPanelEnabled = {
+		type = "bool",
+		key = "showStatusBars"
+	},
+
+	-- Console
+	consoleShowInfoMessages = {
+		type = "bool",
+		key = "showInfoMessagesInConsole"
+	},
+	consoleShowEventMessages = {
+		type = "bool",
+		key = "showEventMessagesInConsole"
+	},
+	-- Labelled just "Show Status Messages" in the official dialog.
+	consoleShowStatusMessagesOwn = {
+		type = "bool",
+		key = "showStatusMessagesInConsole"
+	},
+	consoleShowStatusMessagesOfOthers = {
+		type = "bool",
+		key = "showOthersStatusMessagesInConsole"
+	},
+	openNewPrivateMessagesInNewTab = {
+		type = "bool",
+		key = "openNewTabsWhenReceivingPrivateMessages"
+	},
+	consoleShowTimestamps = {
+		type = "bool",
+		key = "showTimestampsInConsole"
+	},
+	consoleShowTimestampsSeconds = {
+		type = "bool",
+		key = "showTimestampsSecondsInConsole"
+	},
+	consoleShowLevels = {
+		type = "bool",
+		key = "showLevelsInConsole"
+	},
+
+	-- Game Window
+	gameWindowShowTextualEffects = {
+		type = "bool",
+		key = "showTextualEffects"
+	},
+	-- The game-window message toggle. It used to point at consoleMessages, which is the
+	-- UI *sound* for console messages, so importing flipped the wrong setting.
+	gameWindowShowMessages = {
+		type = "bool",
+		key = "showMessages"
+	},
+	gameWindowShowPrivateMessages = {
+		type = "bool",
+		key = "showPrivateMessages"
+	},
+	gameWindowShowPotionMessages = {
+		type = "bool",
+		key = "showPotionSoundEffects"
+	},
+	gameWindowShowOwnSpells = {
+		type = "bool",
+		key = "showSpells"
+	},
+	gameWindowShowOthersSpells = {
+		type = "bool",
+		key = "showSpellsOfOthers"
+	},
+	gameWindowShowHotkeyUsageMessages = {
+		type = "bool",
+		key = "showHotkeyUsageNotifications"
+	},
+	gameWindowShowLootMessages = {
+		type = "bool",
+		key = "showLootMessages"
+	},
+	gameWindowShowLootHighlighting = {
+		type = "bool",
+		key = "showLootHighlighting"
+	},
+	gameWindowShowBoostedCreatureMessages = {
+		type = "bool",
+		key = "showBoostedCreature"
+	},
+	gameWindowShowOfflineTrainingMessages = {
+		type = "bool",
+		key = "showOfflineTrainingProgress"
+	},
+	gameWindowShowStoreMessages = {
+		type = "bool",
+		key = "showStoreNotificationsInCombat"
+	},
+	combatShowFrames = {
+		type = "bool",
+		key = "showCombatFrames"
+	},
+	combatShowPvpFrames = {
+		type = "bool",
+		key = "showPvPFrames"
+	},
+	gameWindowShowAttackAnimation = {
+		type = "bool",
+		key = "showMeleeAttackAnimation"
+	},
+	gameWindowShowInfoBanner = {
+		type = "bool",
+		key = "showInfoBanner"
+	},
+
+	-- Action Bars
+	actionBarsShowBottom = {
+		type = "bool",
+		key = "allActionBar13"
+	},
+	actionBarsShowLeft = {
+		type = "bool",
+		key = "allActionBar46"
+	},
+	actionBarsShowRight = {
+		type = "bool",
+		key = "allActionBar79"
 	},
 	actionBarShowBottom1 = {
 		type = "bool",
@@ -63,83 +298,140 @@ CipImportMappings.OPTION_KEYS = {
 		type = "bool",
 		key = "showAssignedHKButton"
 	},
+	actionButtonShowAmount = {
+		type = "bool",
+		key = "showHKObjectsBars"
+	},
 	actionButtonShowSpellParameters = {
 		type = "bool",
 		key = "showSpellParameters"
+	},
+	actionButtonShowGraphicalCooldown = {
+		type = "bool",
+		key = "graphicalCooldown"
+	},
+	-- Was pointed at "showTooltips", which is not an option name, so it did nothing.
+	actionButtonShowCooldownNumbers = {
+		type = "bool",
+		key = "cooldownSecond"
+	},
+	actionButtonAllowTooltip = {
+		type = "bool",
+		key = "actionTooltip"
 	},
 	actionButtonAutoInsertSpells = {
 		type = "bool",
 		key = "autoInsertNewSpells"
 	},
-	actionButtonShowAmount = {
+
+	-- Controls
+	-- Official model order: classic, legacy (our "regular"), left smart-click.
+	controlSchemeIndex = {
+		type = "enum",
+		key = "classicControl",
+		values = {
+			[0] = "classic",
+			[1] = "regular",
+			[2] = "leftSmart"
+		}
+	},
+	-- Official model order: right, shift+right, left.
+	lootSchemeIndex = {
+		type = "enum",
+		key = "lootSide",
+		values = {
+			[0] = "right",
+			[1] = "shiftRight",
+			[2] = "left"
+		}
+	},
+	keyboardDelayUseDefault = {
 		type = "bool",
-		key = "showHKObjectsBars"
+		key = "useDefaultHotkeyDelay"
 	},
-	actionButtonShowCooldownNumbers = {
-		type = "bool",
-		key = "showTooltips"
-	},
-	vsyncEnabled = {
-		type = "bool",
-		key = "vsync"
-	},
-	frameRateLimit = {
-		requires = "frameRateLimitEnabled",
-		key = "backgroundFrameRate",
-		type = "number"
-	},
-	frameRateLimitEnabled = {
-		invert = true,
-		key = "noFrameRateLimit",
-		type = "bool"
-	},
-	antialiasingMode = {
+	keyboardDelayMs = {
 		type = "number",
-		key = "antialiasingMode"
+		key = "hotkeyDelay"
+	},
+	rotateWithCtrl = {
+		type = "bool",
+		key = "rotateHoldCtrl"
+	},
+	rotateWithShift = {
+		type = "bool",
+		key = "rotateHoldShift"
+	},
+	rotateWithAlt = {
+		type = "bool",
+		key = "rotateHoldAlt"
 	},
 	alwaysTurnTowardsMoveDirection = {
 		type = "bool",
 		key = "alwaysTurnTowardsMovement"
 	},
-	creatureShowHealth = {
+	-- Inverted: the getter is cmp/sete and the setter xors, so the stored key holds
+	-- the opposite of the "Press CTRL to Drag Complete Stacks" checkbox.
+	dragAndDropDefaultActionIsMoveAll = {
+		invert = true,
 		type = "bool",
-		key = "showOtherHealth"
+		key = "moveStack"
 	},
-	creatureShowName = {
+
+	-- Gameplay and Misc
+	inspectPlayerAllowAllEnabled = {
 		type = "bool",
-		key = "showOtherName"
+		key = "allowInspect"
 	},
-	creatureShowMarks = {
+	-- Inverted the same way as the drag option above, confirmed in the accessors.
+	autoChaseEnabled = {
+		invert = true,
 		type = "bool",
-		key = "showOtherMarks"
+		key = "autoChaseOff"
 	},
-	playerShowHealth = {
+	quickLootAllCorpsesInAreaEnabled = {
 		type = "bool",
-		key = "showOwnHealth"
+		key = "quickLootCorpses"
 	},
-	playerShowMana = {
+	storeAskBeforeBuyingProducts = {
 		type = "bool",
-		key = "showOwnMana"
+		key = "askBeforeBuying"
 	},
-	playerShowName = {
+	stashAskBeforeStowContainerContent = {
 		type = "bool",
-		key = "showOwnName"
+		key = "askBeforeStowing"
 	},
-	gameWindowShowOwnSpells = {
+	containerSortRecursiveShowWarningAgain = {
 		type = "bool",
-		key = "showSpells"
+		key = "askBeforeSorting"
 	},
-	gameWindowShowOthersSpells = {
+	showFpsLagIndicator = {
 		type = "bool",
-		key = "showSpellsOfOthers"
+		key = "showFps"
 	},
-	gameWindowShowHotkeyUsageMessages = {
+
+	-- Graphics and Effects
+	-- Capital S. The old entry spelled it vsyncEnabled and therefore never matched.
+	vSyncEnabled = {
 		type = "bool",
-		key = "showHotkeyUsageNotifications"
+		key = "vsync"
 	},
-	gameWindowShowMessages = {
+	frameRateLimit = {
+		type = "number",
+		key = "backgroundFrameRate",
+		requires = "frameRateLimitEnabled"
+	},
+	frameRateLimitEnabled = {
+		invert = true,
 		type = "bool",
-		key = "consoleMessages"
+		key = "noFrameRateLimit"
+	},
+	antialiasingMode = {
+		type = "number",
+		key = "antialiasingMode"
+	},
+	gameWindowScaleOnlyByEvenMultiples = {
+		type = "bool",
+		key = "dontStretchShrink"
 	},
 	lightEffectsEnabled = {
 		type = "bool",
@@ -152,14 +444,6 @@ CipImportMappings.OPTION_KEYS = {
 	lightLevelSeparatorLevel = {
 		type = "percent",
 		key = "levelSeparator"
-	},
-	lightAttenuationCloudsIndoor = {
-		-- Stored inverted and over half the range: the official float is 1 - 0.005 * percent,
-		-- so the 0.75 it ships reads 50 on our slider.
-		invert = true,
-		scale = 200,
-		type = "percent",
-		key = "cloudsLabel"
 	},
 	ownEffectsOpacity = {
 		type = "percent",
@@ -176,6 +460,291 @@ CipImportMappings.OPTION_KEYS = {
 	monsterBossAreaEffectsOpacity = {
 		type = "percent",
 		key = "bossAreaCreatureSpellEffectOpacity"
+	},
+
+	-- Screenshots
+	-- Misspelled in the official file ("screnshots").
+	screnshotsOnlyGameWindow = {
+		type = "bool",
+		key = "onlyCaptureGameWindow"
+	},
+	screenshotsUseBacklog = {
+		type = "bool",
+		key = "keepBacklog"
+	},
+	screenshotsAutoScreenshotsEnabled = {
+		type = "bool",
+		key = "enableAutoScreenshots"
+	},
+	screenshotsLevelUpEnabled = {
+		type = "bool",
+		key = "levelUp"
+	},
+	screenshotsSkillUpEnabled = {
+		type = "bool",
+		key = "skillUp"
+	},
+	screenshotsAchievementEnabled = {
+		type = "bool",
+		key = "achievement"
+	},
+	screenshotsBestiaryPartlyEnabled = {
+		type = "bool",
+		key = "bestiaryUnlocked"
+	},
+	screenshotsBestiaryFullEnabled = {
+		type = "bool",
+		key = "bestiaryCompleted"
+	},
+	screenshotsRewardChestEnabled = {
+		type = "bool",
+		key = "treasureFound"
+	},
+	screenshotsTrackedLootEnabled = {
+		type = "bool",
+		key = "valuableLoot"
+	},
+	screenshotsBossKillEnabled = {
+		type = "bool",
+		key = "bossDefeated"
+	},
+	screenshotsDeathPvEEnabled = {
+		type = "bool",
+		key = "deathPvE"
+	},
+	screenshotsDeathPvPEnabled = {
+		type = "bool",
+		key = "deathPvP"
+	},
+	screenshotsPlayerKillFullEnabled = {
+		type = "bool",
+		key = "playerKill"
+	},
+	screenshotsPlayerKillAssistEnabled = {
+		type = "bool",
+		key = "playerKillAssist"
+	},
+	screenshotsPvPAttackEnabled = {
+		type = "bool",
+		key = "playerAttacking"
+	},
+	screenshotsNewMaxDamageEnabled = {
+		type = "bool",
+		key = "highestDamage"
+	},
+	screenshotsNewMaxHealingEnabled = {
+		type = "bool",
+		key = "highestHealing"
+	},
+	screenshotsLowHitPointsEnabled = {
+		type = "bool",
+		key = "lowHealth"
+	},
+	screenshotsGiftOfLifeEnabled = {
+		type = "bool",
+		key = "giftOfLife"
+	},
+
+	-- Sound
+	usedSoundDevice = {
+		type = "string",
+		key = "soundDevice"
+	},
+	soundMasterVolume = {
+		type = "number",
+		key = "masterVolume"
+	},
+	soundMasterVolumeOld = {
+		type = "number",
+		key = "masterVolumeOld"
+	},
+	soundMusicVolume = {
+		type = "number",
+		key = "musicVolume"
+	},
+	soundAnthemEnabled = {
+		type = "bool",
+		key = "anthem"
+	},
+	soundAmbienceVolume = {
+		type = "number",
+		key = "ambienceVolume"
+	},
+	soundItemsVolume = {
+		type = "number",
+		key = "itemVolume"
+	},
+	soundEatingEnabled = {
+		type = "bool",
+		key = "foodAndBeverages"
+	},
+	soundMoveItemEnabled = {
+		type = "bool",
+		key = "moveItem"
+	},
+	soundEventsVolume = {
+		type = "number",
+		key = "eventVolume"
+	},
+
+	-- Battle sounds
+	soundBattleOwnVolume = {
+		type = "number",
+		key = "ownBattleVolume"
+	},
+	soundBattleOwnSpellsEnabled = {
+		type = "bool",
+		key = "ownSpells"
+	},
+	soundBattleOwnAttackSpellsEnabled = {
+		type = "bool",
+		key = "ownAttack"
+	},
+	soundBattleOwnHealingSpellsEnabled = {
+		type = "bool",
+		key = "ownHealing"
+	},
+	soundBattleOwnSupportSpellsEnabled = {
+		type = "bool",
+		key = "ownSupport"
+	},
+	soundBattleOwnWeaponsEnabled = {
+		type = "bool",
+		key = "ownWeapons"
+	},
+	soundBattleOthersVolume = {
+		type = "number",
+		key = "otherPlayersVolume"
+	},
+	soundBattleOthersSpellsEnabled = {
+		type = "bool",
+		key = "otherSpells"
+	},
+	soundBattleOthersAttackSpellsEnabled = {
+		type = "bool",
+		key = "otherAttack"
+	},
+	soundBattleOthersHealingSpellsEnabled = {
+		type = "bool",
+		key = "otherHealing"
+	},
+	soundBattleOthersSupportSpellsEnabled = {
+		type = "bool",
+		key = "otherSupport"
+	},
+	soundBattleOthersWeaponsEnabled = {
+		type = "bool",
+		key = "otherWeapons"
+	},
+	soundBattleCreaturesVolume = {
+		type = "number",
+		key = "creaturesVolume"
+	},
+	soundBattleCreaturesNoisesEnabled = {
+		type = "bool",
+		key = "creatureNoises"
+	},
+	soundBattleCreaturesDeathEnabled = {
+		type = "bool",
+		key = "creatureDeath"
+	},
+	soundBattleCreaturesAttacksEnabled = {
+		type = "bool",
+		key = "attackAndSpells"
+	},
+
+	-- UI sounds
+	soundUiVolume = {
+		type = "number",
+		key = "uiVolume"
+	},
+	soundUiInteractionsEnabled = {
+		type = "bool",
+		key = "uiInteractions"
+	},
+	soundPartyEnabled = {
+		type = "bool",
+		key = "toggleParty"
+	},
+	soundVipEnabled = {
+		type = "bool",
+		key = "toggleVip"
+	},
+	ChatEnabled = {
+		type = "bool",
+		key = "consoleMessages"
+	},
+	PartyMessagesEnabled = {
+		type = "bool",
+		key = "party"
+	},
+	GuildMessagesEnabled = {
+		type = "bool",
+		key = "guild"
+	},
+	PrivateMessagesEnabled = {
+		type = "bool",
+		key = "privateMessages"
+	},
+	PrivateMessagesWithoutTabEnabled = {
+		type = "bool",
+		key = "privateMessagesLocalChat"
+	},
+	-- Misspelled in the official file ("Messagese"), and stored without the sound prefix.
+	NpcMessageseEnabled = {
+		type = "bool",
+		key = "npcs"
+	},
+	GlobalMessagesEnabled = {
+		type = "bool",
+		key = "global"
+	},
+	TeamFinderMessagesEnabled = {
+		type = "bool",
+		key = "teamFinder"
+	},
+	RaidMessagesEnabled = {
+		type = "bool",
+		key = "raidAnnouncements"
+	},
+	SystemMessagesEnabled = {
+		type = "bool",
+		key = "systemAnnouncements"
+	},
+	-- Stored inverted and over half the range: the official float is 1 - 0.005 * percent,
+	-- so the 0.75 it ships reads 50 on our slider.
+	lightAttenuationCloudsIndoor = {
+		invert = true,
+		scale = 200,
+		type = "percent",
+		key = "cloudsLabel"
+	}
+}
+
+-- Controls we express as one widget but the official client stores as several keys.
+CipImportMappings.COMBINED_OPTIONS = {
+	{
+		-- "Mark Target Visually" is one combo there too, but it is persisted as the two
+		-- booleans it sets. Note the misspelled "Traget" - that is the real key name.
+		key = "markTargetVisually",
+		sources = {
+			"gameWindowShowTragetFrame",
+			"gameWindowShowTargetHighlight"
+		},
+		resolve = function(values)
+			local frame = values.gameWindowShowTragetFrame and true or false
+			local highlight = values.gameWindowShowTargetHighlight and true or false
+
+			if frame and highlight then
+				return "frameAndHighlight"
+			elseif frame then
+				return "frameOnly"
+			elseif highlight then
+				return "highlightOnly"
+			end
+
+			return "none"
+		end
 	}
 }
 CipImportMappings.CONTROL_BUTTON_IDS = {

@@ -56,10 +56,14 @@ function CipImportConverter.convertOptions(cipOptions, stats)
 			if mapping.requires and not cipOptions[mapping.requires] then
 				stats.optionsIgnored = stats.optionsIgnored + 1
 			else
+				local raw = value
+
 				if mapping.invert and mapping.type == "bool" then
 					value = not value
 				elseif mapping.type == "percent" then
 					value = percentFromFloat(value, mapping)
+				elseif mapping.type == "enum" then
+					value = mapping.values and mapping.values[value] or nil
 				end
 
 				if value == nil then
@@ -67,7 +71,48 @@ function CipImportConverter.convertOptions(cipOptions, stats)
 				else
 					result[mapping.key] = value
 					stats.optionsImported = stats.optionsImported + 1
+
+					-- A radio pair on our side that the official client stores as one flag:
+					-- the second option is always the complement of the first.
+					if mapping.also then
+						local other = raw
+
+						if mapping.also.invert then
+							other = not other
+						end
+
+						result[mapping.also.key] = other
+					end
 				end
+			end
+		end
+	end
+
+	-- Options we express as one control but the official client splits across several keys.
+	for _, combined in ipairs(CipImportMappings.COMBINED_OPTIONS or {}) do
+		local present = true
+		local values = {}
+
+		for _, cipKey in ipairs(combined.sources) do
+			local value = cipOptions[cipKey]
+
+			if value == nil then
+				present = false
+
+				break
+			end
+
+			values[cipKey] = value
+		end
+
+		if present then
+			local resolved = combined.resolve(values)
+
+			if resolved == nil then
+				stats.optionsIgnored = stats.optionsIgnored + 1
+			else
+				result[combined.key] = resolved
+				stats.optionsImported = stats.optionsImported + 1
 			end
 		end
 	end
