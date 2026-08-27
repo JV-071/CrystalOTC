@@ -721,7 +721,9 @@ return {
 		end
 	},
 	musicVolume = {
-		value = 100,
+		-- The one slider the official client does not start at full:
+		-- TClientOptions defaults soundMusicVolume to 50.
+		value = 50,
 		action = function(value, options, controller, panels, extraWidgets)
 			if g_sounds then
 				g_sounds.getChannel(SoundChannels.Music):setGain(value / 100)
