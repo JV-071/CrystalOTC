@@ -1158,12 +1158,19 @@ endif()
 # under Contents/Frameworks, rpaths, signing and notarization - is Phase 7
 # (docs/metal-implementation-plan.md).
 if(APPLE AND TOGGLE_COCOA_WINDOW)
+  set(_OTC_MACOS_ICON "${CMAKE_SOURCE_DIR}/cmake/macos/UltiaAppIcon.icns")
+  set_source_files_properties("${_OTC_MACOS_ICON}" PROPERTIES
+          MACOSX_PACKAGE_LOCATION "Resources"
+  )
+  target_sources(${PROJECT_NAME} PRIVATE "${_OTC_MACOS_ICON}")
+
   set_target_properties(${PROJECT_NAME} PROPERTIES
           MACOSX_BUNDLE TRUE
           OUTPUT_NAME "Ultia"
           MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/cmake/macos/Info.plist.in"
           MACOSX_BUNDLE_BUNDLE_NAME "Ultia"
           MACOSX_BUNDLE_EXECUTABLE_NAME "Ultia"
+          MACOSX_BUNDLE_ICON_FILE "UltiaAppIcon.icns"
           MACOSX_BUNDLE_GUI_IDENTIFIER "com.ultia.client"
           MACOSX_BUNDLE_BUNDLE_VERSION "4.0"
           MACOSX_BUNDLE_SHORT_VERSION_STRING "4.0"
