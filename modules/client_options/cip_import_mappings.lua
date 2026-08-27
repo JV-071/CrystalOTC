@@ -67,6 +67,10 @@ CipImportMappings.OPTION_KEYS = {
 		type = "bool",
 		key = "showSpellParameters"
 	},
+	actionButtonAutoInsertSpells = {
+		type = "bool",
+		key = "autoInsertNewSpells"
+	},
 	actionButtonShowAmount = {
 		type = "bool",
 		key = "showHKObjectsBars"

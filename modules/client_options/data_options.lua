@@ -2160,6 +2160,12 @@ return {
 			end
 		end
 	},
+	-- Read by game_actionbar when the server reports a newly learnt spell.
+	-- Off by default so an existing action bar layout is never rearranged
+	-- without the player asking for it.
+	autoInsertNewSpells = {
+		value = false
+	},
 	showHKObjectsBars = {
 		value = true,
 		action = function(value, options, controller, panels, extraWidgets)

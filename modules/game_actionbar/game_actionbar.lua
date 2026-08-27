@@ -3413,7 +3413,8 @@ function init()
 		onInventoryChange = scheduleFullSlotGrayRefresh,
 		onInventoryCountChange = scheduleInventorySlotGrayRefresh,
 		onManaChange = onLocalPlayerManaChange,
-		onLevelChange = scheduleFullSlotGrayRefresh
+		onLevelChange = scheduleFullSlotGrayRefresh,
+		onSpellsChange = onSpellsChangeAutoInsert
 	})
 	connect(Container, {
 		onAddItem = scheduleInventorySlotGrayRefresh,
@@ -3481,7 +3482,8 @@ function terminate()
 		onInventoryChange = scheduleFullSlotGrayRefresh,
 		onInventoryCountChange = scheduleInventorySlotGrayRefresh,
 		onManaChange = onLocalPlayerManaChange,
-		onLevelChange = scheduleFullSlotGrayRefresh
+		onLevelChange = scheduleFullSlotGrayRefresh,
+		onSpellsChange = onSpellsChangeAutoInsert
 	})
 	disconnect(Container, {
 		onAddItem = scheduleInventorySlotGrayRefresh,
@@ -7370,6 +7372,131 @@ function hotkeyCaptureOk(assignWindow)
 	end
 
 	assignWindow:destroy()
+end
+
+function actionSlotIsEmpty(slot)
+	if not slot or slot:isDestroyed() then
+		return false
+	end
+
+	if slot.words or slot.text or slot.passiveId then
+		return false
+	end
+
+	if slot.itemId and slot.itemId > 0 then
+		return false
+	end
+
+	if slotHasMultiActions and slotHasMultiActions(slot) then
+		return false
+	end
+
+	return true
+end
+
+function forEachActionSlot(callback)
+	for barId = 1, NUM_BARS do
+		local panel = actionBarPanels[barId]
+
+		if panel then
+			for _, slot in ipairs(panel:getChildren()) do
+				local result = callback(slot, barId)
+
+				if result then
+					return result
+				end
+			end
+		end
+	end
+end
+
+function actionBarsContainSpell(words)
+	if not words or words == "" then
+		return false
+	end
+
+	return forEachActionSlot(function(slot)
+		if slot.words == words then
+			return true
+		end
+
+		if slotHasMultiActions and slotHasMultiActions(slot) and slot.multiActions then
+			for _, entry in ipairs(slot.multiActions) do
+				if type(entry) == "table" and entry.words == words then
+					return true
+				end
+			end
+		end
+	end) == true
+end
+
+function firstEmptyActionSlot()
+	return forEachActionSlot(function(slot)
+		if actionSlotIsEmpty(slot) then
+			return slot
+		end
+	end)
+end
+
+function placeSpellOnActionSlot(slot, spell)
+	clearSlotActionContent(slot)
+
+	slot.words = spell.words
+	slot.itemId = 469
+
+	slot:setItemId(469)
+
+	slot.parameter = nil
+	slot.crossHairMode = Spells.hasCrossHairTarget(spell) and "crosshair" or nil
+
+	loadSpell(slot)
+end
+
+-- Mirrors the official client's "Auto-Insert New Spells" option: a spell you
+-- have just learnt lands on the first free action button, and only if it is
+-- not already sitting on one of the bars. onSpellsChange hands us the previous
+-- list too, so "newly learnt" is just the difference between the two.
+function onSpellsChangeAutoInsert(player, spells, oldSpells)
+	if not modules.client_options or not modules.client_options.getOption("autoInsertNewSpells") then
+		return
+	end
+
+	if type(spells) ~= "table" or type(oldSpells) ~= "table" then
+		return
+	end
+
+	-- The very first list after login is the whole spellbook, not a discovery.
+	if #oldSpells == 0 then
+		return
+	end
+
+	local known = {}
+
+	for _, spellId in ipairs(oldSpells) do
+		known[spellId] = true
+	end
+
+	local inserted = false
+
+	for _, spellId in ipairs(spells) do
+		if not known[spellId] then
+			local spell = Spells.getSpellByClientId(spellId)
+
+			if spell and spell.words and not actionBarsContainSpell(spell.words) then
+				local slot = firstEmptyActionSlot()
+
+				if slot then
+					placeSpellOnActionSlot(slot, spell)
+
+					inserted = true
+				end
+			end
+		end
+	end
+
+	if inserted then
+		saveActionBar()
+	end
 end
 
 function saveActionBar()

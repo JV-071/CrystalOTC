@@ -168,6 +168,18 @@ UIWidget
     height: 22
 
     OptionCheckBoxMarked
+      id: autoInsertNewSpells
+      !text: tr('Auto-Insert New Spells')
+      !tooltip: tr('Automatically add newly learnt spells to your action bar. Spells are only added if they do not already exist on any of your action bars.')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+
+    OptionCheckBoxMarked
       id: graphicalCooldown
       !text: tr('Show Graphical Cooldown')
       !tooltip: tr('Display visual cooldown animation on action buttons')
