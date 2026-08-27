@@ -3030,10 +3030,10 @@
             "SummaryPriority": 1
         },
         "19": {
-            "Aug1Info": "+10% Base Damage",
-            "Aug2Info": "+15% Base Damage",
+            "Aug1Info": "Focus secondary group cooldown -8s. Attacks and spells are enabled but dealt damage is reduced by 50%.",
+            "Aug2Info": "-6s Cooldown and the damage dealt is no longer reduced.",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Divine Barrage|Aug. Divine Barrage",
+            "Name": "Augmented Swift Foot|Aug. Swift Foot",
             "SummaryPriority": 1
         },
         "2": {
@@ -3057,10 +3057,10 @@
             "SummaryPriority": 1
         },
         "22": {
-            "Aug1Info": "+10% Life Leech",
-            "Aug2Info": "+10% Critical Chance",
+            "Aug1Info": "Enables the casting of support spells while active and Focus secondary group cooldown -8s",
+            "Aug2Info": "-6s Cooldown; distance skill bonus increased by +5%",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Ethereal Barrage|Aug. Ethereal Barrage",
+            "Name": "Augmented Sharpshooter|Aug. Sharpshooter",
             "SummaryPriority": 1
         },
         "23": {
@@ -3215,7 +3215,7 @@
             "Aug1Info": "Adds 3% mana leech to this spell",
             "Aug2Info": "Adds 25% critical extra damage for this spell and grants a 10% chance (non-cumulative) for a critical hit.",
             "FormatType": "RomanNumerals",
-            "Name": "Augmented Thousand Fist Blows|Aug. Thousand Fist Blows",
+            "Name": "Augmented Sweeping Takedown|Aug. Sweeping Takedown",
             "SummaryPriority": 1
         },
         "45": {

@@ -699,7 +699,7 @@ function getConvictionBonus(index, fullMessage)
 		elseif vocation == MONK then
 			local t = {}
 
-			setStringColor(t, "Aug. Thousand Fist Blows\n", points >= bonus.maxPoints and "#C0C0C0" or "#707070")
+			setStringColor(t, "Aug. Sweeping Takedown\n", points >= bonus.maxPoints and "#C0C0C0" or "#707070")
 
 			if not firstSpellIsUnlocked(attribute) then
 				setStringColor(t, "�", "white")
@@ -1567,7 +1567,7 @@ function getConvictionPerks()
 					if not convictions[t] then
 						convictions[t] = {
 							points = 0,
-							perk = "Aug. Thousand Fist Blows",
+							perk = "Aug. Sweeping Takedown",
 							stringPoint = ""
 						}
 					end
