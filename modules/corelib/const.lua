@@ -194,6 +194,16 @@ KeyNumpad6 = 147
 KeyNumpad7 = 148
 KeyNumpad8 = 149
 KeyNumpad9 = 150
+-- Everything below is UNREACHABLE from real input on every platform: the C++ Fw::Key enum in
+-- src/framework/const.h stops at KeyNumpad9 = 150 (KeyLast = 151), so no platform window can
+-- ever deliver these codes. The descriptions they back -- "Num+Up", "Num+Enter", "Num++",
+-- "Num+." and friends -- therefore never match a real key press, which is why the
+-- "Num+Up"/"Num+Down"/"Num+Left"/"Num+Right" walk binds in game_walk/walk.lua are dead while
+-- the "Num+8"/"Num+2"/"Num+4"/"Num+6" ones next to them work.
+--
+-- TODO(all platforms): fixing this means extending Fw::Key past 150 and then mapping the
+-- keysyms in all four platform windows (win32/x11/cocoa/browser), so it is not a Lua-only
+-- change. Left in place because saved configs may already contain these names.
 KeyNumpadEnter = 151
 KeyNumpadPlus = 152
 KeyNumpadInsert = 153

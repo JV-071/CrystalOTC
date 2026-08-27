@@ -186,6 +186,11 @@ WIN32Window::WIN32Window()
     */
 
     // keypad
+    // TODO(windows): these five are the reason the numpad operators cannot be bound to
+    // anything on Windows, while macOS (cocoawindow.mm) and Linux (x11window.cpp) both map
+    // them. Uncommenting should be all that is needed -- Fw::KeyPlus/Minus/Period/Slash/
+    // Asterisk already exist and are what the other two platforms produce -- but it wants a
+    // Windows box to confirm the VK codes do not collide with the VK_OEM_* entries below.
     /*
     m_keyMap[VK_ADD] = Fw::KeyPlus;
     m_keyMap[VK_SUBTRACT] = Fw::KeyMinus;
@@ -586,6 +591,13 @@ void WIN32Window::updateCursor()
 Fw::Key WIN32Window::retranslateVirtualKey(const WPARAM wParam, const LPARAM lParam)
 {
     // ignore numpad keys when numlock is on
+    //
+    // TODO(windows): this makes every numpad digit dead while NumLock is on, so the default
+    // "Num+8"/"Num+2"/... walking keybinds silently depend on NumLock being off. macOS keys
+    // off the physical keycode and reports Fw::KeyNumpad* unconditionally (see the note in
+    // cocoawindow.mm's keymap); matching that here means mapping VK_NUMPAD0..9 to
+    // Fw::KeyNumpad0..9 rather than returning KeyUnknown. Needs a Windows box to check it
+    // does not regress typing digits into a text field, which arrives separately as WM_CHAR.
     if ((wParam >= VK_NUMPAD0 && wParam <= VK_NUMPAD9) || wParam == VK_SEPARATOR)
         return Fw::KeyUnknown;
 
@@ -621,14 +633,18 @@ Fw::Key WIN32Window::retranslateVirtualKey(const WPARAM wParam, const LPARAM lPa
     if (m_keyMap.contains(wParam))
         key = m_keyMap[wParam];
 
-    // actually ignore alt/ctrl/shift keys, they is states are already stored in m_inputEvent.keyboardModifiers
-#if defined(__APPLE__)
-    if (key == Fw::KeyMeta || key == Fw::KeyCtrl || key == Fw::KeyShift)
-        key = Fw::KeyUnknown;
-#else
+    // Modifier keys are dropped here because windowProc() below rebuilds the whole modifier
+    // mask from GetKeyState() on every message. (This used to carry a #if defined(__APPLE__)
+    // branch naming Fw::KeyMeta instead of Fw::KeyAlt; the entire file is inside #ifdef WIN32,
+    // so that branch could never compile. It was removed rather than kept as documentation,
+    // because it read as live macOS handling and is not.)
+    //
+    // TODO(windows): Fw::KeyMeta is deliberately NOT dropped, so tapping the Windows key
+    // still delivers a key event. That is now harmless -- PlatformWindow::processKeyDown
+    // swallows it as KeyboardMetaModifier instead of auto-repeating it as an ordinary key --
+    // but adding Fw::KeyMeta to this list would be tidier and saves a pointless round trip.
     if (key == Fw::KeyAlt || key == Fw::KeyCtrl || key == Fw::KeyShift)
         key = Fw::KeyUnknown;
-#endif
 
     return key;
 }
@@ -637,18 +653,26 @@ Fw::Key WIN32Window::retranslateVirtualKey(const WPARAM wParam, const LPARAM lPa
 
 LRESULT WIN32Window::windowProc(const HWND hWnd, const uint32_t uMsg, const WPARAM wParam, const LPARAM lParam)
 {
+    // Windows is the one platform that does not accumulate the mask through
+    // PlatformWindow::processKeyDown -- it recomputes it from the live keyboard state on
+    // every message instead. Keep this in step with modifierBitFor() in platformwindow.cpp;
+    // on Windows that mapping is the identity, so there is no swap to mirror here.
+    //
+    // (A #if defined(__APPLE__) branch reading VK_LWIN into the Alt bit used to sit in this
+    // block. The file is inside #ifdef WIN32, so it was unreachable, and it is gone.)
     m_inputEvent.keyboardModifiers = 0;
     if (IsKeyDown(VK_CONTROL))
         m_inputEvent.keyboardModifiers |= Fw::KeyboardCtrlModifier;
     if (IsKeyDown(VK_SHIFT))
         m_inputEvent.keyboardModifiers |= Fw::KeyboardShiftModifier;
-#if defined(__APPLE__)
-    if (IsKeyDown(VK_LWIN))
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
-#else
     if (IsKeyDown(VK_MENU))
         m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
-#endif
+    // TODO(windows): the Meta bit is never raised here, so a "Meta+..." combo cannot fire on
+    // Windows even though platformwindow.cpp now understands one. Add:
+    //     if (IsKeyDown(VK_LWIN) || IsKeyDown(VK_RWIN))
+    //         m_inputEvent.keyboardModifiers |= Fw::KeyboardMetaModifier;
+    // Verify on a Windows box before shipping: the Start menu steals focus on Win-key-up,
+    // and WM_ACTIVATE -> releaseAllKeys() must still clear the bit.
 
     bool signalKeyEvent = false;
     switch (uMsg) {

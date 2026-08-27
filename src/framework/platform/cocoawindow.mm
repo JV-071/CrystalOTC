@@ -346,6 +346,22 @@ CocoaWindow::CocoaWindow()
     m_keyMap[VK_PERIOD] = Fw::KeyPeriod;
     m_keyMap[VK_SLASH] = Fw::KeySlash;
 
+    // Keyed off the physical keycode, so the numpad always reports Fw::KeyNumpad*, and the
+    // numpad operators always report their ASCII key. That is the behaviour the rest of the
+    // client assumes, and macOS is currently the only platform that delivers it:
+    //
+    //   TODO(windows): win32window.cpp returns KeyUnknown for the numpad digits whenever
+    //   NumLock is on (retranslateVirtualKey), and its VK_ADD/SUBTRACT/DECIMAL/DIVIDE/
+    //   MULTIPLY entries are commented out entirely -- so "Num+8" walking needs NumLock off
+    //   and the numpad operators can never be bound at all.
+    //
+    //   TODO(linux): x11window.cpp maps XK_KP_0..9 (NumLock on) to Fw::Key0..Key9, i.e. the
+    //   top-row digits, and only reaches Fw::KeyNumpad* through XK_KP_Home/Up/... with
+    //   NumLock off -- so numpad walking there also silently depends on NumLock state.
+    //
+    // VK_KEYPAD_CLEAR sits where NumLock does on a PC keyboard, but macOS has no NumLock
+    // state to toggle. Mapping it to Fw::KeyNumLock is only so that PlatformWindow's
+    // "NumLock released -> release the numpad keys" cleanup still has something to fire on.
     m_keyMap[VK_KEYPAD_0] = Fw::KeyNumpad0; m_keyMap[VK_KEYPAD_1] = Fw::KeyNumpad1;
     m_keyMap[VK_KEYPAD_2] = Fw::KeyNumpad2; m_keyMap[VK_KEYPAD_3] = Fw::KeyNumpad3;
     m_keyMap[VK_KEYPAD_4] = Fw::KeyNumpad4; m_keyMap[VK_KEYPAD_5] = Fw::KeyNumpad5;
@@ -855,10 +871,13 @@ void CocoaWindow::setVerticalSync(const bool enable)
 
 void CocoaWindow::setIcon(const std::string& iconFile)
 {
-    // A bundled app takes its icon from Info.plist/CFBundleIconFile; this only affects the
-    // Dock tile for an unbundled binary, which is what a development build runs as.
+    // A bundled app takes its icon from Info.plist/CFBundleIconFile. Do not replace that
+    // multi-resolution icon with startup.lua's legacy 64x64 clienticon.png fallback.
     g_mainDispatcher.addEvent([iconFile] {
         @autoreleasepool {
+            if ([[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleIconFile"])
+                return;
+
             const auto& image = Image::load(iconFile);
             if (!image || image->getBpp() != 4)
                 return;

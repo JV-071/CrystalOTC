@@ -87,10 +87,25 @@ X11Window::X11Window()
     m_keyMap[XK_Shift_L] = Fw::KeyShift;
     m_keyMap[XK_Alt_R] = Fw::KeyAlt;
     m_keyMap[XK_Alt_L] = Fw::KeyAlt;
+    // TODO(linux): XK_Meta_L/R is not the Windows/Super key -- almost no keyboard emits it.
+    // The physical Super key is XK_Super_L/XK_Super_R and is absent from this map, so it
+    // produces Fw::KeyUnknown and no Meta modifier can ever be raised on Linux. Add:
+    //     m_keyMap[XK_Super_L] = Fw::KeyMeta;
+    //     m_keyMap[XK_Super_R] = Fw::KeyMeta;
+    // PlatformWindow::processKeyDown already swallows Fw::KeyMeta into KeyboardMetaModifier,
+    // so nothing else needs to change.
     m_keyMap[XK_Meta_L] = Fw::KeyMeta;
     m_keyMap[XK_Meta_R] = Fw::KeyMeta;
     m_keyMap[XK_Menu] = Fw::KeyMenu;
 
+    // Only reachable in the XQuartz fallback build (APPLE with TOGGLE_COCOA_WINDOW=OFF);
+    // inert on Linux, where __APPLE__ is undefined. The real macOS path is cocoawindow.mm.
+    //
+    // TODO(macos-x11): this configuration is now inconsistent with the Cocoa one. Command
+    // reaches PlatformWindow as Fw::KeyMeta and correctly becomes the Ctrl bit, but the text
+    // filter further down tests ControlMask|Mod1Mask, and XQuartz reports Command on a
+    // different modifier mask entirely -- so Cmd+V would paste *and* insert a literal "v".
+    // Either teach that filter about the Command mask or drop this build configuration.
 #if defined(__APPLE__)
     m_keyMap[65406] = Fw::KeyAlt;// Option
     m_keyMap[65511] = Fw::KeyMeta;// Command
@@ -191,6 +206,12 @@ X11Window::X11Window()
     m_keyMap[XK_KP_Delete] = Fw::KeyDelete;
 
     // keypad with numlock on
+    // TODO(linux): with NumLock on, the numpad digits land here as the top-row digits, and
+    // with NumLock off they reach Fw::KeyNumpad* through the XK_KP_Home/Up/... block above.
+    // Either way the meaning of a numpad key depends on NumLock state, which is why the
+    // default "Num+8"/"Num+2"/... walking binds stop working when a Linux user enables it.
+    // macOS keys off the physical keycode and always reports Fw::KeyNumpad* -- see the note
+    // in cocoawindow.mm's keymap for the shape to match.
     m_keyMap[XK_KP_0] = Fw::Key0;
     m_keyMap[XK_KP_1] = Fw::Key1;
     m_keyMap[XK_KP_2] = Fw::Key2;
@@ -762,6 +783,12 @@ void X11Window::poll()
                                  // process text events
             case KeyPress: {
                 // text cant be insert while holding ctrl or alt
+                //
+                // TODO(linux): this also swallows AltGr, which X11 reports as Ctrl+Alt on
+                // many layouts -- so AltGr+2 cannot type "@" on a German or Polish keyboard.
+                // The fix is to let the combination through when the keysym lookup yields a
+                // printable character (cocoawindow.mm sidesteps this by never blocking on the
+                // Alt bit at all, since Option is macOS's compose key).
                 if (event.xkey.state & ControlMask || event.xkey.state & Mod1Mask)
                     break;
 
