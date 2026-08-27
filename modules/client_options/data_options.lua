@@ -1485,6 +1485,18 @@ return {
 			g_mouse.setCursorDisplayScale(value and 2 or 1)
 		end
 	},
+	-- The context cursors MapView::onMouseMove already picks (attack / talk / use / walk ...).
+	-- The engine defaulted them on with nothing able to turn them off; the checkbox on the
+	-- Interface page existed but bound to no option, so it silently did nothing.
+	showAnimatedMouseCursor = {
+		deferAction = true,
+		value = true,
+		action = function(value, options, controller, panels, extraWidgets)
+			if panels.gameMapPanel then
+				panels.gameMapPanel:setCursorAnimations(value)
+			end
+		end
+	},
 	graphicsEngine = {
 		value = 0,
 		action = function(value, options, controller, panels, extraWidgets)
