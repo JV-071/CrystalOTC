@@ -2903,11 +2903,44 @@ local CHAT_SOUND_OPTION_BY_CHANNEL = {
 	[7] = "global"  -- Help
 }
 
+-- The tab a message is about to land in, named the way mutedChannels keys it.
+-- Mirrors the routing at the bottom of onTalk.
+local function chatSoundTabName(mode, channelId, speaktype, name)
+	if not speaktype then
+		return nil
+	end
+
+	if speaktype.npcChat then
+		return "NPCs"
+	end
+
+	if speaktype.private then
+		return name
+	end
+
+	if mode <= MessageModes.Yell or mode == MessageModes.Spell then
+		return tr("Local Chat")
+	end
+
+	return channels and channels[channelId]
+end
+
 local function chatSoundOption(mode, channelId, speaktype, name)
 	-- Spell incantations are rendered in the console, but they are not chat
 	-- notifications. Their audio is supplied by the corresponding world sound
 	-- effect, so layering the generic message sound here produces an extra beep.
 	if mode == MessageModes.Spell then
+		return nil
+	end
+
+	-- The official client looks up the tab belonging to the message's channel
+	-- and drops the notification when that tab answers yes - which is what the
+	-- tab context menu's Mute does. addText applies the same rule to the text,
+	-- but it runs after this, so the check has to be repeated here.
+	local player = g_game.getLocalPlayer()
+	local tabName = chatSoundTabName(mode, channelId, speaktype, name)
+
+	if tabName and mutedChannels[tabName] and (not player or player:getName() ~= name) then
 		return nil
 	end
 
