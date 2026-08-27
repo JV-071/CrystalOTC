@@ -173,6 +173,10 @@ void Game::processSessionEnd(const uint8_t reason)
 
 void Game::processLogin()
 {
+    // the server re-sends the login packet when it respawns a dead player on
+    // the same connection, so this is where a death ends
+    g_game.m_dead = false;
+
     g_lua.callGlobalField("g_game", "onLogin");
 }
 
@@ -695,6 +699,16 @@ void Game::safeLogout()
         return;
 
     m_protocolGame->sendLogout();
+}
+
+void Game::requestRespawn()
+{
+    // the server only puts a dead player back into the world when it receives
+    // the enter game packet again, which is what the death window's Ok does
+    if (!m_online || !m_dead || !m_protocolGame || !m_protocolGame->isConnected())
+        return;
+
+    m_protocolGame->sendEnterGame();
 }
 
 bool Game::walk(const Otc::Direction direction)

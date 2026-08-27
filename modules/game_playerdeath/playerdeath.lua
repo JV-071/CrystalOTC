@@ -119,9 +119,7 @@ function openWindow(deathType, penalty)
 	local cancelButton = window:recursiveGetChildById("buttonCancel")
 
 	local function storeFunc()
-		if g_game.setDead then
-			g_game.setDead(false)
-		end
+		g_game.requestRespawn()
 
 		if modules.game_store and modules.game_store.gameOpenStore then
 			modules.game_store.gameOpenStore()
@@ -131,9 +129,7 @@ function openWindow(deathType, penalty)
 	end
 
 	local function okFunc()
-		if g_game.setDead then
-			g_game.setDead(false)
-		end
+		g_game.requestRespawn()
 
 		deathController.ui = destroyWindows()
 	end

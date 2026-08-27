@@ -169,6 +169,7 @@ public:
     void cancelLogin();
     void forceLogout();
     void safeLogout();
+    void requestRespawn();
 
     // walk related
     bool walk(Otc::Direction direction);
