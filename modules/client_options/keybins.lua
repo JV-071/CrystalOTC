@@ -11,6 +11,23 @@ local function getKeyEditComboWidget()
 	return keyEditWindow and keyEditWindow:recursiveGetChildById("keyCombo")
 end
 
+-- The key edit window and the keybind table show a combo in native form -- "Cmd+B" on macOS,
+-- "Ctrl+B" everywhere else -- while everything that stores, compares or binds one wants the
+-- portable form. Route every read and write through these so the two never get crossed.
+local function setKeyEditCombo(keyCombo)
+	local comboWidget = getKeyEditComboWidget()
+
+	if comboWidget then
+		comboWidget:setText(g_keyboard.getNativeKeyComboDesc(keyCombo) or "")
+	end
+end
+
+local function getKeyEditCombo()
+	local comboWidget = getKeyEditComboWidget()
+
+	return comboWidget and g_keyboard.getPortableKeyComboDesc(comboWidget:getText()) or ""
+end
+
 local function getKeyEditUsedWidget()
 	return keyEditWindow and keyEditWindow:recursiveGetChildById("used")
 end
@@ -135,7 +152,7 @@ local function setKeybindColumnText(category, action, columnIndex, text)
 			local column = row:getChildByIndex(columnIndex)
 
 			if column then
-				column:setText(text or "")
+				column:setText(g_keyboard.getNativeKeyComboDesc(text) or "")
 			end
 
 			break
@@ -155,7 +172,7 @@ local function setHotkeyColumnText(hotkeyId, columnIndex, text)
 			local column = row:getChildByIndex(columnIndex)
 
 			if column then
-				column:setText(text)
+				column:setText(g_keyboard.getNativeKeyComboDesc(text) or "")
 			end
 
 			break
@@ -182,7 +199,9 @@ local function applyKeyEditCombo(keyCombo)
 		return
 	end
 
-	comboWidget:setText(keyCombo)
+	-- keyCombo stays portable from here down: every lookup below compares it against stored
+	-- bindings. Only the widget gets the native rendering.
+	comboWidget:setText(g_keyboard.getNativeKeyComboDesc(keyCombo))
 	comboWidget:resizeToText()
 
 	local category, action
@@ -367,7 +386,7 @@ local function openKeyEditWindow()
 
 	if comboWidget then
 		comboWidget:resizeToText()
-		applyKeyEditCombo(comboWidget:getText())
+		applyKeyEditCombo(getKeyEditCombo())
 	end
 
 	keyEditWindow:show()
@@ -589,11 +608,11 @@ function editKeybindPrimary(button)
 	}
 
 	keyEditWindow:setText(tr("Edit Primary Key for '%s'", string.format("%s: %s", keybind.category, keybind.action)))
-	getKeyEditComboWidget():setText(Keybind.getKeybindKeys(category, action, getChatMode(), preset).primary)
+	setKeyEditCombo(Keybind.getKeybindKeys(category, action, getChatMode(), preset).primary)
 	editKeybind(keybind)
 
 	function keyEditWindow.buttons.ok.onClick()
-		local keyCombo = getKeyEditComboWidget():getText()
+		local keyCombo = getKeyEditCombo()
 
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
@@ -647,11 +666,11 @@ function editKeybindSecondary(button)
 	}
 
 	keyEditWindow:setText(tr("Edit Secondary Key for '%s'", string.format("%s: %s", keybind.category, keybind.action)))
-	getKeyEditComboWidget():setText(Keybind.getKeybindKeys(category, action, getChatMode(), preset).secondary)
+	setKeyEditCombo(Keybind.getKeybindKeys(category, action, getChatMode(), preset).secondary)
 	editKeybind(keybind)
 
 	function keyEditWindow.buttons.ok.onClick()
-		local keyCombo = getKeyEditComboWidget():getText()
+		local keyCombo = getKeyEditCombo()
 
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
@@ -797,7 +816,7 @@ function addKeybind(category, action, primary, secondary)
 		{
 			width = 98,
 			style = "EditableKeybindsTableColumn",
-			text = primary
+			text = g_keyboard.getNativeKeyComboDesc(primary)
 		},
 		{
 			style = "VerticalSeparator"
@@ -805,7 +824,7 @@ function addKeybind(category, action, primary, secondary)
 		{
 			width = 102,
 			style = "EditableKeybindsTableColumn",
-			text = secondary
+			text = g_keyboard.getNativeKeyComboDesc(secondary)
 		}
 	})
 
@@ -852,11 +871,11 @@ function editHotkeyPrimary(button)
 	local preset = panels.keybindsPanel.presets.list:getCurrentOption().text
 
 	keyEditWindow:setText(tr("Edit Primary Key for '%s'", text))
-	getKeyEditComboWidget():setText(Keybind.getHotkeyKeys(hotkeyId, preset, getChatMode()).primary)
+	setKeyEditCombo(Keybind.getHotkeyKeys(hotkeyId, preset, getChatMode()).primary)
 	editHotkeyKey(text)
 
 	function keyEditWindow.buttons.ok.onClick()
-		local keyCombo = getKeyEditComboWidget():getText()
+		local keyCombo = getKeyEditCombo()
 		local changed = table.findbyfield(changedHotkeys, "hotkeyId", hotkeyId)
 
 		if changed then
@@ -911,11 +930,11 @@ function editHotkeySecondary(button)
 	local preset = panels.keybindsPanel.presets.list:getCurrentOption().text
 
 	keyEditWindow:setText(tr("Edit Secondary Key for '%s'", text))
-	getKeyEditComboWidget():setText(Keybind.getHotkeyKeys(hotkeyId, preset, getChatMode()).secondary)
+	setKeyEditCombo(Keybind.getHotkeyKeys(hotkeyId, preset, getChatMode()).secondary)
 	editHotkeyKey(text)
 
 	function keyEditWindow.buttons.ok.onClick()
-		local keyCombo = getKeyEditComboWidget():getText()
+		local keyCombo = getKeyEditCombo()
 
 		if changedHotkeys[hotkeyId] then
 			if not changedHotkeys[hotkeyId].primary then

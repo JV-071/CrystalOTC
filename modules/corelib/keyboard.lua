@@ -145,6 +145,10 @@ local function expandTooltipKeyPart(part)
 	return KEY_TOOLTIP_EXPANSIONS[part] or part
 end
 
+-- Deliberately NOT routed through g_keyboard.getNativeKeyComboDesc: this is the action bar's
+-- space-constrained slot label, where every modifier is already collapsed to one letter. The
+-- portable names abbreviate correctly under the macOS swap anyway -- "Ctrl" is Command there
+-- and still reads as "C" -- so renaming first would only churn every slot label.
 local function abbreviateHotkeyDisplayPart(part)
 	part = part:gsub("Shift", "S"):gsub("Alt", "A"):gsub("Ctrl", "C")
 
@@ -155,6 +159,68 @@ local function abbreviateHotkeyDisplayPart(part)
 	end
 
 	return KEY_DISPLAY_ABBREVIATIONS[part] or part
+end
+
+-- Portable text vs native text, the same split QKeySequence draws.
+--
+-- A key combo is *stored and compared* in portable form -- "Ctrl+B" -- on every platform, and
+-- that is deliberate: the official client is a Qt application whose shipped defaults are
+-- literally portable strings ("Ctrl+B", "Ctrl+F", "Ctrl+K"), and it lets Qt resolve "Ctrl" to
+-- Command on macOS. CrystalOTC does the same swap in modifierBitFor() (platformwindow.cpp), so
+-- one stored string means the same physical gesture everywhere and no config needs migrating.
+--
+-- Only the *rendering* is platform-specific, and only on macOS, where the Ctrl bit is raised
+-- by Command and the Meta bit by the physical Control key.
+--
+-- ASCII names rather than the real U+2318/U+2325 glyphs: the engine's text pipeline is latin1
+-- end to end (stdext::utf8_to_latin1 on every text input), so those code points cannot reach
+-- the font intact.
+local MACOS_NATIVE_MODIFIER_NAMES = {
+	Ctrl = "Cmd",
+	Alt = "Opt",
+	Meta = "Ctrl"
+}
+local MACOS_PORTABLE_MODIFIER_NAMES = {}
+
+for portable, native in pairs(MACOS_NATIVE_MODIFIER_NAMES) do
+	MACOS_PORTABLE_MODIFIER_NAMES[native] = portable
+end
+
+local function usesMacOSModifierNames()
+	return g_platform.getDevice().os == OsMacOS
+end
+
+local function translateModifierNames(keyComboDesc, names)
+	if keyComboDesc == nil or keyComboDesc == "" then
+		return keyComboDesc
+	end
+
+	if type(keyComboDesc) ~= "string" then
+		keyComboDesc = tostring(keyComboDesc)
+	end
+
+	if not usesMacOSModifierNames() then
+		return keyComboDesc
+	end
+
+	local parts = splitKeyComboDesc(keyComboDesc)
+
+	for i, part in ipairs(parts) do
+		parts[i] = names[part] or part
+	end
+
+	return table.concat(parts, "+")
+end
+
+-- Portable -> what the user should see. Use this for every combo shown in the UI.
+function g_keyboard.getNativeKeyComboDesc(keyComboDesc)
+	return translateModifierNames(keyComboDesc, MACOS_NATIVE_MODIFIER_NAMES)
+end
+
+-- What the user saw -> portable. Use this whenever a displayed combo is read back to be
+-- stored, compared or bound.
+function g_keyboard.getPortableKeyComboDesc(keyComboDesc)
+	return translateModifierNames(keyComboDesc, MACOS_PORTABLE_MODIFIER_NAMES)
 end
 
 function g_keyboard.splitKeyComboDesc(keyComboDesc)
@@ -190,7 +256,9 @@ function g_keyboard.formatHotkeyTooltipText(combo)
 		return ""
 	end
 
-	local text = type(combo) == "string" and combo or tostring(combo)
+	-- Tooltips have room for the full modifier names, so show the platform's own: "Cmd+E" on
+	-- macOS rather than the portable "Ctrl+E" the binding is stored as.
+	local text = g_keyboard.getNativeKeyComboDesc(type(combo) == "string" and combo or tostring(combo))
 	local parts = splitKeyComboDesc(text)
 	local out = {}
 
