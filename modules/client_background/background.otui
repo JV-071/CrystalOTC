@@ -17,11 +17,13 @@ Panel
 
   UIWidget
     id: serverLogo
-    size: 196 112
+    # The custom artwork has slightly more transparent padding than the
+    # official 196x112 logo, so render it larger to match the visible size.
+    size: 212 121
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.verticalCenter: parent.verticalCenter
     margin-top: -162
-    image-source: /images/client_entergame/client-dragon-logo-regular
+    image-source: /images/client_entergame/client-dragon-logo-custom
     focusable: false
     phantom: true
     visible: false
