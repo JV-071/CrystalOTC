@@ -31,13 +31,13 @@ direction with no inference at all.
 | Version | 15.32 (`package.json.version`) | 15.25 |
 | Binary | `Contents/MacOS/client` - Mach-O x86_64, 48 MB | `bin/client.exe` - PE32+ x86-64 |
 | C++ symbols | **Yes** - ~6280 `tibia::` names | No, fully stripped |
-| Game QML | No (compiled) | **Yes, as plain source** |
+| Game QML | **Yes, as plain source** (82 docs) | **Yes, as plain source** (77 docs) |
 | Saved options | `Contents/Resources/conf/clientoptions.json` | `conf/clientoptions.json` |
 | Factory defaults | `Contents/MacOS/graphics_resources.rcc` | `bin/graphics_resources.rcc` |
 
 Prefer the **macOS** install: it is newer and it is what the user actually runs.
-Fall back to the Windows dump when you need readable QML, and mind the version
-skew when you do.
+It carries readable QML too, so the Windows dump is only needed when you want to
+confirm a finding against 15.25 - mind the version skew when you do.
 
 **Trap:** `/Applications/Tibia.app/Contents/MacOS/Tibia` is only the ~3 MB
 **launcher**. The real client is the 48 MB binary under `packages/`.
@@ -76,10 +76,12 @@ factory defaults are embedded in `graphics_resources.rcc` (a lower
 strings -a .../graphics_resources.rcc | grep -A12 '"clientOptionsVersion"'
 ```
 
-**Reading convention:** sliders shown as 0-100% are stored as 0..1 floats.
-Confirmed by `lightAmbientLevel: 0.25` ↔ "Ambient Light: 25%" and
-`lightLevelSeparatorLevel: 0.8` ↔ "Level Separator: 80%". So `0.75` is a 75%
-default and `0` means the option is off.
+**Reading convention:** sliders shown as 0-100% are stored as 0..1 floats, so
+`0.75` is 75% and `0` means the option is off. This was originally confirmed
+against `lightAmbientLevel: 0.25` ↔ "Ambient Light: 25%" and
+`lightLevelSeparatorLevel: 0.8` ↔ "Level Separator: 80%" - do not expect those
+two numbers to still be there. This file is live user state and both have since
+changed (currently `0` and `1`). The convention holds; the sample values do not.
 
 **Read the name as evidence.** `lightAttenuationCloudsIndoor` says the value
 *attenuates* light - a reduction, not a substitution, not a brightness. Names in
@@ -87,9 +89,11 @@ this file are consistently literal.
 
 ### 2. macOS symbols - the class map
 
-Stripped of locals (`nm -a | awk '$2=="t"'` is empty), so there are no function
-addresses. But exported and RTTI symbols name the classes, which tells you what
-the subsystem is *made of* and what to grep for next.
+Locals are stripped (`nm -a | awk '$2=="t"'` is empty), but **globals are not**:
+3,522 `T` symbols carry addresses, 3,021 of them `tibia::`, and
+`dyld_info -exports` reaches 6,280. So you get both a class map *and* somewhere
+to pivot from. RTTI and exported names tell you what the subsystem is made of;
+the addresses let you disassemble it.
 
 ```bash
 C=~/Library/Application\ Support/CipSoft\ GmbH/Tibia/packages/Tibia.app/Contents/MacOS/client
@@ -112,10 +116,25 @@ print(data[i-200:i+2000].split(b'\x00'))
 
 `TLightmapPaintedItem` registers as QML element **`LightMap`**.
 
-### 3. Windows dump - readable QML and settings-key neighbours
+### 3. Readable QML and settings-key neighbours
 
-The PE carries the whole QML UI as plain text, plus settings keys in
-registration order.
+**Both** binaries embed whole QML documents as plain ASCII - imports, ids,
+property and signal declarations, handler bodies, the lot - alongside settings
+keys in registration order. Grep for a distinctive binding and read outwards:
+
+```bash
+strings -a "$C" | grep -n 'socketComponent.socket.gemImageSource'
+# then sed -n 'N-15,N+10p' around the hit for the whole component
+```
+
+Do not be misled by the thousands of `QmlCacheGeneratedCode` /
+`_qt_qml_qmlcomponents_qml_*_qml` RTTI symbols: those are the AOT cache and they
+sit *next to* the retained source, not instead of it. Seeing them is not
+evidence the source is gone - search for the document body before concluding
+anything is compiled away.
+
+The example below uses the Windows dump because that is where the attenuation
+keys were first found, but the same greps work on the macOS binary.
 
 ```bash
 cd /Users/alancruz/Github/Tibia/gameclient-15.25.3a4a52/bin
@@ -211,11 +230,14 @@ for a, sz, m, op in md.disasm_lite(data[o:o+0x140], start):
 
 **Reachable:** option names, defaults, value ranges, which stored keys a control
 writes, settings migration logic, class names, QML element names, the QML UI
-(Windows), protocol message handler names.
+(both binaries), protocol message handler names, and - via the export trie plus
+`LC_FUNCTION_STARTS` - named function addresses to disassemble.
 
-**Not reachable cheaply:** the renderer's actual arithmetic. This was pushed to
-the end on the macOS build and it dead-ends for concrete reasons worth recording,
-so nobody repeats the walk:
+**Harder, but not a dead end:** the renderer's actual arithmetic. An earlier pass
+concluded this was unreachable; that conclusion was wrong and rested on the
+"no function addresses" error corrected above. The obstacles below are real, but
+they are reasons to enter through the symbol table rather than through string
+xrefs - not reasons to stop. See the export-trie route at the end of this file.
 
 - Each `lightAttenuation*` key has exactly **one** xref, and it is the settings
   *migration* table (`0x100a42328`-`0x100a423f9`), which builds (dest, source)
@@ -223,8 +245,6 @@ so nobody repeats the walk:
   stored keys fed from one UI key, nothing scaled in between - but the runtime
   read happens through a struct member with no string involved, so string xrefs
   cannot reach the consumer.
-- Locals are stripped (`nm -a | awk '$2=="t"'` is empty), so there are no
-  function addresses to pivot from.
 - `TLightmapPaintedItem` and `TAmbientLightStorage` export no vtable of their
   own - only Qt's `QQmlElement<...>` wrapper typeinfo - so there is no virtual
   table to walk into `paint()`.
@@ -259,3 +279,29 @@ Minutes, versus hours of reverse engineering for the same number.
 
 - `crystalserver-ops` - restarting/rebuilding the server after a protocol or
   light change.
+
+## Getting to function addresses on macOS
+
+The string-xref route above stalls because the runtime read happens through a
+struct member. Enter through the symbol table instead:
+
+```bash
+C=~/Library/Application\ Support/CipSoft\ GmbH/Tibia/packages/Tibia.app/Contents/MacOS/client
+nm "$C" | awk '$2=="T"' | c++filt | grep -i lightmap      # addressed globals
+dyld_info -exports "$C" | grep -i lightmap                 # wider still
+otool -l "$C" | grep -A3 LC_FUNCTION_STARTS                # exact boundaries
+```
+
+`__TEXT` is contiguous, so `off = va - 0x1000090a0 + 37024` maps a VM address to
+a file offset (re-derive both constants from `otool -l` per build). capstone in a
+venv finishes the job.
+
+For a class with no exported symbol at all, find its Itanium typeinfo-name string
+in `__TEXT,__const`, search `__DATA_CONST` for a qword pointing at it (that is
+`typeinfo+8`), then search for the typeinfo address itself - each hit is
+`vtable+8`. Walking the vtable hands you every virtual method.
+
+**Still prefer the cheap rungs first.** Naming and defaults settle most parity
+questions in seconds, and empirical calibration is still the fastest way to pin a
+single magnitude. This route is for when the question genuinely is "what is the
+formula".
