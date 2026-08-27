@@ -1864,6 +1864,15 @@ return {
 
 			panels.interface:recursiveGetChildById("frames"):setCurrentOptionByData(newValue, true)
 
+			-- The Basic page carries a second combo for the same option; keep the two in step.
+			if panels.optionsPanel then
+				local basicCombo = panels.optionsPanel:recursiveGetChildById("colouriseLootValue")
+
+				if basicCombo then
+					basicCombo:setCurrentOptionByData(newValue, true)
+				end
+			end
+
 			if options.framesRarity.event ~= nil then
 				removeEvent(options.framesRarity.event)
 			end

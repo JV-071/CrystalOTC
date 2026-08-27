@@ -852,8 +852,10 @@ local function setupComboBox()
 				colouriseLootValue:addOption(v[1], v[2])
 			end
 
+			-- Same option as the Interface page's combo. It used to write "colouriseLootValue",
+			-- which is not an option name, so setOption dropped it and this control did nothing.
 			function colouriseLootValue.onOptionChange(comboBox, option)
-				setOption("colouriseLootValue", comboBox:getCurrentOption().data)
+				setOption("framesRarity", comboBox:getCurrentOption().data)
 			end
 		end
 

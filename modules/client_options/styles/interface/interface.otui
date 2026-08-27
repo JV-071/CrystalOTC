@@ -222,7 +222,7 @@ UIWidget
     height: 81
 
     Label
-      !text: 'Colourise Loot Value: '
+      !text: tr('Colourise Loot Value:')
       anchors.left: parent.left
       anchors.top: parent.top
       margin-left: 0
