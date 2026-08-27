@@ -942,30 +942,36 @@ namespace
     {
         const bool own = source == SOUND_SOURCE_OWN;
         const bool otherPlayer = source == SOUND_SOURCE_OTHER_PLAYER;
+        const bool monster = source == SOUND_SOURCE_MONSTER;
 
         switch (type) {
             case NUMERIC_SOUND_TYPE_SPELL_ATTACK:
                 if (own) return { "ownSpells", "ownAttack" };
                 if (otherPlayer) return { "otherSpells", "otherAttack" };
-                return { "attackAndSpells", {} };
+                if (monster) return { "attackAndSpells", {} };
+                return {};
             case NUMERIC_SOUND_TYPE_SPELL_HEALING:
                 if (own) return { "ownSpells", "ownHealing" };
                 if (otherPlayer) return { "otherSpells", "otherHealing" };
-                return { "attackAndSpells", {} };
+                if (monster) return { "attackAndSpells", {} };
+                return {};
             case NUMERIC_SOUND_TYPE_SPELL_SUPPORT:
                 if (own) return { "ownSpells", "ownSupport" };
                 if (otherPlayer) return { "otherSpells", "otherSupport" };
-                return { "attackAndSpells", {} };
+                if (monster) return { "attackAndSpells", {} };
+                return {};
             case NUMERIC_SOUND_TYPE_SPELL_GENERIC:
                 // No specific box of its own, so the official client asks
                 // whether any of the three would let a spell through.
                 if (own) return { "ownSpells", {}, { "ownAttack", "ownHealing", "ownSupport" } };
                 if (otherPlayer) return { "otherSpells", {}, { "otherAttack", "otherHealing", "otherSupport" } };
-                return { "attackAndSpells", {} };
+                if (monster) return { "attackAndSpells", {} };
+                return {};
             case NUMERIC_SOUND_TYPE_WEAPON_ATTACK:
                 if (own) return { "ownWeapons", {} };
                 if (otherPlayer) return { "otherWeapons", {} };
-                return { "attackAndSpells", {} };
+                if (monster) return { "attackAndSpells", {} };
+                return {};
             case NUMERIC_SOUND_TYPE_CREATURE_ATTACK: return { "attackAndSpells", {} };
             case NUMERIC_SOUND_TYPE_CREATURE_NOISE: return { "creatureNoises", {} };
             case NUMERIC_SOUND_TYPE_CREATURE_DEATH: return { "creatureDeath", {} };
@@ -1015,10 +1021,15 @@ namespace
                     return SOUND_CHANNEL_OWN_BATTLE;
                 if (source == SOUND_SOURCE_OTHER_PLAYER)
                     return SOUND_CHANNEL_OTHER_PLAYERS;
-                // anything else - a monster, a boss, or a sound with no actor
-                // behind it such as an NPC's - answers to the Creatures slider,
-                // matching the "attackAndSpells" box that filters it
-                return SOUND_CHANNEL_CREATURES;
+                if (source == SOUND_SOURCE_MONSTER)
+                    return SOUND_CHANNEL_CREATURES;
+                // The official client tests the source against own, other and
+                // monster and sends everything else - GLOBAL and BOSS - down a
+                // branch that neither filters nor applies a category slider, so
+                // those play at master volume alone. SOUND_CHANNEL_EFFECT is
+                // that branch here: no slider writes its gain, so it stays 1.0
+                // and only the listener gain (master) is left.
+                return SOUND_CHANNEL_EFFECT;
             default:
                 return SOUND_CHANNEL_EFFECT;
         }
