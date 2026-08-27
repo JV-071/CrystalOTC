@@ -580,19 +580,19 @@ SupremeGemDescription = {
 	},
 	{
 		tooltip = "+%s%% Base Damage",
-		text = "? Aug. Divine Barrage\n+8% Base Damage"
+		text = "? Aug. Divine Missile\n+8% Base Damage"
 	},
 	{
 		tooltip = "Adds %s%% critical extra damage for this spell and grant a 10%%\nchance (non-cumulative) for a critical hit.",
-		text = "? Aug. Divine Barrage\n12% Critical Extra Damage"
+		text = "? Aug. Divine Missile\n12% Critical Extra Damage"
 	},
 	{
 		tooltip = "+%s%% Base Damage",
-		text = "? Aug. Ethereal Barrage\n+10% Base Damage"
+		text = "? Aug. Ethereal Spear\n+10% Base Damage"
 	},
 	{
 		tooltip = "Adds %s%% critical extra damage for this spell and grant a 10%%\nchance (non-cumulative) for a critical hit.",
-		text = "? Aug. Ethereal Barrage\n15% Critical Extra Damage"
+		text = "? Aug. Ethereal Spear\n15% Critical Extra Damage"
 	},
 	{
 		tooltip = "+%s%% Base Damage",
@@ -1337,25 +1337,25 @@ VocationSupremeMods = {
 			showDesc = true
 		},
 		[30] = {
-			desc = "Aug. Divine Barrage",
+			desc = "Aug. Divine Missile",
 			baseI = 8,
 			tooltip = "+%s%% Base Damage",
 			showDesc = true
 		},
 		[31] = {
-			desc = "Aug. Divine Barrage",
+			desc = "Aug. Divine Missile",
 			baseI = 12,
 			tooltip = "+%s%% Critical Extra Damage",
 			showDesc = true
 		},
 		[32] = {
-			desc = "Aug. Ethereal Barrage",
+			desc = "Aug. Ethereal Spear",
 			baseI = 10,
 			tooltip = "+%s%% Base Damage",
 			showDesc = true
 		},
 		[33] = {
-			desc = "Aug. Ethereal Barrage",
+			desc = "Aug. Ethereal Spear",
 			baseI = 15,
 			tooltip = "+%s%% Critical Extra Damage",
 			showDesc = true
