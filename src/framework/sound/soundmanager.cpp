@@ -28,6 +28,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <nlohmann/json.hpp>
 #include <sounds.pb.h>
@@ -53,9 +54,14 @@ using namespace otclient::protobuf;
 
 using json = nlohmann::json;
 
-// Following the operating system's default output needs two openal-soft
-// extensions. Guard on the headers so a platform shipping an older OpenAL
-// still builds - it just keeps the device it opened, as before.
+// Moving playback to another output device - whether because the system
+// default changed or because the player picked one in the options - needs
+// ALC_SOFT_reopen_device. Following the default additionally needs
+// ALC_SOFT_system_events. Guard on the headers so a platform shipping an older
+// OpenAL still builds; it just keeps the device it opened, as before.
+#if defined(ALC_SOFT_reopen_device)
+#define SOUND_REOPEN_DEVICE
+#endif
 #if defined(ALC_SOFT_system_events) && defined(ALC_SOFT_reopen_device)
 #define SOUND_FOLLOW_DEFAULT_DEVICE
 #endif
@@ -76,11 +82,19 @@ namespace
         return std::clamp(1.0f - distanceTiles / POSITIONAL_EFFECT_MAX_DISTANCE_TILES, 0.0f, 1.0f);
     }
 
-#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+#ifdef SOUND_REOPEN_DEVICE
     LPALCREOPENDEVICESOFT pfnAlcReopenDevice{};
+#endif
+
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
     LPALCEVENTISSUPPORTEDSOFT pfnAlcEventIsSupported{};
     LPALCEVENTCONTROLSOFT pfnAlcEventControl{};
     LPALCEVENTCALLBACKSOFT pfnAlcEventCallback{};
+
+    // Set once the default-device events are actually wired up. Kept apart
+    // from pfnAlcReopenDevice, which now also serves the options menu's device
+    // picker and must survive a platform that has no event support.
+    bool g_followingDefaultDevice{ false };
 
     // Raised from openal-soft's own event thread, which holds its event mutex
     // across the call, so the callback must not re-enter ALC. poll() consumes
@@ -265,17 +279,22 @@ void SoundManager::init()
         g_logger.error(fmt::format("unable to make context current: {}", alcGetString(m_device, alcGetError(m_device))));
     }
 
+#ifdef SOUND_REOPEN_DEVICE
+    if (alcIsExtensionPresent(m_device, "ALC_SOFT_reopen_device")) {
+        pfnAlcReopenDevice = reinterpret_cast<LPALCREOPENDEVICESOFT>(alcGetProcAddress(m_device, "alcReopenDeviceSOFT"));
+        alcGetError(m_device);
+    }
+#endif
+
     subscribeDeviceEvents();
 }
 
 void SoundManager::subscribeDeviceEvents()
 {
 #ifdef SOUND_FOLLOW_DEFAULT_DEVICE
-    if (!m_device || !alcIsExtensionPresent(m_device, "ALC_SOFT_reopen_device") ||
-        !alcIsExtensionPresent(m_device, "ALC_SOFT_system_events"))
+    if (!m_device || !pfnAlcReopenDevice || !alcIsExtensionPresent(m_device, "ALC_SOFT_system_events"))
         return;
 
-    pfnAlcReopenDevice = reinterpret_cast<LPALCREOPENDEVICESOFT>(alcGetProcAddress(m_device, "alcReopenDeviceSOFT"));
     pfnAlcEventIsSupported = reinterpret_cast<LPALCEVENTISSUPPORTEDSOFT>(alcGetProcAddress(m_device, "alcEventIsSupportedSOFT"));
     pfnAlcEventControl = reinterpret_cast<LPALCEVENTCONTROLSOFT>(alcGetProcAddress(m_device, "alcEventControlSOFT"));
     pfnAlcEventCallback = reinterpret_cast<LPALCEVENTCALLBACKSOFT>(alcGetProcAddress(m_device, "alcEventCallbackSOFT"));
@@ -283,15 +302,14 @@ void SoundManager::subscribeDeviceEvents()
 
     // alcEventControlSOFT answers ALC_TRUE for event types the backend never
     // emits, so ask what it really supports rather than trusting that return.
-    if (!pfnAlcReopenDevice || !pfnAlcEventIsSupported || !pfnAlcEventControl || !pfnAlcEventCallback ||
-        pfnAlcEventIsSupported(ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT, ALC_PLAYBACK_DEVICE_SOFT) != ALC_EVENT_SUPPORTED_SOFT) {
-        pfnAlcReopenDevice = nullptr;
+    if (!pfnAlcEventIsSupported || !pfnAlcEventControl || !pfnAlcEventCallback ||
+        pfnAlcEventIsSupported(ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT, ALC_PLAYBACK_DEVICE_SOFT) != ALC_EVENT_SUPPORTED_SOFT)
         return;
-    }
 
     constexpr ALCenum event = ALC_EVENT_TYPE_DEFAULT_DEVICE_CHANGED_SOFT;
     pfnAlcEventCallback(&onAlcDeviceEvent, nullptr);
     pfnAlcEventControl(1, &event, ALC_TRUE);
+    g_followingDefaultDevice = true;
 #endif
 }
 
@@ -304,7 +322,7 @@ void SoundManager::unsubscribeDeviceEvents()
         pfnAlcEventCallback(nullptr, nullptr);
     }
 
-    pfnAlcReopenDevice = nullptr;
+    g_followingDefaultDevice = false;
     g_defaultDeviceChanged.store(false, std::memory_order_relaxed);
 #endif
 }
@@ -317,8 +335,15 @@ void SoundManager::unsubscribeDeviceEvents()
 void SoundManager::followDefaultDevice()
 {
 #ifdef SOUND_FOLLOW_DEFAULT_DEVICE
-    if (!pfnAlcReopenDevice || !m_device)
+    if (!g_followingDefaultDevice || !pfnAlcReopenDevice || !m_device)
         return;
+
+    // A device the player pinned in the options is not the system default and
+    // must not be pulled off it when the default changes.
+    if (m_soundDeviceName != AUTO_SOUND_DEVICE) {
+        g_defaultDeviceChanged.store(false, std::memory_order_relaxed);
+        return;
+    }
 
     if (!g_defaultDeviceChanged.exchange(false, std::memory_order_relaxed))
         return;
@@ -543,6 +568,63 @@ void SoundManager::setMasterVolume(const float volume)
 {
     ensureContext();
     alListenerf(AL_GAIN, std::clamp<float>(volume, 0.f, 1.f));
+}
+
+std::vector<std::string> SoundManager::getSoundDevices() const
+{
+    std::vector<std::string> devices;
+
+    // ALC_ENUMERATE_ALL_EXT lists every endpoint the machine has; the older
+    // ALC_ENUMERATION_EXT lists one entry per backend. Both are queried on the
+    // NULL device and both answer with a run of C strings closed by an empty
+    // one. Without either extension there is nothing to choose between, so the
+    // caller gets an empty list and shows only "(auto-select)".
+    const ALCchar* list = nullptr;
+    if (alcIsExtensionPresent(nullptr, "ALC_ENUMERATE_ALL_EXT"))
+        list = alcGetString(nullptr, ALC_ALL_DEVICES_SPECIFIER);
+    else if (alcIsExtensionPresent(nullptr, "ALC_ENUMERATION_EXT"))
+        list = alcGetString(nullptr, ALC_DEVICE_SPECIFIER);
+
+    for (; list && *list != '\0'; list += std::strlen(list) + 1)
+        devices.emplace_back(list);
+
+    return devices;
+}
+
+bool SoundManager::setSoundDevice(const std::string& name)
+{
+    const std::string wanted = name.empty() ? AUTO_SOUND_DEVICE : name;
+    if (wanted == m_soundDeviceName)
+        return true;
+
+#ifdef SOUND_REOPEN_DEVICE
+    if (m_device && pfnAlcReopenDevice) {
+        const bool automatic = wanted == AUTO_SOUND_DEVICE;
+        ensureContext();
+
+        if (pfnAlcReopenDevice(m_device, automatic ? nullptr : wanted.c_str(), nullptr) == ALC_FALSE) {
+            g_logger.error("unable to switch audio output to '{}': {}", wanted,
+                           alcGetString(m_device, alcGetError(m_device)));
+            return false;
+        }
+
+        m_soundDeviceName = wanted;
+#ifdef SOUND_FOLLOW_DEFAULT_DEVICE
+        // Whatever the event thread flagged while we were deciding belongs to
+        // the device we just left.
+        g_defaultDeviceChanged.store(false, std::memory_order_relaxed);
+#endif
+        traceSoundEvent("device.switch", json({ { "device", wanted }, { "automatic", automatic } }).dump());
+        return true;
+    }
+#endif
+
+    // Remember the choice so the setting still round-trips, but do not pretend
+    // the output moved: without ALC_SOFT_reopen_device the device this process
+    // opened at startup is the device it keeps.
+    m_soundDeviceName = wanted;
+    g_logger.warning("this OpenAL build has no ALC_SOFT_reopen_device, so audio stays on the device opened at startup");
+    return false;
 }
 
 void SoundManager::stopAll()

@@ -2,10 +2,39 @@ UIWidget
   anchors.fill: parent
   visible: false
 
+  Label
+    id: soundDeviceLabel
+    !text: tr('Sound Device')
+    anchors.left: parent.left
+    anchors.top: parent.top
+    margin-top: 4
+    color: #c0c0c0
+    font: $var-cip-font-lowspace
+
+  QtComboBox
+    id: soundDevice
+    width: 200
+    margin-left: 17
+    text-offset: -11 1
+    anchors.top: parent.top
+    anchors.left: prev.right
+    mouse-scroll: false
+
+  UIWidget
+    id: soundDeviceHelp
+    image-source: /images/icons/show_gui_help_grey
+    image-color: #ffffffff
+    size: 12 12
+    anchors.right: parent.right
+    anchors.verticalCenter: soundDevice.verticalCenter
+    margin-right: 6
+    !tooltip: tr('If you are unsure what to select, please choose "(auto-select)"')
+
   SmallReversedQtPanel
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.top: parent.top
+    anchors.top: soundDevice.bottom
+    margin-top: 9
     height: 22
 
     OptionScaleScroll

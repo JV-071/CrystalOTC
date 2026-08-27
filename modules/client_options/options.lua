@@ -901,6 +901,34 @@ local function setupComboBox()
 		end
 	end
 
+	local soundDeviceCombobox = panels.soundPanel and panels.soundPanel:recursiveGetChildById("soundDevice")
+
+	if soundDeviceCombobox then
+		local seen = {
+			auto = true
+		}
+
+		soundDeviceCombobox:clearOptions()
+		soundDeviceCombobox:addOption(tr("(auto-select)"), "auto")
+
+		if g_sounds then
+			for _, device in ipairs(g_sounds.getSoundDevices()) do
+				if not seen[device] then
+					soundDeviceCombobox:addOption(device, device)
+
+					seen[device] = true
+				end
+			end
+		end
+
+		-- Selecting the saved device is left to the option's own action: the
+		-- loop that loads saved values runs after this, so reading it here
+		-- would only ever see the default.
+		function soundDeviceCombobox.onOptionChange(comboBox, option)
+			setOption("soundDevice", comboBox:getCurrentOption().data)
+		end
+	end
+
 	for k, v in pairs({
 		{
 			"None",

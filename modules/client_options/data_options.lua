@@ -698,6 +698,41 @@ return {
 			end
 		end
 	},
+	-- The official client's Sound Device combo. "auto" is its "(auto-select)"
+	-- entry and the only value that follows the operating system's default
+	-- output when it changes.
+	soundDevice = {
+		value = "auto",
+		action = function(value, options, controller, panels, extraWidgets)
+			if g_sounds then
+				g_sounds.setSoundDevice(value)
+			end
+
+			local combobox = panels.soundPanel and panels.soundPanel:recursiveGetChildById("soundDevice")
+
+			if combobox and combobox.options then
+				local listed = false
+
+				for _, entry in ipairs(combobox.options) do
+					if entry.data == value then
+						listed = true
+
+						break
+					end
+				end
+
+				-- A device that has since been unplugged is no longer in the
+				-- enumeration, and a combo box with nothing to select would
+				-- quietly move the player back to (auto-select). Keep their
+				-- choice visible as an entry of its own instead.
+				if not listed then
+					combobox:addOption(value, value)
+				end
+
+				combobox:setCurrentOptionByData(value, true)
+			end
+		end
+	},
 	masterVolume = {
 		value = 100,
 		action = function(value, options, controller, panels, extraWidgets)

@@ -1120,6 +1120,9 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_sounds", "getChannel", &SoundManager::getChannel, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "setClientSoundVolume", &SoundManager::setClientSoundVolume, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "setMasterVolume", &SoundManager::setMasterVolume, &g_sounds);
+    g_lua.bindSingletonFunction("g_sounds", "getSoundDevices", &SoundManager::getSoundDevices, &g_sounds);
+    g_lua.bindSingletonFunction("g_sounds", "getSoundDevice", &SoundManager::getSoundDevice, &g_sounds);
+    g_lua.bindSingletonFunction("g_sounds", "setSoundDevice", &SoundManager::setSoundDevice, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "setClientSoundFilter", &SoundManager::setClientSoundFilter, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "isClientSoundFilterEnabled", &SoundManager::isClientSoundFilterEnabled, &g_sounds);
     g_lua.bindSingletonFunction("g_sounds", "stopAll", &SoundManager::stopAll, &g_sounds);

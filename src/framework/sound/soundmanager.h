@@ -252,6 +252,14 @@ public:
     SoundChannelPtr getChannel(int channel);
     void setClientSoundVolume(int channel, float volume);
     void setMasterVolume(float volume);
+
+    // Output device selection, mirroring the official client's Sound Device
+    // combo box. "auto" means "whatever the system default is", and is the only
+    // mode that follows the default when the player changes it in the OS.
+    static constexpr const char* AUTO_SOUND_DEVICE = "auto";
+    std::vector<std::string> getSoundDevices() const;
+    std::string getSoundDevice() const { return m_soundDeviceName; }
+    bool setSoundDevice(const std::string& name);
     void setClientSoundFilter(const std::string& category, bool enabled);
     bool isClientSoundFilterEnabled(const std::string& category) { const auto it = m_clientSoundFilters.find(category); return it == m_clientSoundFilters.end() || it->second; }
     SoundEffectPtr createSoundEffect();
@@ -349,6 +357,7 @@ private:
 
     // soundbanks for protocol 13 and newer
     std::string m_soundDirectory;
+    std::string m_soundDeviceName{ AUTO_SOUND_DEVICE };
     std::map<uint32_t, ClientSoundFile> m_clientSoundFiles;
     std::map<uint32_t, ClientSoundEffect> m_clientSoundEffects;
 
