@@ -6280,31 +6280,31 @@ SpellGroupIconSize = {
 }
 SpellRunesData = {
 	[3148] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 30,
 		group = 3,
 		exhaustion = 2000,
 		name = "destroy field rune"
 	},
 	[3149] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 55,
 		group = 1,
 		exhaustion = 2000,
 		name = "energybomb rune"
 	},
 	[3152] = {
-		groupExhaustion = 2000,
+		groupExhaustion = 1000,
 		id = 4,
 		group = 2,
-		exhaustion = 2000,
+		exhaustion = 1000,
 		name = "intense healing rune"
 	},
 	[3153] = {
-		groupExhaustion = 2000,
+		groupExhaustion = 1000,
 		id = 31,
 		group = 2,
-		exhaustion = 2000,
+		exhaustion = 1000,
 		name = "antidote rune"
 	},
 	[3155] = {
@@ -6315,35 +6315,35 @@ SpellRunesData = {
 		name = "sudden death rune"
 	},
 	[3156] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 94,
 		group = 1,
 		exhaustion = 2000,
 		name = "Wild Growth Rune"
 	},
 	[3158] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 114,
 		group = 1,
 		exhaustion = 2000,
 		name = "icicle rune"
 	},
 	[3160] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 1000,
 		id = 5,
 		group = 2,
-		exhaustion = 2000,
+		exhaustion = 1000,
 		name = "ultimate healing rune"
 	},
 	[3161] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 115,
 		group = 1,
 		exhaustion = 2000,
 		name = "avalanche rune"
 	},
 	[3164] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 27,
 		group = 1,
 		exhaustion = 2000,
@@ -6352,12 +6352,12 @@ SpellRunesData = {
 	[3165] = {
 		groupExhaustion = 2000,
 		id = 54,
-		group = 3,
-		exhaustion = 4000,
+		group = 1,
+		exhaustion = 6000,
 		name = "paralyze rune"
 	},
 	[3166] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 33,
 		group = 1,
 		exhaustion = 2000,
@@ -6371,49 +6371,49 @@ SpellRunesData = {
 		name = "poison field rune"
 	},
 	[3173] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 91,
 		group = 1,
 		exhaustion = 2000,
 		name = "poison bomb rune"
 	},
 	[3174] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 7,
 		group = 1,
 		exhaustion = 2000,
 		name = "light magic missile rune"
 	},
 	[3175] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 116,
 		group = 1,
 		exhaustion = 2000,
 		name = "stone shower rune"
 	},
 	[3176] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 32,
 		group = 1,
 		exhaustion = 2000,
 		name = "poison wall rune"
 	},
 	[3177] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 12,
 		group = 3,
 		exhaustion = 2000,
 		name = "convince creature rune"
 	},
 	[3178] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 14,
 		group = 3,
 		exhaustion = 2000,
 		name = "chameleon rune"
 	},
 	[3179] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 77,
 		group = 1,
 		exhaustion = 2000,
@@ -6434,42 +6434,42 @@ SpellRunesData = {
 		name = "holy missile rune"
 	},
 	[3188] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 25,
 		group = 1,
 		exhaustion = 2000,
 		name = "fire field rune"
 	},
 	[3189] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 15,
 		group = 1,
 		exhaustion = 2000,
 		name = "fireball rune"
 	},
 	[3190] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 28,
 		group = 1,
 		exhaustion = 2000,
 		name = "fire wall rune"
 	},
 	[3191] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 16,
 		group = 1,
 		exhaustion = 2000,
 		name = "great fireball rune"
 	},
 	[3192] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 17,
 		group = 1,
 		exhaustion = 2000,
 		name = "firebomb rune"
 	},
 	[3195] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 50,
 		group = 1,
 		exhaustion = 2000,
@@ -6483,21 +6483,21 @@ SpellRunesData = {
 		name = "desintegrate rune"
 	},
 	[3198] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 8,
 		group = 1,
 		exhaustion = 2000,
 		name = "heavy magic missile rune"
 	},
 	[3200] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 18,
 		group = 1,
 		exhaustion = 2000,
 		name = "explosion rune"
 	},
 	[3202] = {
-		groupExhaustion = 1500,
+		groupExhaustion = 2000,
 		id = 117,
 		group = 1,
 		exhaustion = 2000,
@@ -6511,22 +6511,22 @@ SpellRunesData = {
 		name = "animate dead rune"
 	},
 	[17512] = {
-		groupExhaustion = 1500,
-		id = 7,
+		groupExhaustion = 2000,
+		id = 168,
 		group = 1,
 		exhaustion = 2000,
 		name = "lightest magic missile rune"
 	},
 	[21351] = {
-		groupExhaustion = 1500,
-		id = 116,
+		groupExhaustion = 2000,
+		id = 180,
 		group = 1,
 		exhaustion = 2000,
 		name = "light stone shower rune"
 	},
 	[21352] = {
-		groupExhaustion = 1500,
-		id = 7,
+		groupExhaustion = 2000,
+		id = 179,
 		group = 1,
 		exhaustion = 2000,
 		name = "lightest missile rune"
