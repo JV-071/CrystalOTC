@@ -2800,9 +2800,28 @@ function setOption(key, value, force)
 		end
 	end
 
+	-- Whatever gates a dependent control has to run on both deferred paths. Ticking a master
+	-- back to its committed value takes the early return below, and if the gate only ran on the
+	-- way out the dependent would stay greyed for the rest of the dialog session.
+	local function refreshDependentAvailability(k, v)
+		if k == "showExpiryInContainers" then
+			updateShowExpiryOnUnusedAvailability(panels, v)
+		end
+
+		if k == "useNativeMouseCursor" then
+			updateBigMouseCursorAvailability(panels, v)
+		end
+
+		if k == "showTimestampsInConsole" then
+			updateTimestampSecondsAvailability(panels, v)
+		end
+	end
+
 	if option.deferAction and not force then
 		if option.value == value then
 			option.pendingValue = nil
+
+			refreshDependentAvailability(key, value)
 
 			if key == "noFrameRateLimit" or key == "backgroundFrameRate" then
 				updateBackgroundFrameRatePreview(panels)
@@ -2817,17 +2836,7 @@ function setOption(key, value, force)
 
 		option.pendingValue = value
 
-		if key == "showExpiryInContainers" then
-			updateShowExpiryOnUnusedAvailability(panels, value)
-		end
-
-		if key == "useNativeMouseCursor" then
-			updateBigMouseCursorAvailability(panels, value)
-		end
-
-		if key == "showTimestampsInConsole" then
-			updateTimestampSecondsAvailability(panels, value)
-		end
+		refreshDependentAvailability(key, value)
 
 		if key == "showHudForOwnCharacter" or key == "showHudForOtherCreatures" or key == "showOwnBars" or key == "showManaShield" or key == "showOwnHarmony" then
 			refreshHudDependencyAvailability(panels)
