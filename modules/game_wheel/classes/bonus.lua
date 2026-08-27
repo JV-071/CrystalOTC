@@ -2512,21 +2512,28 @@ function getPassiveInfo(domain)
 			m1 = "Divine Empowerment\nThis support spell creates a\nfield that increases your dealt\ndamage."
 			m2 = message
 		elseif vocation == SORCERER then
-			setStringColor(message, "Expose Weakness grants ", "#3F3F3F")
-			setStringColor(message, "1.00%", currentUnlocked(1) and "#ffffff" or "#3F3F3F")
+			-- Lord of Destruction replaced Drain Body; values mirror combat.cpp applyElementalStance.
+			setStringColor(message, "Grants ", "#3F3F3F")
+			setStringColor(message, "2%", currentUnlocked(1) and "#ffffff" or "#3F3F3F")
 			setStringColor(message, "/", "#3F3F3F")
-			setStringColor(message, "2.00%", currentUnlocked(2) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, "3%", currentUnlocked(2) and "#ffffff" or "#3F3F3F")
 			setStringColor(message, "/", "#3F3F3F")
-			setStringColor(message, "3.00%", currentUnlocked(3) and "#ffffff" or "#3F3F3F")
-			setStringColor(message, " mana leech and\nSap Strength grants ", "#3F3F3F")
-			setStringColor(message, "3.00%", currentUnlocked(1) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, "4%", currentUnlocked(3) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, " more fire damage for Master of Flames,\n", "#3F3F3F")
+			setStringColor(message, "2%", currentUnlocked(1) and "#ffffff" or "#3F3F3F")
 			setStringColor(message, "/", "#3F3F3F")
-			setStringColor(message, "4.00%", currentUnlocked(2) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, "3%", currentUnlocked(2) and "#ffffff" or "#3F3F3F")
 			setStringColor(message, "/", "#3F3F3F")
-			setStringColor(message, "5.00%", currentUnlocked(3) and "#ffffff" or "#3F3F3F")
-			setStringColor(message, " life leech against\ndebuffed creatures.", "#3F3F3F")
+			setStringColor(message, "4%", currentUnlocked(3) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, " more critical hit chance for Master of\nThunder and ", "#3F3F3F")
+			setStringColor(message, "15%", currentUnlocked(1) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, "/", "#3F3F3F")
+			setStringColor(message, "22.5%", currentUnlocked(2) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, "/", "#3F3F3F")
+			setStringColor(message, "30%", currentUnlocked(3) and "#ffffff" or "#3F3F3F")
+			setStringColor(message, " more critical damage for Master of Decay.", "#3F3F3F")
 
-			m1 = "Drain Body\nImprove your crippling spells\nby adding mana or life leech\nto them."
+			m1 = "Lord of Destruction\nImprove damage, critical hit\nchance and critical damage for\nspells with the damage type of\nyour elemental stance."
 			m2 = message
 		elseif vocation == DRUID then
 			setStringColor(message, "Decide wisely whether you want to cast ice or earth damage in a\nsmall area around you, as these two ring spells share the same\ncooldown. Both spells deal ", "#3F3F3F")

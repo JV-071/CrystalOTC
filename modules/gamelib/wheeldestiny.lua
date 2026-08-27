@@ -106,9 +106,9 @@ WheelDestiny.Sides = {
 				revelation = "Divine Empow..."
 			},
 			{
-				text = "Drain Body\nImprove your crippling\nspells by adding mana or\nlife leech to them.",
+				text = "Lord of Destruction\nImprove damage, critical hit\nchance and critical damage\nfor spells with the damage\ntype of your elemental stance.",
 				largeClip = 8,
-				revelation = "Drain Body"
+				revelation = "Lord of Destr..."
 			},
 			{
 				text = "Twin Bursts\nPowerful ring spell that\ndeals ice or earth damage\nthat is enchanced against\ntargets with high hit points.",

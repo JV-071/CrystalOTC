@@ -704,7 +704,7 @@ SupremeGemDescription = {
 		tooltip = "The Revelation Mastery bonus counts towards the promotion points\ndistributed in the domain of the corresponding Revelation Perk.",
 		extraPoints = 150,
 		domain = 3,
-		text = "RM Drain Body"
+		text = "RM Lord of Destruction"
 	},
 	{
 		tooltip = "-900s Cooldown",
@@ -1518,7 +1518,7 @@ VocationSupremeMods = {
 		[58] = {
 			desc = "Revelation Mastery",
 			domain = 2,
-			tooltip = "+%s Drain Body",
+			tooltip = "+%s Lord of Destruction",
 			baseI = 150,
 			showDesc = true
 		}

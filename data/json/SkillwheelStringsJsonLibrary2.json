@@ -2927,13 +2927,13 @@
         },
         "8": {
             "LongInfoPerLevel": {
-                "0": "Expose Weakness grants <font color='#3f3f3f'>1.00%</font>/<font color='#3f3f3f'>2.00%</font>/<font color='#3f3f3f'>3.00%</font> mana leech and Sap Strength grants <font color='#3f3f3f'>3.00%</font>/<font color='#3f3f3f'>4.00%</font>/<font color='#3f3f3f'>5.00%</font> life leech against debuffed creatures.",
-                "1": "Expose Weakness grants <font color='#ffffff'>1.00%</font>/<font color='#3f3f3f'>2.00%</font>/<font color='#3f3f3f'>3.00%</font> mana leech and Sap Strength grants <font color='#ffffff'>3.00%</font>/<font color='#3f3f3f'>4.00%</font>/<font color='#3f3f3f'>5.00%</font> life leech against debuffed creatures.",
-                "2": "Expose Weakness grants <font color='#3f3f3f'>1.00%</font>/<font color='#ffffff'>2.00%</font>/<font color='#3f3f3f'>3.00%</font> mana leech and Sap Strength grants <font color='#3f3f3f'>3.00%</font>/<font color='#ffffff'>4.00%</font>/<font color='#3f3f3f'>5.00%</font> life leech against debuffed creatures.",
-                "3": "Expose Weakness grants <font color='#3f3f3f'>1.00%</font>/<font color='#3f3f3f'>2.00%</font>/<font color='#ffffff'>3.00%</font> mana leech and Sap Strength grants <font color='#3f3f3f'>3.00%</font>/<font color='#3f3f3f'>4.00%</font>/<font color='#ffffff'>5.00%</font> life leech against debuffed creatures."
+                "0": "Grants <font color='#3f3f3f'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#3f3f3f'>4%</font> more fire damage for Master of Flames, <font color='#3f3f3f'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#3f3f3f'>4%</font> more critical hit chance for Master of Thunder and <font color='#3f3f3f'>15%</font>/<font color='#3f3f3f'>22.5%</font>/<font color='#3f3f3f'>30%</font> more critical damage for Master of Decay.",
+                "1": "Grants <font color='#ffffff'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#3f3f3f'>4%</font> more fire damage for Master of Flames, <font color='#ffffff'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#3f3f3f'>4%</font> more critical hit chance for Master of Thunder and <font color='#ffffff'>15%</font>/<font color='#3f3f3f'>22.5%</font>/<font color='#3f3f3f'>30%</font> more critical damage for Master of Decay.",
+                "2": "Grants <font color='#3f3f3f'>2%</font>/<font color='#ffffff'>3%</font>/<font color='#3f3f3f'>4%</font> more fire damage for Master of Flames, <font color='#3f3f3f'>2%</font>/<font color='#ffffff'>3%</font>/<font color='#3f3f3f'>4%</font> more critical hit chance for Master of Thunder and <font color='#3f3f3f'>15%</font>/<font color='#ffffff'>22.5%</font>/<font color='#3f3f3f'>30%</font> more critical damage for Master of Decay.",
+                "3": "Grants <font color='#3f3f3f'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#ffffff'>4%</font> more fire damage for Master of Flames, <font color='#3f3f3f'>2%</font>/<font color='#3f3f3f'>3%</font>/<font color='#ffffff'>4%</font> more critical hit chance for Master of Thunder and <font color='#3f3f3f'>15%</font>/<font color='#3f3f3f'>22.5%</font>/<font color='#ffffff'>30%</font> more critical damage for Master of Decay."
             },
-            "Name": "Drain Body",
-            "ShortInfo": "Improve your crippling spells by adding mana or life leech to them."
+            "Name": "Lord of Destruction",
+            "ShortInfo": "Improve damage, critical hit chance and critical damage for spells with the damage type of your elemental stance."
         },
         "9": {
             "LongInfoPerLevel": {
@@ -4015,15 +4015,15 @@
         },
         "58": {
             "EffectInfo": {
-                "0": "+150 Drain Body",
-                "1": "+165 Drain Body",
-                "2": "+180 Drain Body",
-                "3": "+225 Drain Body"
+                "0": "+150 Lord of Destruction",
+                "1": "+165 Lord of Destruction",
+                "2": "+180 Lord of Destruction",
+                "3": "+225 Lord of Destruction"
             },
             "EffectInfoSummary": "The Revelation Mastery bonus counts towards the promotion points distributed in the domain of the corresponding Revelation Perk.",
             "FormatType": "PlusInteger",
             "Name": "Revelation Mastery",
-            "NameSummary": "Revelation Mastery Drain Body|RM Drain Body",
+            "NameSummary": "Revelation Mastery Lord of Destruction|RM Lord of Destruction",
             "SummaryPriority": 10
         },
         "59": {
