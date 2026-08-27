@@ -139,9 +139,11 @@ function startup()
 	scheduleEvent(finishStartup, STARTUP_LOADING_DELAY_MS)
 
 	if g_sounds then
+		-- Framework-level, not an option: the platform layer flips this when the
+		-- app is backgrounded. The official client has no audio-enabled setting -
+		-- silence is Master Volume 0, and the music channel is gated by Music
+		-- Volume alone.
 		g_sounds.setAudioEnabled(true)
-		g_settings.set("enableAudio", true)
-		g_sounds.getChannel(SoundChannels.Music):setEnabled(g_settings.getBoolean("enableMusicSound"))
 	end
 end
 

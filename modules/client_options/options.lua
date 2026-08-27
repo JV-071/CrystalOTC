@@ -689,6 +689,20 @@ local function toggleOption(key)
 	setOption(key, not getOption(key))
 end
 
+-- The official client's "Sound: Mute/unmute". It has no audio-enabled flag:
+-- muting drops Master Volume to 0 after parking the old value, and unmuting
+-- puts that value back.
+function toggleSoundMute()
+	local current = getOption("masterVolume") or 0
+
+	if current ~= 0 then
+		setOption("masterVolumeOld", current)
+		setOption("masterVolume", 0)
+	else
+		setOption("masterVolume", getOption("masterVolumeOld") or 100)
+	end
+end
+
 function toggleAdvancedMode(enabled)
 	if enabled == isAdvancedMode and controller.ui.optionsTabBar:getChildCount() > 0 then
 		return
@@ -2054,10 +2068,36 @@ function resetGameWindowOptions()
 	end
 end
 
+-- enableAudio and enableMusicSound were this client's own inventions: the
+-- official one has no audio-enabled flag and no music-enabled flag. Silence is
+-- Master Volume 0 (parked in masterVolumeOld) and music off is Music Volume 0.
+-- Drop the dead keys so an old profile does not keep carrying them.
+local function dropRetiredAudioFlags()
+	local removed = false
+
+	for _, key in ipairs({
+		"enableAudio",
+		"enableMusicSound"
+	}) do
+		if g_settings.exists(key) then
+			g_settings.remove(key)
+
+			removed = true
+		end
+	end
+
+	-- Written out now rather than at exit: a client that is killed rather than
+	-- quit would otherwise keep the dead keys forever.
+	if removed then
+		g_settings.save()
+	end
+end
+
 local function setup()
 	panels.gameMapPanel = modules.game_interface.getMapPanel()
 
 	migrateGameWindowScreenMessageKeys()
+	dropRetiredAudioFlags()
 	setupComboBox()
 	setupOptionsCheckboxes()
 	setupShortcuts()
@@ -2067,10 +2107,7 @@ local function setup()
 		local v = obj.value
 
 		if type(v) == "boolean" then
-			if k == "enableAudio" then
-				g_settings.set("enableAudio", true)
-				setOption(k, true, true)
-			elseif k == "showCustomisableStatusBars" then
+			if k == "showCustomisableStatusBars" then
 				local dim = g_settings.getString("statsbar_dimension")
 				local visible = dim ~= "hide"
 
@@ -2230,9 +2267,7 @@ function controller:onInit()
 		g_settings.setDefault(k, obj.value)
 	end
 
-	extraWidgets.audioButton = modules.client_topmenu.addTopRightToggleButton("audioButton", tr("Music"), "/images/topbuttons/button_mute_up", function()
-		toggleOption("enableMusicSound")
-	end)
+	extraWidgets.audioButton = modules.client_topmenu.addTopRightToggleButton("audioButton", tr("Sound"), "/images/topbuttons/button_mute_up", toggleSoundMute)
 	extraWidgets.optionsButton = modules.client_topmenu.addTopRightOptionsButton("optionsButton", tr("Options"), toggle)
 	extraWidgets.logoutButton = modules.client_topmenu.addTopRightLogoutButton("logoutButton", tr("Exit"), toggle)
 
@@ -2310,13 +2345,11 @@ function controller:onInit()
 			callback = toggleDisplays
 		}
 	})
-	Keybind.new("Sound", "Mute/unmute music", "", "")
-	Keybind.bind("Sound", "Mute/unmute music", {
+	Keybind.new("Sound", "Mute/unmute", "", "")
+	Keybind.bind("Sound", "Mute/unmute", {
 		{
 			type = KEY_DOWN,
-			callback = function()
-				toggleOption("enableMusicSound")
-			end
+			callback = toggleSoundMute
 		}
 	})
 	Keybind.new("UI", "Open Custom Hotkeys", "Ctrl+K", "")
@@ -2354,7 +2387,7 @@ function controller:onTerminate()
 	Keybind.delete("UI", "Toggle Fullscreen")
 	Keybind.delete("UI", "Show/hide Creature Names and Bars")
 	Keybind.delete("UI", "Show/hide FPS / lag indicator")
-	Keybind.delete("Sound", "Mute/unmute music")
+	Keybind.delete("Sound", "Mute/unmute")
 	Keybind.delete("UI", "Open Custom Hotkeys")
 	Keybind.delete("UI", "Switch Hotkey Preset")
 	terminate_custom_hotkeys()

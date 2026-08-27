@@ -672,31 +672,12 @@ return {
 			g_app.setMaxFps(value)
 		end
 	},
-	enableAudio = {
-		value = true,
-		action = function(value, options, controller, panels, extraWidgets)
-			if g_sounds then
-				g_sounds.setAudioEnabled(value)
-			end
-		end
-	},
-	enableMusicSound = {
-		value = true,
-		action = function(value, options, controller, panels, extraWidgets)
-			if g_sounds then
-				g_sounds.getChannel(SoundChannels.Music):setEnabled(value)
-			end
-
-			if extraWidgets.audioButton then
-				extraWidgets.audioButton:setOn(not value)
-
-				if value then
-					extraWidgets.audioButton:setIcon("/images/topbuttons/button_mute_up")
-				else
-					extraWidgets.audioButton:setIcon("/images/topbuttons/button_mute_pressed")
-				end
-			end
-		end
+	-- The volume the mute action parks the master slider's value in, so
+	-- unmuting restores what the player had rather than a fixed 100. The
+	-- official client stores exactly this, as soundMasterVolumeOld; it has no
+	-- widget of its own on any page.
+	masterVolumeOld = {
+		value = 100
 	},
 	-- The official client's Sound Device combo. "auto" is its "(auto-select)"
 	-- entry and the only value that follows the operating system's default
@@ -741,6 +722,17 @@ return {
 			end
 
 			setAllUISoundState(value > 0 and true or false)
+
+			-- Master Volume 0 is what "muted" means in the official client, so
+			-- the top-menu button reads its state from here rather than from a
+			-- separate flag.
+			if extraWidgets.audioButton then
+				local muted = value == 0
+
+				extraWidgets.audioButton:setOn(muted)
+				extraWidgets.audioButton:setIcon(muted and "/images/topbuttons/button_mute_pressed" or
+					"/images/topbuttons/button_mute_up")
+			end
 
 			local state = ""
 
