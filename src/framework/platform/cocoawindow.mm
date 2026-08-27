@@ -591,8 +591,20 @@ void CocoaWindow::poll()
 
         // NSPasteboard is main-thread work, but getClipboardText() is called from the map
         // thread (uitextedit). Snapshot it here instead.
-        NSString* pasted = [[NSPasteboard generalPasteboard] stringForType:NSPasteboardTypeString];
-        m_clipboardCache = pasted ? stdext::utf8_to_latin1(std::string([pasted UTF8String] ?: "")) : "";
+        //
+        // Gated on changeCount, and that gate is load-bearing rather than an optimisation.
+        // setClipboardText() updates m_clipboardCache immediately but can only write the board
+        // itself from a queued main-thread event; this loop runs every frame, so an
+        // unconditional re-read would overwrite the just-cut text with the board's previous
+        // contents before that write ever landed -- Cmd+X followed by Cmd+V pasted whatever
+        // had been on the clipboard beforehand.
+        NSPasteboard* board = [NSPasteboard generalPasteboard];
+        if (const long changeCount = static_cast<long>([board changeCount]);
+            changeCount != m_pasteboardChangeCount) {
+            m_pasteboardChangeCount = changeCount;
+            NSString* pasted = [board stringForType:NSPasteboardTypeString];
+            m_clipboardCache = pasted ? stdext::utf8_to_latin1(std::string([pasted UTF8String] ?: "")) : "";
+        }
 
         internalApplyPendingGeometry();
 

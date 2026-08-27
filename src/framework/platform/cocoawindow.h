@@ -172,6 +172,11 @@ private:
     // Refreshed in poll(), because getClipboardText() is called from the map thread and
     // NSPasteboard must not be touched from there.
     std::string m_clipboardCache;
+    // NSPasteboard's changeCount at the last snapshot, so poll() only re-reads the board when
+    // something actually wrote to it. Without this, poll() clobbers the value setClipboardText
+    // just cached, before that value's own asynchronous write to the board has landed.
+    // -1 is "never snapshotted"; a real changeCount is never negative.
+    long m_pasteboardChangeCount{ -1 };
 
     friend struct CocoaWindowImpl;
 };
