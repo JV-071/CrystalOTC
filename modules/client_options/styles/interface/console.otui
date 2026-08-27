@@ -75,6 +75,18 @@ UIWidget
     height: 22
   
     OptionCheckBox
+      id: showTimestampsSecondsInConsole
+      !text: tr('Show seconds in timestamps')
+      !tooltip: tr('If this option is checked in addition to "Show Timestamps", the timestamps added to messages will include hours, minutes and seconds.')
+
+  SmallReversedQtPanel
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: prev.bottom
+    margin-top: 7
+    height: 22
+
+    OptionCheckBox
       id: showLevelsInConsole
       !text: tr('Show levels')
 

@@ -233,6 +233,22 @@ function updateBigMouseCursorAvailability(panelsArg, useNativeMouseCursor)
 	end
 end
 
+-- "Show Seconds in Timestamps" only means anything while timestamps are on, so it follows the
+-- master checkbox the way the official client's enabled: binding does.
+function updateTimestampSecondsAvailability(panelsArg, showTimestamps)
+	local p = panelsArg or panels
+
+	if not p or not p.interfaceConsole then
+		return
+	end
+
+	local secondsWidget = p.interfaceConsole:recursiveGetChildById("showTimestampsSecondsInConsole")
+
+	if secondsWidget then
+		secondsWidget:setEnabled(showTimestamps)
+	end
+end
+
 -- The graphics-engine option, keyed by the STABLE id stored in the profile rather than by list
 -- position, so filtering the list per platform never renumbers a saved value.
 --
@@ -2178,6 +2194,7 @@ local function setup()
 	updateShowExpiryOnUnusedAvailability(panels, getOption("showExpiryInContainers"))
 	updateBigMouseCursorAvailability(panels, getOption("useNativeMouseCursor"))
 	updateHudDependencyAvailability(panels, getOption("showHudForOwnCharacter"), getOption("showHudForOtherCreatures"))
+	updateTimestampSecondsAvailability(panels, getOption("showTimestampsInConsole"))
 
 	if modules.game_healthcircle and modules.game_healthcircle.syncManaShieldHudOptions then
 		modules.game_healthcircle.syncManaShieldHudOptions(options)
@@ -2505,6 +2522,7 @@ function revertDeferredOptions()
 	updateShowExpiryOnUnusedAvailability(panels, options.showExpiryInContainers.value)
 	updateBigMouseCursorAvailability(panels, options.useNativeMouseCursor.value)
 	updateHudDependencyAvailability(panels, options.showHudForOwnCharacter.value, options.showHudForOtherCreatures.value)
+	updateTimestampSecondsAvailability(panels, options.showTimestampsInConsole.value)
 
 	if options.conditionsDisplaySettings then
 		refreshConditionsListUi(panels, options.conditionsDisplaySettings.value)
@@ -2805,6 +2823,10 @@ function setOption(key, value, force)
 
 		if key == "useNativeMouseCursor" then
 			updateBigMouseCursorAvailability(panels, value)
+		end
+
+		if key == "showTimestampsInConsole" then
+			updateTimestampSecondsAvailability(panels, value)
 		end
 
 		if key == "showHudForOwnCharacter" or key == "showHudForOtherCreatures" or key == "showOwnBars" or key == "showManaShield" or key == "showOwnHarmony" then

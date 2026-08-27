@@ -168,7 +168,18 @@ return {
 	showOthersStatusMessagesInConsole = false,
 	showPrivateMessagesInConsole = true,
 	showLevelsInConsole = true,
-	showTimestampsInConsole = true,
+	showTimestampsInConsole = {
+		deferAction = true,
+		value = true,
+		action = function(value, options, controller, panels, extraWidgets)
+			if modules.client_options and modules.client_options.updateTimestampSecondsAvailability then
+				modules.client_options.updateTimestampSecondsAvailability(panels, value)
+			end
+		end
+	},
+	-- Seconds are an extension of the timestamp, not a timestamp of their own: the official client
+	-- greys this out until "Show Timestamps" is ticked and then widens HH:mm to HH:mm:ss.
+	showTimestampsSecondsInConsole = false,
 	actionBarBottomLocked = false,
 	actionBarRightLocked = false,
 	bottomBarsBar1 = true,

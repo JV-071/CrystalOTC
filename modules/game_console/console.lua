@@ -2328,7 +2328,9 @@ function addTabText(text, speaktype, tab, creatureName, statementId)
 	end
 
 	if modules.client_options.getOption("showTimestampsInConsole") then
-		text = os.date("%H:%M") .. " " .. text
+		local format = modules.client_options.getOption("showTimestampsSecondsInConsole") and "%H:%M:%S" or "%H:%M"
+
+		text = os.date(format) .. " " .. text
 	end
 
 	local panel = consoleTabBar:getTabPanel(tab)
