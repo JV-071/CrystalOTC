@@ -193,7 +193,9 @@ public:
     Point getMousePosition() { return m_inputEvent.mousePos; }
     int getKeyboardModifiers() { return m_inputEvent.keyboardModifiers; }
 
-    bool isKeyPressed(const Fw::Key keyCode) { return m_keyInfo[keyCode].state; }
+    // Bounds-checked because this is bound straight into Lua, and const.lua declares key
+    // codes up to 167 (KeyNumpadDivide) while m_keyInfo only has Fw::KeyLast entries.
+    bool isKeyPressed(const Fw::Key keyCode) { return keyCode < Fw::KeyLast && m_keyInfo[keyCode].state; }
     bool isMouseButtonPressed(const Fw::MouseButton mouseButton)
     { if (mouseButton == Fw::MouseNoButton) return m_mouseButtonStates != 0; return (m_mouseButtonStates & (1u << mouseButton)) == (1u << mouseButton); }
     bool isVisible() { return m_visible; }

@@ -85,27 +85,52 @@ void PlatformWindow::updateUnmaximizedCoords()
     }
 }
 
+// Which logical modifier bit a physical modifier key raises.
+//
+//   key press        | Windows / Linux   | macOS
+//   -----------------+-------------------+------------------
+//   Ctrl             | Ctrl              | Meta
+//   Command / Super  | Meta              | Ctrl
+//   Alt / Option     | Alt               | Alt
+//   Shift            | Shift             | Shift
+//
+// macOS swaps Command and Control exactly the way Qt does (Qt::AA_MacDontSwapCtrlAndMeta
+// defaults to false), and that is not an arbitrary choice: the official client is a Qt
+// application that stores every binding as portable text -- its shipped defaults are
+// literally "Ctrl+B", "Ctrl+F", "Ctrl+K" -- and lets Qt resolve "Ctrl" to Command on macOS.
+// Matching that convention means one stored keybind string means the same *gesture* on every
+// platform, so nothing has to be migrated and Cmd+C/V/X/A land on the Ctrl-modifier branch
+// in UITextEdit for free.
+//
+// Every modifier now returns early on every platform. Previously Option (macOS) and the
+// Super key (Windows/Linux) matched no branch here, fell through to the ordinary-key path,
+// and auto-repeated through fireKeysPress() for as long as they were held.
+static uint8_t modifierBitFor(const Fw::Key keyCode)
+{
+    switch (keyCode) {
+#if defined(__APPLE__)
+        case Fw::KeyCtrl: return Fw::KeyboardMetaModifier;
+        case Fw::KeyMeta: return Fw::KeyboardCtrlModifier;
+#else
+        case Fw::KeyCtrl: return Fw::KeyboardCtrlModifier;
+        // TODO(linux): x11window.cpp only maps XK_Meta_L/R, which virtually no keyboard
+        // emits -- the Windows key is XK_Super_L/R and is not in the keymap at all, so this
+        // branch is unreachable there until those two keysyms are added.
+        case Fw::KeyMeta: return Fw::KeyboardMetaModifier;
+#endif
+        case Fw::KeyAlt: return Fw::KeyboardAltModifier;
+        case Fw::KeyShift: return Fw::KeyboardShiftModifier;
+        default: return Fw::KeyboardNoModifier;
+    }
+}
+
 void PlatformWindow::processKeyDown(Fw::Key keyCode)
 {
     if (keyCode == Fw::KeyUnknown)
         return;
 
-    if (keyCode == Fw::KeyCtrl) {
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardCtrlModifier;
-        return;
-#if defined(__APPLE__)
-    } else if (keyCode == Fw::KeyMeta) {
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
-        return;
-#else
-    }
-    if (keyCode == Fw::KeyAlt) {
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardAltModifier;
-        return;
-#endif
-    }
-    if (keyCode == Fw::KeyShift) {
-        m_inputEvent.keyboardModifiers |= Fw::KeyboardShiftModifier;
+    if (const uint8_t modifier = modifierBitFor(keyCode); modifier != Fw::KeyboardNoModifier) {
+        m_inputEvent.keyboardModifiers |= modifier;
         return;
     }
 
@@ -135,24 +160,11 @@ void PlatformWindow::processKeyUp(Fw::Key keyCode)
     if (keyCode == Fw::KeyUnknown)
         return;
 
-    if (keyCode == Fw::KeyCtrl) {
-        m_inputEvent.keyboardModifiers &= ~Fw::KeyboardCtrlModifier;
-        return;
-#if defined(__APPLE__)
-    } else if (keyCode == Fw::KeyMeta) {
-        m_inputEvent.keyboardModifiers &= ~Fw::KeyboardAltModifier;
-        return;
-#else
-    }
-    if (keyCode == Fw::KeyAlt) {
-        m_inputEvent.keyboardModifiers &= ~Fw::KeyboardAltModifier;
-        return;
-#endif
-    }
-    if (keyCode == Fw::KeyShift) {
-        m_inputEvent.keyboardModifiers &= ~Fw::KeyboardShiftModifier;
+    if (const uint8_t modifier = modifierBitFor(keyCode); modifier != Fw::KeyboardNoModifier) {
+        m_inputEvent.keyboardModifiers &= ~modifier;
         return;
     }
+
     if (keyCode == Fw::KeyNumLock) {
         for (uint8_t k = Fw::KeyNumpad0; k <= Fw::KeyNumpad9; ++k) {
             if (m_keyInfo[static_cast<Fw::Key>(k)].state)

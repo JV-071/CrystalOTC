@@ -298,25 +298,25 @@ function determineKeyComboDesc(keyCode, keyboardModifiers, keyText)
 	if keyCode == KeyCtrl or keyCode == KeyShift or keyCode == KeyAlt then
 		table.insert(keyCombo, keyCode)
 	elseif keyText then
-		if keyboardModifiers == KeyboardCtrlModifier then
+		-- Bit tests rather than an equality chain over the seven Ctrl/Alt/Shift combinations.
+		-- KeyboardMetaModifier is a fourth bit now, and exact comparison would have produced
+		-- no modifier prefix at all whenever it was set -- on macOS that is any combo held
+		-- with the physical Control key. Order is Ctrl, Alt, Shift so the seven pre-existing
+		-- combinations still serialise byte-for-byte identically; Meta is appended last.
+		if bit.band(keyboardModifiers, KeyboardCtrlModifier) ~= 0 then
 			table.insert(keyCombo, KeyCtrl)
-		elseif keyboardModifiers == KeyboardAltModifier then
+		end
+
+		if bit.band(keyboardModifiers, KeyboardAltModifier) ~= 0 then
 			table.insert(keyCombo, KeyAlt)
-		elseif keyboardModifiers == KeyboardCtrlAltModifier then
-			table.insert(keyCombo, KeyCtrl)
-			table.insert(keyCombo, KeyAlt)
-		elseif keyboardModifiers == KeyboardShiftModifier then
+		end
+
+		if bit.band(keyboardModifiers, KeyboardShiftModifier) ~= 0 then
 			table.insert(keyCombo, KeyShift)
-		elseif keyboardModifiers == KeyboardCtrlShiftModifier then
-			table.insert(keyCombo, KeyCtrl)
-			table.insert(keyCombo, KeyShift)
-		elseif keyboardModifiers == KeyboardAltShiftModifier then
-			table.insert(keyCombo, KeyAlt)
-			table.insert(keyCombo, KeyShift)
-		elseif keyboardModifiers == KeyboardCtrlAltShiftModifier then
-			table.insert(keyCombo, KeyCtrl)
-			table.insert(keyCombo, KeyAlt)
-			table.insert(keyCombo, KeyShift)
+		end
+
+		if bit.band(keyboardModifiers, KeyboardMetaModifier) ~= 0 then
+			table.insert(keyCombo, KeyMeta)
 		end
 
 		table.insert(keyCombo, keyText)
@@ -564,8 +564,13 @@ function g_keyboard.isKeySetPressed(keys, all)
 end
 
 function g_keyboard.isInUse()
-	for i = FirstKey, LastKey do
-		if g_window.isKeyPressed(key) then
+	-- Two bugs lived here: the loop tested an undefined global `key` instead of `i`, so this
+	-- always returned false, and it ran to LastKey (167). The C++ Fw::Key enum stops at
+	-- KeyNumpad9 (150), so simply passing `i` through would have indexed past the end of
+	-- PlatformWindow::m_keyInfo -- that read is bounds-checked now, but stop at the last code
+	-- a platform window can actually deliver rather than relying on it.
+	for i = FirstKey, KeyNumpad9 do
+		if g_window.isKeyPressed(i) then
 			return true
 		end
 	end
@@ -594,5 +599,15 @@ function g_keyboard.isShiftPressed()
 		return false
 	else
 		return bit.band(g_window.getKeyboardModifiers(), KeyboardShiftModifier) ~= 0
+	end
+end
+
+-- The Windows/Super key on Windows and Linux, the physical Control key on macOS. Nothing
+-- binds it; it is here so callers can tell "no modifier" from "a modifier we ignore".
+function g_keyboard.isMetaPressed()
+	if g_platform.isMobile() then
+		return false
+	else
+		return bit.band(g_window.getKeyboardModifiers(), KeyboardMetaModifier) ~= 0
 	end
 end

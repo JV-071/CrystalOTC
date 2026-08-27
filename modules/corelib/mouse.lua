@@ -144,6 +144,14 @@ local function modifiersToHotkeyPrefix(keyboardModifiers)
 		table.insert(parts, "Shift")
 	end
 
+	-- Same order and same trailing position for Meta as determineKeyComboDesc, so a mouse
+	-- hotkey desc and a key hotkey desc agree. Without this a modifier the user is actually
+	-- holding would be dropped: on macOS the physical Control key raises the Meta bit, and a
+	-- Ctrl+middle-click would have fired the plain "MouseMiddle" binding.
+	if bit.band(keyboardModifiers, KeyboardMetaModifier) ~= 0 then
+		table.insert(parts, "Meta")
+	end
+
 	if #parts == 0 then
 		return ""
 	end

@@ -1122,9 +1122,13 @@ void CocoaWindow::handleTextInput(const std::string& utf8Text)
     if (!m_onInputEvent || utf8Text.empty())
         return;
 
-    // Mirrors X11Window: no text while Ctrl or the Alt-equivalent modifier is held, and no
-    // control characters. Command is the Alt-equivalent on this platform.
-    if (m_inputEvent.keyboardModifiers & (Fw::KeyboardCtrlModifier | Fw::KeyboardAltModifier))
+    // Which modifiers suppress text is genuinely platform-specific, so this deliberately does
+    // NOT mirror X11Window's Ctrl|Alt test. On macOS, Option is the compose key -- Opt+O is
+    // "o-slash", Opt+E then E is an acute e -- and AppKit has already folded that into the
+    // string handed to insertText:, so blocking on the Alt bit would break accented input.
+    // Command and Control are the two that never produce text, and after the swap in
+    // PlatformWindow::processKeyDown those are the Ctrl and Meta bits respectively.
+    if (m_inputEvent.keyboardModifiers & (Fw::KeyboardCtrlModifier | Fw::KeyboardMetaModifier))
         return;
 
     const std::string text = stdext::utf8_to_latin1(utf8Text);

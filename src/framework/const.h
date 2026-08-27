@@ -272,12 +272,19 @@ namespace Fw
         MouseWheelDown
     };
 
+    // These are the *logical* modifiers a key combo is written in, not the physical keys.
+    // PlatformWindow::processKeyDown decides which physical key raises which bit, and on
+    // macOS it swaps Command and Control the way Qt does -- see the table there.
     enum KeyboardModifier : uint8_t
     {
         KeyboardNoModifier = 0,
         KeyboardCtrlModifier = 1,
         KeyboardAltModifier = 2,
-        KeyboardShiftModifier = 4
+        KeyboardShiftModifier = 4,
+        // Raised by the Windows/Super key on Windows and Linux, and by the physical Control
+        // key on macOS. Nothing binds it today; it exists so those keys stop falling through
+        // to the ordinary-key path and auto-repeating as if they were letters.
+        KeyboardMetaModifier = 8
     };
 
     enum WidgetState : int32_t

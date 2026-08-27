@@ -38,6 +38,10 @@ KeyboardShiftModifier = 4
 KeyboardCtrlShiftModifier = 5
 KeyboardAltShiftModifier = 6
 KeyboardCtrlAltShiftModifier = 7
+-- Raised by the Windows/Super key on Windows and Linux, and by the physical Control key on
+-- macOS, where Command takes over the Ctrl bit. Mirrors Fw::KeyboardMetaModifier in
+-- src/framework/const.h; see modifierBitFor() in platformwindow.cpp for the full table.
+KeyboardMetaModifier = 8
 MouseNoButton = 0
 MouseLeftButton = 1
 MouseRightButton = 2
