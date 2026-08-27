@@ -184,7 +184,7 @@ void PlatformWindow::processKeyUp(Fw::Key keyCode)
     }
 }
 
-void PlatformWindow::releaseAllKeys()
+void PlatformWindow::releaseAllPressedKeys()
 {
     for (size_t keyCode = 0; keyCode < Fw::KeyLast; ++keyCode) {
         const bool pressed = m_keyInfo[keyCode].state;
@@ -193,6 +193,11 @@ void PlatformWindow::releaseAllKeys()
 
         processKeyUp(static_cast<Fw::Key>(keyCode));
     }
+}
+
+void PlatformWindow::releaseAllKeys()
+{
+    releaseAllPressedKeys();
 
     m_inputEvent.keyboardModifiers = 0;
     m_mouseButtonStates = 0;

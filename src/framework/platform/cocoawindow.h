@@ -128,7 +128,7 @@ public:
     void onWindowCloseRequested();
     void onBackingPropertiesChanged();
 
-    void handleKey(int virtualKeyCode, bool pressed);
+    void handleKey(int virtualKeyCode, bool pressed, bool commandHeld = false);
     void handleFlagsChanged(unsigned long modifierFlags);
     void handleTextInput(const std::string& utf8Text);
     void handleMouseButton(int button, bool pressed);

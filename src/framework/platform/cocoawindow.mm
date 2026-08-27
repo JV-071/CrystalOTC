@@ -169,7 +169,8 @@ struct CocoaWindowImpl
     // isARepeat is dropped: PlatformWindow synthesises its own repeat from fireKeysPress(),
     // and letting the OS repeat through would double it.
     if (![event isARepeat])
-        owner->handleKey([event keyCode], true);
+        owner->handleKey([event keyCode], true,
+                         ([event modifierFlags] & NSEventModifierFlagCommand) != 0);
 
     // Routes to insertText:replacementRange: below, and gives dead keys and IME candidate
     // windows a chance to compose. This is the NSTextInputClient counterpart of X11's XIC.
@@ -1103,23 +1104,39 @@ void CocoaWindow::onBackingPropertiesChanged()
 
 // --- input ---------------------------------------------------------------------------------
 
-void CocoaWindow::handleKey(const int virtualKeyCode, const bool pressed)
+void CocoaWindow::handleKey(const int virtualKeyCode, const bool pressed, const bool commandHeld)
 {
     Fw::Key key = Fw::KeyUnknown;
     if (const auto it = m_keyMap.find(virtualKeyCode); it != m_keyMap.end())
         key = it->second;
 
-    if (pressed)
-        processKeyDown(key);
-    else
+    if (!pressed) {
+        processKeyUp(key);
+        return;
+    }
+
+    processKeyDown(key);
+
+    // AppKit does not deliver keyUp: for a key pressed while Command is held -- the release
+    // simply never arrives. Without this the key stays logically down in m_keyInfo forever:
+    // fireKeysPress() keeps repeating it, so the character turns on the spot while Command is
+    // down and then walks away on its own the moment Command is released, because the repeat
+    // continues with the modifier gone.
+    //
+    // Closing the press immediately is right rather than merely expedient: a Command chord on
+    // macOS is always a discrete command, never something held, so one press is one action.
+    // Keys pressed *before* Command went down are handled in handleFlagsChanged().
+    if (commandHeld)
         processKeyUp(key);
 }
 
 void CocoaWindow::handleFlagsChanged(const unsigned long modifierFlags)
 {
     // Cocoa reports modifiers as a state mask rather than as key events, so the transitions
-    // have to be synthesised. Note PlatformWindow maps Fw::KeyMeta (Command) onto
-    // Fw::KeyboardAltModifier on __APPLE__, and Fw::KeyAlt (Option) onto nothing.
+    // have to be synthesised. This function's job is only to name the physical key that
+    // changed; which logical modifier bit that raises is PlatformWindow's decision, and on
+    // macOS it swaps Command onto the Ctrl bit and Control onto the Meta bit -- see the
+    // table above modifierBitFor() in platformwindow.cpp.
     //
     // The previous mask is the only usable prior state: processKeyDown and processKeyUp
     // return early for modifier keys *before* touching m_keyInfo, so isKeyPressed() reads
@@ -1144,6 +1161,14 @@ void CocoaWindow::handleFlagsChanged(const unsigned long modifierFlags)
     sync(previous, modifierFlags, NSEventModifierFlagShift, Fw::KeyShift);
     sync(previous, modifierFlags, NSEventModifierFlagCommand, Fw::KeyMeta);
     sync(previous, modifierFlags, NSEventModifierFlagOption, Fw::KeyAlt);
+
+    // A key that was already down when Command was pressed still loses its keyUp: if it is
+    // released during the Command window, so on the way back out anything still logically
+    // held may well be physically up. Let it go. releaseAllPressedKeys() rather than
+    // releaseAllKeys() because Shift or Option may genuinely still be down, and zeroing the
+    // modifier mask here would drop them with no later transition to put them back.
+    if ((previous & NSEventModifierFlagCommand) != 0 && (modifierFlags & NSEventModifierFlagCommand) == 0)
+        releaseAllPressedKeys();
 }
 
 void CocoaWindow::handleTextInput(const std::string& utf8Text)

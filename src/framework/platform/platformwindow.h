@@ -224,6 +224,11 @@ protected:
     void processKeyDown(Fw::Key keyCode);
     void processKeyUp(Fw::Key keyCode);
     void releaseAllKeys();
+    // The key half of releaseAllKeys(), without clearing the modifier mask or the mouse
+    // button state. CocoaWindow needs exactly this: AppKit withholds keyUp: while Command is
+    // held, so on Command release anything still logically down has to be let go -- but the
+    // modifiers themselves are mid-transition at that point and must survive.
+    void releaseAllPressedKeys();
     void fireKeysPress();
 
     stdext::map<int, Fw::Key> m_keyMap;
