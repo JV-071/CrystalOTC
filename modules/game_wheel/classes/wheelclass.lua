@@ -537,7 +537,7 @@ function WheelOfDestiny.onMouseMove(widget, position, offset)
 			wheelOfDestinyWindow.info.tabContent.information.tabContent.conviction2:setColor("#707070")
 		end
 	elseif type(conviction) == "table" then
-		wheelOfDestinyWindow.info.tabContent.information.tabContent.conviction2:setColoredText(conviction)
+		wheelOfDestinyWindow.info.tabContent.information.tabContent.conviction2:setColoredText(wheelColoredText(conviction))
 	end
 
 	wheelPanel.focusSelectedWheel:setVisible(true)
@@ -1604,7 +1604,7 @@ function WheelOfDestiny.configureConviction(index)
 		end
 	elseif type(conviction) == "table" then
 		wheelOfDestinyWindow.selection.tabContent.conviction:setTooltip(tooltip)
-		wheelOfDestinyWindow.selection.tabContent.conviction:setColoredText(conviction)
+		wheelOfDestinyWindow.selection.tabContent.conviction:setColoredText(wheelColoredText(conviction))
 	end
 end
 
@@ -1651,7 +1651,7 @@ function WheelOfDestiny.configureConvictionPerk()
 
 	local convictions = getConvictionPerks()
 
-	if #convictions > 8 then
+	if table.size(convictions) > 8 then
 		wheelOfDestinyWindow.convictionPerks.tabContentScroll:setVisible(true)
 	end
 
@@ -3967,45 +3967,45 @@ function WheelOfDestiny.onGemVesselClick(domain)
 			decription, gemSlot1 = Workshop.getGemInformationByBonus(data.lesserBonus, false, data.gemID, 0)
 
 			setStringColor(text, decription, filledCount >= 1 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(wheelColoredText(text))
 		elseif data.gemType == 1 then
 			local text = {}
 
 			decription, gemSlot1 = Workshop.getGemInformationByBonus(data.lesserBonus, false, data.gemID, 0)
 
 			setStringColor(text, decription, filledCount >= 1 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(wheelColoredText(text))
 
 			text = {}
 			decription, gemSlot2 = Workshop.getGemInformationByBonus(data.regularBonus, false, data.gemID, 1)
 
 			setStringColor(text, decription, filledCount >= 2 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification1:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification1:setColoredText(wheelColoredText(text))
 		elseif data.gemType == 2 then
 			local text = {}
 
 			decription, gemSlot1 = Workshop.getGemInformationByBonus(data.lesserBonus, false, data.gemID, 0)
 
 			setStringColor(text, decription, filledCount >= 1 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification0:setColoredText(wheelColoredText(text))
 
 			text = {}
 			decription, gemSlot2 = Workshop.getGemInformationByBonus(data.regularBonus, false, data.gemID, 1)
 
 			setStringColor(text, decription, filledCount >= 2 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification1:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification1:setColoredText(wheelColoredText(text))
 
 			text = {}
 			decription, gemSlot3 = Workshop.getGemInformationByBonus(data.supremeBonus, true, data.gemID, 2)
 
 			setStringColor(text, decription, filledCount == 3 and "#c0c0c0" or "#707070")
-			wheelOfDestinyWindow.selection.gemContent.modification2:setColoredText(text)
+			wheelOfDestinyWindow.selection.gemContent.modification2:setColoredText(wheelColoredText(text))
 		end
 
 		local text = {}
 
 		setStringColor(text, tr("+%s Damage and Healing", data.gemType == 2 and 2 or 1), filledCount == 3 and "#c0c0c0" or "#707070")
-		wheelOfDestinyWindow.selection.gemContent.VRBonus:setColoredText(text)
+		wheelOfDestinyWindow.selection.gemContent.VRBonus:setColoredText(wheelColoredText(text))
 
 		local replaceStr = {
 			[0] = "�",
@@ -4029,7 +4029,7 @@ function WheelOfDestiny.onGemVesselClick(domain)
 			end
 		end
 
-		wheelOfDestinyWindow.selection.gemContent.gemName:setColoredText(coloredStr)
+		wheelOfDestinyWindow.selection.gemContent.gemName:setColoredText(wheelColoredText(coloredStr))
 	end
 end
 

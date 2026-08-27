@@ -426,6 +426,23 @@ local function secondSpellIsUnlocked(attribute)
 	return WheelOfDestiny.isLitFull(attribute[1]) and WheelOfDestiny.isLitFull(attribute[2])
 end
 
+-- UIWidget:setColoredText takes "{text, colour}" markup, not the {text, colour, ...} array that
+-- setStringColor builds. Passing the raw array casts to an empty string through lua_tolstring and
+-- the panel renders blank, which is what used to happen to every augment slice.
+function wheelColoredText(parts)
+	if type(parts) ~= "table" then
+		return parts or ""
+	end
+
+	local result = ""
+
+	for i = 1, #parts, 2 do
+		result = result .. "{" .. (parts[i] or "") .. ", " .. (parts[i + 1] or "#ffffff") .. "}"
+	end
+
+	return result
+end
+
 function getDedicationBonus(index)
 	local bonus = WheelBonus[index - 1]
 	local vocation = WheelOfDestiny.vocationId
