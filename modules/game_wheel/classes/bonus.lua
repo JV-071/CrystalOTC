@@ -448,7 +448,7 @@ WheelAugments = {
 			name = "Front Sweep",
 			short = "Aug. Front Sweep",
 			aug1 = "+40% Base Damage",
-			aug2 = "Affected area enlarged"
+			aug2 = "Shape enlarged to hit two additional squares to the sides, 5 in total"
 		},
 		{
 			name = "Ethereal Barrage",

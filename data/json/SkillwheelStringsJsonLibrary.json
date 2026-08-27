@@ -2984,8 +2984,8 @@
             "SummaryPriority": 1
         },
         "12": {
-            "Aug1Info": "Adds 5% life leech to this spell",
-            "Aug2Info": "+14% Base Damage",
+            "Aug1Info": "+40% Base Damage",
+            "Aug2Info": "Shape enlarged to hit two additional squares to the sides, 5 in total",
             "FormatType": "RomanNumerals",
             "Name": "Augmented Front Sweep|Aug. Front Sweep",
             "SummaryPriority": 1
