@@ -2260,6 +2260,222 @@ SpellInfo = {
 				7
 			}
 		},
+		["Blank Rune"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 1,
+			mana = 50,
+			level = 20,
+			needTarget = false,
+			words = "adori blank",
+			id = 34,
+			exhaustion = 2000,
+			name = "Blank Rune",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				1,
+				2,
+				3,
+				5,
+				6,
+				7
+			}
+		},
+		["Conjure Poisoned Arrow"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 2,
+			mana = 130,
+			level = 16,
+			needTarget = false,
+			words = "exevo con pox",
+			id = 48,
+			exhaustion = 2000,
+			name = "Conjure Poisoned Arrow",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				3,
+				7
+			}
+		},
+		["Conjure Bolt"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 2,
+			mana = 140,
+			level = 17,
+			needTarget = false,
+			words = "exevo con mort",
+			id = 79,
+			exhaustion = 2000,
+			name = "Conjure Bolt",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				3,
+				7
+			}
+		},
+		["Conjure Power Bolt"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 4,
+			mana = 700,
+			level = 59,
+			needTarget = false,
+			words = "exevo con vis",
+			id = 95,
+			exhaustion = 2000,
+			name = "Conjure Power Bolt",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+
+				7
+			}
+		},
+		["Conjure Sniper Arrow"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 3,
+			mana = 160,
+			level = 24,
+			needTarget = false,
+			words = "exevo con hur",
+			id = 108,
+			exhaustion = 2000,
+			name = "Conjure Sniper Arrow",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				3,
+				7
+			}
+		},
+		["Conjure Piercing Bolt"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 3,
+			mana = 180,
+			level = 33,
+			needTarget = false,
+			words = "exevo con grav",
+			id = 109,
+			exhaustion = 2000,
+			name = "Conjure Piercing Bolt",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				3,
+				7
+			}
+		},
+		["Enchant Staff"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 0,
+			mana = 80,
+			level = 41,
+			needTarget = false,
+			words = "exeta vis",
+			id = 170,
+			exhaustion = 2000,
+			name = "Enchant Staff",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+
+				5
+			}
+		},
+		["Conjure Royal Star"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 0,
+			mana = 1000,
+			level = 150,
+			needTarget = false,
+			words = "exevo gran con grav",
+			id = 191,
+			exhaustion = 2000,
+			name = "Conjure Royal Star",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				3,
+				7
+			}
+		},
+		["Expose Weakness"] = {
+			parameter = false,
+			type = "Instant",
+			soul = 0,
+			mana = 400,
+			level = 275,
+			needTarget = false,
+			words = "exori moe",
+			id = 243,
+			exhaustion = 12000,
+			name = "Expose Weakness",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000,
+				[6] = 12000
+			},
+			vocations = {
+				1,
+				5
+			}
+		},
+		["Sap Strength"] = {
+			parameter = false,
+			type = "Instant",
+			soul = 0,
+			mana = 300,
+			level = 275,
+			needTarget = false,
+			words = "exori kor",
+			id = 244,
+			exhaustion = 12000,
+			name = "Sap Strength",
+			premium = false,
+			range = 0,
+			group = {
+				[3] = 2000,
+				[6] = 12000
+			},
+			vocations = {
+				1,
+				5
+			}
+		},
 		Paralyze = {
 			maglevel = 18,
 			type = "Conjure",
@@ -4020,6 +4236,76 @@ SpellInfo = {
 				0
 			},
 			area = SpellAreas.AREA_SQUAREWAVE5
+		},
+		["Practise Magic Missile"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 0,
+			mana = 5,
+			level = 1,
+			needTarget = false,
+			words = "adori dis min vis",
+			id = 168,
+			range = 0,
+			exhaustion = 2000,
+			name = "Practise Magic Missile",
+			premium = false,
+			source = 3147,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+
+				0
+			}
+		},
+		["Lightest Missile"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 0,
+			mana = 6,
+			level = 1,
+			needTarget = false,
+			words = "adori infir vis",
+			id = 179,
+			range = 0,
+			exhaustion = 2000,
+			name = "Lightest Missile",
+			premium = false,
+			source = 3147,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				1,
+				2,
+				5,
+				6
+			}
+		},
+		["Light Stone Shower"] = {
+			parameter = false,
+			type = "Conjure",
+			soul = 3,
+			mana = 6,
+			level = 1,
+			needTarget = false,
+			words = "adori infir mas tera",
+			id = 180,
+			range = 0,
+			exhaustion = 2000,
+			name = "Light Stone Shower",
+			premium = false,
+			source = 3147,
+			group = {
+				[3] = 2000
+			},
+			vocations = {
+				1,
+				2,
+				5,
+				6
+			}
 		},
 		["Apprentice's Strike"] = {
 			parameter = false,
