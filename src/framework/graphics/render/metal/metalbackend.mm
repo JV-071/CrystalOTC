@@ -29,6 +29,7 @@
 #include "metalresources.h"
 
 #include <framework/core/logger.h>
+#include <framework/util/profiler.h>
 #include <framework/platform/platformwindow.h>
 
 #include <cstring>
@@ -476,10 +477,19 @@ bool MetalBackend::render(const RenderFrame& frame)
             m_impl->arenas.emplace(pass.arena, slices);
         }
 
-        for (const auto& pass : frame.passes)
-            m_impl->encodePass(commands, pass, screen);
+        {
+            PROFILE_ZONE(BackendEncode);
+            for (const auto& pass : frame.passes)
+                m_impl->encodePass(commands, pass, screen);
+        }
 
-        m_impl->present(commands, screen);
+        {
+            // Isolated because this is where the frame WAITS: nextDrawable blocks until the
+            // display releases one, so lumping it in with encoding makes CPU cost and vsync idle
+            // indistinguishable - which is exactly the confusion this profiler exists to end.
+            PROFILE_ZONE(GpuPresent);
+            m_impl->present(commands, screen);
+        }
         m_impl->context.endFrame(commands);
     }
 

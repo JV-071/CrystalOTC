@@ -66,6 +66,13 @@ struct DebugConfig
     // Periodic memory/renderer diagnostics ([gc], [mem], [boot], [vulkan] frame stats).
     // Off by default - enable in config.ini ([debug] memoryLog = 1) when hunting RAM issues.
     bool memoryLog = false;
+
+    // Per-frame zone timings ([profiler]). Cheap enough to leave on for a whole session, but
+    // off by default because it writes a table to the log every interval.
+    //
+    // Toggle without restarting from the console: g_profiler.setEnabled(true).
+    bool profile = false;
+    uint32_t profileIntervalMs = 5000;
 };
 
 struct PublicConfig

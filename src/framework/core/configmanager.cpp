@@ -226,6 +226,9 @@ void ConfigManager::loadPublicConfig(const std::string& fileName) {
         m_publicConfig.font.itemCount = reader.Get("font", "item-count", m_publicConfig.font.itemCount);
 
         m_publicConfig.debug.memoryLog = reader.GetBoolean("debug", "memoryLog", m_publicConfig.debug.memoryLog);
+    m_publicConfig.debug.profile = reader.GetBoolean("debug", "profile", m_publicConfig.debug.profile);
+    m_publicConfig.debug.profileIntervalMs = static_cast<uint32_t>(
+        reader.GetInteger("debug", "profileIntervalMs", m_publicConfig.debug.profileIntervalMs));
     } catch (const std::exception& e) {
         g_logger.error("Failed to parse public config '{}': {}", fileName, e.what());
     }

@@ -32,6 +32,7 @@
 #include <framework/proxy/proxy.h>
 #include <framework/stdext/net.h>
 #include <framework/util/crypt.h>
+#include <framework/util/profiler.h>
 #include <framework/util/stats.h>
 
 #ifdef FRAMEWORK_GRAPHICS
@@ -138,6 +139,16 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_platform", "openDir", &Platform::openDir, &g_platform);
 
     // Application
+    // Frame profiler. Bound so a capture can be started and stopped from the console mid-session
+    // - the whole point of it is not having to rebuild the client to ask a timing question.
+    g_lua.registerSingletonClass("g_profiler");
+    g_lua.bindSingletonFunction("g_profiler", "setEnabled", &Profiler::setEnabled, &g_profiler);
+    g_lua.bindSingletonFunction("g_profiler", "isEnabled", &Profiler::isEnabled, &g_profiler);
+    g_lua.bindSingletonFunction("g_profiler", "setReportInterval", &Profiler::setReportInterval, &g_profiler);
+    g_lua.bindSingletonFunction("g_profiler", "getReportInterval", &Profiler::getReportInterval, &g_profiler);
+    g_lua.bindSingletonFunction("g_profiler", "report", &Profiler::report, &g_profiler);
+    g_lua.bindSingletonFunction("g_profiler", "reset", &Profiler::reset, &g_profiler);
+
     g_lua.registerSingletonClass("g_app");
     g_lua.bindSingletonFunction("g_app", "setName", &Application::setName, static_cast<Application*>(&g_app));
     g_lua.bindSingletonFunction("g_app", "setCompactName", &Application::setCompactName, static_cast<Application*>(&g_app));
@@ -362,6 +373,7 @@ void Application::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_app", "setDrawEffectOnTop", &GraphicalApplication::setDrawEffectOnTop, &g_app);
 
     g_lua.bindSingletonFunction("g_app", "getFps", &GraphicalApplication::getFps, &g_app);
+    g_lua.bindSingletonFunction("g_app", "getFpsF", &GraphicalApplication::getFpsF, &g_app);
     g_lua.bindSingletonFunction("g_app", "getGraphicsFps", &GraphicalApplication::getGraphicsFps, &g_app);
     g_lua.bindSingletonFunction("g_app", "getProcessingFps", &GraphicalApplication::getProcessingFps, &g_app);
     g_lua.bindSingletonFunction("g_app", "getMaxFps", &GraphicalApplication::getMaxFps, &g_app);

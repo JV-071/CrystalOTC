@@ -21,6 +21,7 @@
  */
 
 #include "mapview.h"
+#include <framework/util/profiler.h>
 
 #include <framework/graphics/render/poolcompiler.h>
 
@@ -175,6 +176,7 @@ void MapView::registerEvents() {
 }
 
 void MapView::preLoad() {
+    PROFILE_ZONE(MapPreLoad);
     // update visible tiles cache when needed
     if (m_updateVisibleTiles)
         updateVisibleTiles();
@@ -343,6 +345,7 @@ void MapView::updateItemAmbientSounds()
 
 void MapView::drawFloor()
 {
+    PROFILE_ZONE(DrawFloor);
     updateAmbientFade();
 
     const auto& cameraPosition = m_posInfo.camera;
@@ -450,6 +453,7 @@ void MapView::drawFloor()
 }
 
 void MapView::drawLights() {
+    PROFILE_ZONE(DrawLights);
     const auto& cameraPosition = m_posInfo.camera;
 
     // Where light-grid cell (0,0) sits in the world. Inverting transformPositionTo2D leaves
@@ -504,6 +508,7 @@ void MapView::drawLights() {
 }
 
 void MapView::drawCreatureInformation() {
+    PROFILE_ZONE(DrawCreatureInfo);
     // This pool is drawn after the map framebuffer has already been blitted, so nothing in it
     // inherits the map's magnification. Track it explicitly, otherwise names and bars keep their
     // native size while the sprites under them grow, and shrink away to nothing on a large panel.
@@ -596,6 +601,7 @@ void MapView::drawForeground(const Rect& rect)
 
 void MapView::updateVisibleTiles()
 {
+    PROFILE_ZONE(UpdateVisibleTiles);
     // there is no tile to render on invalid positions
     if (!m_posInfo.camera.isValid())
         return;

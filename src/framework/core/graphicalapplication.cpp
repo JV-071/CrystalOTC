@@ -36,6 +36,8 @@
 #include "framework/input/mouse.h"
 #include "framework/ui/uimanager.h"
 #include <framework/util/stats.h>
+#include <framework/util/profiler.h>
+#include <framework/core/configmanager.h>
 
 #ifdef FRAMEWORK_SOUND
 #include <framework/sound/soundmanager.h>
@@ -101,6 +103,11 @@ void GraphicalApplication::init(std::vector<std::string>& args, ApplicationConte
 
     m_mapProcessFrameCounter.init();
     m_graphicFrameCounter.init();
+
+    const auto& debugConfig = g_configs.getPublicConfig().debug;
+    g_profiler.setReportInterval(debugConfig.profileIntervalMs);
+    if (debugConfig.profile)
+        g_profiler.setEnabled(true);
 }
 
 void GraphicalApplication::deinit()
@@ -316,6 +323,7 @@ void GraphicalApplication::run()
 
         // update screen pixels
         {
+            PROFILE_ZONE(Present);
             AUTO_STAT(STATS_RENDER, "SwapBuffers");
 
             // When the Vulkan context doesn't exist or dies along the way (drawFrame returns false
@@ -340,6 +348,11 @@ void GraphicalApplication::run()
             g_window.swapBuffers();
 #endif
         }
+
+        // Counted here rather than in the frame counter, which is a pacing device and skips
+        // ticks; the profiler needs the number of frames its samples were actually spread over.
+        g_profiler.countFrame();
+        g_profiler.poll();
 
         if (m_graphicFrameCounter.update()) {
             g_dispatcher.addEvent([this, fps = FPS()] {
@@ -374,6 +387,7 @@ void GraphicalApplication::poll()
 }
 void GraphicalApplication::mainPoll()
 {
+    PROFILE_ZONE(MainPoll);
     AUTO_STAT(STATS_MAIN, "MainPoll");
     {
         AUTO_STAT(STATS_MAIN, "ClockUpdate");

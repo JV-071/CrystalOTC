@@ -21,6 +21,7 @@
  */
 
 #include "drawpoolmanager.h"
+#include <framework/util/profiler.h>
 
 #include "graphics.h"
 #include "painter.h"
@@ -285,6 +286,8 @@ bool DrawPoolManager::shaderNeedFramebuffer() const { return getCurrentPool()->g
 
 void DrawPoolManager::draw()
 {
+    PROFILE_ZONE(FrameDraw);
+
     // One entry point, dispatching internally, so that the render loop above knows nothing
     // about which renderer is running and a declined frame falls back within the same tick
     // rather than being lost.
@@ -371,11 +374,17 @@ bool DrawPoolManager::drawFrame()
 
     prepareResources(programs);
 
-    m_frameAssembler.assemble(programs, m_atlasPrograms, m_size, PainterShaderProgram::currentTime(), m_frame);
-    bindFrameTargets(m_frame);
+    {
+        PROFILE_ZONE(FrameAssemble);
+        m_frameAssembler.assemble(programs, m_atlasPrograms, m_size, PainterShaderProgram::currentTime(), m_frame);
+        bindFrameTargets(m_frame);
+    }
 
-    if (!m_backend->render(m_frame))
-        return false;
+    {
+        PROFILE_ZONE(BackendRender);
+        if (!m_backend->render(m_frame))
+            return false;
+    }
 
     // Only once the frame is actually submitted. compileAtlasMaintenance() left the pending
     // composites in place precisely so that a declined frame falls back to the legacy path with

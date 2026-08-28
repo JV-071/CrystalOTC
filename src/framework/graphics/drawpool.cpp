@@ -21,6 +21,7 @@
  */
 
 #include "drawpool.h"
+#include <framework/util/profiler.h>
 
 #include "painter.h"
 #include "textureatlas.h"
@@ -304,6 +305,7 @@ bool DrawPool::canRepaint()
 }
 
 void DrawPool::release() {
+    PROFILE_ZONE(PoolRelease);
     if (hasFrameBuffer() && !m_hashCtrl.wasModified() && !canRefresh()) {
         for (auto& objs : m_objects)
             objs.clear();
@@ -465,6 +467,8 @@ void DrawPool::compilePublishedObjects()
 {
     if (!s_compileFrames)
         return;
+
+    PROFILE_ZONE(PoolCompile);
 
     if (!m_programBuild)
         m_programBuild = std::make_unique<PoolProgram>();
