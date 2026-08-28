@@ -81,19 +81,18 @@ public:
         const auto texCoordCount = static_cast<uint32_t>(coords.getTextureCoordCount());
         const Slice slice{ vertexCount(), count, texCoordCount > 0 };
 
-        const float* pos = coords.getVertexArray();
-        m_positions.insert(m_positions.end(), pos, pos + count * 2);
+        m_positions.append(coords.getVertexArray(), count * 2);
 
         if (texCoordCount > 0) {
             const float* uv = coords.getTextureCoordArray();
             // Defensive: CoordsBuffer builds the two arrays in lockstep, but a packet that
             // indexed past the end would be a memory error rather than a visual one.
             const auto usable = std::min(texCoordCount, count);
-            m_texCoords.insert(m_texCoords.end(), uv, uv + usable * 2);
+            m_texCoords.append(uv, usable * 2);
             if (usable < count)
-                m_texCoords.resize(m_texCoords.size() + (count - usable) * 2, 0.f);
+                m_texCoords.claimZeroed((count - usable) * 2);
         } else {
-            m_texCoords.resize(m_texCoords.size() + count * 2, 0.f);
+            m_texCoords.claimZeroed(count * 2);
         }
 
         return slice;
@@ -107,6 +106,9 @@ public:
     [[nodiscard]] size_t arrayBytes() const { return m_positions.size() * sizeof(float); }
 
 private:
-    std::vector<float> m_positions;
-    std::vector<float> m_texCoords;
+    // Same claim-and-write buffer VertexArray uses, for the same reason: an arena append is a
+    // bulk copy of a whole CoordsBuffer, and the texture-coordinate padding untextured geometry
+    // owes is a zero-fill the vector API could only express as a second pass over the data.
+    FloatBuffer m_positions;
+    FloatBuffer m_texCoords;
 };

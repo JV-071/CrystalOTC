@@ -670,6 +670,104 @@ namespace {
         EXPECT_NE(a.contentHash, 0u);
     }
 
+    // Rect(10, 20, 30, 40) expands to these edges in every primitive below: a VertexArray adds
+    // one to right and bottom, because a Rect's right()/bottom() are the last pixel INSIDE it
+    // while a triangle's vertex is the boundary just past it.
+    constexpr float L = 10.f, T = 20.f, R = 40.f, B = 60.f;
+
+    void expectVertices(const CoordsBuffer& coords, const std::vector<float>& expected)
+    {
+        ASSERT_EQ(static_cast<size_t>(coords.getVertexCount()) * 2, expected.size());
+        const float* v = coords.getVertexArray();
+        for (size_t i = 0; i < expected.size(); ++i)
+            EXPECT_FLOAT_EQ(v[i], expected[i]) << "float " << i;
+    }
+
+    void expectTexCoords(const CoordsBuffer& coords, const std::vector<float>& expected)
+    {
+        ASSERT_EQ(static_cast<size_t>(coords.getTextureCoordCount()) * 2, expected.size());
+        const float* v = coords.getTextureCoordArray();
+        for (size_t i = 0; i < expected.size(); ++i)
+            EXPECT_FLOAT_EQ(v[i], expected[i]) << "float " << i;
+    }
+
+    // Pins the exact float sequence every VertexArray primitive emits.
+    //
+    // These layouts are hand-written vertex data - winding order, which corner goes where, and
+    // which of the six positions repeat - and until this test existed only two of the nine were
+    // reachable from the suite at all. The four flip/upside-down variants and the float-precision
+    // triangle had NO coverage, so a transposed pair in any of them would have rendered a mirrored
+    // or degenerate sprite with every test still green.
+    //
+    // The expected values are transcribed from the pre-existing implementations, not from the
+    // current ones, which is the only way this test can testify to a refactor of them.
+    TEST(RenderBoundary, VertexPrimitivesEmitTheirDeclaredLayout)
+    {
+        const Rect rect(10, 20, 30, 40);
+
+        {
+            CoordsBuffer c;
+            c.addTriangle(Point(1, 2), Point(3, 4), Point(5, 6));
+            expectVertices(c, { 1, 2, 3, 4, 5, 6 });
+        }
+        {
+            CoordsBuffer c;
+            c.addTriangleF(PointF(.5f, 1.5f), PointF(2.5f, 3.5f), PointF(4.5f, 5.5f));
+            expectVertices(c, { .5f, 1.5f, 2.5f, 3.5f, 4.5f, 5.5f });
+        }
+        {   // two triangles: TL-TR-BL then BL-TR-BR
+            CoordsBuffer c;
+            c.addRect(rect);
+            expectVertices(c, { L, T, R, T, L, B, L, B, R, T, R, B });
+        }
+        {   // addQuad emits the same six vertices as addRect
+            CoordsBuffer c;
+            c.addQuad(rect, rect);
+            expectVertices(c, { L, T, R, T, L, B, L, B, R, T, R, B });
+        }
+        {   // four vertices, not six - the one strip primitive here
+            CoordsBuffer c;
+            c.addUpsideDownQuad(rect, rect);
+            expectVertices(c, { L, B, R, B, L, T, R, T });
+        }
+        {
+            CoordsBuffer c;
+            c.addUpsideDownRect(rect, rect);
+            expectVertices(c, { L, B, R, B, L, B, L, T, R, B, R, T });
+        }
+        {   // the flip lives in the TEXTURE coordinates; the positions stay an ordinary quad
+            CoordsBuffer c;
+            c.addHorizontallyFlippedQuad(rect, rect);
+            expectVertices(c, { L, T, R, T, L, B, L, B, R, T, R, B });
+            expectTexCoords(c, { R, T, L, T, R, B, R, B, L, T, L, B });
+        }
+        {
+            CoordsBuffer c;
+            c.addVerticallyFlippedQuad(rect, rect);
+            expectVertices(c, { L, T, R, T, L, B, L, B, R, T, R, B });
+            expectTexCoords(c, { L, B, R, B, L, T, L, T, R, B, R, T });
+        }
+    }
+
+    // append() must concatenate, not overwrite - and it is the path DrawPool::add takes every
+    // time two draws batch into one object, which is most of them.
+    TEST(RenderBoundary, CoordsBufferAppendConcatenates)
+    {
+        CoordsBuffer first, second;
+        first.addTriangle(Point(1, 2), Point(3, 4), Point(5, 6));
+        second.addTriangle(Point(7, 8), Point(9, 10), Point(11, 12));
+
+        first.append(&second);
+        expectVertices(first, { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 });
+
+        // clear() keeps the buffer usable rather than merely empty - the draw pools recycle
+        // these across frames.
+        first.clear();
+        EXPECT_EQ(first.getVertexCount(), 0);
+        first.addTriangle(Point(13, 14), Point(15, 16), Point(17, 18));
+        expectVertices(first, { 13, 14, 15, 16, 17, 18 });
+    }
+
     TEST(RenderBoundary, ContentHashSeesGeometryPacketMetadataCannotDistinguish)
     {
         // Two draws that agree on EVERY packet field and differ only in where the vertices are.
