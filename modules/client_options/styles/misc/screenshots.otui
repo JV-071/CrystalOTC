@@ -1,12 +1,3 @@
-OptionCheckBoxWithHelp < OptionCheckBox
-  UIWidget
-    id: helpIcon
-    image-source: /images/icons/show_gui_help_grey
-    size: 12 12
-    anchors.right: parent.right
-    anchors.verticalCenter: parent.verticalCenter
-    margin-right: 5
-
 UIWidget
   anchors.fill: parent
   visible: false

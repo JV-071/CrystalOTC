@@ -55,6 +55,19 @@ OptionCheckBox < QtCheckBox
   color: $var-text-cip-color
   @onCheckChange: modules.client_options.setOption(self:getId(), self:isChecked())
 
+# Same idea as OptionCheckBoxMarked, but with the help icon centred in the row rather than
+# pinned to the top. The child MUST be called toolTipWidget: corelib/ui/tooltip.lua moves the
+# checkbox's own !tooltip onto a child with that id, which is what makes hovering the icon
+# show the text. A differently named child gets no tooltip at all.
+OptionCheckBoxWithHelp < OptionCheckBox
+  UIWidget
+    id: toolTipWidget
+    image-source: /images/icons/show_gui_help_grey
+    size: 12 12
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 5
+
 OptionCheckBoxMarked < OptionCheckBox
   UIWidget
     id: toolTipWidget

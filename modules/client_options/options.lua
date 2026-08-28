@@ -582,7 +582,7 @@ local simpleButtons = {
 		open = "shortcuts"
 	},
 	{
-		icon = "/images/icons/icon_misc",
+		icon = "/images/icons/icon_help",
 		text = "Help",
 		open = "miscHelp"
 	}
@@ -668,12 +668,15 @@ local advancedButtons = {
 			{
 				text = "Screenshots",
 				open = "miscScreenshots"
-			},
-			{
-				text = "Help",
-				open = "miscHelp"
 			}
 		}
+	},
+	-- Help is its own top-level category with its own icon in the official client, in both
+	-- simple and advanced mode. It is not a Misc. subcategory.
+	{
+		icon = "/images/icons/icon_help",
+		text = "Help",
+		open = "miscHelp"
 	}
 }
 local buttons = simpleButtons
