@@ -68,7 +68,7 @@ protected:
     bool m_virtual{ false };
     bool m_showId{ false };
     bool m_itemVisible{ true };
-    bool m_fixedItemSize{ false };
+    bool m_fixedItemSize{ true };
     bool m_alwaysShowCount{ true };
     bool m_showDuration{ false };
     bool m_showCharges{ false };
