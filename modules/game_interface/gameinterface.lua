@@ -1,6 +1,18 @@
 ﻿-- chunkname: @/game_interface/gameinterface.lua
 local closeCountWindow -- forward declaration (used before its declaration in the decompiled file)
 
+-- The loot variant the server reads as "also sweep the adjacent fields" (1) or "just the
+-- corpse I targeted" (0); see ProtocolGame::parseQuickLoot, which turns it straight into
+-- lootAllCorpses. The client used to hardcode 1, so "Quick Loot Nearby Corpses" was on no
+-- matter what the box said.
+local function quickLootVariant()
+	if modules.client_options and modules.client_options.getOption then
+		return modules.client_options.getOption("quickLootCorpses") and 1 or 0
+	end
+
+	return 0
+end
+
 gameRootPanel = nil
 gameMapPanel = nil
 gameMainRightPanel = nil
@@ -1569,7 +1581,7 @@ local function addUseThingMenuOptions(menu, thing, shortcuts)
 
 	if thing:isLyingCorpse() and not thing:isPlayerCorpse() and g_game.getFeature(GameThingQuickLoot) and modules.game_quickloot and thing:getPosition().x ~= 65535 then
 		menu.addOption(menu, tr("Loot corpse"), function()
-			g_game.sendQuickLoot(1, thing)
+			g_game.sendQuickLoot(quickLootVariant(), thing)
 		end)
 	end
 end
@@ -2935,7 +2947,7 @@ local function tryQuickLootCorpse(useThing, lookThing)
 		return true
 	end
 
-	g_game.sendQuickLoot(1, corpse)
+	g_game.sendQuickLoot(quickLootVariant(), corpse)
 
 	return true
 end
@@ -2952,7 +2964,7 @@ local function handleContainerOrCorpse(thing, quickLoot)
 	end
 
 	if quickLoot and isGroundLootTarget(thing) and canQuickLoot() then
-		g_game.sendQuickLoot(1, thing)
+		g_game.sendQuickLoot(quickLootVariant(), thing)
 
 		return true
 	end
