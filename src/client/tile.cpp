@@ -184,10 +184,16 @@ void Tile::drawCreature(const Point& dest, const int flags, const bool forceDraw
 
     g_drawPool.setDrawOrder(DrawOrder::THIRD);
     for (const auto& creature : m_walkingCreatures) {
-        // NE/SW creatures leaving this tile were already drawn before bottom objects.
-        if (creature->getDirection() == Otc::Direction::NorthEast || creature->getDirection() == Otc::Direction::SouthWest)
-            if (creature->getLastStepToPosition() != getPosition())
-                continue;
+        // NE/SW creatures leaving this tile were already drawn before bottom objects - but that
+        // early pass only exists in Tile::draw. Lights arrive through Tile::drawLight, which has
+        // no such pass, so skipping them here would drop the light for the whole diagonal step:
+        // a walker belongs to exactly one walking tile at a time, and for NE/SW that tile is
+        // never the destination until the step ends. Order does not matter to the light pass -
+        // LightView::updatePixels max()es the sources per tile - so letting it through is enough.
+        if (flags != Otc::DrawLights &&
+            (creature->getDirection() == Otc::Direction::NorthEast || creature->getDirection() == Otc::Direction::SouthWest) &&
+            creature->getLastStepToPosition() != getPosition())
+            continue;
 
         const auto& cDest = Point(
             dest.x + ((creature->getPosition().x - m_position.x) * g_gameConfig.getSpriteSize() - creature->getDrawElevation()) * g_drawPool.getScaleFactor(),
