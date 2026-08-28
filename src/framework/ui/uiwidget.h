@@ -999,6 +999,10 @@ private:
 
 protected:
     virtual void updateText();
+
+    // Rebuilds the text layout WITHOUT asking the pool to republish. Only for callers that are
+    // themselves inside the draw that is about to emit the rebuilt glyphs - see drawText.
+    void rebuildTextLayout();
     virtual bool isTextEdit() { return false; }
     void drawText(const Rect& screenCoords);
     void computeHtmlTextIntrinsicSize();

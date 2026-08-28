@@ -169,7 +169,9 @@ void UIWidget::initText()
     m_baseTextColor = m_color;
 }
 
-void UIWidget::updateText()
+// The text rebuild proper, with no repaint. Callers that are themselves inside the traversal
+// about to emit the rebuilt glyphs want this one; everyone else wants updateText().
+void UIWidget::rebuildTextLayout()
 {
     if ((hasEventListener(EVENT_TEXT_CLICK) || hasEventListener(EVENT_TEXT_HOVER)) && m_textEvents.empty())
         processCodeTags();
@@ -208,6 +210,11 @@ void UIWidget::updateText()
     }
 
     m_textCachedScreenCoords = {};
+}
+
+void UIWidget::updateText()
+{
+    rebuildTextLayout();
     repaint();
 }
 
@@ -316,10 +323,22 @@ void UIWidget::drawText(const Rect& screenCoords)
     if (m_drawText.empty() || m_color.aF() == 0.f || !m_font)
         return;
 
-    // Hack to fix font rendering in atlas
+    // The glyph coordinates were built against a specific atlas region; if the font has moved
+    // since, they have to be rebuilt before they are drawn.
+    //
+    // Deliberately NOT updateText(). This runs INSIDE the traversal that is about to emit the
+    // rebuilt glyphs, so the frame already carries the correction, and all the repaint() that
+    // updateText() ends with would add is a forceUpdate() on the FOREGROUND pool plus a dirty
+    // mark on the whole widget tree - for a change already made.
+    //
+    // It is not a rare path. Texture::getAtlasRegion() is derived from whichever pool is
+    // currently selected and returns null whenever the region is disabled, neither of which the
+    // per-widget m_atlasRegion cache can observe, so it flips for a handful of widgets every
+    // single frame. Measured idle in-game, that was ~75 repaints a second on its own - enough to
+    // leave the UI permanently dirty and defeat any attempt to skip a traversal.
     if (m_font->getAtlasRegion() != m_atlasRegion) {
         m_atlasRegion = m_font->getAtlasRegion();
-        updateText();
+        rebuildTextLayout();
     }
 
     if (screenCoords != m_textCachedScreenCoords) {
