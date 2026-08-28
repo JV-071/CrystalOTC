@@ -989,10 +989,57 @@ function CharacterList.hide(showLogin)
 	end
 end
 
+-- "Stay Logged In for Session" (Misc. page). On, the session survives a logout and we come
+-- straight back to the character list, which is what this client always did. Off, a
+-- deliberate logout drops the session so the account login asks for the password and, if
+-- the account uses one, the authenticator token again.
+--
+-- Only a manual logout counts: a dropped connection must keep the session or auto-reconnect
+-- would have nothing to reconnect with.
+local function shouldDropSessionOnLogout()
+	if not manualLogoutPending then
+		return false
+	end
+
+	if not modules.client_options or not modules.client_options.getOption then
+		return false
+	end
+
+	return modules.client_options.getOption("stayLoggedIn") == false
+end
+
+local function dropCachedSession()
+	-- The email is governed by "Remember Email" instead, so G.account is left alone.
+	G.password = nil
+	G.sessionKey = nil
+	G.authenticatorToken = nil
+	G.characters = nil
+	G.characterAccount = nil
+
+	g_settings.remove("password")
+
+	if isWidgetAlive(characterList) then
+		characterList:destroyChildren()
+	end
+end
+
 function CharacterList.showAgain()
 	clearStaleErrorBox()
 
 	if errorBox then
+		return false
+	end
+
+	if shouldDropSessionOnLogout() then
+		manualLogoutPending = false
+
+		dropCachedSession()
+		CharacterList.hide()
+
+		if EnterGame and not g_game.isOnline() and not g_game.isLogging() then
+			EnterGame.show()
+		end
+
 		return false
 	end
 
