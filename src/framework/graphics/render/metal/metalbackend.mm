@@ -31,6 +31,7 @@
 #include <framework/core/logger.h>
 #include <framework/platform/platformwindow.h>
 
+#include <cstring>
 #include <unordered_map>
 
 namespace
@@ -87,12 +88,40 @@ struct MetalBackend::Impl
 
     std::unordered_map<const VertexArena*, ArenaSlices> arenas;
 
+    // What is currently bound on the encoder being filled.
+    //
+    // Metal keeps every one of these across draws within one encoder, so re-stating them per
+    // packet is work the API already did. Consecutive packets very often differ only in vertex
+    // range - a pool batches by state, so a run of packets sharing a texture and colour is the
+    // normal case - and setRenderPipelineState in particular is the expensive one to repeat.
+    //
+    // Scoped to a single encoder ON PURPOSE, and constructed fresh in encodePass: a new encoder
+    // inherits nothing, so a tracker that outlived one would claim things were bound that are
+    // not. That is the failure mode this struct has to avoid, and the reason it is a local
+    // rather than a member.
+    struct EncoderState
+    {
+        id<MTLRenderPipelineState> pipeline{ nil };
+        id<MTLTexture> texture{ nil };
+        id<MTLSamplerState> sampler{ nil };
+
+        MetalABI::VertexUniforms vertexUniforms{};
+        MetalABI::FragmentUniforms fragmentUniforms{};
+        MaterialParams params{};
+        MTLScissorRect scissor{};
+
+        bool hasVertexUniforms{ false };
+        bool hasFragmentUniforms{ false };
+        bool hasParams{ false };
+        bool hasScissor{ false };
+    };
+
     bool initialized{ false };
     bool loggedDrawableMismatch{ false };
 
     void encodePass(id<MTLCommandBuffer> commands, const RenderPass& pass, id<MTLTexture> screen);
-    void encodePacket(id<MTLRenderCommandEncoder> encoder, const RenderPass& pass,
-                      const DrawPacket& packet, const Matrix3& projection, const Size& targetSize);
+    void encodePacket(id<MTLRenderCommandEncoder> encoder, const DrawPacket& packet,
+                      const Matrix3& projection, const Size& targetSize, EncoderState& state);
     void present(id<MTLCommandBuffer> commands, id<MTLTexture> screen);
 };
 
@@ -152,9 +181,9 @@ void MetalBackend::resize(const Size& drawableSize)
     (void)drawableSize;
 }
 
-void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const RenderPass& pass,
-                                      const DrawPacket& packet, const Matrix3& projection,
-                                      const Size& targetSize)
+void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const DrawPacket& packet,
+                                      const Matrix3& projection, const Size& targetSize,
+                                      EncoderState& state)
 {
     if (packet.vertexCount == 0)
         return;
@@ -185,25 +214,24 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
     if (!pipeline)
         return;
 
-    const auto arena = arenas.find(pass.arena);
-    if (arena == arenas.end() || !arena->second.positions.isValid())
-        return;
-
-    [encoder setRenderPipelineState:pipeline];
-
-    [encoder setVertexBuffer:arena->second.positions.buffer
-                      offset:arena->second.positions.offset
-                     atIndex:MetalABI::VERTEX_POSITION_BUFFER];
-    [encoder setVertexBuffer:arena->second.texCoords.buffer
-                      offset:arena->second.texCoords.offset
-                     atIndex:MetalABI::VERTEX_TEXCOORD_BUFFER];
+    // The vertex buffers are the pass's, bound once by encodePass - one encoder draws from one
+    // arena, so there is nothing per-packet to rebind.
+    if (state.pipeline != pipeline) {
+        state.pipeline = pipeline;
+        [encoder setRenderPipelineState:pipeline];
+    }
 
     MetalABI::VertexUniforms vertexUniforms;
     vertexUniforms.projection = MetalABI::Mat3(projection);
     vertexUniforms.transform = MetalABI::Mat3(packet.transform);
     vertexUniforms.textureMatrix = MetalABI::Mat3(textured ? textureMatrixFor(texture.size) : DEFAULT_MATRIX3);
-    [encoder setVertexBytes:&vertexUniforms length:sizeof(vertexUniforms)
-                    atIndex:MetalABI::VERTEX_UNIFORM_BUFFER];
+    if (!state.hasVertexUniforms
+        || std::memcmp(&state.vertexUniforms, &vertexUniforms, sizeof(vertexUniforms)) != 0) {
+        state.vertexUniforms = vertexUniforms;
+        state.hasVertexUniforms = true;
+        [encoder setVertexBytes:&vertexUniforms length:sizeof(vertexUniforms)
+                        atIndex:MetalABI::VERTEX_UNIFORM_BUFFER];
+    }
 
     MetalABI::FragmentUniforms fragmentUniforms;
     fragmentUniforms.color[0] = packet.color.rF();
@@ -212,8 +240,13 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
     fragmentUniforms.color[3] = packet.color.aF();
     fragmentUniforms.opacity = packet.opacity;
     fragmentUniforms.tex0FlipY = (textured && texture.isRenderTarget) ? 1.f : 0.f;
-    [encoder setFragmentBytes:&fragmentUniforms length:sizeof(fragmentUniforms)
-                      atIndex:MetalABI::FRAGMENT_UNIFORM_BUFFER];
+    if (!state.hasFragmentUniforms
+        || std::memcmp(&state.fragmentUniforms, &fragmentUniforms, sizeof(fragmentUniforms)) != 0) {
+        state.fragmentUniforms = fragmentUniforms;
+        state.hasFragmentUniforms = true;
+        [encoder setFragmentBytes:&fragmentUniforms length:sizeof(fragmentUniforms)
+                          atIndex:MetalABI::FRAGMENT_UNIFORM_BUFFER];
+    }
 
     // The frozen parameter block. Bound unconditionally rather than only for materials that read
     // it: a translated module fragment declares it or does not, and Metal ignores a buffer bound
@@ -222,12 +255,25 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
     // defaults - FrameAssembler supplies one per pass - so there is no null case to handle.
     static constexpr MaterialParams DEFAULT_MATERIAL_PARAMS{};
     const MaterialParams& params = packet.params ? *packet.params : DEFAULT_MATERIAL_PARAMS;
-    [encoder setFragmentBytes:&params length:sizeof(params)
-                      atIndex:MetalABI::FRAGMENT_MATERIAL_PARAMS_BUFFER];
+    // Compared by VALUE rather than by the packet's pointer: the assembler hands out pointers
+    // into a vector it refills every frame, so pointer identity says nothing useful about
+    // whether the eighty bytes behind it still match what is bound.
+    if (!state.hasParams || std::memcmp(&state.params, &params, sizeof(params)) != 0) {
+        state.params = params;
+        state.hasParams = true;
+        [encoder setFragmentBytes:&params length:sizeof(params)
+                          atIndex:MetalABI::FRAGMENT_MATERIAL_PARAMS_BUFFER];
+    }
 
     if (textured) {
-        [encoder setFragmentTexture:texture.texture atIndex:MetalABI::FRAGMENT_TEXTURE_SLOT];
-        [encoder setFragmentSamplerState:texture.sampler atIndex:MetalABI::FRAGMENT_SAMPLER_SLOT];
+        if (state.texture != texture.texture) {
+            state.texture = texture.texture;
+            [encoder setFragmentTexture:texture.texture atIndex:MetalABI::FRAGMENT_TEXTURE_SLOT];
+        }
+        if (state.sampler != texture.sampler) {
+            state.sampler = texture.sampler;
+            [encoder setFragmentSamplerState:texture.sampler atIndex:MetalABI::FRAGMENT_SAMPLER_SLOT];
+        }
 
         // u_Tex1..3. Only Fog and Snow use them, and only through a map shader - but without
         // them those two sample an unbound texture argument, which Metal treats as an error
@@ -268,7 +314,13 @@ void MetalBackend::Impl::encodePacket(id<MTLRenderCommandEncoder> encoder, const
         scissor = { static_cast<NSUInteger>(left), static_cast<NSUInteger>(top),
                     static_cast<NSUInteger>(width), static_cast<NSUInteger>(height) };
     }
-    [encoder setScissorRect:scissor];
+    if (!state.hasScissor
+        || state.scissor.x != scissor.x || state.scissor.y != scissor.y
+        || state.scissor.width != scissor.width || state.scissor.height != scissor.height) {
+        state.scissor = scissor;
+        state.hasScissor = true;
+        [encoder setScissorRect:scissor];
+    }
 
     [encoder drawPrimitives:MTLPrimitiveTypeTriangle
                 vertexStart:packet.vertexOffset
@@ -326,8 +378,25 @@ void MetalBackend::Impl::encodePass(id<MTLCommandBuffer> commands, const RenderP
     const Matrix3 projection = projectionFor(pass.projectionSize());
     const Size targetSize(static_cast<int>([target width]), static_cast<int>([target height]));
 
-    for (const auto& packet : pass.packets)
-        encodePacket(encoder, pass, packet, projection, targetSize);
+    // One encoder draws from one arena, so this is bound here rather than per packet - it used to
+    // be a hash lookup and two setVertexBuffer calls for every draw in the pass.
+    //
+    // A missing or empty arena skips the DRAWS, not the pass: the encoder is still opened and
+    // ended, because a pass whose load action is Clear owes its target that clear whether or not
+    // anything draws into it afterwards.
+    const auto arena = arenas.find(pass.arena);
+    if (arena != arenas.end() && arena->second.positions.isValid()) {
+        [encoder setVertexBuffer:arena->second.positions.buffer
+                          offset:arena->second.positions.offset
+                         atIndex:MetalABI::VERTEX_POSITION_BUFFER];
+        [encoder setVertexBuffer:arena->second.texCoords.buffer
+                          offset:arena->second.texCoords.offset
+                         atIndex:MetalABI::VERTEX_TEXCOORD_BUFFER];
+
+        EncoderState state;
+        for (const auto& packet : pass.packets)
+            encodePacket(encoder, packet, projection, targetSize, state);
+    }
 
     [encoder endEncoding];
 }
