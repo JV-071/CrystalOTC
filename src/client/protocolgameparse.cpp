@@ -3250,7 +3250,7 @@ void ProtocolGame::parseFloorChangeDown(const InputMessagePtr& msg)
 
 void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
 {
-    const auto& currentOutfit = getOutfit(msg);
+    auto currentOutfit = getOutfit(msg);
 
     // mount color bytes are required here regardless of having one
     if (g_game.getClientVersion() >= 1281) {
@@ -3261,7 +3261,9 @@ void ProtocolGame::parseOpenOutfitWindow(const InputMessagePtr& msg) const
             msg->getU8(); //feet
         }
 
-        msg->getU16(); // current familiar looktype
+        // the familiar the server has stored for us; it must survive the round trip,
+        // otherwise confirming the outfit window sends 0 back and clears it
+        currentOutfit.setFamiliar(msg->getU16());
     }
 
     std::vector<std::tuple<uint16_t, std::string, uint8_t, uint8_t>> outfitList;

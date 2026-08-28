@@ -465,11 +465,8 @@ void Game::processOpenOutfitWindow(const Outfit& currentOutfit, const std::vecto
         virtualMountCreature->setOutfit(mountOutfit);
     }
 
-    if (getFeature(Otc::GamePlayerFamiliars)) {
-        Outfit familiarOutfit;
-        familiarOutfit.setId(currentOutfit.getFamiliar());
-        familiarOutfit.setCategory(ThingCategoryCreature);
-    }
+    // the familiar rides along on virtualOutfitCreature's outfit; the outfit window
+    // builds its own preview from it, so there is no separate virtual creature here
 
     g_lua.callGlobalField("g_game", "onOpenOutfitWindow", virtualOutfitCreature, outfitList, virtualMountCreature, mountList, familiarList, wingsList, aurasList, effectList, shaderList);
 }
