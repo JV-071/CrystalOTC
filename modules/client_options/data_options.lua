@@ -200,7 +200,16 @@ return {
 	bestiaryCompleted = false,
 	achievement = true,
 	levelUp = true,
-	keepBacklog = false,
+	-- Starts and stops the once-a-second backlog ring, so ticking the box takes effect
+	-- immediately instead of at the next login.
+	keepBacklog = {
+		value = false,
+		action = function(value, options, controller, panels, extraWidgets)
+			if modules.game_screenshot and modules.game_screenshot.syncBacklogCapture then
+				modules.game_screenshot.syncBacklogCapture()
+			end
+		end
+	},
 	rightBarsBar3 = false,
 	rightBarsBar1 = false,
 	leftBarsBar3 = false,
@@ -217,7 +226,16 @@ return {
 	highestDamage = false,
 	skillUp = true,
 	lowHealth = false,
-	enableAutoScreenshots = true,
+	-- Master switch for the seventeen event checkboxes below it; the official page greys them
+	-- all out while this is unticked.
+	enableAutoScreenshots = {
+		value = true,
+		action = function(value, options, controller, panels, extraWidgets)
+			if modules.client_options and modules.client_options.updateAutoScreenshotsAvailability then
+				modules.client_options.updateAutoScreenshotsAvailability(panels, value)
+			end
+		end
+	},
 	autoSwitchPreset = false,
 	vsync = {
 		deferAction = true,

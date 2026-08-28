@@ -11,7 +11,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: onlyCaptureGameWindow
       !text: tr('Only Capture Game Window')
-      helpIcon.tooltip: teste1
+      !tooltip: tr("If you check this option, the screenshots will only be taken from\nthe game window instead of the complete client interface. This\nmight improve your game performance, particularly if you have\nticked the Screenshot Backlog option.")
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -23,7 +23,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: keepBacklog
       !text: tr('Keep Backlog of the Screenshots of the Last 5 Seconds')
-      helpIcon.tooltip: teste2
+      !tooltip: tr("If you check this option, the client takes a screenshot every\nsecond and caches the last 5 of them. Whenever a screenshot is\ntaken either automatically for a selected event or manually using a\nhotkey, also the screenshots of the previous 5 seconds will be\nsaved.\nIf you experience frame stuttering, you should consider\ndisabling this option.")
 
   SmallReversedQtPanel
     id: autoScreenshotsPanel
@@ -39,9 +39,10 @@ UIWidget
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.top: parent.top
-      helpIcon.tooltip: teste3
+      !tooltip: tr("Enable this option to save screenshots of the most important\nmoments of your Tibia career! Whenever one of the events you\nhave selected takes place, a screenshot will be taken\nautomatically.")
 
     Label
+      id: selectEventsCaption
       !text: tr('Select all events that should trigger auto screenshots:')
       anchors.left: parent.left
       anchors.right: parent.right

@@ -1,6 +1,5 @@
 ﻿-- chunkname: @/game_screenshot/game_screenshot.lua
 
-local AUTO_SCREENSHOTS_ENABLED = false
 local CLIENT_EVENT_TYPE_SIMPLE = 1
 local CLIENT_EVENT_TYPE_ACHIEVEMENT = 2
 local CLIENT_EVENT_TYPE_LEVEL = 4
@@ -137,6 +136,15 @@ local SIMPLE_EVENT_SCREENSHOTS = {
 }
 local autoScreenshotDir = "/auto_screenshots"
 
+-- "Keep Backlog of the Screenshots of the Last 5 Seconds": while the option is on we keep a
+-- rolling ring of one-per-second captures, and a real capture promotes the whole ring next
+-- to itself. Writing a frame every second is why the official tooltip warns about stutter.
+local BACKLOG_SLOTS = 5
+local BACKLOG_INTERVAL_MS = 1000
+local backlogDir = autoScreenshotDir .. "/backlog"
+local backlogSlot = 0
+local backlogEvent
+
 screenshotController = Controller:new()
 
 local function ensureScreenshotDir()
@@ -145,12 +153,19 @@ local function ensureScreenshotDir()
 	end
 end
 
+-- The on-disk path of the screenshot folder, for the "saved to location" message and for
+-- g_platform.openDir. It used to rewrite every separator to a backslash, which only ever
+-- produced a valid path on Windows.
 local function getScreenshotDirPath()
 	ensureScreenshotDir()
 
 	local writeDir = g_resources.getWriteDir():gsub("[/\\]+$", "")
 
-	return writeDir:gsub("/", "\\") .. "\\auto_screenshots"
+	if g_app.getOs() == "windows" then
+		return writeDir:gsub("/", "\\") .. "\\auto_screenshots"
+	end
+
+	return writeDir .. autoScreenshotDir
 end
 
 local function showScreenshotSavedMessage(eventName)
@@ -171,6 +186,94 @@ local function getScreenshotOption(key)
 	end
 
 	return false
+end
+
+local function ensureBacklogDir()
+	if not g_resources.directoryExists(backlogDir) then
+		g_resources.makeDir(backlogDir)
+	end
+end
+
+-- One capture, honouring "Only Capture Game Window" for both the real shots and the ring.
+local function capture(path)
+	if getScreenshotOption("onlyCaptureGameWindow") then
+		g_app.doMapScreenshot(path)
+	else
+		g_app.doScreenshot(path)
+	end
+end
+
+local function backlogSlotPath(slot)
+	return backlogDir .. "/slot" .. slot .. ".png"
+end
+
+local function copyFile(from, to)
+	if not g_resources.fileExists(from) then
+		return false
+	end
+
+	-- readFileContents throws when the file is missing, and a ring slot can still be empty
+	-- while its encode is in flight, so both the throw and the empty read are expected.
+	local ok, contents = pcall(g_resources.readFileContents, from)
+
+	if not ok or not contents or contents == "" then
+		return false
+	end
+
+	local wrote, result = pcall(g_resources.writeFileContents, to, contents)
+
+	return wrote and result ~= false
+end
+
+-- Saves the ring alongside a capture, oldest first. backlogSlot points at the slot written
+-- most recently, so walking forward from it yields chronological order.
+local function saveBacklogBeside(baseName)
+	if not getScreenshotOption("keepBacklog") then
+		return
+	end
+
+	local base = baseName:gsub("%.png$", "")
+
+	for age = BACKLOG_SLOTS - 1, 0, -1 do
+		local slot = (backlogSlot - age - 1) % BACKLOG_SLOTS + 1
+
+		copyFile(backlogSlotPath(slot), string.format("%s_backlog-%ds.png", base, age + 1))
+	end
+end
+
+local function stopBacklog()
+	if backlogEvent then
+		removeEvent(backlogEvent)
+
+		backlogEvent = nil
+	end
+end
+
+local function tickBacklog()
+	backlogEvent = nil
+
+	if not g_game.isOnline() or not getScreenshotOption("keepBacklog") then
+		return
+	end
+
+	ensureBacklogDir()
+
+	backlogSlot = backlogSlot % BACKLOG_SLOTS + 1
+
+	capture(backlogSlotPath(backlogSlot))
+
+	backlogEvent = scheduleEvent(tickBacklog, BACKLOG_INTERVAL_MS)
+end
+
+-- Called on game start and whenever the option changes, so ticking follows the checkbox
+-- without waiting for a relog.
+function syncBacklogCapture()
+	stopBacklog()
+
+	if g_game.isOnline() and getScreenshotOption("keepBacklog") then
+		backlogSlot = 0
+		backlogEvent = scheduleEvent(tickBacklog, BACKLOG_INTERVAL_MS)
+	end
 end
 
 local function triggerAutoScreenshot(optionKey, labelSuffix)
@@ -237,10 +340,24 @@ local function onClientEvent(eventType, ...)
 end
 
 function screenshotController:onInit()
-	return
+	-- The official client offers a manual screenshot hotkey; the backlog option's own
+	-- description refers to it. No default binding, so it does not collide with anything
+	-- an existing profile already uses.
+	Keybind.new("Misc", "Take Screenshot", "", "")
+	Keybind.bind("Misc", "Take Screenshot", {
+		{
+			type = KEY_DOWN,
+			callback = function()
+				takeManualScreenshot()
+			end
+		}
+	})
 end
 
 function screenshotController:onTerminate()
+	stopBacklog()
+	Keybind.delete("Misc", "Take Screenshot")
+
 	AutoScreenshotEvents = {}
 end
 
@@ -253,45 +370,47 @@ function screenshotController:onGameStart()
 	screenshotController:registerEvents(g_game, {
 		onClientEvent = onClientEvent
 	})
+	syncBacklogCapture()
 end
 
 function screenshotController:onGameEnd()
-	return
+	stopBacklog()
 end
 
+-- Kept for callers outside the options window; the Reset button on the Screenshots page now
+-- goes through client_options, which owns the defaults and no longer needs them duplicated
+-- here.
 function resetValues()
-	if not modules.client_options or not modules.client_options.setOption then
-		return
-	end
-
-	modules.client_options.setOption("enableAutoScreenshots", true, true)
-	modules.client_options.setOption("onlyCaptureGameWindow", false, true)
-	modules.client_options.setOption("keepBacklog", false, true)
-
-	for _, screenshotEvent in ipairs(AutoScreenshotEvents) do
-		modules.client_options.setOption(screenshotEvent.optionKey, screenshotEvent.enableDefault, true)
+	if modules.client_options and modules.client_options.resetPageToDefaults then
+		modules.client_options.resetPageToDefaults("miscScreenshots")
 	end
 end
 
 function takeScreenshot(name, eventName)
-	if not AUTO_SCREENSHOTS_ENABLED then
-		return
-	end
-
 	if not g_game.isOnline() then
 		return
 	end
 
 	ensureScreenshotDir()
 	screenshotController:scheduleEvent(function()
-		if getScreenshotOption("onlyCaptureGameWindow") then
-			g_app.doMapScreenshot(name)
-		else
-			g_app.doScreenshot(name)
-		end
-
+		capture(name)
+		saveBacklogBeside(name)
 		showScreenshotSavedMessage(eventName)
 	end, 50, "screenshotScheduleEvent")
+end
+
+-- The manual screenshot the backlog tooltip refers to ("taken either automatically for a
+-- selected event or manually using a hotkey").
+function takeManualScreenshot()
+	if not g_game.isOnline() then
+		return
+	end
+
+	local player = g_game.getLocalPlayer()
+	local name = player and player:getName() or "player"
+	local level = player and player:getLevel() or 1
+
+	takeScreenshot(autoScreenshotDir .. "/" .. name .. level .. "_Manual_" .. os.date("%Y%m%d%H%M%S") .. ".png", "Manual")
 end
 
 function OpenFolder()

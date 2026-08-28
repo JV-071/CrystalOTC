@@ -249,6 +249,53 @@ function updateTimestampSecondsAvailability(panelsArg, showTimestamps)
 	end
 end
 
+-- The seventeen auto-screenshot event checkboxes, in the order the official page lists them
+-- (left column top to bottom, then right column). game_screenshot keeps its own list keyed
+-- by the same option names; this one exists so the gate below can grey them out.
+local AUTO_SCREENSHOT_EVENT_OPTIONS = {
+	"levelUp",
+	"skillUp",
+	"achievement",
+	"bestiaryUnlocked",
+	"bestiaryCompleted",
+	"treasureFound",
+	"valuableLoot",
+	"bossDefeated",
+	"deathPvE",
+	"deathPvP",
+	"playerKill",
+	"playerKillAssist",
+	"playerAttacking",
+	"highestDamage",
+	"highestHealing",
+	"lowHealth",
+	"giftOfLife"
+}
+
+-- None of the event checkboxes mean anything while auto screenshots are off, so they follow
+-- the master checkbox the way the official page's enabled: bindings do.
+function updateAutoScreenshotsAvailability(panelsArg, enableAutoScreenshots)
+	local p = panelsArg or panels
+
+	if not p or not p.miscScreenshots then
+		return
+	end
+
+	local caption = p.miscScreenshots:recursiveGetChildById("selectEventsCaption")
+
+	if caption then
+		caption:setEnabled(enableAutoScreenshots)
+	end
+
+	for _, id in ipairs(AUTO_SCREENSHOT_EVENT_OPTIONS) do
+		local widget = p.miscScreenshots:recursiveGetChildById(id)
+
+		if widget then
+			widget:setEnabled(enableAutoScreenshots)
+		end
+	end
+end
+
 -- The graphics-engine option, keyed by the STABLE id stored in the profile rather than by list
 -- position, so filtering the list per platform never renumbers a saved value.
 --
@@ -2202,6 +2249,7 @@ local function setup()
 	updateBigMouseCursorAvailability(panels, getOption("useNativeMouseCursor"))
 	updateHudDependencyAvailability(panels, getOption("showHudForOwnCharacter"), getOption("showHudForOtherCreatures"))
 	updateTimestampSecondsAvailability(panels, getOption("showTimestampsInConsole"))
+	updateAutoScreenshotsAvailability(panels, getOption("enableAutoScreenshots"))
 
 	if modules.game_healthcircle and modules.game_healthcircle.syncManaShieldHudOptions then
 		modules.game_healthcircle.syncManaShieldHudOptions(options)
