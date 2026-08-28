@@ -304,9 +304,9 @@ local function requestNestedContainersSort(sortMode)
 	g_game.organizeContainer(rootContainer, false, index, containersFirst, true, false)
 end
 
-local function shouldAskBeforeSortNestedContainers()
+local function shouldAskBeforeNestedAction(optionKey)
 	if modules.client_options and modules.client_options.getOption then
-		local value = modules.client_options.getOption("askBeforeSorting")
+		local value = modules.client_options.getOption(optionKey)
 
 		if value ~= nil then
 			return value
@@ -316,7 +316,7 @@ local function shouldAskBeforeSortNestedContainers()
 	return true
 end
 
-local function closeSortNestedConfirmWindow(confirmWindow)
+local function closeNestedConfirmWindow(confirmWindow)
 	if not confirmWindow then
 		return
 	end
@@ -330,24 +330,28 @@ local function closeSortNestedConfirmWindow(confirmWindow)
 	end
 end
 
-local function displaySortNestedContainersConfirmBox(onConfirm)
+-- Shared by the two nested-container confirmations the official client asks for: sorting
+-- ("Ask Before Sorting Nested Containers") and moving to Obtain containers ("Ask Before
+-- Moving Contents of Nested Containers"). Ticking "Do not show this dialog again" clears
+-- whichever option asked for the dialog.
+local function displayNestedContainersConfirmBox(title, content, optionKey, onConfirm)
 	local confirmWindow = g_ui.createWidget("SortNestedContainersConfirmModal", rootWidget)
 
-	confirmWindow:getChildById("title"):setText(tr("Confirmation to Sort Nested Containers"))
-	confirmWindow:getChildById("content"):setText(tr("You are about to sort the contents of all containers and their nested subcontainers. Do you want to proceed?"))
+	confirmWindow:getChildById("title"):setText(title)
+	confirmWindow:getChildById("content"):setText(content)
 
 	local doNotShowAgain = confirmWindow:recursiveGetChildById("doNotShowAgain")
 
 	local function cancelFunc()
-		closeSortNestedConfirmWindow(confirmWindow)
+		closeNestedConfirmWindow(confirmWindow)
 	end
 
 	local function confirmFunc()
 		if doNotShowAgain and doNotShowAgain:isChecked() and modules.client_options and modules.client_options.setOption then
-			modules.client_options.setOption("askBeforeSorting", false, true)
+			modules.client_options.setOption(optionKey, false, true)
 		end
 
-		closeSortNestedConfirmWindow(confirmWindow)
+		closeNestedConfirmWindow(confirmWindow)
 		onConfirm()
 	end
 
@@ -388,8 +392,8 @@ local function handleContainerSortAction(container, sortMode)
 			requestNestedContainersSort(sortMode)
 		end
 
-		if shouldAskBeforeSortNestedContainers() then
-			displaySortNestedContainersConfirmBox(doSort)
+		if shouldAskBeforeNestedAction("askBeforeSorting") then
+			displayNestedContainersConfirmBox(tr("Confirmation to Sort Nested Containers"), tr("You are about to sort the contents of all containers and their nested subcontainers. Do you want to proceed?"), "askBeforeSorting", doSort)
 		else
 			doSort()
 		end
@@ -1815,10 +1819,22 @@ function onContainersMenuAction(actionId, container)
 
 	if isActionButton then
 		if actionId == "moveToObtainContainers" then
-			if container then
-				requestMoveToObtainContainers(container)
+			local function doMove()
+				if container then
+					requestMoveToObtainContainers(container)
+				else
+					applyMoveToObtainToOpenContainers()
+				end
+			end
+
+			-- Only the recursive move asks, matching the option's name and the official key
+			-- containerMoveToManagedContainerRecursiveShowWarningAgain.
+			local movesNested = containerSettings and containerSettings.moveNestedContainers == 1
+
+			if movesNested and shouldAskBeforeNestedAction("askBeforeMoving") then
+				displayNestedContainersConfirmBox(tr("Confirmation to Move Nested Containers"), tr("You are about to move the contents of all containers and their nested subcontainers to your Obtain containers. Do you want to proceed?"), "askBeforeMoving", doMove)
 			else
-				applyMoveToObtainToOpenContainers()
+				doMove()
 			end
 
 			return
