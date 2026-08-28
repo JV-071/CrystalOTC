@@ -670,6 +670,52 @@ namespace {
         EXPECT_NE(a.contentHash, 0u);
     }
 
+    TEST(RenderBoundary, ContentHashSeesGeometryPacketMetadataCannotDistinguish)
+    {
+        // Two draws that agree on EVERY packet field and differ only in where the vertices are.
+        // Offset, count, texture, colour, blend, scissor and transform are all identical, so a
+        // content identity built from packet metadata alone would call these two frames the same.
+        //
+        // That is not a hypothetical. Most draws also fold their dest/src rect into
+        // DrawHashController on the producer side, so release() would not even republish - but UI
+        // text and cached images arrive through DrawPool::add's CoordsBuffer overload, where the
+        // DrawMethod is default-constructed and contributes no rect at all. For those the compiled
+        // vertex data is the only remaining witness, and FrameAssembler re-composites a retained
+        // target whose contentHash is unchanged rather than re-rendering it. Without this term a
+        // label going from "10" to "11" - same glyph count, same font, same vertex range - stops
+        // updating on screen.
+        //
+        // Guarding it here because the term is cheap to lose: it is one loop at the end of
+        // compile(), it is the most expensive loop in the compiler, and deleting it makes every
+        // benchmark look better while breaking only text.
+        Pool left, right;
+        left.rect(Rect(0, 0, 10, 10), Color::red);
+        right.rect(Rect(50, 50, 10, 10), Color::red);
+
+        PoolProgram a, b;
+        left.compile(a);
+        right.compile(b);
+
+        ASSERT_EQ(a.passes.size(), 1u);
+        ASSERT_EQ(b.passes.size(), 1u);
+        ASSERT_EQ(a.passes[0].packets.size(), 1u);
+        ASSERT_EQ(b.passes[0].packets.size(), 1u);
+
+        const auto& pa = a.passes[0].packets[0];
+        const auto& pb = b.passes[0].packets[0];
+
+        // The metadata really is indistinguishable - that is the point of the test.
+        EXPECT_EQ(pa.vertexOffset, pb.vertexOffset);
+        EXPECT_EQ(pa.vertexCount, pb.vertexCount);
+        EXPECT_EQ(pa.texture, pb.texture);
+        EXPECT_EQ(pa.color, pb.color);
+        EXPECT_EQ(pa.textured, pb.textured);
+        EXPECT_EQ(pa.blend, pb.blend);
+        EXPECT_EQ(pa.scissorEnabled, pb.scissorEnabled);
+
+        EXPECT_NE(a.contentHash, b.contentHash);
+    }
+
     TEST(RenderBoundary, ContentHashSeesPixelsThatChangedUnderAStableHandle)
     {
         // The one thing a hash of the compiled output cannot see by itself.

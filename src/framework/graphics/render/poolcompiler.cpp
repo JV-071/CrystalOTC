@@ -26,6 +26,8 @@
 #include <framework/graphics/painter.h>
 #include <framework/graphics/paintershaderprogram.h>
 
+#include <cstring>
+
 namespace
 {
     // A target being built up. Passes are emitted in EXECUTION order, so a nested target has
@@ -82,9 +84,54 @@ namespace
         if (p.transform != DEFAULT_MATRIX3)
             stdext::hash_union(hash, p.transform.hash());
 
-        const float* pos = arena.positions();
-        for (uint32_t i = 0; i < p.vertexCount * 2; ++i)
-            stdext::hash_combine(hash, pos[static_cast<size_t>(p.vertexOffset) * 2 + i]);
+        // The geometry, mixed eight bytes at a time rather than one float at a time.
+        //
+        // The obvious spelling of this is a stdext::hash_combine per float, and that is what it
+        // was. It measured at 85% of the whole compile step and 43% of one producer frame - a
+        // dependent chain of std::hash<float> calls over every vertex the pool draws, which for a
+        // 2,600-quad scene is 31,200 of them per pool per frame. Mixing wider is the same idea for
+        // about a third of the cost, and the saving grows with the scene rather than being a fixed
+        // overhead, so it helps most in the frames that are already expensive.
+        //
+        // What it must NOT become is a cheaper identity that ignores the vertices. The geometry of
+        // most draws is folded into DrawHashController on the producer side as well, via the
+        // DrawMethod's dest/src rects, so for those this is the second of two checks - but UI text
+        // and cached images reach DrawPool::add through the CoordsBuffer overload, where the
+        // DrawMethod is default-constructed and carries no rects at all for the producer to fold.
+        // For those draws this loop is the ONLY thing that notices a changed string, and
+        // FrameAssembler skips re-rendering a retained target whose contentHash is unchanged. Drop
+        // it and a label that keeps its glyph count, font, colour and vertex range - "10" becoming
+        // "11" - freezes on screen.
+        //
+        // memcpy rather than a cast through uint64_t*: vertexOffset may be odd, which leaves the
+        // read 4-byte aligned, and the compiler folds the copy away anyway. Byte equality is
+        // strictly finer than std::hash<float>, which maps +0.0 and -0.0 together; the worst that
+        // costs is calling an unchanged target changed and re-rendering it once.
+        if (const uint32_t floats = p.vertexCount * 2) {
+            const float* pos = arena.positions() + static_cast<size_t>(p.vertexOffset) * 2;
+
+            uint64_t acc = 0xcbf29ce484222325ull; // FNV-1a offset basis
+            uint32_t i = 0;
+            for (; i + 2 <= floats; i += 2) {
+                uint64_t chunk;
+                std::memcpy(&chunk, pos + i, sizeof(chunk));
+                acc = (acc ^ chunk) * 0x100000001b3ull;
+            }
+
+            // Unreachable: a vertex is two floats, so the count is even whatever the primitive is
+            // (not every one is a triangle - addUpsideDownQuad emits four vertices). Kept anyway,
+            // because a loop that silently dropped the last float would be a hash that quietly
+            // stops noticing changes rather than an obvious bug.
+            if (i < floats) {
+                uint32_t tail;
+                std::memcpy(&tail, pos + i, sizeof(tail));
+                acc = (acc ^ tail) * 0x100000001b3ull;
+            }
+
+            // Folded to 32 bits before it meets hash_union, so the Android and WASM builds - where
+            // size_t is 32 bits - keep the high half's entropy instead of truncating it away.
+            stdext::hash_union(hash, static_cast<size_t>(acc ^ (acc >> 32)));
+        }
     }
 
     // Scissor rects arrive from the producer unclamped. GL forgave out-of-bounds ones; Metal
