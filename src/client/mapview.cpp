@@ -349,6 +349,15 @@ void MapView::drawFloor()
 
     const uint32_t flags = Otc::DrawThings;
 
+    // Scratch space for one diagonal run, hoisted out of the floor loop: it was allocating and
+    // freeing once per floor, which is up to eight heap round-trips a frame for a buffer whose
+    // contents never outlive the run. Raw Tile* rather than TilePtr because EVERY visible tile
+    // passes through here - it is the staging list, not a list of walkers - so a shared_ptr
+    // element cost an atomic increment and decrement per tile per frame to own something that is
+    // already owned for the whole draw by m_floors[z].cachedVisibleTiles. That cache is rebuilt
+    // only by updateVisibleTiles, which runs in preLoad on this same thread, before this.
+    std::vector<Tile*> walkingTiles;
+
     for (int_fast8_t z = m_floorMax; z >= m_floorMin; --z) {
         const float fadeLevel = getFadeLevel(z);
         if (fadeLevel == 0.f) break;
@@ -359,19 +368,30 @@ void MapView::drawFloor()
         const bool alwaysTransparent = m_floorViewMode == Otc::ALWAYS_WITH_TRANSPARENCY && z < m_cachedFirstVisibleFloor && _camera.coveredUp(cameraPosition.z - z);
 
         const auto& map = m_floors[z].cachedVisibleTiles;
-        std::vector<TilePtr> walkingTiles;
+        walkingTiles.clear();
 
-        for (const auto& tile : map.tiles) {
+        for (size_t i = 0, tileCount = map.tiles.size(); i < tileCount; ++i) {
+            const auto& tile = map.tiles[i];
             uint32_t tileFlags = flags;
 
             if (!m_drawViewportEdge && !tile->canRender(tileFlags, cameraPosition, m_viewport))
                 continue;
 
-            walkingTiles.emplace_back(tile);
+            walkingTiles.emplace_back(tile.get());
 
             // Delay this diagonal run until its upper-right dependency has no walking
             // creature, then render the run in reverse to preserve creature occlusion.
-            const TilePtr upperRightTile = g_map.getTile(tile->getPosition().translated(1, -1, 0));
+            //
+            // The neighbour is usually just the next entry in the cache, so a position
+            // comparison answers this instead of a hash lookup: updateVisibleTiles walks each
+            // diagonal by stepping (x+1, y-1), which IS the upper-right neighbour. Only usually,
+            // though - the cache omits tiles that are not drawable or are fully covered, and
+            // then the next entry is a different tile and the map has to be asked after all.
+            const Position upperRight = tile->getPosition().translated(1, -1, 0);
+            Tile* upperRightTile = (i + 1 < tileCount && map.tiles[i + 1]->getPosition() == upperRight)
+                ? map.tiles[i + 1].get()
+                : g_map.getTile(upperRight).get();
+
             if (!upperRightTile || upperRightTile->getWalkingCreatures().empty()) {
                 for (const auto& walkingTile : std::ranges::reverse_view(walkingTiles)) {
                     if (alwaysTransparent) {
