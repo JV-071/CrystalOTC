@@ -2444,10 +2444,10 @@ function controller:onGameStart()
 			value = allowInspectOption.value ~= nil and allowInspectOption.value or allowInspectOption
 		end
 
-		if g_game.inspectionPlayer then
+		if g_game.inspectPlayer then
 			local flag = value and InspectionParseFlags.AllowAll or InspectionParseFlags.DismissAll
 
-			g_game.inspectionPlayer(flag)
+			g_game.inspectPlayer(flag)
 		end
 	end
 end
