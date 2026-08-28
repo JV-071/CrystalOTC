@@ -197,10 +197,32 @@ void LuaInterface::registerGlobalFunction(const std::string_view functionName, c
     setGlobal(functionName);
 }
 
+// Scratch for the "get_"/"set_" prefixed name every property access has to build.
+//
+// This is the __index and __newindex path for every C++-backed object in the client, so it runs
+// on every `widget.foo` and every `obj:method()` in the whole module tree - and it built and
+// destroyed a fresh std::string each time, one that heap-allocates as soon as the prefixed name
+// passes the small-string limit. Reusing one buffer per thread keeps the capacity between calls,
+// so after the first few accesses the concatenation is a memcpy into memory that is already hot.
+//
+// thread_local rather than static: the dispatcher runs Lua on the map thread as well as the main
+// one, and a shared scratch buffer would be a data race on exactly the hottest path there is.
+static const std::string& prefixedKey(const std::string_view prefix, const std::string& key)
+{
+    thread_local std::string scratch;
+    scratch.assign(prefix);
+    scratch.append(key);
+    return scratch;
+}
+
 int LuaInterface::luaObjectGetEvent(LuaInterface* lua)
 {
     // stack: obj, key
-    const auto& obj = lua->toObject(-2);
+    //
+    // Raw pointer rather than a LuaObjectPtr copy: the object stays on the stack at index -2
+    // for the whole of this function - every push below goes above it, and it is only removed
+    // on the way out - so it is rooted throughout and cannot be collected under us.
+    auto* const obj = lua->toObjectPtr(-2);
     const auto& key = lua->toString(-1);
     assert(obj);
 
@@ -210,7 +232,7 @@ int LuaInterface::luaObjectGetEvent(LuaInterface* lua)
     lua->getMetatable(); // pushes obj metatable
     lua->getField("fieldmethods"); // push obj fieldmethods
     lua->remove(-2); // removes obj metatable
-    lua->getField("get_" + key); // pushes get method
+    lua->getField(prefixedKey("get_", key)); // pushes get method
     lua->remove(-2); // remove obj fieldmethods
     if (!lua->isNil()) { // is the get method not nil?
         lua->insert(-2); // moves obj to the top
@@ -243,7 +265,12 @@ int LuaInterface::luaObjectGetEvent(LuaInterface* lua)
 int LuaInterface::luaObjectSetEvent(LuaInterface* lua)
 {
     // stack: obj, key, value
-    const auto& obj = lua->toObject(-3);
+    //
+    // A real LuaObjectPtr here, unlike the getter: the pop below drops the object from the stack
+    // BEFORE luaSetField runs, and luaSetField allocates - which is what gives the collector a
+    // chance to run __gc on a userdata nothing else references. Holding the reference is what
+    // makes that safe, so this copy is load-bearing rather than incidental.
+    const auto obj = lua->toObject(-3);
     const auto& key = lua->toString(-2);
     assert(obj);
 
@@ -258,7 +285,7 @@ int LuaInterface::luaObjectSetEvent(LuaInterface* lua)
     lua->getMetatable(); // pushes obj metatable
     lua->getField("fieldmethods"); // push obj fieldmethods
     lua->remove(-2); // removes obj metatable
-    lua->getField("set_" + key); // pushes set method
+    lua->getField(prefixedKey("set_", key)); // pushes set method
     lua->remove(-2); // remove obj fieldmethods
     if (!lua->isNil()) { // is the set method not nil?
         lua->insert(-3); // moves func to -3
@@ -1384,6 +1411,17 @@ LuaObjectPtr LuaInterface::toObject(const int index)
         auto* const objRef = static_cast<LuaObjectPtr*>(toUserdata(index));
         if (objRef && *objRef)
             return *objRef;
+    }
+    return nullptr;
+}
+
+LuaObject* LuaInterface::toObjectPtr(const int index)
+{
+    assert(hasIndex(index));
+    if (isUserdata(index)) {
+        auto* const objRef = static_cast<LuaObjectPtr*>(toUserdata(index));
+        if (objRef && *objRef)
+            return objRef->get();
     }
     return nullptr;
 }

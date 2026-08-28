@@ -367,6 +367,14 @@ public:
     void* toUserdata(int index = -1);
     LuaObjectPtr toObject(int index = -1);
 
+    // The same object, without the shared_ptr copy. Valid only while the userdata that owns it
+    // is still on the Lua stack - which is what roots it, since dropping the last reference is
+    // what lets a garbage collection step run __gc and free it. Use toObject anywhere the
+    // object outlives its stack slot; this exists for the metamethods, where it does not, and
+    // where an atomic increment and decrement per property access is otherwise the price of
+    // reading a field.
+    LuaObject* toObjectPtr(int index = -1);
+
     int getTop() const;
     int stackSize() const { return getTop(); }
     void clearStack() { pop(stackSize()); }
