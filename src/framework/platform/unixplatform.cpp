@@ -172,8 +172,19 @@ bool Platform::openUrl(std::string url, bool now)
 
 bool Platform::openDir(std::string path, bool now)
 {
-    const auto& action = [path] {
-        return system(fmt::format("xdg-open {}", path).c_str()) == 0;
+    // Single-quote the path: the write dir sits under the user's home, which can contain
+    // spaces, and this goes straight to a shell. Any embedded quote is escaped the POSIX
+    // way ('\'') so the argument cannot be broken out of.
+    std::string quoted = path;
+    for (size_t pos = quoted.find('\''); pos != std::string::npos; pos = quoted.find('\'', pos + 4))
+        quoted.replace(pos, 1, "'\\''");
+
+    const auto& action = [quoted] {
+#if defined(__APPLE__)
+        return system(fmt::format("open '{}'", quoted).c_str()) == 0;
+#else
+        return system(fmt::format("xdg-open '{}'", quoted).c_str()) == 0;
+#endif
     };
 	
     if(now)
