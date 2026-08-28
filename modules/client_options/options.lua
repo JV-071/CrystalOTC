@@ -565,6 +565,10 @@ end
 
 panels = {}
 
+-- Every option's shipped default, captured in onInit before setup() overwrites obj.value
+-- with the player's saved value. Without this snapshot there is nothing left to reset to.
+local optionDefaults = {}
+
 local simpleButtons = {
 	{
 		icon = "/images/icons/icon_interface",
@@ -2295,6 +2299,8 @@ function controller:onInit()
 			options[k] = obj
 		end
 
+		optionDefaults[k] = obj.value
+
 		g_settings.setDefault(k, obj.value)
 	end
 
@@ -2985,6 +2991,53 @@ function setupOptionsMainButton()
 			end
 		end, false, 1001)
 	end
+end
+
+-- Collects every option key a panel actually presents, by walking its widget tree and
+-- keeping the ids that name an option. That is the same thing the official client means by
+-- "all options in the current section".
+local function collectPanelOptionKeys(widget, found)
+	for _, child in ipairs(widget:getChildren()) do
+		local id = child:getId()
+
+		if id and options[id] and not found[id] then
+			found[id] = true
+		end
+
+		collectPanelOptionKeys(child, found)
+	end
+
+	return found
+end
+
+-- Reset button on an options page. The official client gives every page one of these (it is
+-- declared on the TibiaOptionsPage base type) and it resets that page's options only, which
+-- is why this takes a panel key rather than clearing everything.
+function resetPageToDefaults(panelKey)
+	local panel = panels and panels[panelKey]
+
+	if not panel then
+		return 0
+	end
+
+	local count = 0
+
+	for key in pairs(collectPanelOptionKeys(panel, {})) do
+		local default = optionDefaults[key]
+
+		if default ~= nil then
+			-- Deliberately unforced: a deferred option should land in pendingValue and wait
+			-- for Ok/Apply exactly as if the player had clicked it, which is what the
+			-- official client's reset does.
+			setOption(key, default)
+
+			count = count + 1
+		end
+	end
+
+	g_settings.save()
+
+	return count
 end
 
 function getOption(key)
