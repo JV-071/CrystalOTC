@@ -1,16 +1,7 @@
-OptionCheckBoxWithHelp < OptionCheckBox
-  UIWidget
-    id: helpIcon
-    image-source: /images/icons/show_gui_help_grey
-    size: 12 12
-    anchors.right: parent.right
-    anchors.verticalCenter: parent.verticalCenter
-    margin-right: 5
-
 UIWidget
   anchors.fill: parent
   visible: false
-  
+
   SmallReversedQtPanel
     anchors.left: parent.left
     anchors.right: parent.right
@@ -20,7 +11,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: askBeforeBuying
       !text: tr('Ask Before Buying Products')
-      helpIcon.tooltip: teste1
+      !tooltip: tr("If you have checked this box, a confirmation dialog will open up\nwhenever you try to buy something via the Store. If you uncheck\nthis box, a click on \"Buy Now\" will get you the selected product\nwithout any delay.")
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -32,7 +23,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: askBeforeStowing
       !text: tr('Ask Before Stowing Container Content')
-      helpIcon.tooltip: teste2
+      !tooltip: tr("If you have checked this box, a confirmation dialog will open up\nwhenever you try to stow container content.")
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -44,7 +35,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: askBeforeSorting
       !text: tr('Ask Before Sorting Nested Containers')
-      helpIcon.tooltip: teste3
+      !tooltip: tr("If this box is checked, a confirmation dialog will open whenever\nyou try to sort the contents of containers and their nested\nsubcontainers.")
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -56,7 +47,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: askBeforeMoving
       !text: tr('Ask Before Moving Contents of Nested Containers')
-      helpIcon.tooltip: teste4
+      !tooltip: tr("If you have checked this box, a confirmation dialog will open up\nwhenever you try to move contents of containers and their nested\nsubcontainers to \"Obtain\" containers under \"Manage Containers\".")
 
   SmallReversedQtPanel
     anchors.left: parent.left
@@ -68,43 +59,7 @@ UIWidget
     OptionCheckBoxWithHelp
       id: stayLoggedIn
       !text: tr('Stay Logged In for Session')
-      helpIcon.tooltip: teste5
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    height: 22
-    margin-top: 5
-
-    OptionCheckBoxWithHelp
-      id: optimiseConnection
-      !text: tr('Optimise Connection Stability')
-      helpIcon.tooltip: teste6
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    height: 22
-    margin-top: 5
-
-    OptionCheckBoxWithHelp
-      id: quickLogin
-      !text: tr('Quick Login')
-      helpIcon.tooltip: teste7
-
-  SmallReversedQtPanel
-    anchors.left: parent.left
-    anchors.right: parent.right
-    anchors.top: prev.bottom
-    height: 22
-    margin-top: 5
-
-    OptionCheckBoxWithHelp
-      id: alternateFontRenderer
-      !text: tr('Use Alternate Font Renderer')
-      helpIcon.tooltip: teste8
+      !tooltip: tr("Check this box to stay logged in until you log out or until server\nsave. Otherwise, you will be asked to enter your account data and,\nif available, your authenticator token whenever you log out of the\ngame, e.g. to change your character.")
 
   QtButton
     id: resetBtn
@@ -115,5 +70,23 @@ UIWidget
     margin-right: 1
     margin-bottom: 1
     color: $var-text-color
-    @onClick: |
-      g_logger.info("Reset clicked")
+    @onClick: modules.client_options.resetPageToDefaults("misc")
+
+# The official Misc page carries three more checkboxes that are deliberately absent here,
+# because nothing in this client can honour them and a control that does nothing is worse
+# than no control. All three still exist as options (data_options.lua) and are still read
+# and written by the CipSoft importer, so a round trip does not lose them:
+#
+# Optimise Connection Stability (connectionStabilityOptimizationEnabled)
+# Describes CipSoft's own redundant-traffic connection tuning. OTC's protocol has no
+# equivalent knob.
+#
+# Quick Login (quickLogin)
+# Means "do not preload sprites before entering the game". This client always works that
+# way: sheets load lazily and are capped at SpriteAppearances::MAX_LOADED_SHEETS (96)
+# against a 5000+ sheet catalog, so "off" is not implementable without removing the
+# memory ceiling.
+#
+# Use Alternate Font Renderer (useFreetypeRenderer)
+# The official client hides this row off Windows (it binds visible: to isWindows), and
+# there is no second font renderer here to switch to on any platform.

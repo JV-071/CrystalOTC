@@ -404,6 +404,28 @@ CipImportMappings.OPTION_KEYS = {
 		type = "bool",
 		key = "askBeforeSorting"
 	},
+	containerMoveToManagedContainerRecursiveShowWarningAgain = {
+		type = "bool",
+		key = "askBeforeMoving"
+	},
+	sessionRemainLoggedIn = {
+		type = "bool",
+		key = "stayLoggedIn"
+	},
+	-- The last three have no control on the Misc page (nothing here can honour them), but
+	-- they are still imported so exporting again does not silently reset them.
+	connectionStabilityOptimizationEnabled = {
+		type = "bool",
+		key = "optimiseConnection"
+	},
+	quickLogin = {
+		type = "bool",
+		key = "quickLogin"
+	},
+	useFreetypeRenderer = {
+		type = "bool",
+		key = "alternateFontRenderer"
+	},
 	showFpsLagIndicator = {
 		type = "bool",
 		key = "showFps"

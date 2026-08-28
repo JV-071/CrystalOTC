@@ -2223,6 +2223,27 @@ return {
 	askBeforeSorting = {
 		value = true
 	},
+	askBeforeMoving = {
+		value = true
+	},
+	-- Off means the account data is dropped on a manual logout, so the login window
+	-- asks for it again instead of returning straight to the character list. On is the
+	-- official default and matches what the client did before the option existed.
+	stayLoggedIn = {
+		value = true
+	},
+	-- The next three have no control surface on this client and are deliberately not on
+	-- the Misc page; they exist so a CipSoft import round-trips them instead of dropping
+	-- them on the floor. See styles/misc/misc.otui for why each one is hidden.
+	optimiseConnection = {
+		value = true
+	},
+	quickLogin = {
+		value = true
+	},
+	alternateFontRenderer = {
+		value = false
+	},
 	allowInspect = {
 		value = false,
 		action = function(value)
