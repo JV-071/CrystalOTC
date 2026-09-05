@@ -87,8 +87,9 @@ jobs:
       # Caches the BINARY cache plus downloads, not installed/buildtrees. Restoring build trees
       # does not stop a rebuild - vcpkg decides from ABI hashes and its binary cache - so the
       # previous 3.5 GB restore bought nothing but the minute and a half it took.
-      - name: Cache vcpkg binaries and downloads
-        uses: actions/cache@v4
+      - name: Restore vcpkg binaries and downloads
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/.cache/vcpkg
@@ -122,6 +123,18 @@ jobs:
         with:
           configurePreset: windows-release
           buildPreset: windows-release
+
+      # Save explicitly, including when a later build/test step fails. This means a failed first
+      # build that has already compiled vcpkg ports still warms the next run instead of forcing
+      # another full dependency rebuild.
+      - name: Save vcpkg binaries and downloads
+        if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-windows-release-${{ steps.hash.outputs.hash }}
 
       # This job used to compile the test suite and never run it. The renderer-boundary
       # golden frame is asserted to be byte-identical on every platform, and MSVC/x86-64 is
