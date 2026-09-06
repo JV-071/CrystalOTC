@@ -150,16 +150,21 @@ jobs:
           $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-          $exePath = Get-ChildItem -Recurse -Path "$env:GITHUB_WORKSPACE\build" -Filter "otclient*.exe" | Select-Object -First 1
+          # Tests are named otclient_<suite>_tests.exe. Searching recursively for
+          # otclient*.exe can therefore package the GoogleTest runner instead of the
+          # client, which opens a console, runs its tests and exits immediately.
+          # The production target has one deterministic output location with the
+          # windows-release preset.
+          $exePath = Join-Path $env:GITHUB_WORKSPACE "build\windows-release\bin\otclient.exe"
 
-          if (-not $exePath) {
-            Write-Error "otclient*.exe not found!"
+          if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
+            Write-Error "Production client executable not found at $exePath"
             exit 1
           }
 
-          Copy-Item $exePath.FullName -Destination "$artifactDir\CrystalOTC.exe"
+          Copy-Item $exePath -Destination "$artifactDir\CrystalOTC.exe"
 
-          $dlls = Get-ChildItem -Path $exePath.Directory.FullName -Filter "*.dll"
+          $dlls = Get-ChildItem -Path (Split-Path -Parent $exePath) -Filter "*.dll"
           foreach ($dll in $dlls) {
             Copy-Item $dll.FullName -Destination $artifactDir
           }
