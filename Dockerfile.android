@@ -12,10 +12,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # reusable until dependencies change instead of silently rebuilding against vcpkg HEAD.
 WORKDIR /opt
 COPY vcpkg.json /tmp/vcpkg.json
-RUN git clone --filter=blob:none --depth 1 https://github.com/microsoft/vcpkg.git vcpkg \
+RUN vcpkg_baseline="$(python3 -c 'import json; print(json.load(open("/tmp/vcpkg.json"))["builtin-baseline"])')" \
+    && git clone --filter=blob:none --depth 1 https://github.com/microsoft/vcpkg.git vcpkg \
     && cd vcpkg \
-    && git fetch --depth 1 origin "$(grep 'builtin-baseline' /tmp/vcpkg.json | cut -d'\"' -f4)" \
-    && git checkout "$(grep 'builtin-baseline' /tmp/vcpkg.json | cut -d'\"' -f4)" \
+    && git fetch --depth 1 origin "$vcpkg_baseline" \
+    && git checkout "$vcpkg_baseline" \
     && ./bootstrap-vcpkg.sh
 
 ENV VCPKG_ROOT=/opt/vcpkg

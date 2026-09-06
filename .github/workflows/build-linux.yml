@@ -51,7 +51,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             autoconf automake autoconf-archive build-essential ca-certificates ccache cmake \
             curl file git libtool ninja-build pkg-config tar unzip zip \
-            libasound2-dev libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxext-dev
+            libasound2-dev libgl1-mesa-dev libglew-dev libglu1-mesa-dev libx11-dev libxext-dev
 
       - name: Read pinned vcpkg baseline
         id: vcpkg

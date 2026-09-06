@@ -185,18 +185,18 @@ jobs:
           path: |
             ${{ github.workspace }}/.cache/vcpkg
             ${{ github.workspace }}/vcpkg/downloads
-          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-linux-renderer-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
-            vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-
-            vcpkg-linux-release-
+            vcpkg-linux-renderer-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-linux-renderer-
 
       - name: Cache compiler cache (ccache)
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/.cache/ccache
-          key: ccache-linux-release-${{ github.sha }}
+          key: ccache-linux-renderer-${{ github.sha }}
           restore-keys: |
-            ccache-linux-release-
+            ccache-linux-renderer-
 
       - name: Install pinned vcpkg
         uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2 # v11.6
@@ -229,7 +229,7 @@ jobs:
           path: |
             ${{ github.workspace }}/.cache/vcpkg
             ${{ github.workspace }}/vcpkg/downloads
-          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-linux-renderer-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Report compiler cache statistics
         if: always()
