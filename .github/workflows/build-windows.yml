@@ -153,9 +153,9 @@ jobs:
           # Tests are named otclient_<suite>_tests.exe. Searching recursively for
           # otclient*.exe can therefore package the GoogleTest runner instead of the
           # client, which opens a console, runs its tests and exits immediately.
-          # The production target has one deterministic output location with the
-          # windows-release preset.
-          $exePath = Join-Path $env:GITHUB_WORKSPACE "build\windows-release\bin\otclient.exe"
+          # The windows-release preset leaves TOGGLE_BIN_FOLDER disabled, so CMake
+          # writes the production target to the checkout root.
+          $exePath = Join-Path $env:GITHUB_WORKSPACE "otclient.exe"
 
           if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) {
             Write-Error "Production client executable not found at $exePath"
