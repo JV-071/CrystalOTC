@@ -178,8 +178,9 @@ jobs:
           set -euo pipefail
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR" "$ARTIFACT_DIR"
 
-      - name: Cache vcpkg binaries and downloads
-        uses: actions/cache@v6
+      - name: Restore vcpkg binaries and downloads
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/.cache/vcpkg
@@ -205,6 +206,14 @@ jobs:
           # manifests inside the vcpkg checkout, warning that it found several.
           vcpkgJsonGlob: "vcpkg.json"
 
+      # run-vcpkg replaces VCPKG_DEFAULT_BINARY_CACHE with a temporary location. Point
+      # subsequent CMake/vcpkg calls back to the restored workspace cache.
+      - name: Use the persisted vcpkg binary cache
+        shell: bash
+        run: |
+          echo "VCPKG_DEFAULT_BINARY_CACHE=${{ github.workspace }}/.cache/vcpkg" >> "$GITHUB_ENV"
+          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite" >> "$GITHUB_ENV"
+
       # The linux-release preset already sets OPTIONS_ENABLE_CCACHE=ON; it is repeated
       # here so the workflow, the preset and the cache step agree in one visible place.
       - name: Configure
@@ -212,6 +221,15 @@ jobs:
 
       - name: Build
         run: cmake --build --preset linux-release --parallel 2
+
+      - name: Save vcpkg binaries and downloads
+        if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Report compiler cache statistics
         if: always()

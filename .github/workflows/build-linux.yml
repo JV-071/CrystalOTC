@@ -1,0 +1,135 @@
+name: Build - Linux
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - "tests/**"
+      - ".github/workflows/build-linux.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - "tests/**"
+      - ".github/workflows/build-linux.yml"
+
+permissions:
+  contents: read
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
+  VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg
+  VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite"
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_MAXSIZE: 2G
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: ubuntu-24.04-release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    concurrency:
+      group: crystalotc-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake autoconf-archive build-essential ca-certificates ccache cmake \
+            curl file git libtool ninja-build pkg-config tar unzip zip \
+            libasound2-dev libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxext-dev
+
+      - name: Read pinned vcpkg baseline
+        id: vcpkg
+        run: echo "commit=$(python3 -c 'import json; print(json.load(open("vcpkg.json"))["builtin-baseline"])')" >> "$GITHUB_OUTPUT"
+
+      - name: Create cache directories
+        run: mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR"
+
+      - name: Restore vcpkg binaries and downloads
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-
+            vcpkg-linux-release-
+
+      - name: Restore compiler cache
+        id: ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.cache/ccache
+          key: ccache-linux-release-${{ github.sha }}
+          restore-keys: |
+            ccache-linux-release-
+
+      - name: Install pinned vcpkg
+        uses: lukka/run-vcpkg@b1a0dd252f06b9e25b3c022a9a03bd7a427fb6a2
+        with:
+          vcpkgGitCommitId: ${{ steps.vcpkg.outputs.commit }}
+          vcpkgJsonGlob: vcpkg.json
+
+      # run-vcpkg writes a temporary cache path into GITHUB_ENV. Reassert the persisted
+      # directory afterwards, otherwise the restored cache is never used by CMake/vcpkg.
+      - name: Use the persisted vcpkg binary cache
+        run: |
+          echo "VCPKG_DEFAULT_BINARY_CACHE=${{ github.workspace }}/.cache/vcpkg" >> "$GITHUB_ENV"
+          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: cmake --preset linux-release -DTOGGLE_BIN_FOLDER=ON -DOPTIONS_ENABLE_CCACHE=ON
+
+      - name: Build
+        run: cmake --build --preset linux-release --parallel 2
+
+      - name: Save vcpkg binaries and downloads
+        if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-linux-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+
+      - name: Save compiler cache
+        if: ${{ always() && steps.ccache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.cache/ccache
+          key: ccache-linux-release-${{ github.sha }}
+
+      - name: Run unit tests
+        run: ctest --test-dir build/linux-release --output-on-failure
+
+      - name: Package runnable client
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/CrystalOTC-linux
+          install -m 755 build/linux-release/bin/otclient artifacts/CrystalOTC-linux/CrystalOTC
+          cp -a init.lua data modules mods artifacts/CrystalOTC-linux/
+          tar -C artifacts -czf CrystalOTC-linux.tar.gz CrystalOTC-linux
+
+      - name: Upload Linux client
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-linux-release
+          path: CrystalOTC-linux.tar.gz
+          if-no-files-found: error

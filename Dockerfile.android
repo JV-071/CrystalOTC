@@ -8,10 +8,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config libtool bison flex \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install vcpkg with FULL history
+# Install the exact vcpkg baseline declared by the project. This keeps BuildKit layers
+# reusable until dependencies change instead of silently rebuilding against vcpkg HEAD.
 WORKDIR /opt
-RUN git clone https://github.com/microsoft/vcpkg.git \
-    && cd vcpkg && ./bootstrap-vcpkg.sh
+COPY vcpkg.json /tmp/vcpkg.json
+RUN git clone --filter=blob:none --depth 1 https://github.com/microsoft/vcpkg.git vcpkg \
+    && cd vcpkg \
+    && git fetch --depth 1 origin "$(grep 'builtin-baseline' /tmp/vcpkg.json | cut -d'\"' -f4)" \
+    && git checkout "$(grep 'builtin-baseline' /tmp/vcpkg.json | cut -d'\"' -f4)" \
+    && ./bootstrap-vcpkg.sh
 
 ENV VCPKG_ROOT=/opt/vcpkg
 ENV ANDROID_HOME=/opt/android-sdk

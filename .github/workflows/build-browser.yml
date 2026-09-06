@@ -1,0 +1,67 @@
+name: Build - Browser
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "browser/**"
+      - "cmake/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "Dockerfile.browser"
+      - ".github/workflows/build-browser.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "browser/**"
+      - "cmake/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "Dockerfile.browser"
+      - ".github/workflows/build-browser.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: Emscripten browser bundle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    concurrency:
+      group: crystalotc-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up BuildKit
+        uses: docker/setup-buildx-action@v3
+
+      # This cache holds Emscripten, vcpkg and all Docker build layers. It deliberately
+      # has a browser-only scope: wasm objects and native libraries are not usable by the
+      # Windows, Linux, macOS or Android jobs.
+      - name: Build browser bundle
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.browser
+          target: web-artifacts
+          outputs: type=local,dest=${{ github.workspace }}/artifacts/browser
+          cache-from: type=gha,scope=crystalotc-browser
+          cache-to: type=gha,mode=max,scope=crystalotc-browser
+
+      - name: Upload browser bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-browser-release
+          path: artifacts/browser
+          if-no-files-found: error

@@ -100,8 +100,11 @@ jobs:
       - name: Create cache directories
         run: mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$CCACHE_DIR"
 
-      - name: Cache vcpkg binaries and downloads
-        uses: actions/cache@v6
+      # Restore only. A separate save step below runs even when a later validation fails,
+      # so a first build that completed vcpkg does not throw its dependency work away.
+      - name: Restore vcpkg binaries and downloads
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/.cache/vcpkg
@@ -127,6 +130,13 @@ jobs:
           # manifests inside the vcpkg checkout, warning that it found several.
           vcpkgJsonGlob: "vcpkg.json"
 
+      # run-vcpkg exports its own temporary default cache directory. Restore the workspace
+      # cache after it has run so CMake and vcpkg use the directory actions/cache saves.
+      - name: Use the persisted vcpkg binary cache
+        run: |
+          echo "VCPKG_DEFAULT_BINARY_CACHE=${{ github.workspace }}/.cache/vcpkg" >> "$GITHUB_ENV"
+          echo "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite" >> "$GITHUB_ENV"
+
       # The macos-release preset enables sccache, which is not installed here; ccache is.
       # TOGGLE_COCOA_WINDOW also defaults the deployment target to 14.0, so LSMinimumSystemVersion
       # below is asserted rather than assumed.
@@ -140,6 +150,15 @@ jobs:
       - name: Build
         run: cmake --build --preset macos-release --parallel 3
 
+      - name: Save vcpkg binaries and downloads
+        if: ${{ always() && steps.vcpkg-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.cache/vcpkg
+            ${{ github.workspace }}/vcpkg/downloads
+          key: vcpkg-macos-release-${{ steps.vcpkg.outputs.commit }}-${{ hashFiles('vcpkg.json') }}
+
       - name: Report compiler cache statistics
         if: always()
         run: ccache --show-stats || true
@@ -150,9 +169,9 @@ jobs:
       - name: Check the app bundle
         run: |
           set -euo pipefail
-          APP="build/macos-release/bin/CrystalOTC.app"
+          APP="build/macos-release/bin/Ultia.app"
           test -d "$APP" || { echo "::error::$APP was not produced"; exit 1; }
-          test -x "$APP/Contents/MacOS/CrystalOTC" || { echo "::error::bundle executable missing"; exit 1; }
+          test -x "$APP/Contents/MacOS/Ultia" || { echo "::error::bundle executable missing"; exit 1; }
           plutil -lint "$APP/Contents/Info.plist"
 
           # NSHighResolutionCapable is load-bearing: without it the window server hands the
@@ -170,7 +189,7 @@ jobs:
       - name: Assert the Cocoa build links no X11
         run: |
           set -euo pipefail
-          BIN="build/macos-release/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC"
+          BIN="build/macos-release/bin/Ultia.app/Contents/MacOS/Ultia"
           echo "--- otool -L ---"
           otool -L "$BIN"
           if otool -L "$BIN" | grep -qiE "/opt/X11|libX11|libXext|libGLU"; then
@@ -188,8 +207,8 @@ jobs:
       - name: Smoke launch
         run: |
           set -uo pipefail
-          APP="build/macos-release/bin/CrystalOTC.app"
-          "$APP/Contents/MacOS/CrystalOTC" > "$RUNNER_TEMP/smoke.log" 2>&1 &
+          APP="build/macos-release/bin/Ultia.app"
+          "$APP/Contents/MacOS/Ultia" > "$RUNNER_TEMP/smoke.log" 2>&1 &
           PID=$!
           sleep 45
           if kill -0 "$PID" 2>/dev/null; then
@@ -250,7 +269,7 @@ jobs:
         continue-on-error: true
         run: |
           set -uo pipefail
-          APP="build/macos-release/bin/CrystalOTC.app/Contents/MacOS/CrystalOTC"
+          APP="build/macos-release/bin/Ultia.app/Contents/MacOS/Ultia"
           OUT="$RUNNER_TEMP/metal-captures"
           mkdir -p "$OUT"
 
@@ -322,3 +341,15 @@ jobs:
             ${{ runner.temp }}/metal-captures
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Archive macOS application
+        if: success()
+        run: ditto -c -k --keepParent build/macos-release/bin/Ultia.app CrystalOTC-macos.zip
+
+      - name: Upload macOS application
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-macos-release
+          path: CrystalOTC-macos.zip
+          if-no-files-found: error

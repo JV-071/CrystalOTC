@@ -1,0 +1,68 @@
+name: Build - Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "src/**"
+      - "android/**"
+      - "cmake/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "Dockerfile.android"
+      - "build_luajit_android.sh"
+      - ".github/workflows/build-android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "android/**"
+      - "cmake/**"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+      - "CMakeLists.txt"
+      - "vcpkg.json"
+      - "Dockerfile.android"
+      - "build_luajit_android.sh"
+      - ".github/workflows/build-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: Android release APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    concurrency:
+      group: crystalotc-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up BuildKit
+        uses: docker/setup-buildx-action@v3
+
+      # The Dockerfile produces all Android ABIs. BuildKit's GitHub Actions cache retains
+      # the SDK, NDK, vcpkg and LuaJIT layers independently of desktop-platform caches.
+      - name: Build Android APK
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.android
+          target: apk-artifacts
+          outputs: type=local,dest=${{ github.workspace }}/artifacts/android
+          cache-from: type=gha,scope=crystalotc-android
+          cache-to: type=gha,mode=max,scope=crystalotc-android
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-android-release
+          path: artifacts/android/*.apk
+          if-no-files-found: error
