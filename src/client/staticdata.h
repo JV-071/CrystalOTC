@@ -195,6 +195,8 @@ struct TaskBoardShopItemData
     uint16_t maxPurchases{ 0 };
     uint16_t currentPurchases{ 0 };
     uint32_t nextCost{ 0 };
+    uint8_t status{ 0 }; // Otc::TaskBoardShopStatus_t as sent by the server
+    uint32_t itemId2{ 0 }; // second item of a double offer (bed foot board)
 };
 
 struct TaskBoardSoulsealEntryData

@@ -154,6 +154,134 @@ ShopItemCard < UIWindow
     focusable: false
 
 // =============================================================================
+// Purchase confirmation (HuntingTaskRewardPurchaseConfirmationDialog)
+// =============================================================================
+TaskShopConfirmWindow < MainWindow
+  !text: tr('Confirm')
+  width: 380
+  height: 230
+  @onEnter: modules.game_taskboard.TaskBoard.TaskShop:confirmPurchase()
+  @onEscape: modules.game_taskboard.TaskBoard.TaskShop:cancelPurchase()
+
+  UIWidget
+    id: previewBox
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 8
+    size: 66 66
+    image-source: /images/ui/item
+    image-border: 4
+    border-width: 1
+    border-color-bottom: #808080
+    border-color-right: #808080
+    border-color-left: #131313
+    border-color-top: #131313
+    phantom: true
+
+    UIItem
+      id: itemIcon
+      anchors.centerIn: parent
+      size: 32 32
+      virtual: true
+      phantom: true
+      visible: false
+
+    UIItem
+      id: itemIcon2
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: itemIcon.bottom
+      size: 32 32
+      virtual: true
+      phantom: true
+      visible: false
+
+    UICreature
+      id: outfitIcon
+      anchors.centerIn: parent
+      size: 64 64
+      fixed-creature-size: true
+      phantom: true
+      visible: false
+
+    UIWidget
+      id: promotionIcon
+      anchors.centerIn: parent
+      size: 32 32
+      image-source: /modules/game_taskboard/images/icon_tasksystem_promotionpoint
+      phantom: true
+      visible: false
+
+  Label
+    id: questionLabel
+    anchors.top: previewBox.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 10
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-align: center
+    text-wrap: true
+    text-auto-resize: true
+
+  UIWidget
+    id: priceRow
+    anchors.top: questionLabel.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 2
+    height: 14
+    width: 120
+
+    Label
+      id: priceLabel
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      font: verdana-11px-monochrome
+      color: $var-text-cip-color
+      text-auto-resize: true
+
+    UIWidget
+      id: priceIcon
+      anchors.left: priceLabel.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 3
+      size: 11 11
+      image-source: /modules/game_taskboard/images/preyhuntingtask-tokens
+
+    Label
+      anchors.left: priceIcon.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 1
+      text: ?
+      font: verdana-11px-monochrome
+      color: $var-text-cip-color
+      text-auto-resize: true
+
+  HorizontalSeparator
+    id: separator
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: buyButton.top
+    margin-bottom: 10
+
+  Button
+    id: buyButton
+    !text: tr('Buy')
+    width: 64
+    anchors.bottom: parent.bottom
+    anchors.right: parent.horizontalCenter
+    margin-right: 3
+    @onClick: modules.game_taskboard.TaskBoard.TaskShop:confirmPurchase()
+
+  Button
+    id: cancelButton
+    !text: tr('Cancel')
+    width: 64
+    anchors.bottom: parent.bottom
+    anchors.left: parent.horizontalCenter
+    margin-left: 3
+    @onClick: modules.game_taskboard.TaskBoard.TaskShop:cancelPurchase()
+
+// =============================================================================
 // TaskShopPanel  -  main panel injected into mainBody
 // =============================================================================
 TaskShopPanel < Panel

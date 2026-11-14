@@ -8,8 +8,9 @@ local TYPE_MOUNT = 1
 local TYPE_OUTFIT = 2
 local TYPE_ITEMS = 3
 local TYPE_WHEEL_POINTS = 4
+-- offer status as the server sends it (Otc::TaskBoardShopStatus_t)
 local STATUS_BUYABLE = 0
-local STATUS_OWNED = 1
+local STATUS_NOT_AVAILABLE = 1
 local STATUS_NO_POINTS = 2
 local STATUS_NEEDS_BASE = 3
 local STATUS_PURCHASED = 4
@@ -21,11 +22,46 @@ local CATEGORY_ICON = {
 	[TYPE_WHEEL_POINTS] = "/modules/game_taskboard/images/backdrop_huntingtaskpoint_shop_boost"
 }
 local STATUS_TOOLTIP = {
-	[STATUS_NO_POINTS] = tr("Not enough points."),
-	[STATUS_NEEDS_BASE] = tr("Requires the base outfit first."),
-	[STATUS_OWNED] = tr("Already owned."),
-	[STATUS_PURCHASED] = tr("Already purchased.")
+	[STATUS_NOT_AVAILABLE] = tr("Not available."),
+	[STATUS_NO_POINTS] = tr("You don't have enough Hunting Task Points."),
+	[STATUS_NEEDS_BASE] = tr("Requires the base outfit."),
+	[STATUS_PURCHASED] = tr("You have already purchased this offer.")
 }
+local PROMOTION_POINT_TITLE = "Bonus Promotion Point"
+local PROMOTION_POINT_NAME = "a Bonus Promotion Point"
+
+-- mounts and outfits are previewed in the colours of the own character, like the official shop
+local function previewOutfit(lookType, addons)
+	local outfit = {
+		type = lookType or 0,
+		addons = addons or 0,
+		head = 0,
+		body = 0,
+		legs = 0,
+		feet = 0,
+		mount = 0
+	}
+	local player = g_game.getLocalPlayer()
+
+	if player then
+		local own = player:getOutfit()
+
+		if own then
+			outfit.head = own.head or 0
+			outfit.body = own.body or 0
+			outfit.legs = own.legs or 0
+			outfit.feet = own.feet or 0
+		end
+	end
+
+	return outfit
+end
+
+local function getHuntingTaskPoints()
+	local player = g_game.getLocalPlayer()
+
+	return player and player:getResourceBalance(TaskBoard.resourceTypes.taskHunting) or 0
+end
 
 function TaskShop:getListPanel()
 	if not TaskBoard.taskShopPanel then
@@ -63,6 +99,12 @@ function onEngineTaskHuntingShopData(shopData)
 			clientId = lookType
 		end
 
+		local status = tonumber(o.status)
+
+		if status == nil then
+			status = (tonumber(o.bought) == 1) and STATUS_PURCHASED or STATUS_BUYABLE
+		end
+
 		offers[#offers + 1] = {
 			offerId = tonumber(o.id) or 0,
 			offerType = offerType,
@@ -70,8 +112,10 @@ function onEngineTaskHuntingShopData(shopData)
 			description = o.description or "",
 			price = tonumber(o.price) or 0,
 			bought = tonumber(o.bought) or 0,
-			status = tonumber(o.status) or ((tonumber(o.bought) == 1) and STATUS_PURCHASED or STATUS_BUYABLE),
+			status = status,
 			clientId = clientId,
+			-- double offers (beds): second part drawn under the first
+			clientId2 = tonumber(o.itemId2) or 0,
 			lookType = lookType,
 			addons = tonumber(o.lookAddons) or 0,
 			itemId = itemId,
@@ -87,6 +131,8 @@ end
 function onShopTasks(offers)
 	TaskShop:clearShop()
 
+	TaskShop.offers = offers
+
 	if not offers then
 		return
 	end
@@ -96,18 +142,43 @@ function onShopTasks(offers)
 	end
 end
 
+-- the Buy buttons depend on the Hunting Task Points balance, which can change without a new offer list
+local function onShopResourceBalance(resourceType)
+	if resourceType ~= TaskBoard.resourceTypes.taskHunting or not TaskShop.offers then
+		return
+	end
+
+	local list = TaskShop:getListPanel()
+
+	if not list then
+		return
+	end
+
+	for _, card in ipairs(list:getChildren()) do
+		if card.offerData then
+			TaskShop:applyStatus(card, card.offerData)
+		end
+	end
+end
+
 function TaskShop:init()
 	connect(g_game, {
 		onShopTasks = onShopTasks,
-		onTaskHuntingShopData = onEngineTaskHuntingShopData
+		onTaskHuntingShopData = onEngineTaskHuntingShopData,
+		onResourceBalance = onShopResourceBalance,
+		onGameEnd = function()
+			TaskShop:cancelPurchase()
+		end
 	})
 end
 
 function TaskShop:terminate()
 	disconnect(g_game, {
 		onShopTasks = onShopTasks,
-		onTaskHuntingShopData = onEngineTaskHuntingShopData
+		onTaskHuntingShopData = onEngineTaskHuntingShopData,
+		onResourceBalance = onShopResourceBalance
 	})
+	self:cancelPurchase()
 	self:clearShop()
 end
 
@@ -124,8 +195,10 @@ function TaskShop:createCard(data)
 		return
 	end
 
+	card.offerData = data
+
 	if data.offerType == TYPE_WHEEL_POINTS then
-		card:setText(tr("Bonus Promotion Point"))
+		card:setText(tr(PROMOTION_POINT_TITLE))
 	else
 		card:setText(data.name or "")
 	end
@@ -210,32 +283,12 @@ function TaskShop:applyIcon(card, data)
 
 	if offerType == TYPE_OUTFIT then
 		if outfitIcon and (data.lookType or 0) > 0 then
-			local outfit = {
-				mount = 0,
-				feet = 0,
-				legs = 0,
-				body = 0,
-				head = 0,
-				type = data.lookType or 0,
-				addons = data.addons or 0
-			}
-
-			outfitIcon:setOutfit(outfit)
+			outfitIcon:setOutfit(previewOutfit(data.lookType, data.addons))
 			outfitIcon:setVisible(true)
 		end
 	elseif offerType == TYPE_MOUNT then
 		if outfitIcon and (data.clientId or 0) > 0 then
-			local outfit = {
-				mount = 0,
-				feet = 0,
-				legs = 0,
-				body = 0,
-				head = 0,
-				addons = 0,
-				type = data.clientId or 0
-			}
-
-			outfitIcon:setOutfit(outfit)
+			outfitIcon:setOutfit(previewOutfit(data.clientId, 0))
 			outfitIcon:setVisible(true)
 		end
 	elseif offerType == TYPE_ITEM then
@@ -244,21 +297,40 @@ function TaskShop:applyIcon(card, data)
 			itemIcon:setVisible(true)
 		end
 	elseif offerType == TYPE_ITEMS then
-		if itemIcon and (data.clientId or 0) > 0 then
-			itemIcon:setItemId(data.clientId)
-			itemIcon:setVisible(true)
-			itemIcon:setSize(tosize("44 28"))
-			itemIcon:setMarginTop(-22)
-			itemIcon:setMarginLeft(1)
-		end
-
-		if itemIcon2 and (data.clientId2 or 0) > 0 then
-			itemIcon2:setItemId(data.clientId2)
-			itemIcon2:setVisible(true)
-		end
+		TaskShop:showDoubleItem(itemIcon, itemIcon2, data)
 	elseif offerType == TYPE_WHEEL_POINTS then
 		-- block empty
 	end
+end
+
+-- a bed comes as two items: head board on top, foot board right under it
+function TaskShop:showDoubleItem(itemIcon, itemIcon2, data)
+	if not itemIcon or (data.clientId or 0) <= 0 then
+		return
+	end
+
+	itemIcon:setItemId(data.clientId)
+	itemIcon:setVisible(true)
+
+	if not itemIcon2 or (data.clientId2 or 0) <= 0 then
+		return
+	end
+
+	itemIcon:breakAnchors()
+	itemIcon:addAnchor(AnchorTop, "parent", AnchorTop)
+	itemIcon:addAnchor(AnchorHorizontalCenter, "parent", AnchorHorizontalCenter)
+	itemIcon:setSize(tosize("32 32"))
+	itemIcon:setMarginTop(0)
+	itemIcon:setMarginLeft(0)
+	itemIcon2:breakAnchors()
+	itemIcon2:addAnchor(AnchorTop, "itemIcon", AnchorBottom)
+	itemIcon2:addAnchor(AnchorHorizontalCenter, "parent", AnchorHorizontalCenter)
+	itemIcon2:setSize(tosize("32 32"))
+	itemIcon2:setMarginTop(0)
+	itemIcon2:setMarginRight(0)
+	itemIcon2:setMarginBottom(0)
+	itemIcon2:setItemId(data.clientId2)
+	itemIcon2:setVisible(true)
 end
 
 function TaskShop:applyStatus(card, data)
@@ -271,15 +343,21 @@ function TaskShop:applyStatus(card, data)
 
 	local status = data.status or STATUS_BUYABLE
 
-	if status == STATUS_OWNED or status == STATUS_PURCHASED then
+	if status == STATUS_PURCHASED then
 		buyButton:setVisible(false)
 		boughtWidget:setVisible(true)
+		boughtWidget:setTooltip(STATUS_TOOLTIP[STATUS_PURCHASED])
 
 		return
 	end
 
 	boughtWidget:setVisible(false)
 	buyButton:setVisible(true)
+
+	-- like the official shop: Buy needs the points in hand and an offer the server marks as buyable
+	if status == STATUS_BUYABLE and getHuntingTaskPoints() < (data.price or 0) then
+		status = STATUS_NO_POINTS
+	end
 
 	if status == STATUS_BUYABLE then
 		buyButton:setEnabled(true)
@@ -290,12 +368,7 @@ function TaskShop:applyStatus(card, data)
 		end
 	else
 		buyButton:setEnabled(false)
-
-		local tip = STATUS_TOOLTIP[status]
-
-		if tip then
-			buyButton:setTooltip(tip)
-		end
+		buyButton:setTooltip(STATUS_TOOLTIP[status] or STATUS_TOOLTIP[STATUS_NOT_AVAILABLE])
 	end
 end
 
@@ -304,5 +377,74 @@ function TaskShop:onBuyItem(data)
 		return
 	end
 
-	g_game.sendOnBuyHuntingTaskShop(data.offerId)
+	self:showPurchaseConfirmation(data)
+end
+
+function TaskShop:showPurchaseConfirmation(data)
+	self:cancelPurchase()
+
+	local window = g_ui.createWidget("TaskShopConfirmWindow", rootWidget)
+
+	if not window then
+		return
+	end
+
+	self.confirmWindow = window
+	self.pendingOffer = data
+
+	local name = data.offerType == TYPE_WHEEL_POINTS and tr(PROMOTION_POINT_NAME) or (data.name or "")
+	local preview = window:getChildById("previewBox")
+	local itemIcon = preview:getChildById("itemIcon")
+	local itemIcon2 = preview:getChildById("itemIcon2")
+	local outfitIcon = preview:getChildById("outfitIcon")
+	local promotionIcon = preview:getChildById("promotionIcon")
+
+	if data.offerType == TYPE_OUTFIT and (data.lookType or 0) > 0 then
+		outfitIcon:setOutfit(previewOutfit(data.lookType, data.addons))
+		outfitIcon:setVisible(true)
+	elseif data.offerType == TYPE_MOUNT and (data.clientId or 0) > 0 then
+		outfitIcon:setOutfit(previewOutfit(data.clientId, 0))
+		outfitIcon:setVisible(true)
+	elseif data.offerType == TYPE_WHEEL_POINTS then
+		promotionIcon:setVisible(true)
+	elseif data.offerType == TYPE_ITEMS then
+		self:showDoubleItem(itemIcon, itemIcon2, data)
+	elseif (data.clientId or 0) > 0 then
+		itemIcon:setItemId(data.clientId)
+		itemIcon:setVisible(true)
+	end
+
+	window:getChildById("questionLabel"):setText(tr('Would you like to buy "%s" for', name))
+
+	local priceRow = window:getChildById("priceRow")
+	local priceLabel = priceRow:getChildById("priceLabel")
+
+	priceLabel:setText(TaskBoard:formatNumberWithCommas(data.price or 0))
+	priceRow:setWidth(priceLabel:getTextSize().width + 3 + 11 + 1 + 8)
+	window:raise()
+	window:focus()
+	g_modalManager.show(window)
+end
+
+function TaskShop:confirmPurchase()
+	local data = self.pendingOffer
+
+	self:cancelPurchase()
+
+	if data then
+		g_game.sendOnBuyHuntingTaskShop(data.offerId)
+	end
+end
+
+function TaskShop:cancelPurchase()
+	self.pendingOffer = nil
+
+	if self.confirmWindow then
+		if not self.confirmWindow:isDestroyed() then
+			g_modalManager.hide(self.confirmWindow)
+			self.confirmWindow:destroy()
+		end
+
+		self.confirmWindow = nil
+	end
 end

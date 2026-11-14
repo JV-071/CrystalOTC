@@ -4889,7 +4889,9 @@ namespace
             { "itemId", std::to_string(item.itemId) },
             { "maxPurchases", std::to_string(item.maxPurchases) },
             { "currentPurchases", std::to_string(item.currentPurchases) },
-            { "nextCost", std::to_string(item.nextCost) }
+            { "nextCost", std::to_string(item.nextCost) },
+            { "status", std::to_string(item.status) },
+            { "itemId2", std::to_string(item.itemId2) }
         };
     }
 
@@ -5131,6 +5133,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             item.price = item.nextCost;
             item.currentPurchases = purchasedDisplayValue > 0 ? purchasedDisplayValue - 1 : 0;
             item.bought = (status == Otc::TASK_BOARD_SHOP_STATUS_BOUGHT || item.nextCost == 0) ? 1 : 0;
+            item.status = item.bought ? static_cast<uint8_t>(Otc::TASK_BOARD_SHOP_STATUS_BOUGHT) : status;
         } else {
             item.title = msg->getString();
             item.description = msg->getString();
@@ -5142,8 +5145,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             }
 
             if (offerType == Otc::TASK_BOARD_SHOP_OFFER_ITEM_DOUBLE) {
-                // TODO(winter-2025 follow-up): second item id (double bundle) is not yet used by UI.
-                msg->getU32();
+                item.itemId2 = msg->getU32(); // foot part of the bed, drawn under the first item
             }
 
             item.price = msg->getU32();
@@ -5159,6 +5161,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             }
 
             item.bought = status == Otc::TASK_BOARD_SHOP_STATUS_BOUGHT ? 1 : 0;
+            item.status = status;
         }
 
         shopItems.emplace_back(item);
