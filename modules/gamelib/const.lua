@@ -398,6 +398,8 @@ ChannelEvent = {
 	Leave = 1
 }
 ResourceTypes = {
+	COSMETIC_TOKENS = 89,
+	BOUNTY_REROLL_TOKENS = 88,
 	LUNAR_ASCENSION_ORBS = 73,
 	FORGE_CORES = 72,
 	FORGE_SLIVER = 71,

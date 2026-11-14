@@ -908,6 +908,13 @@ void ProtocolGame::parseResourceBalance(const InputMessagePtr& msg) const
         case Otc::RESOURCE_SOULSEALS:
             value = msg->getU32();
             break;
+        // 15.33 client reads these as 4 bytes too (0x58 and 0x59 are new)
+        case Otc::RESOURCE_NPC_STORAGE_TRADE:
+        case Otc::RESOURCE_WHEEL_POINTS:
+        case Otc::RESOURCE_BOUNTY_REROLL_TOKENS:
+        case Otc::RESOURCE_COSMETIC_TOKENS:
+            value = g_game.getClientVersion() >= 1533 ? msg->getU32() : msg->getU64();
+            break;
         default:
             value = msg->getU64();
             break;
