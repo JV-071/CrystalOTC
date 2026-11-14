@@ -1758,6 +1758,9 @@ function Creature:getName() end
 ---@return integer
 function Creature:getHealthPercent() end
 
+---@return boolean
+function Creature:getShowStatus() end
+
 ---@return integer
 function Creature:getSpeed() end
 
