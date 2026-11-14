@@ -53,7 +53,7 @@ local RewardEntryKind = {
 
 -- optional official artwork, added by the owner outside git (see UI-1533-ASSETS.md)
 local REWARD_ICON_COSMETIC_1533 = "/images/game/1533/rewardwall/icon-reward-cosmetic"
-local COSMETIC_TOKEN_ICON_1533 = "/images/game/1533/rewardwall/icon-cosmetic-token"
+local COSMETIC_TOKEN_ICON_1533 = "/images/game/1533/store/icon-cosmetic-token"
 local streakBonuses = {}
 local lastRewardStreak = 0
 
