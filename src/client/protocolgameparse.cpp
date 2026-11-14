@@ -7784,79 +7784,102 @@ void ProtocolGame::parseBossDifficultySelection(const InputMessagePtr& msg)
 }
 
 // 0x5F - parse destiny wheel window
+//
+// Lua: g_game.onDestinyWheel(playerId, canView, changeState, vocationId, points, extraPoints, pointInvested,
+//                            usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded,
+//                            earnedFromAchievements, vesselGems, scrollExtraPoints, monkQuest, huntingTaskShopPoints)
+//   pointInvested        36 slot points (Lua index 1..36 = slot 0..35)
+//   usedPromotionScrolls item ids of the unlocked promotion scrolls
+//   scrollExtraPoints    the promotion points of each scroll, same order as usedPromotionScrolls
+//   equipedGems          15.30: active gem index per domain list; 15.33: gem index of every filled vessel, vessel order
+//   vesselGems           15.33 only: 8 entries (Lua index 1..8 = vessel 0..7), revealed gem index or -1 when empty;
+//                        empty table before 15.33
+//   atelierGems          revealed gems {gemID, locked, gemDomain, gemType, lesserBonus, regularBonus, supremeBonus};
+//                        gemID is the revealed gem index; 15.33 has no domain, gemDomain is then always 0
+//   basicUpgraded / supremeUpgraded  map mod id -> grade (Fragment Workshop)
 void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
 {
-    // Player ID
-    uint32_t playerId = msg->getU32();
+    const bool is1533 = g_game.getClientVersion() >= 1533;
 
-    // CanView
-    uint8_t canView = msg->getU8();
+    const uint32_t playerId = msg->getU32();
+    const uint8_t canView = msg->getU8();
 
-    // If it cannot be viewed, stop and fire an "empty" callback
+    // The server sends only the owner id and the flag when the wheel cannot be used
     if (!canView) {
         g_lua.callGlobalField("g_game", "onDestinyWheel",
             playerId, canView, 0, 0, 0, 0,
             std::vector<uint16_t>(), std::vector<uint16_t>(),
             std::vector<uint16_t>(), std::vector<GemData>(),
-            std::map<uint8_t, uint8_t>(), std::map<uint8_t, uint8_t>(), 0);
+            std::map<uint8_t, uint8_t>(), std::map<uint8_t, uint8_t>(), 0,
+            std::vector<int32_t>(), std::vector<uint8_t>(), false, 0);
         return;
     }
 
-    // Change state + vocation
-    uint8_t changeState = msg->getU8();
-    uint8_t vocationId = msg->getU8();
+    const uint8_t changeState = msg->getU8(); // options: 1 = own wheel, editable
+    const uint8_t vocationId = msg->getU8();
 
-    // Points
-    uint16_t points = msg->getU16();
-    uint16_t extraPoints = msg->getU16();
+    const uint16_t points = msg->getU16();
+    const uint16_t extraPoints = msg->getU16();
 
-    // Points per slot (37 fixed slots, same as the server, 0 to 36)
+    // Points per slot (36 slots, same order as the server WheelSlots_t)
     std::vector<uint16_t> pointInvested;
     pointInvested.reserve(36);
-
     for (int i = 0; i < 36; ++i) {
-        uint16_t slotPoints = msg->getU16();
-        pointInvested.push_back(slotPoints);
+        pointInvested.push_back(msg->getU16());
     }
 
-    // Promotion scrolls
+    // Promotion scrolls: u16 count, u16 item id and (1500+) u8 extra points each
     std::vector<uint16_t> usedPromotionScrolls;
-    uint16_t scrollCount = msg->getU16();
-
+    std::vector<uint8_t> scrollExtraPoints;
+    const uint16_t scrollCount = msg->getU16();
     for (uint16_t i = 0; i < scrollCount; ++i) {
-        uint16_t itemId = msg->getU16();
-        // In protocols 1500+ the server sends 1 extra byte (extraPoints)
-        if (g_game.getProtocolVersion() >= 1500) {
-            msg->getU8();
-        }
-        usedPromotionScrolls.push_back(itemId);
+        usedPromotionScrolls.push_back(msg->getU16());
+        scrollExtraPoints.push_back(g_game.getProtocolVersion() >= 1500 ? msg->getU8() : 0);
     }
 
+    bool monkQuest = false;
     if (g_game.getProtocolVersion() >= 1500) {
-        msg->getU8(); // hasMonkQuest
+        monkQuest = msg->getU8() != 0;
     }
+    uint16_t huntingTaskShopPoints = 0;
     if (g_game.getProtocolVersion() >= 1520) {
-        msg->getU16(); // getExtraPointsFromHuntingTaskShop
+        huntingTaskShopPoints = msg->getU16();
     }
-    // Active gems (equipped)
+
+    // Active gems
     std::vector<uint16_t> equipedGems;
-    uint8_t activeGemCount = msg->getU8();
-    for (uint8_t i = 0; i < activeGemCount; ++i) {
-        uint16_t gemIndex = msg->getU16();
-        equipedGems.push_back(gemIndex);
+    std::vector<int32_t> vesselGems;
+    if (is1533) {
+        // 15.33: u8 vessel mask, bit (0x80 >> i) set = vessel i holds a gem, then one u16 gem index per set bit
+        const uint8_t vesselMask = msg->getU8();
+        vesselGems.assign(8, -1);
+        for (int vessel = 0; vessel < 8; ++vessel) {
+            if (vesselMask & (0x80 >> vessel)) {
+                const uint16_t gemIndex = msg->getU16();
+                vesselGems[vessel] = gemIndex;
+                equipedGems.push_back(gemIndex);
+            }
+        }
+    } else {
+        const uint8_t activeGemCount = msg->getU8();
+        for (uint8_t i = 0; i < activeGemCount; ++i) {
+            equipedGems.push_back(msg->getU16());
+        }
     }
 
     // Revealed gems (atelier)
     std::vector<GemData> atelierGems;
-    uint16_t revealedCount = msg->getU16();
-
+    const uint16_t revealedCount = msg->getU16();
+    atelierGems.reserve(revealedCount);
     for (uint16_t i = 0; i < revealedCount; ++i) {
         GemData gem;
-        gem.gemID = msg->getU16();          // Unique gem ID
-        gem.locked = msg->getU8();          // Locked/unlocked status
-        gem.gemDomain = msg->getU8();       // Elemental affinity
-        gem.gemType = msg->getU8();         // Quality (Lesser, Regular, Greater, Supreme)
-        gem.lesserBonus = msg->getU8();     // First modifier
+        gem.gemID = msg->getU16();        // revealed gem index
+        gem.locked = msg->getU8();
+        if (!is1533) {
+            gem.gemDomain = msg->getU8(); // 15.33 removed the affinity byte
+        }
+        gem.gemType = msg->getU8();       // quality: lesser, regular, greater
+        gem.lesserBonus = msg->getU8();   // first basic mod
 
         if (gem.gemType >= Otc::WheelGemQuality_Regular)
             gem.regularBonus = msg->getU8();
@@ -7866,30 +7889,28 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
         atelierGems.push_back(gem);
     }
 
-    // Basic upgrades
+    // Fragment Workshop grades of the basic mods
     std::map<uint8_t, uint8_t> basicUpgraded;
-    uint8_t basicCount = msg->getU8(); // usually 0x2E (46)
+    const uint8_t basicCount = msg->getU8();
     for (uint8_t i = 0; i < basicCount; ++i) {
-        uint8_t pos = msg->getU8();
-        uint8_t val = msg->getU8();
-        basicUpgraded[pos] = val;
+        const uint8_t pos = msg->getU8();
+        basicUpgraded[pos] = msg->getU8();
     }
 
-    // Supreme upgrades
+    // Fragment Workshop grades of the supreme mods of the vocation
     std::map<uint8_t, uint8_t> supremeUpgraded;
-    uint8_t supCount = msg->getU8(); // usually 0x17 (23)
+    const uint8_t supCount = msg->getU8();
     for (uint8_t i = 0; i < supCount; ++i) {
-        uint8_t pos = msg->getU8();
-        uint8_t val = msg->getU8();
-        supremeUpgraded[pos] = val;
+        const uint8_t pos = msg->getU8();
+        supremeUpgraded[pos] = msg->getU8();
     }
 
-    // Callback Lua
     g_lua.callGlobalField("g_game", "onDestinyWheel",
         playerId, canView, changeState, vocationId,
         points, extraPoints, pointInvested,
         usedPromotionScrolls, equipedGems, atelierGems,
-        basicUpgraded, supremeUpgraded, 0 // earnedFromAchievements placeholder
+        basicUpgraded, supremeUpgraded, 0, // earnedFromAchievements placeholder
+        vesselGems, scrollExtraPoints, monkQuest, huntingTaskShopPoints
     );
 }
 
