@@ -457,8 +457,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     }
                     break;
                 case Proto::GameServerRuleViolationCancel:
-                    if (g_game.getClientVersion() >= 1533) {
-                        parseOutfitMemorial(msg); // 0xB0 is the outfit memorial on 15.33
+                    if (g_game.getClientVersion() >= 1200) {
+                        parseOutfitMemorial(msg); // 0xB0 is the Golden Outfit and Royal Costume memorial
                     } else {
                         parseRuleViolationCancel(msg);
                     }

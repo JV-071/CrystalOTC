@@ -172,7 +172,7 @@ namespace Proto
         GameServerRuleViolationChannel = 174,
         GameServerRuleViolationRemove = 175,
         GameServerRuleViolationCancel = 176,
-        GameServerOutfitMemorial = 176, // 0xB0 at >= 1533
+        GameServerOutfitMemorial = 176, // 0xB0 at >= 1200
         GameServerRuleViolationLock = 177,
         GameServerOpenOwnChannel = 178,
         GameServerCloseChannel = 179,
