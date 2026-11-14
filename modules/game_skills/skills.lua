@@ -2077,7 +2077,7 @@ function updateXpGainRateWidgetFromData(xpGainRateWidget, rates, context)
 	context = context or {}
 
 	local baseRate = rates.base or 100
-	local expRateTotal = baseRate + (rates.lowLevel or 0) + (rates.xpBoost or 0) + (rates.voucher or 0)
+	local expRateTotal = baseRate + (rates.lowLevel or 0) + (rates.xpBoost or 0) + (rates.dailyBoost or 0) + (rates.voucher or 0)
 	local staminaMultiplier = rates.staminaMultiplier or 100
 
 	expRateTotal = expRateTotal * staminaMultiplier / 100
@@ -2094,6 +2094,10 @@ function updateXpGainRateWidgetFromData(xpGainRateWidget, rates, context)
 
 	if (rates.xpBoost or 0) > 0 then
 		tooltip = tooltip .. string.format("\n- XP Boost: %d%% (%s h remaining)", rates.xpBoost, formatTimeBySeconds(context.xpBoostRemainingSeconds or 0))
+	end
+
+	if (rates.dailyBoost or 0) > 0 then
+		tooltip = tooltip .. string.format("\n- Daily Reward XP Boost: %d%% (%s h remaining)", rates.dailyBoost, formatTimeBySeconds(context.dailyBoostRemainingSeconds or 0))
 	end
 
 	if staminaMultiplier > 100 then
@@ -2122,10 +2126,12 @@ function updateXpGainRateWidget(xpGainRateWidget, localPlayer)
 		base = ExpRating[ExperienceRate.BASE] or 100,
 		lowLevel = ExpRating[ExperienceRate.LOW_LEVEL] or 0,
 		xpBoost = ExpRating[ExperienceRate.XP_BOOST] or 0,
+		dailyBoost = ExpRating[ExperienceRate.DAILY_BOOST] or 0,
 		voucher = ExpRating[ExperienceRate.VOUCHER] or 0,
 		staminaMultiplier = ExpRating[ExperienceRate.STAMINA_MULTIPLIER] or 100
 	}, {
 		xpBoostRemainingSeconds = localPlayer:getStoreExpBoostTime(),
+		dailyBoostRemainingSeconds = localPlayer.getDailyExpBoostTime and localPlayer:getDailyExpBoostTime() or 0,
 		staminaMinutes = localPlayer:getStamina()
 	})
 end

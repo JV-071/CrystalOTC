@@ -818,7 +818,8 @@ namespace Otc
         EXP_VOUCHER = 1,
         EXP_LOWLEVEL = 2,
         EXP_XPBOOST = 3,
-        EXP_STANINAMULTIPLIER = 4
+        EXP_STANINAMULTIPLIER = 4,
+        EXP_DAILYBOOST = 5 // 15.33: daily reward XP boost, separate from the store boost
     };
 
     enum MarketItemDescription : uint8_t

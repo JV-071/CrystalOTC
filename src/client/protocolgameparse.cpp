@@ -2721,6 +2721,14 @@ void ProtocolGame::parsePlayerStats(const InputMessagePtr& msg) const
         }
     }
 
+    if (g_game.getClientVersion() >= 1533) {
+        // 15.33: daily reward XP boost, percent (0 while paused) and remaining seconds; the store boost stays above
+        const uint16_t dailyBoostPercent = msg->getU16();
+        const uint16_t dailyBoostSeconds = msg->getU16();
+        m_localPlayer->setDailyExpBoostTime(dailyBoostSeconds);
+        m_localPlayer->setExperienceRate(Otc::EXP_DAILYBOOST, dailyBoostPercent);
+    }
+
     m_localPlayer->setHealth(health, maxHealth);
     m_localPlayer->setFreeCapacity(freeCapacity);
     m_localPlayer->setTotalCapacity(totalCapacity);
@@ -5579,6 +5587,12 @@ void ProtocolGame::parseBlessDialog(const InputMessagePtr& msg)
 void ProtocolGame::parseRestingAreaState(const InputMessagePtr& msg)
 {
     const uint8_t zone = msg->getU8();
+    if (g_game.getClientVersion() >= 1533) {
+        // 15.33: only the "in resting area" bool is left, the bonuses are always active there
+        g_lua.callGlobalField("g_game", "onRestingAreaState", zone, static_cast<uint8_t>(1), std::string());
+        return;
+    }
+
     const uint8_t state = msg->getU8();
     const auto& message = msg->getString();
 

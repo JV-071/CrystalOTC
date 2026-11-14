@@ -452,6 +452,7 @@ StoreConst = {
 	InstantRewardAccess = 233
 }
 ExperienceRate = {
+	DAILY_BOOST = 5,
 	STAMINA_MULTIPLIER = 4,
 	XP_BOOST = 3,
 	LOW_LEVEL = 2,
