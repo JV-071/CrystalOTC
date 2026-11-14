@@ -817,6 +817,8 @@ StoreWindow
     image-border: 5
     image-clip: 0 0 98 40
     !tooltip: tr('Cosmetic Tokens can be used to buy cosmetic products in the Store.')
+    phantom: false
+    focusable: false
     visible: false
 
     UIWidget
