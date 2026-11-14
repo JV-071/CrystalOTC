@@ -1419,7 +1419,7 @@ local function getRecentKillStatusInfo(status)
 	return tostring(status), "#C0C0C0"
 end
 
--- Battle results come in pages (0xDA types 4 and 5 start with u16 page, u16 page count)
+-- Battle results come in pages (0xDA types 3 and 4 start with u16 page, u16 page count)
 local BATTLE_RESULTS_PER_PAGE = 23
 
 local function updateBattleResultsPager(panel, infoType, page, pageCount)
