@@ -371,8 +371,8 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseCreaturesMark(msg);
                     break;
                 case Proto::GameServerPlayerHelpers:
-                    if (g_game.getClientVersion() >= 1533) {
-                        parseDepotSearchItems(msg); // the server sends 0x94 helpers only to old protocol clients
+                    if (g_game.getClientVersion() >= 1200) {
+                        parseDepotSearchItems(msg); // the server sends 0x94 helpers only to old protocol clients (below 12.00)
                     } else {
                         parsePlayerHelpers(msg);
                     }
