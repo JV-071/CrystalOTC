@@ -32,3 +32,32 @@ historyData < UIWidget
     color: #ff0000cf
     phantom: true
     margin-left: 5
+
+BlessingHistoryRow < UIWidget
+  height: 16
+  focusable: false
+
+  Label
+    id: date
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.bottom: parent.bottom
+    width: 145
+    margin-left: 4
+    font: $var-cip-font-new
+    color: #c0c0c0
+    text-align: leftCenter
+    phantom: true
+
+  Label
+    id: event
+    anchors.top: parent.top
+    anchors.left: date.right
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-left: 8
+    margin-right: 14
+    font: $var-cip-font-new
+    color: #c0c0c0
+    text-align: leftCenter
+    phantom: true
