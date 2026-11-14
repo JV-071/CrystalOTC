@@ -79,8 +79,9 @@ g_app.setOrganizationName("Crystal");
 -- Our exe gates client versions on g_gameConfig.getLastSupportedVersion() (default 1). The
 -- ported modules configure supported versions through a mechanism our exe doesn't expose,
 -- so setClientVersion(1530) at login threw "Client version 1530 not supported". Raise the
--- ceiling here so the 1530 protocol (our server + data/things/1530) is accepted.
-g_gameConfig.setLastSupportedVersion(1530)
+-- ceiling here so the 1530 protocol (our server + data/things/1530) is accepted, and 1533
+-- for the 15.33 server (data/things/1533).
+g_gameConfig.setLastSupportedVersion(1533)
 
 g_app.hasUpdater = function()
     return (Services.updater and Services.updater ~= "" and g_modules.getModule("updater"))

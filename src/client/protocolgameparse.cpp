@@ -786,11 +786,20 @@ void ProtocolGame::parseLogin(const InputMessagePtr& msg) const
         }
     }
 
+    uint8_t rewardStreak = 0;
+    if (g_game.getClientVersion() >= 1533) {
+        rewardStreak = msg->getU8(); // 15.33: daily reward streak length (same value as the last u16 of 0xE2)
+    }
+
     m_localPlayer->setId(playerId);
     g_game.setServerBeat(serverBeat);
     g_game.setCanReportBugs(canReportBugs);
 
     g_game.processLogin();
+
+    if (g_game.getClientVersion() >= 1533) {
+        g_lua.callGlobalField("g_game", "onLoginRewardStreak", rewardStreak);
+    }
 }
 
 void ProtocolGame::parseBugReport(const InputMessagePtr& msg)
