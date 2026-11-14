@@ -1971,12 +1971,13 @@ function Cyclopedia.loadItemDetail(itemId, descriptions)
 	descriptions = descriptions or {}
 
 	for _, description in ipairs(descriptions) do
-        local key = description.key or description[1] or ""
-        local value = description.value or description[2] or ""
+		local key = description.key or description[1] or ""
+		local value = description.value or description[2] or ""
 
-        if key ~= "" or value ~= "" then
-                Cyclopedia.appendDetailKeyValueRow(UI.InfoBase.DetailsBase.List, tostring(key), tostring(value))
-        end
+		if key ~= "" or value ~= "" then
+			Cyclopedia.appendDetailKeyValueRow(UI.InfoBase.DetailsBase.List, tostring(key), tostring(value))
+		end
+	end
 end
 
 function Cyclopedia.openItemInCyclopedia(itemId)
