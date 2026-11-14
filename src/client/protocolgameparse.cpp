@@ -139,6 +139,12 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 case Proto::GameServerPartyAnalyzer:
                     parsePartyAnalyzer(msg);
                     break;
+                case Proto::GameServerTeamFinderLeader:
+                    parseTeamFinderLeader(msg);
+                    break;
+                case Proto::GameServerTeamFinderList:
+                    parseTeamFinderList(msg);
+                    break;
                 case Proto::GameServerBossDifficultySelection:
                     parseBossDifficultySelection(msg);
                     break;
@@ -8037,4 +8043,91 @@ void ProtocolGame::parseConfigureMonsterPodium(const InputMessagePtr& msg)
     data.direction = msg->getU8();
 
     g_lua.callGlobalField("g_game", "onConfigureBossPodium", data);
+}
+
+namespace {
+    // Team Finder activity: type 1 boss (u16 boss id), 2 hunt (u16 hunt type, u16 hunt area), 3 quest (u16 quest id)
+    std::pair<uint16_t, uint16_t> readTeamFinderActivity(const InputMessagePtr& msg, const uint8_t teamType)
+    {
+        switch (teamType) {
+            case 1:
+            case 3:
+                return { msg->getU16(), 0 };
+            case 2: {
+                const uint16_t huntType = msg->getU16();
+                const uint16_t huntArea = msg->getU16();
+                return { huntType, huntArea };
+            }
+            default:
+                return { 0, 0 };
+        }
+    }
+}
+
+void ProtocolGame::parseTeamFinderLeader(const InputMessagePtr& msg)
+{
+    if (skipBefore1533(msg, Proto::GameServerTeamFinderLeader)) {
+        return;
+    }
+
+    const bool reset = msg->getU8() != 0;
+    if (reset) {
+        g_lua.callGlobalField("g_game", "onTeamFinderLeader", true, std::vector<uint32_t>(), std::vector<std::tuple<uint32_t, std::string, uint16_t, uint8_t, uint8_t>>());
+        return;
+    }
+
+    // settings: minLevel, maxLevel, vocations mask, team slots, free slots, timestamp, team type, activity a, activity b
+    const uint16_t minLevel = msg->getU16();
+    const uint16_t maxLevel = msg->getU16();
+    const uint8_t vocations = msg->getU8();
+    const uint16_t teamSlots = msg->getU16();
+    const uint16_t freeSlots = msg->getU16();
+    const uint32_t timestamp = msg->getU32();
+    const uint8_t teamType = msg->getU8();
+    const auto [activityA, activityB] = readTeamFinderActivity(msg, teamType);
+    const std::vector<uint32_t> settings{ minLevel, maxLevel, vocations, teamSlots, freeSlots, timestamp, teamType, activityA, activityB };
+
+    // members: guid, name, level, vocation, status (the leader comes first)
+    std::vector<std::tuple<uint32_t, std::string, uint16_t, uint8_t, uint8_t>> members;
+    const uint16_t memberCount = msg->getU16();
+    for (auto i = 0; i < memberCount; ++i) {
+        const uint32_t guid = msg->getU32();
+        const auto& name = msg->getString();
+        const uint16_t level = msg->getU16();
+        const uint8_t vocation = msg->getU8();
+        const uint8_t status = msg->getU8();
+        members.emplace_back(guid, name, level, vocation, status);
+    }
+
+    g_lua.callGlobalField("g_game", "onTeamFinderLeader", false, settings, members);
+}
+
+void ProtocolGame::parseTeamFinderList(const InputMessagePtr& msg)
+{
+    if (skipBefore1533(msg, Proto::GameServerTeamFinderList)) {
+        return;
+    }
+
+    const bool tooManyRequests = msg->getU8() != 0;
+
+    // entry: leader guid, leader name, minLevel, maxLevel, vocations mask, team slots, used slots, timestamp,
+    // team type, activity a, activity b, own application status
+    std::vector<std::tuple<uint32_t, std::string, uint16_t, uint16_t, uint8_t, uint16_t, uint16_t, uint32_t, uint8_t, uint16_t, uint16_t, uint8_t>> teams;
+    const uint16_t teamCount = msg->getU16();
+    for (auto i = 0; i < teamCount; ++i) {
+        const uint32_t leaderGuid = msg->getU32();
+        const auto& leaderName = msg->getString();
+        const uint16_t minLevel = msg->getU16();
+        const uint16_t maxLevel = msg->getU16();
+        const uint8_t vocations = msg->getU8();
+        const uint16_t teamSlots = msg->getU16();
+        const uint16_t usedSlots = msg->getU16();
+        const uint32_t timestamp = msg->getU32();
+        const uint8_t teamType = msg->getU8();
+        const auto [activityA, activityB] = readTeamFinderActivity(msg, teamType);
+        const uint8_t status = msg->getU8();
+        teams.emplace_back(leaderGuid, leaderName, minLevel, maxLevel, vocations, teamSlots, usedSlots, timestamp, teamType, activityA, activityB, status);
+    }
+
+    g_lua.callGlobalField("g_game", "onTeamFinderList", tooManyRequests, teams);
 }

@@ -317,6 +317,8 @@ private:
     void parseRuleViolationChannel(const InputMessagePtr& msg);
     void parseRuleViolationRemove(const InputMessagePtr& msg);
     void parseRuleViolationCancel(const InputMessagePtr& msg);
+    void parseTeamFinderLeader(const InputMessagePtr& msg);
+    void parseTeamFinderList(const InputMessagePtr& msg);
     void parseConfigureMonsterPodium(const InputMessagePtr& msg);
     void parseOutfitMemorial(const InputMessagePtr& msg);
     void parseRuleViolationLock(const InputMessagePtr& msg);

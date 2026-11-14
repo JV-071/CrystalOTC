@@ -64,6 +64,8 @@ namespace Proto
         GameServerSupplyStash = 41,
         GameServerSpecialContainer = 42,
         GameServerPartyAnalyzer = 43,
+        GameServerTeamFinderLeader = 44, // 0x2C
+        GameServerTeamFinderList = 45, // 0x2D
         GameServerBossDifficultySelection = 47, // 0x2F crystal-summerupdate custom (boss difficulty window)
 
         // all in game opcodes must be greater than 50
