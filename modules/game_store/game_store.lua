@@ -1439,6 +1439,9 @@ local function applyListOfferSale(priceLabel, offer)
 	end
 
 	priceLabel:setColor("#f7af48")
+	-- the price panel is phantom by style, a phantom widget never gets hovered and shows no tooltip
+	priceLabel:setPhantom(false)
+	priceLabel:setFocusable(false)
 	priceLabel:setTooltip(text)
 end
 
@@ -3878,6 +3881,7 @@ local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBala
 		basePrice:setId("lblBasePrice")
 		basePrice:setText(formatNumberWithCommas(tonumber(offer.basePrice) or 0))
 		row:moveChildToIndex(basePrice, 1)
+		pricePanel:setPhantom(false)
 		pricePanel:setTooltip(getOfferSaleText(offer))
 	end
 
@@ -3896,6 +3900,7 @@ local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBala
 				priceText:setText(formatNumberWithCommas(priceVal) .. " " .. tr("Tokens"))
 			end
 
+			pricePanel:setPhantom(false)
 			pricePanel:setTooltip(tr("Cosmetic Tokens"))
 		elseif isTransferable then
 			icon = "/images/icons/icon-tibiacointransferable"
