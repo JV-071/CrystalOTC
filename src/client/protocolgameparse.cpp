@@ -7635,13 +7635,13 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
     for (uint16_t i = 0; i < scrollCount; ++i) {
         uint16_t itemId = msg->getU16();
         // In protocols 1500+ the server sends 1 extra byte (extraPoints)
-        if (g_game.getProtocolVersion() >= 1500 && msg->getUnreadSize() > 0) {
+        if (g_game.getProtocolVersion() >= 1500) {
             msg->getU8();
         }
         usedPromotionScrolls.push_back(itemId);
     }
 
-    if (g_game.getProtocolVersion() >= 1500 && msg->getUnreadSize() > 0) {
+    if (g_game.getProtocolVersion() >= 1500) {
         msg->getU8(); // hasMonkQuest
     }
     if (g_game.getProtocolVersion() >= 1520) {
@@ -7691,30 +7691,6 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
         uint8_t pos = msg->getU8();
         uint8_t val = msg->getU8();
         supremeUpgraded[pos] = val;
-    }
-
-    // Additional field (since Canary 15.10+)
-    if (g_game.getProtocolVersion() >= 1510 && msg->getUnreadSize() >= 1) {
-        msg->getU8(); // earnedFromAchievements
-    }
-
-    // Check whether any bytes remained after the parse
-    const uint16_t unread = msg->getUnreadSize();
-    if (unread > 0) {
-        std::ostringstream hexDump;
-        hexDump << std::hex << std::setfill('0');
-        std::vector<uint8_t> leftover;
-
-        // Read the remaining bytes without overrunning the buffer
-        for (uint16_t i = 0; i < unread; ++i) {
-            uint8_t b = msg->getU8();
-            leftover.push_back(b);
-            hexDump << std::setw(2) << static_cast<int>(b) << " ";
-        }
-
-        // Detailed log
-        g_logger.warning(fmt::format("[Wheel C++ Parse] {} bytes remained after parseOpenWheelWindow (discarded).", unread));
-        g_logger.warning(fmt::format("[Wheel C++ Parse] Extra bytes (hex): {}", hexDump.str()));
     }
 
     // Callback Lua
