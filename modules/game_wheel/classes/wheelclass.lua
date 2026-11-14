@@ -4201,13 +4201,27 @@ function WheelOfDestiny.setupPointsTooltip()
 	if WheelOfDestiny.scrollPoints > 0 then
 		tooltip = tooltip .. "\nYou have received bonus promotion points by using the following items: "
 
-		for k, v in pairs(WheelOfDestiny.usedPromotionScrolls) do
-			local item = Item.create(k)
-			local marketData = item:getMarketData()
+		-- usedPromotionScrolls lists item ids; scrollExtraPoints (1500+) the points of each, same order
+		local scrollPoints = WheelOfDestiny.scrollExtraPoints or {}
 
-			if marketData then
-				tooltip = tooltip .. "\n" .. string.format("%s (%s points)", marketData.name, v)
+		for i, itemId in ipairs(WheelOfDestiny.usedPromotionScrolls or {}) do
+			local item = Item.create(itemId)
+			local marketData = item and item:getMarketData()
+			local name = marketData and marketData.name or tostring(itemId)
+
+			if scrollPoints[i] then
+				tooltip = tooltip .. "\n" .. string.format("%s (%s points)", name, scrollPoints[i])
+			else
+				tooltip = tooltip .. "\n" .. name
 			end
+		end
+
+		if WheelOfDestiny.monkQuest then
+			tooltip = tooltip .. "\nThe Way of the Monk (10 points)"
+		end
+
+		if (WheelOfDestiny.huntingTaskShopPoints or 0) > 0 then
+			tooltip = tooltip .. "\n" .. string.format("Hunting Task Shop (%d points)", WheelOfDestiny.huntingTaskShopPoints)
 		end
 	end
 
