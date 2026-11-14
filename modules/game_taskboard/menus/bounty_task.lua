@@ -315,7 +315,7 @@ function BountyTask:fillSlotPanel(panel, data, selected)
 	local limitL = panel:getChildById("rerollLimitLabel")
 
 	if limitL then
-		limitL:setVisible(BountyTask.rerollTokens ~= nil and BountyTask.rerollTokens >= MAX_REROLL_TOKENS)
+		limitL:setVisible(TaskBoard:is1533() and BountyTask.rerollTokens ~= nil and BountyTask.rerollTokens >= MAX_REROLL_TOKENS)
 	end
 
 	local btn = panel:getChildById("selectTaskButton")
@@ -1092,7 +1092,8 @@ end
 local function updateRerollLimit(rerollTokens)
 	BountyTask.rerollTokens = tonumber(rerollTokens) or 0
 
-	local limitReached = BountyTask.rerollTokens >= MAX_REROLL_TOKENS
+	-- 15.33 only; the 15.30 board never showed the limit warning
+	local limitReached = TaskBoard:is1533() and BountyTask.rerollTokens >= MAX_REROLL_TOKENS
 	local panel = TaskBoard.bountyTaskPanel
 
 	if not panel then
@@ -1102,7 +1103,7 @@ local function updateRerollLimit(rerollTokens)
 	local limitIcon = panel:recursiveGetChildById("rerollLimitIcon")
 
 	if limitIcon then
-		limitIcon:setVisible(limitReached and TaskBoard:is1533())
+		limitIcon:setVisible(limitReached)
 	end
 
 	local container = panel:recursiveGetChildById("dailyTasks")
