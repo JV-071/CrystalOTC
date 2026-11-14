@@ -2185,7 +2185,8 @@ void Game::applyWheelOfDestiny(const std::vector<uint16_t>& wheelPointsVec, cons
         return;
 
     if (getClientVersion() >= 1533) {
-        // 15.33 vessel format; a 0 entry means an empty vessel, as in the legacy writer
+        // 15.33 vessel format. This legacy binding keeps the legacy writer's rule that a 0 entry is an empty
+        // vessel, so it cannot place revealed gem 0; the wheel module uses applyWheelVessels (-1 = empty).
         std::vector<int32_t> vesselGems;
         for (const uint16_t gem : activeGemsVec) {
             vesselGems.push_back(gem > 0 ? gem : -1);
