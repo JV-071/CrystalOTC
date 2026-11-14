@@ -4509,6 +4509,10 @@ function displayChangeName(offerId)
 	end
 end
 
+-- 0xFC hireling purchase: the sex byte the server reads after the name
+local HIRELING_SEX_MALE = 1
+local HIRELING_SEX_FEMALE = 2
+
 local function closeHirelingNameWindow(restoreStore)
 	destroyWindow(hirelingNameWindow)
 
@@ -4529,7 +4533,7 @@ function displayHirelingName(offerId)
 	hideStoreForOverlay()
 	destroyWindow(hirelingNameWindow)
 
-	hirelingNameWindow = g_ui.displayUI("style/changename")
+	hirelingNameWindow = g_ui.displayUI("style/hirelingconfig")
 
 	if not hirelingNameWindow then
 		restoreStoreAfterOverlay()
@@ -4537,15 +4541,22 @@ function displayHirelingName(offerId)
 		return
 	end
 
-	hirelingNameWindow:setText(tr("Enter Hireling Name"))
 	hirelingNameWindow:show()
 	hirelingNameWindow:raise()
 	hirelingNameWindow:focus()
 	g_modalManager.show(hirelingNameWindow)
 
 	local nameField = hirelingNameWindow:recursiveGetChildById("transferPointsText")
+	local sexCombo = hirelingNameWindow:recursiveGetChildById("sexCombo")
 
 	hirelingNameWindow.transferPointsText = nameField
+
+	if sexCombo then
+		sexCombo:clearOptions()
+		sexCombo:addOption(tr("Male"), HIRELING_SEX_MALE)
+		sexCombo:addOption(tr("Female"), HIRELING_SEX_FEMALE)
+		sexCombo:setCurrentIndex(1)
+	end
 
 	if nameField then
 		nameField:setText("")
@@ -4574,7 +4585,7 @@ function displayHirelingName(offerId)
 			text = nameField:getText()
 		end
 
-		okBtn:setEnabled((text or ""):trim():len() >= 1)
+		okBtn:setEnabled((text or ""):trim():len() >= 2)
 	end
 
 	local function scheduleOkButtonState(nameText)
@@ -4587,6 +4598,10 @@ function displayHirelingName(offerId)
 		end
 
 		hirelingNameWindow._okUpdateEvent = addEvent(function()
+			if not hirelingNameWindow or hirelingNameWindow:isDestroyed() then
+				return
+			end
+
 			hirelingNameWindow._okUpdateEvent = nil
 
 			updateOkButtonState(nameText)
@@ -4624,19 +4639,26 @@ function displayHirelingName(offerId)
 
 			local newName = nameField and nameField:getText():trim() or ""
 
-			if newName:len() < 1 or not okButton:isEnabled() then
+			if newName:len() < 2 then
 				return
 			end
 
-			if newName:len() < 2 then
-				displayErrorBox(hirelingNameWindow:getText(), tr("Please enter a valid hireling name."))
+			local sex = HIRELING_SEX_MALE
+			local option = sexCombo and sexCombo:getCurrentOption()
 
-				return
+			if option and tonumber(option.data) then
+				sex = tonumber(option.data)
 			end
 
 			destroyWindow(hirelingNameWindow)
-			g_game.buyStoreOffer(offerId, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_HIRELING, newName, 0)
+			g_game.buyStoreOffer(offerId, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_HIRELING, newName, sex)
 			showStoreProcessingModal()
+		end
+	end
+
+	function hirelingNameWindow.onEnter()
+		if okButton and okButton:isEnabled() then
+			okButton.onClick()
 		end
 	end
 end
