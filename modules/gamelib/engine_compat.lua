@@ -203,6 +203,9 @@ if g_game.bountyTaskAction and g_game.weeklyTaskAction and g_game.bountyPreferre
 	connect(g_game, {
 		onBountyTaskData = function(header)
 			bountyEliteEnabled = header ~= nil and header.elite == 1
+		end,
+		onGameEnd = function()
+			bountyEliteEnabled = false
 		end
 	})
 
@@ -213,7 +216,7 @@ if g_game.bountyTaskAction and g_game.weeklyTaskAction and g_game.bountyPreferre
 			elite = bountyEliteEnabled
 		end
 
-		g_game.bountyTaskAction(BOUNTY_CHANGE_DIFFICULTY, (difficulty or 0) + 1, elite == true)
+		g_game.bountyTaskAction(BOUNTY_CHANGE_DIFFICULTY, (difficulty or 0) + 1, elite == true or elite == 1)
 	end)
 	install(g_game, "sendClaimDaily", function()
 		g_game.bountyTaskAction(BOUNTY_CLAIM_DAILY, 0)
