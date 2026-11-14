@@ -5648,6 +5648,14 @@ void ProtocolGame::parseUpdateImpactTracker(const InputMessagePtr& msg)
     uint8_t effect = 0;  // Default effect for healing
     std::string target = "";  // Default empty target
 
+    if (analyzerType == 1 && g_game.getClientVersion() >= 1533) {  // ANALYZER_DAMAGE_DEALT, 15.33
+        // u32 physical part (first u32), u32 elemental part, u8 element of the elemental part
+        const uint32_t elementalAmount = msg->getU32();
+        effect = msg->getU8();
+        g_lua.callGlobalField("g_game", "onImpactTracker", analyzerType, amount + elementalAmount, effect, target, amount, elementalAmount);
+        return;
+    }
+
     if (analyzerType == 1) {  // ANALYZER_DAMAGE_DEALT
         effect = msg->getU8();  // Element/combat type
     } else if (analyzerType == 2) {  // ANALYZER_DAMAGE_RECEIVED
