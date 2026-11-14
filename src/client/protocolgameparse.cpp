@@ -5926,8 +5926,8 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         case Otc::CYCLOPEDIA_CHARACTERINFO_RECENTDEATHS:
         {
             CyclopediaCharacterRecentDeaths data;
-            msg->getU16();
-            msg->getU16();
+            data.page = msg->getU16();
+            data.pageCount = msg->getU16();
 
             const uint16_t entriesCount = msg->getU16();
             for (auto i = 0; i < entriesCount; ++i) {
@@ -5943,8 +5943,8 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         case Otc::CYCLOPEDIA_CHARACTERINFO_RECENTPVPKILLS:
         {
             CyclopediaCharacterRecentPvPKills data;
-            msg->getU16();
-            msg->getU16();
+            data.page = msg->getU16();
+            data.pageCount = msg->getU16();
 
             const uint16_t entriesCount = msg->getU16();
             for (auto i = 0; i < entriesCount; ++i) {

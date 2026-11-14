@@ -693,6 +693,8 @@ struct RecentPvPKillEntry
 
 struct CyclopediaCharacterRecentPvPKills
 {
+    uint16_t page{ 1 };
+    uint16_t pageCount{ 1 };
     std::vector<RecentPvPKillEntry> entries;
 };
 
@@ -704,6 +706,8 @@ struct RecentDeathEntry
 
 struct CyclopediaCharacterRecentDeaths
 {
+    uint16_t page{ 1 };
+    uint16_t pageCount{ 1 };
     std::vector<RecentDeathEntry> entries;
 };
 

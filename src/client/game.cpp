@@ -551,12 +551,12 @@ void Game::processCyclopediaCharacterAppearances(const OutfitColorStruct& curren
 
 void Game::processCyclopediaCharacterRecentDeaths(const CyclopediaCharacterRecentDeaths& data)
 {
-    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentDeaths", data);
+    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentDeaths", data, data.page, data.pageCount);
 }
 
 void Game::processCyclopediaCharacterRecentPvpKills(const CyclopediaCharacterRecentPvPKills& data)
 {
-    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentKills", data);
+    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentKills", data, data.page, data.pageCount);
 }
 
 void Game::processBosstiaryInfo(const std::vector<BosstiaryData>& boss)
