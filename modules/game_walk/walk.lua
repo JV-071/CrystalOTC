@@ -540,6 +540,23 @@ function continueWalk(delay)
 	end, delay or 0)
 end
 
+-- A key pressed or released during a running held walk steps at once without restarting the
+-- repeat delay.
+local function walkInRunningRepeat(dir)
+	-- The step replaces a pending retry. Otherwise both could send a step: a floor change step
+	-- does not animate, so the retry would not see isWalking() and would send a second one.
+	if walkRepeatRetryEvent then
+		removeEvent(walkRepeatRetryEvent)
+
+		walkRepeatRetryEvent = nil
+	end
+
+	-- a refused step (walk lock after stairs) falls back to the retry, nothing else may be pending
+	if not walk(dir) then
+		continueWalk(10)
+	end
+end
+
 local function addWalkEvent(dir, delay)
 	if walkEvent and pendingWalkEventDir == dir and (delay == nil or delay <= 0) then
 		return
@@ -789,11 +806,7 @@ function bindWalkKey(key, dir)
 
 			-- a second key pressed during a running walk (diagonal, turn) keeps the repeat going
 			if walkRepeatActive then
-				-- the running repeat may have nothing pending (walk lock after stairs, a floor change
-				-- step that never animates), so a step that cannot start now is retried
-				if not walk(smartWalkDir or dir) then
-					continueWalk(10)
-				end
+				walkInRunningRepeat(smartWalkDir or dir)
 			else
 				restartWalkRepeatDelay()
 				walk(smartWalkDir or dir)
@@ -827,9 +840,7 @@ function bindWalkKey(key, dir)
 
 				-- releasing one of two held keys keeps a running walk going in the remaining direction
 				if walkRepeatActive then
-					if not walk(smartWalkDir) then
-						continueWalk(10)
-					end
+					walkInRunningRepeat(smartWalkDir)
 				else
 					restartWalkRepeatDelay()
 					walk(smartWalkDir)
