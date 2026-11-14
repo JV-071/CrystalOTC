@@ -558,7 +558,10 @@ local function applyDiscoveryInfo(panel, data, isSubarea)
 		percentLabel:setText(string.format("%d%%", progress))
 		setBarFill(bar, fill, progress / 100)
 	else
-		percentLabel:setText(main and tr("Not discoverable") or "0%")
+		-- the server lists only areas that can be explored; before its first list arrives show 0%
+		local listed = main ~= nil or next(state.mains) ~= nil
+
+		percentLabel:setText(listed and tr("Not discoverable") or "0%")
 		setBarFill(bar, fill, 0)
 	end
 
