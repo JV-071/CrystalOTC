@@ -934,6 +934,10 @@ function GemAtelier.manageVessel(remove)
 	end
 
 	if WheelVessels.isActive() then
+		if WheelOfDestiny.changeState == 0 then
+			return true
+		end
+
 		WheelVessels.manageVessel(gemData, remove)
 		GemAtelier.setupVesselPanel()
 		GemAtelier.onSelectGem(lastSelectedGem, true)
@@ -1501,9 +1505,11 @@ function GemAtelier.onSelectGem1533(panel, gemData)
 	content.switchCost:setVisible(false)
 
 	local socketed = GemAtelier.isGemEquipped(gemData.gemID)
+	-- same rule as the Apply button: a wheel that cannot be saved gets no local vessel edits
+	local canEdit = WheelOfDestiny.changeState ~= 0 and not WheelOfDestiny.isPreview
 
-	content.placeVessel:setVisible(not socketed)
-	content.removeVessel:setVisible(socketed)
+	content.placeVessel:setVisible(canEdit and not socketed)
+	content.removeVessel:setVisible(canEdit and socketed)
 
 	local selected = WheelVessels.getSelectedVessel()
 
