@@ -694,6 +694,7 @@ function clearSlotActionContent(slot)
 	slot.equipmentTypeIndex = nil
 	slot.parameter = nil
 	slot.crossHairMode = nil
+	slot.waveCastMode = nil
 	slot.autoSend = nil
 	slot.smartMode = nil
 	slot.smartBaseItemId = nil
@@ -2721,6 +2722,7 @@ local function applySavedSlotSetting(slot, setting)
 	slot.autoSend = setting.autoSend
 	slot.parameter = setting.parameter
 	slot.crossHairMode = type(setting.crossHairMode) == "string" and setting.crossHairMode or nil
+	slot.waveCastMode = type(setting.waveCastMode) == "string" and setting.waveCastMode or nil
 
 	local tier = setting.getTier
 
@@ -2878,6 +2880,7 @@ local function serializeSlotToSetting(slot)
 		words = jsonScalar(slot.words),
 		parameter = jsonScalar(slot.parameter),
 		crossHairMode = type(slot.crossHairMode) == "string" and slot.crossHairMode or nil,
+		waveCastMode = type(slot.waveCastMode) == "string" and slot.waveCastMode or nil,
 		getTier = tier,
 		passiveId = type(slot.passiveId) == "number" and slot.passiveId or nil,
 		multiActions = serializeSlotMultiActions and serializeSlotMultiActions(slot) or nil,
@@ -4208,38 +4211,82 @@ function createMenu(slotId)
 	menu:display()
 end
 
+-- Target options of the Assign Spell dialog. The three radios are shared by both groups:
+-- crosshair spells ("crosshair" / "cursor" / "target") and, at 15.33, waves and beams
+-- ("facing" / "cursor" / "target"). Other spells show "None".
 CastMode = {
 	_radioUpdating = false,
-	panelMargin = 6,
-	panelHeight = 45,
+	kind = nil,
 	ids = {
 		"castWithCrosshairRadio",
 		"castAtCursorRadio",
 		"castAtTargetRadio"
 	},
 	byRadio = {
-		castAtCursorRadio = "cursor",
-		castWithCrosshairRadio = "crosshair",
-		castAtTargetRadio = "target"
+		crosshair = {
+			castWithCrosshairRadio = "crosshair",
+			castAtCursorRadio = "cursor",
+			castAtTargetRadio = "target"
+		},
+		wave = {
+			castWithCrosshairRadio = "facing",
+			castAtCursorRadio = "cursor",
+			castAtTargetRadio = "target"
+		}
 	},
-	toRadio = {
-		cursor = "castAtCursorRadio",
-		crosshair = "castWithCrosshairRadio",
-		target = "castAtTargetRadio"
+	texts = {
+		crosshair = {
+			castWithCrosshairRadio = "Cast with crosshair",
+			castAtCursorRadio = "Cast at cursor position",
+			castAtTargetRadio = "Cast at target"
+		},
+		wave = {
+			castWithCrosshairRadio = "Cast in facing direction",
+			castAtCursorRadio = "Cast towards cursor position",
+			castAtTargetRadio = "Cast towards target"
+		}
 	},
-	validModes = {
-		cursor = true,
-		crosshair = true,
-		target = true
+	defaults = {
+		crosshair = "crosshair",
+		wave = "facing"
 	}
 }
 
 local function normalizeCrossHairMode(mode)
-	if type(mode) == "string" and CastMode.validModes[mode] then
+	if mode == "crosshair" or mode == "cursor" or mode == "target" then
 		return mode
 	end
 
 	return "crosshair"
+end
+
+function CastMode.normalizeWaveMode(mode)
+	if mode == "facing" or mode == "cursor" or mode == "target" then
+		return mode
+	end
+
+	return "facing"
+end
+
+function CastMode.isWaveAvailable()
+	return g_game.getClientVersion() >= 1533
+end
+
+-- "crosshair", "wave" or nil for spells without target options.
+function CastMode.getSpellKind(spell)
+	if not spell then
+		return nil
+	end
+
+	if Spells.hasCrossHairTarget(spell) then
+		return "crosshair"
+	end
+
+	if CastMode.isWaveAvailable() and Spells.isAimAtTargetConfigurable and Spells.isAimAtTargetConfigurable(spell) then
+		return "wave"
+	end
+
+	return nil
 end
 
 CrosshairCast = {}
@@ -4265,8 +4312,16 @@ function CastMode.setSelection(mode)
 		return
 	end
 
-	local selectedRadioId = CastMode.toRadio[normalizeCrossHairMode(mode)] or CastMode.toRadio.crosshair
+	local map = CastMode.byRadio[CastMode.kind or "crosshair"]
+	local selectedRadioId = nil
 
+	for radioId, radioMode in pairs(map) do
+		if radioMode == mode then
+			selectedRadioId = radioId
+		end
+	end
+
+	selectedRadioId = selectedRadioId or CastMode.ids[1]
 	CastMode._radioUpdating = true
 
 	for _, radioId in ipairs(CastMode.ids) do
@@ -4281,58 +4336,56 @@ function CastMode.setSelection(mode)
 end
 
 function CastMode.getSelected()
+	local kind = CastMode.kind or "crosshair"
 	local panel = CastMode.getPanel()
 
-	if not panel then
-		return "crosshair"
-	end
+	if panel then
+		for _, radioId in ipairs(CastMode.ids) do
+			local radio = panel:getChildById(radioId)
 
-	for _, radioId in ipairs(CastMode.ids) do
-		local radio = panel:getChildById(radioId)
-
-		if radio and not radio:isDestroyed() and radio:isChecked() then
-			return normalizeCrossHairMode(CastMode.byRadio[radioId])
+			if radio and not radio:isDestroyed() and radio:isChecked() then
+				return CastMode.byRadio[kind][radioId]
+			end
 		end
 	end
 
-	return "crosshair"
+	return CastMode.defaults[kind]
 end
 
-function CastMode.setVisible(visible)
+-- Shows the radio group for kind ("crosshair" / "wave") or the disabled "None" text.
+function CastMode.setKind(kind)
+	CastMode.kind = kind
+
+	if not spellAssignWindow or spellAssignWindow:isDestroyed() then
+		return
+	end
+
 	local panel = CastMode.getPanel()
+	local label = spellAssignWindow:getChildById("targetOptionsLabel")
+	local noneLabel = spellAssignWindow:getChildById("targetOptionsNoneLabel")
 
-	if not panel or not spellAssignWindow or spellAssignWindow:isDestroyed() then
+	if label then
+		label:setColor(kind and "#c0c0c0" or "#707070")
+	end
+
+	if noneLabel then
+		noneLabel:setVisible(kind == nil)
+	end
+
+	if not panel then
 		return
 	end
 
-	local spellsListFrame = spellAssignWindow:getChildById("spellsListFrame")
+	panel:setVisible(kind ~= nil)
 
-	if not spellsListFrame or spellsListFrame:isDestroyed() then
-		return
-	end
+	if kind then
+		for _, radioId in ipairs(CastMode.ids) do
+			local radio = panel:getChildById(radioId)
 
-	local wasVisible = panel:isVisible()
-
-	if visible == wasVisible then
-		return
-	end
-
-	if CastMode._spellsListBaseHeight == nil then
-		CastMode._spellsListBaseHeight = spellsListFrame:getHeight()
-	end
-
-	local delta = CastMode.panelHeight + CastMode.panelMargin
-
-	if visible then
-		panel:setHeight(CastMode.panelHeight)
-		panel:setMarginTop(CastMode.panelMargin)
-		panel:setVisible(true)
-		spellsListFrame:setHeight(math.max(120, CastMode._spellsListBaseHeight - delta))
-	else
-		panel:setVisible(false)
-		panel:setHeight(0)
-		panel:setMarginTop(0)
-		spellsListFrame:setHeight(CastMode._spellsListBaseHeight)
+			if radio and not radio:isDestroyed() then
+				radio:setText(tr(CastMode.texts[kind][radioId]))
+			end
+		end
 	end
 end
 
@@ -4380,12 +4433,12 @@ function openSpellAssignWindow()
 	setSpellAssignWindowTitle()
 
 	spellsPanel = spellAssignWindow:recursiveGetChildById("spellsPanel")
-	CastMode._spellsListBaseHeight = nil
 	CastMode._previewSpellKey = nil
 
 	CastMode.setupRadios()
+	CastMode.setKind(nil)
 	CastMode.setSelection("crosshair")
-	CastMode.setVisible(false)
+	setSpellAssignButtonsEnabled(false)
 	addEvent(function()
 		initializeSpelllist()
 	end)
@@ -4426,8 +4479,8 @@ function closeSpellAssignWindow()
 
 	clearExternalSpellAssignContext()
 
-	CastMode._spellsListBaseHeight = nil
 	CastMode._previewSpellKey = nil
+	CastMode.kind = nil
 
 	if spellAssignWindow and not spellAssignWindow:isDestroyed() then
 		spellAssignWindow:destroy()
@@ -4689,26 +4742,83 @@ local function updateSpellAssignParameterField(spell)
 		paramLabel:setColor(canEditParam and "#c0c0c0" or "#707070")
 	end
 
-	local hasCrossHair = Spells.hasCrossHairTarget(spell)
+	if paramEdit.setMaxLength then
+		-- the say text is limited to 255 characters: formula, space, quote and the parameter
+		local words = spell and spell.words or ""
 
-	CastMode.setVisible(hasCrossHair)
+		paramEdit:setMaxLength(canEditParam and math.max(1, 255 - #words - 2) or 255)
+	end
 
-	if hasCrossHair then
+	local kind = CastMode.getSpellKind(spell)
+
+	CastMode.setKind(kind)
+
+	if kind then
 		local spellKey = spell and spell.name or nil
 
 		if spellKey ~= CastMode._previewSpellKey then
 			CastMode._previewSpellKey = spellKey
 
 			local slot = slotToEdit and findSlotById(slotToEdit) or nil
-			local savedMode = normalizeCrossHairMode(slot and slot.crossHairMode or "crosshair")
+			local sameSpell = slot and slot.words and spell.words and slot.words:lower():trim() == spell.words
 
-			CastMode.setSelection(savedMode)
+			if kind == "crosshair" then
+				CastMode.setSelection(normalizeCrossHairMode(sameSpell and slot.crossHairMode or nil))
+			else
+				CastMode.setSelection(CastMode.normalizeWaveMode(sameSpell and slot.waveCastMode or nil))
+			end
 		end
 	else
 		CastMode._previewSpellKey = nil
-
-		CastMode.setSelection("crosshair")
 	end
+end
+
+function setSpellAssignButtonsEnabled(enabled)
+	if not spellAssignWindow or spellAssignWindow:isDestroyed() then
+		return
+	end
+
+	for _, id in ipairs({
+		"okButton",
+		"applyButton"
+	}) do
+		local button = spellAssignWindow:getChildById(id)
+
+		if button then
+			button:setEnabled(enabled)
+		end
+	end
+end
+
+-- Second preview line: spell formula followed by the typed parameter, like the official dialog.
+function refreshSpellAssignPreviewFormula()
+	if not spellAssignWindow or spellAssignWindow:isDestroyed() or not spellsPanel then
+		return
+	end
+
+	local previewPanel = spellAssignWindow:getChildById("spellPreview")
+	local previewWords = previewPanel and previewPanel:getChildById("previewSpellWords")
+	local focusedChild = spellsPanel:getFocusedChild()
+
+	if not previewWords or not focusedChild then
+		return
+	end
+
+	local spell = Spells.getSpellByName(focusedChild:getId())
+
+	if not spell then
+		return
+	end
+
+	local text = spell.words or ""
+	local paramEdit = spellAssignWindow:getChildById("parameterTextEdit")
+	local param = spell.parameter and paramEdit and paramEdit:getText() or ""
+
+	if param ~= "" then
+		text = text .. " " .. param
+	end
+
+	previewWords:setText(text)
 end
 
 function spellAssignPreviewNoSpellSelected()
@@ -4759,6 +4869,7 @@ function spellAssignPreviewNoSpellSelected()
 	end
 
 	updateSpellAssignParameterField(nil)
+	setSpellAssignButtonsEnabled(false)
 end
 
 function updatePreviewSpell(focusedChild)
@@ -4818,6 +4929,8 @@ function updatePreviewSpell(focusedChild)
 	end
 
 	updateSpellAssignParameterField(spell)
+	setSpellAssignButtonsEnabled(spell ~= nil)
+	refreshSpellAssignPreviewFormula()
 end
 
 function spellAssignApply(closeAfter)
@@ -4879,11 +4992,10 @@ function spellAssignApply(closeAfter)
 		slot.parameter = nil
 	end
 
-	if Spells.hasCrossHairTarget(spell) then
-		slot.crossHairMode = normalizeCrossHairMode(CastMode.getSelected())
-	else
-		slot.crossHairMode = nil
-	end
+	local castKind = CastMode.getSpellKind(spell)
+
+	slot.crossHairMode = castKind == "crosshair" and normalizeCrossHairMode(CastMode.getSelected()) or nil
+	slot.waveCastMode = castKind == "wave" and CastMode.normalizeWaveMode(CastMode.getSelected()) or nil
 
 	loadSpell(slot)
 
@@ -6892,16 +7004,38 @@ function CrosshairCast.castWithMode(words, mode)
 		local tilePos = CrosshairCast.getMapTilePositionAt(g_window.getMousePosition())
 
 		if tilePos then
-			g_game.talkSpell(words, 2, tilePos)
+			g_game.talkSpell(words, 1, tilePos)
 		end
 	elseif mode == "target" then
-		g_game.talkSpell(words, 3, {
-			x = 0,
-			z = 0,
-			y = 0
-		})
+		-- at the attacked creature, on the caster without one (the server casts on the own tile then)
+		local target = g_game.getAttackingCreature()
+		local player = g_game.getLocalPlayer()
+		local targetPos = target and target:getPosition() or nil
+
+		if targetPos and player and targetPos.z == player:getPosition().z then
+			g_game.talkSpell(words, 1, targetPos)
+		else
+			g_game.talkSpell(words, 3)
+		end
 	else
 		CrosshairCast.start(words)
+	end
+end
+
+-- 15.33 waves and beams: facing direction (aimMode 0), towards the cursor tile (1) or towards the target (3).
+function castWaveSpell(words, mode)
+	if mode == "cursor" then
+		local tilePos = CrosshairCast.getMapTilePositionAt(g_window.getMousePosition())
+
+		if tilePos then
+			g_game.talkSpell(words, 1, tilePos)
+		else
+			g_game.talkSpell(words, 0)
+		end
+	elseif mode == "target" then
+		g_game.talkSpell(words, 3)
+	else
+		g_game.talkSpell(words, 0)
 	end
 end
 
@@ -6921,7 +7055,7 @@ function onSpellCrosshairMouseRelease(self, mousePosition, mouseButton)
 	local pos = CrosshairCast.getMapTilePositionAt(mousePosition)
 
 	if pos and g_game.talkSpell then
-		g_game.talkSpell(words, 1, pos)
+		g_game.talkSpell(words, 2, pos)
 	end
 
 	return true
@@ -7000,8 +7134,12 @@ function executeActionSlot(slot, fromKeyboard)
 		local words = slot.parameter and slot.parameter ~= "" and slot.words .. " \"" .. slot.parameter or slot.words
 		local spell = Spells.getSpellByWords and Spells.getSpellByWords(slot.words) or nil
 
-		if spell and Spells.hasCrossHairTarget(spell) then
+		local castKind = CastMode.getSpellKind(spell)
+
+		if castKind == "crosshair" then
 			CrosshairCast.castWithMode(words, normalizeCrossHairMode(slot.crossHairMode))
+		elseif castKind == "wave" and g_game.talkSpell then
+			castWaveSpell(words, CastMode.normalizeWaveMode(slot.waveCastMode))
 		else
 			g_game.talk(words)
 		end
