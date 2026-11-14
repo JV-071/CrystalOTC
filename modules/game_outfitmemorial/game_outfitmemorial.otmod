@@ -2,6 +2,7 @@ Module
   name: game_outfitmemorial
   description: Golden Outfit and Royal Costume memorial
   author: CrystalOTC
+  sandboxed: true
   scripts: [ game_outfitmemorial ]
   @onLoad: init()
   @onUnload: terminate()
