@@ -1013,13 +1013,129 @@ function WheelVessels.onReshape(gemID, modSlot)
 	}, confirm, close)
 end
 
+-- Last state the server sent in 0x5F. Placing a gem or moving points is local until Apply, and every gem
+-- action makes the server send a new 0x5F that rebuilds the wheel, so this is what the server really has.
+local serverPoints
+local serverVessels
+local pendingWindow
+
+function WheelVessels.rememberServerState()
+	if not WheelVessels.isActive() then
+		serverPoints = nil
+		serverVessels = nil
+
+		return
+	end
+
+	serverPoints = {}
+
+	for index, points in pairs(WheelOfDestiny.pointInvested) do
+		serverPoints[index] = points
+	end
+
+	serverVessels = copyList(WheelVessels.getVessels())
+end
+
+function WheelVessels.hasPendingChanges()
+	if not WheelVessels.isActive() or not serverPoints or not serverVessels then
+		return false
+	end
+
+	for i, gemID in ipairs(WheelVessels.getVessels()) do
+		if serverVessels[i] ~= gemID then
+			return true
+		end
+	end
+
+	for index, points in pairs(WheelOfDestiny.pointInvested) do
+		if (serverPoints[index] or 0) ~= points then
+			return true
+		end
+	end
+
+	for index, points in pairs(serverPoints) do
+		if (WheelOfDestiny.pointInvested[index] or 0) ~= points then
+			return true
+		end
+	end
+
+	return false
+end
+
+-- Asks before a gem action would drop unsaved wheel changes. Returns true when the action was deferred.
+function WheelVessels.deferGemAction(actionType, param, pos)
+	if not WheelVessels.hasPendingChanges() or WheelOfDestiny.changeState == 0 or WheelOfDestiny.isPreview then
+		return false
+	end
+
+	if pendingWindow then
+		return true
+	end
+
+	-- Opened on the next frame: the confirm boxes that call this show the wheel window again right after.
+	addEvent(function()
+		if pendingWindow then
+			return
+		end
+
+		hideWheelWindow()
+
+		local function close()
+			if pendingWindow then
+				pendingWindow:destroy()
+
+				pendingWindow = nil
+			end
+
+			showWheelWindow()
+		end
+
+		local function applyAndSend()
+			close()
+			onWheelOfDestinyApply(false)
+			WheelVessels.rememberServerState()
+			g_game.gemAction(actionType, param, pos)
+		end
+
+		local function discardAndSend()
+			close()
+			g_game.gemAction(actionType, param, pos)
+		end
+
+		pendingWindow = displayGeneralBox(tr("Unsaved Changes"), tr("You have changes on the wheel that are not applied yet.\nThe gem action reloads the wheel from the server and would discard them.\n\nApply your changes first?"), {
+			{
+				text = tr("Apply"),
+				callback = applyAndSend
+			},
+			{
+				text = tr("Discard"),
+				callback = discardAndSend
+			},
+			{
+				text = tr("Cancel"),
+				callback = close
+			}
+		}, applyAndSend, close)
+	end)
+
+	return true
+end
+
 function WheelVessels.onGameEnd()
 	selectedVessel = -1
+	serverPoints = nil
+	serverVessels = nil
 
 	if reshapeWindow then
 		reshapeWindow:destroy()
 
 		reshapeWindow = nil
+	end
+
+	if pendingWindow then
+		pendingWindow:destroy()
+
+		pendingWindow = nil
 	end
 end
 

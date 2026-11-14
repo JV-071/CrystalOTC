@@ -1055,6 +1055,7 @@ function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationI
 	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
 	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
 	WheelOfDestiny.create(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
+	WheelVessels.rememberServerState()
 
 	if GemAtelier and gemAtelierWindow and gemAtelierWindow:isVisible() and GemAtelier.setupVesselPanel then
 		GemAtelier.setupVesselPanel()

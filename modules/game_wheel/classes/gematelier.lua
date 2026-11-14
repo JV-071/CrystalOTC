@@ -1055,6 +1055,10 @@ function sendgemAction(actionType, param, pos)
 	param = param or 0
 	pos = pos or 0
 
+	if WheelVessels.deferGemAction(actionType, param, pos) then
+		return
+	end
+
 	g_game.gemAction(actionType, param, pos)
 
 	-- 15.33: the server answers every gem action with a new 0x5F, a local toggle would undo it
