@@ -50,6 +50,8 @@ function GemAtelier.resetFields()
 	cachedBasicMods = {}
 	cachedSupremeMods = {}
 
+	WheelVessels.resetSelection()
+
 	for _, data in pairs(Workshop.getFragmentList()) do
 		if data.supreme then
 			cachedSupremeMods[data.modID] = data
@@ -73,7 +75,12 @@ function GemAtelier.redirectToGem(gemData)
 		return true
 	end
 
-	if gemData then
+	if gemData and WheelVessels.isActive() then
+		-- 15.33: no domains; show the gems of the same quality
+		gemAtelierWindow:recursiveGetChildById("qualitiesBox"):setCurrentIndex(gemData.gemType + 2, true)
+
+		sortQuality = gemData.gemType + 2
+	elseif gemData then
 		local affinityWidget = gemAtelierWindow:recursiveGetChildById("affinitiesBox")
 		local qualityWidget = gemAtelierWindow:recursiveGetChildById("qualitiesBox")
 
@@ -348,7 +355,19 @@ function GemAtelier.setupGemWidget(widget, data)
 	widget.gemRevelationItem:setImageClip(gemOffset .. " 0 32 32")
 	widget.gemRevelationItem:setTooltip(tmpData.name:gsub(" %(x 0%)", ""))
 
-	if GemAtelier.isGemEquipped(data.gemID) then
+	if WheelVessels.isActive() then
+		WheelVessels.setGemImage(widget.gemRevelationItem, data.gemType, false)
+
+		-- the domain badge becomes a "socketed" badge
+		if GemAtelier.isGemEquipped(data.gemID) then
+			widget.gemDomainImage:setImageSource("/images/game/wheel/icon-socketed")
+			widget.gemDomainImage:setImageClip("0 0 12 12")
+			widget.gemDomainImage:setSize(tosize("12 12"))
+			widget.gemDomainImage:setVisible(true)
+			widget.gemDomainImage:setPhantom(false)
+			widget.gemDomainImage:setTooltip(WheelVessels.getVesselStatusText(data))
+		end
+	elseif GemAtelier.isGemEquipped(data.gemID) then
 		widget.gemDomainImage:setVisible(true)
 		widget.gemDomainImage:setImageClip(data.gemDomain * 26 .. " 0 26 26")
 	end
@@ -456,7 +475,11 @@ function GemAtelier.showGemRevelation()
 			toolTip = tr("%s%s", #toolTip > 0 and toolTip .. "\n" or "", GemStaticTooltips[2])
 		end
 
-		if #WheelOfDestiny.atelierGems >= 225 then
+		if WheelVessels.isActive() then
+			if #WheelOfDestiny.atelierGems >= WheelVessels.getMaxRevealedGems() then
+				toolTip = tr("%s%s", #toolTip > 0 and toolTip .. "\n" or "", tr("You can carry a maximum of %d revealed gems. Destroy some to reveal more.", WheelVessels.getMaxRevealedGems()))
+			end
+		elseif #WheelOfDestiny.atelierGems >= 225 then
 			toolTip = tr("%s%s", #toolTip > 0 and toolTip .. "\n" or "", GemStaticTooltips[3])
 		end
 
@@ -653,6 +676,16 @@ function GemAtelier.onSelectGem(selected, clicked)
 	panel.clickedContent.gemDetails.gemDetailItem:setImageClip(gemOffset .. " " .. vocationOffset .. " 64 64")
 	panel.clickedContent.gemDetails.domain:setImageClip(gemData.gemDomain * 26 .. " 0 26 26")
 
+	if WheelVessels.isActive() then
+		return GemAtelier.onSelectGem1533(panel, gemData)
+	end
+
+	panel.clickedContent.gemDetails.domain:setVisible(true)
+	panel.clickedContent.gemDetails.domainLabel:setText(tr("Domain Affinity"))
+	panel.clickedContent.switch:setVisible(true)
+	panel.clickedContent.switchCost:setVisible(true)
+	WheelVessels.setupReshape(panel.clickedContent.gemMods, nil)
+
 	local widgetMods = panel.clickedContent.gemMods
 
 	for i = 0, 2 do
@@ -808,7 +841,16 @@ function GemAtelier.setupModAvailable(widget, gemType, vesselCount, gemData)
 	modItem:setVisible(true)
 	modLabel:setVisible(true)
 
-	if GemAtelier.isVesselAvailable(gemDomain, vesselCount) then
+	local available
+
+	if WheelVessels.isActive() then
+		-- 15.33: a gem in an unlocked vessel gives all of its mods
+		available = WheelVessels.isGemActive(gemData.gemID)
+	else
+		available = GemAtelier.isVesselAvailable(gemDomain, vesselCount)
+	end
+
+	if available then
 		fragmentType:setShader("")
 		modItem:setShader("")
 		modLabel:setColor("#c0c0c0")
@@ -887,6 +929,15 @@ function GemAtelier.manageVessel(remove)
 	end
 
 	if not gemData then
+
+		return true
+	end
+
+	if WheelVessels.isActive() then
+		WheelVessels.manageVessel(gemData, remove)
+		GemAtelier.setupVesselPanel()
+		GemAtelier.onSelectGem(lastSelectedGem, true)
+		GemAtelier.showGems(false, lastSelectedGem.gemIndex or 1)
 
 		return true
 	end
@@ -1006,7 +1057,8 @@ function sendgemAction(actionType, param, pos)
 
 	g_game.gemAction(actionType, param, pos)
 
-	if actionType == 3 then
+	-- 15.33: the server answers every gem action with a new 0x5F, a local toggle would undo it
+	if actionType == 3 and not WheelVessels.isActive() then
 		scheduleEvent(function()
 			local gem = GemAtelier.getGemDataById(param)
 
@@ -1209,6 +1261,12 @@ function GemAtelier.setupVesselPanel()
 		return true
 	end
 
+	WheelVessels.setupAtelierPanel()
+
+	if WheelVessels.isActive() then
+		return true
+	end
+
 	local selectWidget = gemAtelierWindow:recursiveGetChildById("vesselsContent")
 
 	if not selectWidget then
@@ -1293,6 +1351,9 @@ function GemAtelier.setupVesselPanel()
 end
 
 function GemAtelier.onClickVessel(widget, domain)
+	if WheelVessels.isActive() then
+		return WheelVessels.onClickVessel(domain)
+	end
 
 	if lastSelectedVessel then
 		lastSelectedVessel:setVisible(false)
@@ -1386,6 +1447,85 @@ function GemAtelier:onHoverGem(hovered)
 		g_mouse.pushCursor("pointer")
 	else
 		g_mouse.popCursor("pointer")
+	end
+end
+
+function GemAtelier.getSelectedGemData()
+	if not lastSelectedGem or not lastSelectedGem.gemID then
+		return nil
+	end
+
+	return GemAtelier.getGemDataById(lastSelectedGem.gemID)
+end
+
+-- 15.33 part of onSelectGem: vessel status instead of the domain, reshape instead of switch domain.
+function GemAtelier.onSelectGem1533(panel, gemData)
+	local content = panel.clickedContent
+	local details = content.gemDetails
+
+	WheelVessels.setGemImage(details.gemDetailItem, gemData.gemType, true)
+	details.domain:setVisible(false)
+	details.domainLabel:setText(WheelVessels.getVesselStatusText(gemData))
+
+	local widgetMods = content.gemMods
+
+	for i = 0, 2 do
+		widgetMods:recursiveGetChildById("fragmentType" .. i):setVisible(false)
+		widgetMods:recursiveGetChildById("gemModItem" .. i):setVisible(false)
+		widgetMods:recursiveGetChildById("modLabel" .. i):setVisible(false)
+	end
+
+	widgetMods.fragmentType0.gemModItem0:setImageClip(gemData.lesserBonus * 30 .. " 0 30 30")
+	GemAtelier.setupModAvailable(widgetMods, 0, 1, gemData)
+	GemAtelier.createGemInformation(widgetMods.modLabel0, gemData.lesserBonus, false, false, gemData, 0)
+
+	if gemData.gemType > 0 then
+		widgetMods.fragmentType1.gemModItem1:setImageClip(gemData.regularBonus * 30 .. " 0 30 30")
+		GemAtelier.setupModAvailable(widgetMods, 1, 2, gemData)
+		GemAtelier.createGemInformation(widgetMods.modLabel1, gemData.regularBonus, false, false, gemData, 1)
+	end
+
+	if gemData.gemType > 1 then
+		widgetMods.fragmentType2.gemModItem2:setImageClip(getSupremeModIconClip(gemData.supremeBonus))
+		GemAtelier.setupModAvailable(widgetMods, 2, 3, gemData)
+		GemAtelier.createGemInformation(widgetMods.modLabel2, gemData.supremeBonus, true, false, gemData, 2)
+	end
+
+	WheelVessels.setupReshape(widgetMods, gemData)
+
+	content.switch:setVisible(false)
+	content.switchCost:setVisible(false)
+
+	local socketed = GemAtelier.isGemEquipped(gemData.gemID)
+
+	content.placeVessel:setVisible(not socketed)
+	content.removeVessel:setVisible(socketed)
+
+	local selected = WheelVessels.getSelectedVessel()
+
+	if not socketed and selected >= 0 and WheelVessels.getVesselQuality(selected) ~= gemData.gemType then
+		content.placeVessel:setTooltip(tr("This gem does not fit the selected vessel; it goes to a free %s vessel.", WheelVessels.getQualityName(gemData.gemType)))
+	else
+		content.placeVessel:setTooltip(tr("Place the gem in a vessel. Press Apply or Ok to save."))
+	end
+
+	local destroyTip = ""
+	local canInteract = WheelOfDestiny.changeState == 1 and gemData.locked == 0 and not WheelOfDestiny.isPreview
+
+	content.destroy:setOn(canInteract)
+
+	if gemData.locked == 1 then
+		destroyTip = tr("Before you can destroy the gem, you must unlock it.")
+	end
+
+	if socketed then
+		destroyTip = tr("%s%sThe gem must be removed from its vessel before it can be destroyed.", destroyTip, #destroyTip > 0 and "\n" or "")
+	end
+
+	content.destroy:setTooltip(destroyTip)
+
+	if #destroyTip > 0 then
+		content.destroy:setOn(false)
 	end
 end
 

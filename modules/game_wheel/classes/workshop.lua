@@ -391,7 +391,8 @@ function sendgemAction(actionType, param, pos)
 
 	g_game.gemAction(actionType, param, pos)
 
-	if actionType == 3 then
+	-- 15.33: the server answers every gem action with a new 0x5F, a local toggle would undo it
+	if actionType == 3 and not WheelVessels.isActive() then
 		scheduleEvent(function()
 			local gem = GemAtelier.getGemDataById(param)
 
