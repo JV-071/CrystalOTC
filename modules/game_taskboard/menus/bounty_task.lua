@@ -1007,6 +1007,42 @@ local function applyBountyTalismanRow(talismanId, data, labelWidget, upgradeButt
 	end
 end
 
+local function applyRerollTokens(rerollTokensValue, rerollButton, rerollTokens)
+	if rerollTokensValue then
+		rerollTokensValue:setText(rerollTokens and tostring(rerollTokens) or "0")
+	end
+
+	if not rerollButton then
+		return
+	end
+
+	if not rerollTokens or tonumber(rerollTokens) == 0 then
+		rerollButton:setEnabled(false)
+		rerollButton:setImageClip("0 40 108 20")
+		rerollButton:setTooltip(tr("You have no rerolls left."))
+	else
+		rerollButton:setEnabled(true)
+		rerollButton:setImageClip("0 0 108 20")
+	end
+end
+
+-- 15.33 keeps the reroll tokens in resource 0x58, which the server can send on its own
+-- (for example after the daily reward token), so refresh the board without waiting for 0x5B
+local function onBountyResourceBalance(resourceType, value)
+	if resourceType ~= ResourceTypes.BOUNTY_REROLL_TOKENS or g_game.getClientVersion() < 1533 then
+		return
+	end
+
+	local rerollBox = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
+	if not rerollBox then
+		return
+	end
+
+	local rerollTokensLabel = rerollBox:getChildById("rerollPanel")
+	applyRerollTokens(rerollTokensLabel and rerollTokensLabel:getChildById("value"),
+		rerollBox:getChildById("rerollButton"), math.min(tonumber(value) or 0, 255))
+end
+
 function onBountyTasksDaily(slots, rerollTokens, claimUnlocked, difficultyBountyTask, talismanData, preferredListData)
 	updateBountyKillTracker(slots)
 
@@ -1050,16 +1086,7 @@ function onBountyTasksDaily(slots, rerollTokens, claimUnlocked, difficultyBounty
 	local claimButton = rerollBox:getChildById("claimButton")
 
 	filterDifficulty:setCurrentOption(bountyDifficultyOptionText(difficultyBountyTask), true)
-	rerollTokensValue:setText(rerollTokens and tostring(rerollTokens) or "0")
-
-	if not rerollTokens or tonumber(rerollTokens) == 0 then
-		rerollButton:setEnabled(false)
-		rerollButton:setImageClip("0 40 108 20")
-		rerollButton:setTooltip(tr("You have no rerolls left."))
-	else
-		rerollButton:setEnabled(true)
-		rerollButton:setImageClip("0 0 108 20")
-	end
+	applyRerollTokens(rerollTokensValue, rerollButton, rerollTokens)
 
 	if tonumber(claimUnlocked) == 0 then
 		claimButton:setEnabled(true)
@@ -1223,6 +1250,7 @@ function BountyTask:init()
 		onBountyTasksDaily = onBountyTasksDaily,
 		onBountyTaskData = onEngineBountyTaskData,
 		onBountyPreferredData = onEngineBountyPreferredData,
+		onResourceBalance = onBountyResourceBalance,
 		onGameStart = onGameStartBounty,
 		onGameEnd = onGameEndBounty
 	})
@@ -1234,6 +1262,7 @@ function BountyTask:terminate()
 		onBountyTasksDaily = onBountyTasksDaily,
 		onBountyTaskData = onEngineBountyTaskData,
 		onBountyPreferredData = onEngineBountyPreferredData,
+		onResourceBalance = onBountyResourceBalance,
 		onGameStart = onGameStartBounty,
 		onGameEnd = onGameEndBounty
 	})
