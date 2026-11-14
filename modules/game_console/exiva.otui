@@ -1,0 +1,191 @@
+ExivaOptionLabel < Label
+  font: $var-cip-font-new
+  color: #c0c0c0
+  text-auto-resize: true
+
+  $disabled:
+    color: #707070
+
+ExivaOptionCheckBox < CheckBox
+  font: $var-cip-font-new
+  color: #c0c0c0
+  text-auto-resize: true
+  margin-top: 4
+
+  $disabled:
+    color: #707070
+
+ExivaOptionRadio < RoundedCheckBox
+  font: $var-cip-font-new
+  color: #c0c0c0
+  text-auto-resize: true
+  text-offset: 15 0
+
+ExivaWhitelistPanel < Panel
+  height: 100
+  image-source: /images/ui/1pixel-down-frame
+  image-border: 1
+
+  MultilineTextEdit
+    id: textEdit
+    font: $var-cip-font-new
+    color: #c0c0c0
+    vertical-scrollbar: textScroll
+    anchors.fill: parent
+    padding: 3 16 3 4
+    text-wrap: false
+    max-length: 2200
+
+    $disabled:
+      color: #707070
+
+  VerticalQtScrollBar
+    id: textScroll
+    anchors.top: textEdit.top
+    anchors.bottom: textEdit.bottom
+    anchors.right: textEdit.right
+    margin: 1 1 1 0
+    step: 14
+    pixels-scroll: true
+
+MainWindowHigh
+  id: exivaOptionsWindow
+  !text: tr('Exiva Options')
+  size: 450 512
+  font: $var-cip-font-new
+  color: #909090
+  text-offset: 0 2
+  @onEscape: modules.game_console.closeExivaOptions()
+  @onEnter: modules.game_console.onExivaOptionsOk()
+
+  ExivaOptionRadio
+    id: allowEveryoneRadio
+    !text: tr('Allow everyone to use Exiva on me')
+    anchors.top: parent.top
+    anchors.left: parent.left
+
+  ExivaOptionRadio
+    id: allowSelectedRadio
+    !text: tr('Only allow the following groups to use Exiva on me')
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    margin-top: 4
+
+  Panel
+    id: groupsPanel
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: separator.top
+    margin-top: 4
+    margin-left: 20
+    margin-bottom: 8
+
+    ExivaOptionCheckBox
+      id: allowGuild
+      !text: tr('Members of my guild')
+      anchors.top: parent.top
+      anchors.left: parent.left
+      @onCheckChange: modules.game_console.onExivaOptionToggled()
+
+    ExivaOptionCheckBox
+      id: allowParty
+      !text: tr('Members of my party')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      @onCheckChange: modules.game_console.onExivaOptionToggled()
+
+    ExivaOptionCheckBox
+      id: allowVips
+      !text: tr('Characters on my VIP list')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      @onCheckChange: modules.game_console.onExivaOptionToggled()
+
+    ExivaOptionCheckBox
+      id: allowCharacterWhitelist
+      !text: tr('Characters on my character whitelist')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      @onCheckChange: modules.game_console.onExivaOptionToggled()
+
+    ExivaOptionLabel
+      id: characterWhitelistLabel
+      !text: tr('Character whitelist (one entry per line):')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      margin-top: 4
+      margin-left: 20
+
+    ExivaWhitelistPanel
+      id: characterWhitelist
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: parent.right
+      margin-top: 3
+
+    ExivaOptionCheckBox
+      id: allowGuildWhitelist
+      !text: tr('Members of guilds on my guild whitelist')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      margin-top: 6
+      @onCheckChange: modules.game_console.onExivaOptionToggled()
+
+    ExivaOptionLabel
+      id: guildWhitelistLabel
+      !text: tr('Guild whitelist (one entry per line):')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      margin-top: 4
+      margin-left: 20
+
+    ExivaWhitelistPanel
+      id: guildWhitelist
+      anchors.top: prev.bottom
+      anchors.left: prev.left
+      anchors.right: parent.right
+      margin-top: 3
+
+    ExivaOptionLabel
+      id: guildWarInfo
+      !text: tr('Members of guilds you are at war with can always use Exiva on you.')
+      anchors.top: prev.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 6
+      text-wrap: true
+      text-auto-resize: true
+
+  HorizontalSeparator
+    id: separator
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: closeButton.top
+    margin-bottom: 10
+
+  Button
+    id: closeButton
+    !text: tr('Close')
+    size: 43 20
+    anchors.bottom: parent.bottom
+    anchors.right: parent.right
+    @onClick: modules.game_console.closeExivaOptions()
+
+  Button
+    id: applyButton
+    !text: tr('Apply')
+    size: 43 20
+    anchors.bottom: parent.bottom
+    anchors.right: closeButton.left
+    margin-right: 6
+    @onClick: modules.game_console.applyExivaOptions()
+
+  Button
+    id: okButton
+    !text: tr('Ok')
+    size: 43 20
+    anchors.bottom: parent.bottom
+    anchors.right: applyButton.left
+    margin-right: 6
+    @onClick: modules.game_console.onExivaOptionsOk()

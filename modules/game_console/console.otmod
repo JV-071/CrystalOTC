@@ -4,6 +4,6 @@ Module
   author: edubart, andrefaramir, baxnie, sn4ake, BeniS
   website: https://github.com/Jattartajjar/CrystalOTC
   sandboxed: true
-  scripts: [ console ]
+  scripts: [ console, exiva ]
   @onLoad: init()
   @onUnload: terminate()

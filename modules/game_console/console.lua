@@ -536,6 +536,8 @@ function init()
 	for _, mode in ipairs(channelTextMessageModes) do
 		registerMessageMode(mode, onChannelTextMessage)
 	end
+
+	initExivaOptions()
 end
 
 function clearSelection(consoleBuffer)
@@ -1137,6 +1139,7 @@ function detachConsoleTextEditFromNpcModal()
 end
 
 function terminate()
+	terminateExivaOptions()
 	save()
 
 	for _, mode in ipairs(channelTextMessageModes) do
