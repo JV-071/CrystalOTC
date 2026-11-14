@@ -130,19 +130,27 @@ local function setSlotDone(panel, done, countIds)
 	end
 end
 
+-- one delivery confirmation at a time; closed on logout and module unload
+local deliveryBox
+
+local function closeDeliveryBox()
+	if deliveryBox then
+		if not deliveryBox:isDestroyed() then
+			deliveryBox:destroy()
+		end
+
+		deliveryBox = nil
+	end
+end
+
 local function confirmDelivery(entry, itemName)
 	local count = entry.totalItems or 0
 	local taskId = entry.taskId or 0
-	local box
+	local close = closeDeliveryBox
 
-	local function close()
-		if box then
-			box:destroy()
-			box = nil
-		end
-	end
+	closeDeliveryBox()
 
-	box = displayGeneralBox(tr("Confirm"), tr("Do you really want to deliver %sx %s?", TaskBoard:formatNumberWithCommas(count), itemName), {
+	deliveryBox = displayGeneralBox(tr("Confirm"), tr("Do you really want to deliver %sx %s?", TaskBoard:formatNumberWithCommas(count), itemName), {
 		{
 			text = tr("Yes"),
 			callback = function()
@@ -926,7 +934,8 @@ end
 function WeeklyTask:init()
 	connect(g_game, {
 		onWeeklyTasks = onWeeklyTasks,
-		onWeeklyTaskData = onEngineWeeklyTaskData
+		onWeeklyTaskData = onEngineWeeklyTaskData,
+		onGameEnd = closeDeliveryBox
 	})
 
 	if TaskBoard.weeklyPanel then
@@ -945,6 +954,8 @@ end
 function WeeklyTask:terminate()
 	disconnect(g_game, {
 		onWeeklyTasks = onWeeklyTasks,
-		onWeeklyTaskData = onEngineWeeklyTaskData
+		onWeeklyTaskData = onEngineWeeklyTaskData,
+		onGameEnd = closeDeliveryBox
 	})
+	closeDeliveryBox()
 end
