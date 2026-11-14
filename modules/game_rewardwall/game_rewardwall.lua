@@ -724,6 +724,9 @@ local function checkRewards(data)
 
 		local hasSelectableItems = reward.selectableItems and next(reward.selectableItems) ~= nil
 		local iconWidget = rewardButton
+		-- 15.33 days can have an empty reward list (and new token kinds 4 and 5)
+		local firstBundle = reward.bundleItems and reward.bundleItems[1]
+		local altFirstBundle = altReward and altReward.bundleItems and altReward.bundleItems[1]
 
 		if hasSelectableItems then
 			iconWidget:setIcon("game_rewardwall/images/icon-reward-pickitems")
@@ -734,23 +737,23 @@ local function checkRewards(data)
 				reward.itemsToSelect or 0,
 				altReward and altReward.itemsToSelect or 0
 			}
-		elseif reward.bundleItems[1] and reward.bundleItems[1].bundleType == bundleType.XPBOOST then
+		elseif firstBundle and firstBundle.bundleType == bundleType.XPBOOST then
 			iconWidget:setIcon("game_rewardwall/images/icon-reward-xpboost")
 
 			rewardButton.bundleType = bundleType.XPBOOST
 			rewardButton.itemsToSelect = {
-				reward.bundleItems[1].itemId or 0,
-				altReward and altReward.bundleItems[1].itemId or 0
+				firstBundle.itemId or 0,
+				altFirstBundle and altFirstBundle.itemId or 0
 			}
 		else
 			iconWidget:setIcon("game_rewardwall/images/icon-reward-fixeditems")
 
 			rewardButton.bundleType = bundleType.PREY
 			rewardButton.itemsToSelect = {
-				reward.bundleItems[1].count or 0,
-				altReward and altReward.bundleItems[1].count or 0
+				firstBundle and firstBundle.count or 0,
+				altFirstBundle and altFirstBundle.count or 0
 			}
-			rewardButton.itemName = reward.bundleItems[1].name or "Prey Wildcard"
+			rewardButton.itemName = firstBundle and firstBundle.name or "Prey Wildcard"
 		end
 	end
 end

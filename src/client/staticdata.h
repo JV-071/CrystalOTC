@@ -753,6 +753,7 @@ struct DailyRewardBundle
     uint16_t itemId;
     std::string name;
     uint8_t count;
+    uint16_t value{ 0 }; // 15.33: XP boost percent for bundle type 3
 };
 
 struct DailyRewardDay
@@ -776,6 +777,7 @@ struct DailyRewardData
     std::vector<DailyRewardDay> premiumRewards;
     std::vector<DailyRewardBonus> bonuses;
     uint8_t maxUnlockableDragons;
+    std::vector<uint32_t> streakBonuses; // 15.33: reward streak bonus per streak day
 };
 
 struct ItemInspectionData

@@ -6502,6 +6502,49 @@ void ProtocolGame::parseOpenRewardWall(const InputMessagePtr& msg)
 }
 
 namespace {
+    // 15.33 reward object: no reward type byte and no pick items variant, only the fixed list
+    DailyRewardDay parseRewardDay1533(const InputMessagePtr& msg)
+    {
+        DailyRewardDay day;
+        day.redeemMode = 2;
+        day.itemsToSelect = 0;
+
+        const uint8_t entryCount = msg->getU8();
+        for (auto entryIndex = 0; entryIndex < entryCount; ++entryIndex) {
+            DailyRewardBundle bundle{};
+            bundle.bundleType = msg->getU8();
+            switch (bundle.bundleType) {
+                case 1: // item
+                    bundle.itemId = msg->getU16();
+                    bundle.name = msg->getString();
+                    bundle.count = msg->getU8();
+                    break;
+                case 2: // prey wildcards
+                    bundle.name = "Prey Wildcards";
+                    bundle.count = msg->getU8();
+                    break;
+                case 3: // XP boost: minutes, percent
+                    bundle.itemId = msg->getU16();
+                    bundle.name = "XP Boost";
+                    bundle.value = msg->getU16();
+                    break;
+                case 4: // cosmetic tokens
+                    bundle.name = "Cosmetic Tokens";
+                    bundle.count = msg->getU8();
+                    break;
+                case 5: // bounty reroll tokens
+                    bundle.name = "Reroll Tokens";
+                    bundle.count = msg->getU8();
+                    break;
+                default:
+                    throw stdext::exception(fmt::format("unknown 15.33 daily reward entry kind {}", static_cast<int>(bundle.bundleType)));
+            }
+            day.bundleItems.emplace_back(bundle);
+        }
+
+        return day;
+    }
+
     DailyRewardDay parseRewardDay(const InputMessagePtr& msg)
     {
         DailyRewardDay day;
@@ -6564,6 +6607,23 @@ void ProtocolGame::parseDailyReward(const InputMessagePtr& msg)
 {
     DailyRewardData data;
     data.days = msg->getU8(); // Reward count (7 days)
+
+    if (g_game.getClientVersion() >= 1533) {
+        for (auto i = 1; i <= data.days; ++i) {
+            data.freeRewards.push_back(parseRewardDay1533(msg)); // Free account
+            data.premiumRewards.push_back(parseRewardDay1533(msg)); // Premium account
+        }
+
+        // 15.33: reward streak bonus list (u32 each) replaces the resting area bonus texts; no trailing byte
+        const uint8_t streakCount = msg->getU8();
+        for (auto i = 0; i < streakCount; ++i) {
+            data.streakBonuses.push_back(msg->getU32());
+        }
+        data.maxUnlockableDragons = 0;
+
+        g_lua.callGlobalField("g_game", "onDailyReward", data);
+        return;
+    }
 
     for (auto i = 1; i <= data.days; ++i) {
         data.freeRewards.push_back(parseRewardDay(msg)); // Free account

@@ -1392,6 +1392,8 @@ int push_luavalue(const DailyRewardBundle& bundle) {
     g_lua.setField("name");
     g_lua.pushInteger(bundle.count);
     g_lua.setField("count");
+    g_lua.pushInteger(bundle.value);
+    g_lua.setField("value");
     return 1;
 }
 
@@ -1450,6 +1452,13 @@ int push_luavalue(const DailyRewardData& data) {
 
     g_lua.pushInteger(data.maxUnlockableDragons);
     g_lua.setField("maxUnlockableDragons");
+
+    g_lua.createTable(data.streakBonuses.size(), 0);
+    for (size_t i = 0; i < data.streakBonuses.size(); ++i) {
+        g_lua.pushInteger(data.streakBonuses[i]);
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("streakBonuses");
 
     return 1;
 }
