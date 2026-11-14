@@ -3798,26 +3798,26 @@ void ProtocolGame::parseAutomapFlag(const InputMessagePtr& msg)
                     g_lua.callGlobalField("g_game", "onCyclopediaMapDiscoveryArea", areaId, active, poiTarget, points);
                     break;
                 }
-                case 9: { // Donations
+                case 9: { // Donations; the u64 amounts go to Lua as numbers so they do not wrap at 2^31
                     const uint64_t goal = msg->getU64();
-                    std::vector<std::vector<int>> areas;
+                    std::vector<std::vector<double>> areas;
                     for (int k = 0, n = msg->getU8(); k < n; ++k) {
                         const int areaId = msg->getU16();
                         const int improvedRespawnActive = msg->getU8();
                         const uint64_t donatedAmount = msg->getU64();
-                        areas.push_back({ areaId, improvedRespawnActive, static_cast<int>(donatedAmount) });
+                        areas.push_back({ static_cast<double>(areaId), static_cast<double>(improvedRespawnActive), static_cast<double>(donatedAmount) });
                     }
-                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<int>(goal), areas);
+                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<double>(goal), areas);
                     break;
                 }
-                case 10: { // SetCurrentArea
+                case 10: { // SetCurrentArea: the subarea being explored right now, 0 = none
                     const int areaId = msg->getU16();
                     g_lua.callGlobalField("g_game", "onCyclopediaMapCurrentArea", areaId);
                     break;
                 }
-                case 11: { // SetExploringArea
-                    const int subAreaId = msg->getU16();
-                    g_lua.callGlobalField("g_game", "onCyclopediaMapExploringArea", subAreaId);
+                case 11: { // ExplorationRewardInfo: speed bonus from fully explored areas
+                    const int speedBonus = msg->getU16();
+                    g_lua.callGlobalField("g_game", "onCyclopediaMapExplorationReward", speedBonus);
                     break;
                 }
                 default:

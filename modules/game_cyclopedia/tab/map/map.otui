@@ -603,9 +603,20 @@ UIWidget
             image-source: /images/ui/item66
             image-border: 10
 
+            UIWidget
+              id: discoveryFill
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              anchors.left: parent.left
+              margin: 2
+              width: 0
+              background-color: #c0601880
+              phantom: true
+
             Label
               id: discoveryPercent
               anchors.fill: parent
+              phantom: true
               !text: tr('0%%')
               font: $var-cip-font-new
               color: #c0c0c0
@@ -636,8 +647,20 @@ UIWidget
             image-source: /images/ui/item66
             image-border: 10
 
+            UIWidget
+              id: respawnRateFill
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              anchors.left: parent.left
+              margin: 2
+              width: 0
+              background-color: #c0601880
+              phantom: true
+
             Label
+              id: respawnRateAmount
               anchors.fill: parent
+              phantom: true
               !text: tr('0')
               font: $var-cip-font-new
               color: #c0c0c0

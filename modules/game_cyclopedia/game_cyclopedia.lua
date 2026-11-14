@@ -747,7 +747,12 @@ function controllerCyclopedia:onInit()
 		onParseBestiaryOverview = Cyclopedia.loadBestiaryOverview,
 		onUpdateBestiaryMonsterData = Cyclopedia.loadBestiarySelectedCreature,
 		onBestiaryEntryChanged = Cyclopedia.onBestiaryEntryChanged,
-		onBosstiaryData = Cyclopedia.onBosstiaryData
+		onBosstiaryData = Cyclopedia.onBosstiaryData,
+		onCyclopediaMapDiscoveryData = Cyclopedia.onCyclopediaMapDiscoveryData,
+		onCyclopediaMapDiscoveryArea = Cyclopedia.onCyclopediaMapDiscoveryArea,
+		onCyclopediaMapDonations = Cyclopedia.onCyclopediaMapDonations,
+		onCyclopediaMapCurrentArea = Cyclopedia.onCyclopediaMapCurrentArea,
+		onCyclopediaMapExplorationReward = Cyclopedia.onCyclopediaMapExplorationReward
 	})
 	connect(g_things, {
 		onLoadDat = Cyclopedia.invalidateItemsIndex
@@ -1080,6 +1085,10 @@ function controllerCyclopedia:onGameStart()
 end
 
 function controllerCyclopedia:onGameEnd()
+	if Cyclopedia.resetMapDiscovery then
+		Cyclopedia.resetMapDiscovery()
+	end
+
 	if trackerMiniWindow and trackerMiniWindow.save then
 		trackerMiniWindow:saveSelfIndex()
 
