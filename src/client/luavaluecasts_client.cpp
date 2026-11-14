@@ -632,7 +632,8 @@ int push_luavalue(const HomeOffer& homeOffer) {
     g_lua.setField("disabledReasonIndex");
     g_lua.pushInteger(homeOffer.unknownByte2);
     g_lua.setField("unknownByte2");
-    if (homeOffer.unknownByte2 == Otc::GameStoreInfoStatesType_t::STATE_SALE) {
+    // only 15.33 sends the sale details in a home offer
+    if (g_game.getClientVersion() >= 1533 && homeOffer.unknownByte2 == Otc::GameStoreInfoStatesType_t::STATE_SALE) {
         g_lua.pushInteger(homeOffer.validUntil);
         g_lua.setField("validUntil");
         g_lua.pushInteger(homeOffer.basePrice);
