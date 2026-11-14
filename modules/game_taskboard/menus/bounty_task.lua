@@ -1155,6 +1155,10 @@ function onEngineBountyTaskData(header, monsters, talismans)
 			bountyPoints = m.rewardPoints,
 			rerollPoints = m.rewardReroll,
 			stars = BOUNTY_ENGINE_STARS[m.rarity] or 0,
+			-- 15.33: raw grade (3 = Platinum), Elite flag and dust reward
+			grade = m.grade or m.rarity or 0,
+			isElite = m.isElite == 1,
+			dustReward = m.rewardDust or 0,
 			isActive = m.isActive == 1,
 			isCompleted = m.isCompleted == 1
 		}
@@ -1178,7 +1182,9 @@ function onEngineBountyTaskData(header, monsters, talismans)
 		difficulty = math.max(0, (header and header.difficulty or 1) - 1),
 		rerollTokens = header and header.rerollPoints or 0,
 		-- engine: claimDaily == 1 means "can be claimed"; module: 0 means "unlocked"
-		claimUnlocked = (header and header.claimDaily == 1) and 0 or 1
+		claimUnlocked = (header and header.claimDaily == 1) and 0 or 1,
+		-- 15.33: Elite enabled for new tasks
+		eliteEnabled = header ~= nil and header.elite == 1
 	}
 end
 

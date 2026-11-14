@@ -110,6 +110,7 @@ struct TaskBoardBountyHeaderData
     uint8_t rerollPoints{ 0 };
     uint8_t claimDaily{ 0 };
     uint8_t difficulty{ 1 };
+    uint8_t elite{ 0 }; // 15.33: Elite enabled for new tasks
 };
 
 struct TaskBoardBountyMonsterData
@@ -119,9 +120,12 @@ struct TaskBoardBountyMonsterData
     uint16_t currentKills{ 0 };
     uint16_t totalKills{ 0 };
     uint32_t rewardXp{ 0 };
-    uint8_t rewardPoints{ 0 };
+    uint16_t rewardPoints{ 0 }; // u16 in 15.33
     uint8_t rewardReroll{ 0 };
     uint8_t rarity{ 0 };
+    uint8_t grade{ 0 }; // raw task grade, 3 = platinum (15.33)
+    uint8_t isElite{ 0 }; // 15.33
+    uint16_t rewardDust{ 0 }; // 15.33
     uint8_t isActive{ 0 };
     uint8_t isCompleted{ 0 };
 };

@@ -1733,6 +1733,11 @@ void ProtocolGame::sendTaskBoardAction(const uint8_t option, const uint16_t valu
     msg->addU8(option);
     switch (option) {
         case Otc::TASK_BOARD_OPTION_BOUNTY_CHANGE_DIFFICULTY:
+            msg->addU8(static_cast<uint8_t>(value));
+            if (g_game.getClientVersion() >= 1533) {
+                msg->addU8(extraValue != 0 ? 1 : 0); // 15.33: Elite enabled (bool)
+            }
+            break;
         case Otc::TASK_BOARD_OPTION_BOUNTY_SELECT_TASK:
         case Otc::TASK_BOARD_OPTION_BOUNTY_TALISMAN_UPGRADE:
         case Otc::TASK_BOARD_OPTION_WEEKLY_DELIVER:
@@ -1744,6 +1749,10 @@ void ProtocolGame::sendTaskBoardAction(const uint8_t option, const uint16_t valu
             msg->addU8(static_cast<uint8_t>(extraValue));
             break;
         case Otc::TASK_BOARD_OPTION_PREFERRED_UNLOCK:
+            if (g_game.getClientVersion() < 1533) { // 15.33: no body, the server unlocks the next locked slot
+                msg->addU16(value);
+            }
+            break;
         case Otc::TASK_BOARD_OPTION_PREFERRED_CLEAR:
         case Otc::TASK_BOARD_OPTION_UNWANTED_CLEAR:
             msg->addU16(value);

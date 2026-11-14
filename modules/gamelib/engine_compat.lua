@@ -196,10 +196,24 @@ if g_game.bountyTaskAction and g_game.weeklyTaskAction and g_game.bountyPreferre
 	install(g_game, "sendClaimReward", function()
 		g_game.bountyTaskAction(BOUNTY_CLAIM_REWARD, 0)
 	end)
+	-- 15.33 sends the board wide Elite setting with every difficulty change; when the caller does not
+	-- pass it, keep the last value the server reported in 0x5B so a difficulty change does not turn Elite off
+	local bountyEliteEnabled = false
+
+	connect(g_game, {
+		onBountyTaskData = function(header)
+			bountyEliteEnabled = header ~= nil and header.elite == 1
+		end
+	})
+
 	-- the module counts difficulty 0-3, and Game::toServerDifficulty subtracts 1 before sending,
 	-- so we must pass a value increased by 1 (otherwise Beginner would be rejected as 0)
-	install(g_game, "sendSelectTaskDifficulty", function(difficulty)
-		g_game.bountyTaskAction(BOUNTY_CHANGE_DIFFICULTY, (difficulty or 0) + 1)
+	install(g_game, "sendSelectTaskDifficulty", function(difficulty, elite)
+		if elite == nil then
+			elite = bountyEliteEnabled
+		end
+
+		g_game.bountyTaskAction(BOUNTY_CHANGE_DIFFICULTY, (difficulty or 0) + 1, elite == true)
 	end)
 	install(g_game, "sendClaimDaily", function()
 		g_game.bountyTaskAction(BOUNTY_CLAIM_DAILY, 0)

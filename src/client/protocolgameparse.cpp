@@ -4744,7 +4744,8 @@ namespace
         return {
             { "rerollPoints", header.rerollPoints },
             { "claimDaily", header.claimDaily },
-            { "difficulty", header.difficulty }
+            { "difficulty", header.difficulty },
+            { "elite", header.elite }
         };
     }
 
@@ -4759,6 +4760,9 @@ namespace
             { "rewardPoints", monster.rewardPoints },
             { "rewardReroll", monster.rewardReroll },
             { "rarity", monster.rarity },
+            { "grade", monster.grade },
+            { "isElite", monster.isElite },
+            { "rewardDust", monster.rewardDust },
             { "isActive", monster.isActive },
             { "isCompleted", monster.isCompleted }
         };
@@ -4881,6 +4885,7 @@ void ProtocolGame::parseTaskBoardBountyData(const InputMessagePtr& msg)
     std::vector<TaskBoardTalismanData> talismans;
     std::vector<TaskBoardPreferredSlotData> preferredSlots;
 
+    const bool is1533 = g_game.getClientVersion() >= 1533;
     const uint8_t offerCount = msg->getU8();
     monsters.reserve(offerCount);
     const bool hasSingleOffer = offerCount == 1;
@@ -4891,10 +4896,15 @@ void ProtocolGame::parseTaskBoardBountyData(const InputMessagePtr& msg)
         monster.raceId = msg->getU16();
         monster.totalKills = msg->getU16();
         monster.rewardXp = msg->getU32();
-        monster.rewardPoints = msg->getU8();
+        monster.rewardPoints = is1533 ? msg->getU16() : msg->getU8(); // 15.33: u16 (Platinum tasks give 8x)
         monster.currentKills = msg->getU16();
         msg->getU8(); // claim reward state (used by retail client button state)
-        monster.rarity = std::min<uint8_t>(msg->getU8(), 2);
+        monster.grade = msg->getU8(); // 0 normal, 1 silver, 2 gold, 3 platinum (15.33)
+        monster.rarity = std::min<uint8_t>(monster.grade, 2);
+        if (is1533) {
+            monster.isElite = msg->getU8() != 0;
+            monster.rewardDust = msg->getU16();
+        }
         // Server does not expose per-monster reroll reward; assume 1 for UI display.
         monster.rewardReroll = 1;
         monster.isActive = hasSingleOffer ? 1 : 0;
@@ -4902,10 +4912,20 @@ void ProtocolGame::parseTaskBoardBountyData(const InputMessagePtr& msg)
         monsters.emplace_back(monster);
     }
 
-    headerData.rerollPoints = msg->getU8();
-    const auto rerollMode = static_cast<Otc::TaskBoardBountyRerollMode_t>(msg->getU8());
-    headerData.claimDaily = rerollMode == Otc::TASK_BOARD_BOUNTY_REROLL_DAILY_CLAIMABLE ? 1 : 0;
-    headerData.difficulty = std::clamp<uint8_t>(msg->getU8() + 1, 1, 4);
+    if (is1533) {
+        // 15.33 trailer: u8 selected difficulty, bool Elite; reroll tokens come in resource 0x58 (sent just before)
+        // and the daily reroll claim is gone
+        const uint64_t rerollTokens = m_localPlayer->getResourceBalance(Otc::RESOURCE_BOUNTY_REROLL_TOKENS);
+        headerData.rerollPoints = static_cast<uint8_t>(std::min<uint64_t>(rerollTokens, 255));
+        headerData.claimDaily = 0;
+        headerData.difficulty = std::clamp<uint8_t>(msg->getU8() + 1, 1, 4);
+        headerData.elite = msg->getU8() != 0;
+    } else {
+        headerData.rerollPoints = msg->getU8();
+        const auto rerollMode = static_cast<Otc::TaskBoardBountyRerollMode_t>(msg->getU8());
+        headerData.claimDaily = rerollMode == Otc::TASK_BOARD_BOUNTY_REROLL_DAILY_CLAIMABLE ? 1 : 0;
+        headerData.difficulty = std::clamp<uint8_t>(msg->getU8() + 1, 1, 4);
+    }
 
     talismans.reserve(TASK_BOARD_TALISMAN_PATHS);
     for (uint8_t i = 0; std::cmp_less(i, TASK_BOARD_TALISMAN_PATHS); ++i) {

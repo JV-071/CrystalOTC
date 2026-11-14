@@ -1875,7 +1875,7 @@ namespace
     }
 }
 
-void Game::bountyTaskAction(const uint8_t actionType, const uint16_t value)
+void Game::bountyTaskAction(const uint8_t actionType, const uint16_t value, const bool elite)
 {
     if (!canPerformGameAction())
         return;
@@ -1894,7 +1894,7 @@ void Game::bountyTaskAction(const uint8_t actionType, const uint16_t value)
             m_protocolGame->sendTaskBoardAction(Otc::TASK_BOARD_OPTION_BOUNTY_CLAIM_REWARD);
             break;
         case Otc::BOUNTY_ACTION_CHANGE_DIFFICULTY:
-            m_protocolGame->sendTaskBoardAction(Otc::TASK_BOARD_OPTION_BOUNTY_CHANGE_DIFFICULTY, toServerDifficulty(value));
+            m_protocolGame->sendTaskBoardAction(Otc::TASK_BOARD_OPTION_BOUNTY_CHANGE_DIFFICULTY, toServerDifficulty(value), elite ? 1 : 0);
             break;
         case Otc::BOUNTY_ACTION_CLAIM_DAILY:
             m_protocolGame->sendTaskBoardAction(Otc::TASK_BOARD_OPTION_BOUNTY_CLAIM_DAILY);

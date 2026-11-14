@@ -398,7 +398,7 @@ public:
     void preyRequest();
 
     // Task Board / SoulSeals / Offline Training related
-    void bountyTaskAction(uint8_t actionType, uint16_t value = 0);
+    void bountyTaskAction(uint8_t actionType, uint16_t value = 0, bool elite = false);
     void weeklyTaskAction(uint8_t actionType, uint16_t value = 0);
     void taskHuntingShopRequest();
     void taskHuntingShopPurchase(uint8_t offerIndex);
