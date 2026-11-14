@@ -1445,12 +1445,12 @@ void Game::cancelRuleViolation()
     m_protocolGame->sendCancelRuleViolation();
 }
 
-void Game::reportBug(const std::string_view comment)
+void Game::reportBug(const uint8_t category, const std::string_view comment, const Position& pos)
 {
     if (!canPerformGameAction())
         return;
 
-    m_protocolGame->sendBugReport(comment);
+    m_protocolGame->sendBugReport(category, comment, pos);
 }
 
 void Game::reportRuleViolation(const std::string_view target, const uint8_t reason, const uint8_t action, const std::string_view comment, const std::string_view statement, const uint16_t statementId, const bool ipBanishment)

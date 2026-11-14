@@ -279,7 +279,7 @@ public:
     void cancelRuleViolation();
 
     // reports
-    void reportBug(std::string_view comment);
+    void reportBug(uint8_t category, std::string_view comment, const Position& pos);
     void reportRuleViolation(std::string_view target, uint8_t reason, uint8_t action, std::string_view comment, std::string_view statement, uint16_t statementId, bool ipBanishment);
     void debugReport(std::string_view a, std::string_view b, std::string_view c, std::string_view d);
 

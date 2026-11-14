@@ -998,14 +998,17 @@ void ProtocolGame::sendEditVipGroups(const Otc::GroupsEditInfoType_t action, con
     send(msg);
 }
 
-void ProtocolGame::sendBugReport(const std::string_view comment)
+void ProtocolGame::sendBugReport(const uint8_t category, const std::string_view comment, const Position& pos)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientBugReport);
     if (g_game.getProtocolVersion() > 1000) {
-        msg->addU8(3); // category
+        msg->addU8(category);
     }
     msg->addString(comment);
+    if (g_game.getProtocolVersion() > 1000 && category == 0) { // map reports carry the position
+        addPosition(msg, pos);
+    }
     send(msg);
 }
 

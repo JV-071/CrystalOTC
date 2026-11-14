@@ -108,7 +108,7 @@ public:
     void sendRemoveVip(uint32_t playerId);
     void sendEditVip(uint32_t playerId, std::string_view description, uint32_t iconId, bool notifyLogin, const std::vector<uint8_t>& groupIDs = {});
     void sendEditVipGroups(Otc::GroupsEditInfoType_t action, uint8_t groupId, std::string_view groupName);
-    void sendBugReport(std::string_view comment);
+    void sendBugReport(uint8_t category, std::string_view comment, const Position& pos);
     void sendRuleViolation(std::string_view target, uint8_t reason, uint8_t action, std::string_view comment, std::string_view statement, uint16_t statementId, bool ipBanishment);
     void sendDebugReport(std::string_view a, std::string_view b, std::string_view c, std::string_view d);
     void sendRequestQuestLog();
