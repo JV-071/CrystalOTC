@@ -60,4 +60,4 @@ BlessingHistoryRow < UIWidget
     font: $var-cip-font-new
     color: #c0c0c0
     text-align: leftCenter
-    phantom: true
+    focusable: false
