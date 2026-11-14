@@ -191,7 +191,8 @@ public:
     // Wheel of Destiny
     void sendOpenWheel(uint32_t playerId);
     void sendApplyWheelPoints(const std::vector<uint16_t>& slotPoints,uint16_t greenGem,uint16_t redGem,uint16_t acquaGem,uint16_t purpleGem);
-    void sendWheelGemAction(const uint8_t actionType, const uint8_t param, const uint8_t pos);
+    void sendWheelGemAction(uint8_t actionType, uint16_t param, uint8_t pos);
+    void sendApplyWheelVessels(const std::vector<uint16_t>& slotPoints, const std::vector<int32_t>& vesselGems);
 
     // otclient only
     void sendChangeMapAwareRange(uint8_t xrange, uint8_t yrange);

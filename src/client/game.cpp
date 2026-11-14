@@ -2184,6 +2184,16 @@ void Game::applyWheelOfDestiny(const std::vector<uint16_t>& wheelPointsVec, cons
     if (!canPerformGameAction())
         return;
 
+    if (getClientVersion() >= 1533) {
+        // 15.33 vessel format; a 0 entry means an empty vessel, as in the legacy writer
+        std::vector<int32_t> vesselGems;
+        for (const uint16_t gem : activeGemsVec) {
+            vesselGems.push_back(gem > 0 ? gem : -1);
+        }
+        m_protocolGame->sendApplyWheelVessels(wheelPointsVec, vesselGems);
+        return;
+    }
+
     m_protocolGame->sendApplyWheelOfDestiny(wheelPointsVec, activeGemsVec);
 }
 
@@ -2444,16 +2454,29 @@ void Game::openWheel(uint32_t playerId)
     m_protocolGame->sendOpenWheel(playerId);
 }
 
-void Game::gemAction(const uint8_t actionType, const uint8_t param, const uint8_t pos)
+void Game::gemAction(const uint8_t actionType, const uint16_t param, const uint8_t pos)
 {
     if (!canPerformGameAction())
         return;
     m_protocolGame->sendWheelGemAction(actionType, param, pos);
 }
 
+void Game::applyWheelVessels(const std::vector<uint16_t>& slotPoints, const std::vector<int32_t>& vesselGems)
+{
+    if (!canPerformGameAction())
+        return;
+    m_protocolGame->sendApplyWheelVessels(slotPoints, vesselGems);
+}
+
 void Game::sendApplyWheelPoints(const std::vector<uint16_t>& slotPoints,uint16_t greenGem,uint16_t redGem,uint16_t acquaGem,uint16_t purpleGem)
 {
     if (!canPerformGameAction())
         return;
+    if (getClientVersion() >= 1533) {
+        // 15.33 has gem vessels instead of domains: the legacy call fills vessels 0 to 3, use applyWheelVessels
+        const auto toVessel = [](const uint16_t gem) { return gem == UINT16_MAX ? -1 : static_cast<int32_t>(gem); };
+        m_protocolGame->sendApplyWheelVessels(slotPoints, { toVessel(greenGem), toVessel(redGem), toVessel(acquaGem), toVessel(purpleGem), -1, -1, -1, -1 });
+        return;
+    }
     m_protocolGame->sendApplyWheelPoints(slotPoints, greenGem, redGem, acquaGem, purpleGem);
 }

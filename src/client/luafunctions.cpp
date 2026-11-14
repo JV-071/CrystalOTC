@@ -460,6 +460,7 @@ void Client::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_game", "openWheel", &Game::openWheel, &g_game);
     g_lua.bindSingletonFunction("g_game", "sendApplyWheelPoints", &Game::sendApplyWheelPoints, &g_game);
     g_lua.bindSingletonFunction("g_game", "gemAction", &Game::gemAction, &g_game);
+    g_lua.bindSingletonFunction("g_game", "applyWheelVessels", &Game::applyWheelVessels, &g_game);
     g_lua.bindSingletonFunction("g_game", "sendStartOfflineTraining", &Game::sendStartOfflineTraining, &g_game);
     g_lua.bindSingletonFunction("g_game", "sendSelectSpellAim", &Game::sendSelectSpellAim, &g_game);
     g_lua.bindSingletonFunction("g_game", "sendTutorialChangeVocation", &Game::sendTutorialChangeVocation, &g_game);

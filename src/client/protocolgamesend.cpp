@@ -1026,12 +1026,41 @@ void ProtocolGame::sendRuleViolation(const std::string_view target, const uint8_
     send(msg);
 }
 
-void ProtocolGame::sendWheelGemAction(uint8_t actionType, uint8_t param, uint8_t pos)
+// 0xE7 gem atelier action
+// 15.33: 0 dismantle (u16 gemIndex), 1 reveal (u8 quality), 2 reshape (u16 gemIndex, u8 modSlot),
+//        3 toggle lock (u16 gemIndex), 4 improve grade (u8 fragmentType, u8 modId)
+// 15.30: u8 action, u8 param, and u8 pos for action 4 only
+void ProtocolGame::sendWheelGemAction(const uint8_t actionType, const uint16_t param, const uint8_t pos)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientWheelGemAction); // 0xE7
     msg->addU8(actionType);
-    msg->addU8(param);
+
+    if (g_game.getClientVersion() >= 1533) {
+        switch (actionType) {
+            case 0: // dismantle
+            case 3: // toggle lock
+                msg->addU16(param);
+                break;
+            case 1: // reveal
+                msg->addU8(static_cast<uint8_t>(param));
+                break;
+            case 2: // reshape
+                msg->addU16(param);
+                msg->addU8(pos);
+                break;
+            case 4: // improve grade
+                msg->addU8(static_cast<uint8_t>(param));
+                msg->addU8(pos);
+                break;
+            default:
+                break;
+        }
+        send(msg);
+        return;
+    }
+
+    msg->addU8(static_cast<uint8_t>(param));
 
     // Only "ImproveGrade" (actionType == 4) sends the extra byte
     if (actionType == 4)
@@ -1899,6 +1928,32 @@ void ProtocolGame::sendApplyWheelPoints(const std::vector<uint16_t>& slotPoints,
     if (purpleGem != UINT16_MAX) msg->addU16(purpleGem);
 
     msg->addU8(0);
+    send(msg);
+}
+
+// 0x62 save the wheel (15.33): 36 x u16 slot points, u8 vessel mask (bit 0x80 >> i = vessel i holds a gem),
+// then one u16 gem index per set bit in vessel order. vesselGems[i] < 0 leaves vessel i empty.
+void ProtocolGame::sendApplyWheelVessels(const std::vector<uint16_t>& slotPoints, const std::vector<int32_t>& vesselGems)
+{
+    const auto& msg = std::make_shared<OutputMessage>();
+    msg->addU8(Proto::ClientSaveWheel); // 0x62
+
+    for (int i = 0; i < 36; ++i) {
+        msg->addU16(i < static_cast<int>(slotPoints.size()) ? slotPoints[i] : 0);
+    }
+
+    uint8_t vesselMask = 0;
+    for (int vessel = 0; vessel < 8 && vessel < static_cast<int>(vesselGems.size()); ++vessel) {
+        if (vesselGems[vessel] >= 0 && vesselGems[vessel] <= UINT16_MAX) {
+            vesselMask |= static_cast<uint8_t>(0x80 >> vessel);
+        }
+    }
+    msg->addU8(vesselMask);
+    for (int vessel = 0; vessel < 8; ++vessel) {
+        if (vesselMask & (0x80 >> vessel)) {
+            msg->addU16(static_cast<uint16_t>(vesselGems[vessel]));
+        }
+    }
     send(msg);
 }
 
