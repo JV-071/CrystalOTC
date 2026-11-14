@@ -191,6 +191,7 @@ namespace Proto
         GameServerConfigureMonsterPodium = 194, // 0xC2
         GameServerCyclopediaHouseAuctionMessage = 195,
         GameServerWeaponProficiencyInfo = 196,
+        GameServerGemAtelierGemRevealed = 197, // 0xC5
         GameServerCyclopediaHousesInfo = 198,
         GameServerCyclopediaHouseList = 199,
         GameServerChooseOutfit = 200,

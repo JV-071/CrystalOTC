@@ -523,6 +523,9 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 case Proto::GameServerWeaponProficiencyInfo:
                     parseWeaponProficiencyInfo(msg);
                     break;
+                case Proto::GameServerGemAtelierGemRevealed:
+                    parseGemAtelierGemRevealed(msg);
+                    break;
                 case Proto::GameServerCyclopediaHousesInfo:
                     parseCyclopediaHousesInfo(msg);
                     break;
@@ -8212,4 +8215,14 @@ void ProtocolGame::parseCharacterTradeConfiguration(const InputMessagePtr& msg)
             msg->skipBytes(static_cast<uint16_t>(msg->getUnreadSize()));
             break;
     }
+}
+
+void ProtocolGame::parseGemAtelierGemRevealed(const InputMessagePtr& msg)
+{
+    if (skipBefore1533(msg, Proto::GameServerGemAtelierGemRevealed)) {
+        return;
+    }
+
+    const uint16_t gemIndex = msg->getU16(); // index of the gem just revealed in the gem atelier
+    g_lua.callGlobalField("g_game", "onGemAtelierGemRevealed", gemIndex);
 }
