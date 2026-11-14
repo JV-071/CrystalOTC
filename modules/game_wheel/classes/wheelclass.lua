@@ -2902,19 +2902,40 @@ function WheelOfDestiny.onImportConfig(base64Data)
 		end
 	end
 
-	while index <= #decodedData do
-		local value = string.unpack_custom("I1", decodedData:sub(index, index))
+	-- Gems after the 36 slot points: 4 x u8 (15.30, one per domain, 255 = none) or
+	-- 8 x u16 (15.33, one per vessel, 65535 = none). A code of the other model keeps no gems.
+	local gemBytes = #decodedData - index + 1
+	local vesselCode = gemBytes == WheelVessels.getCount() * 2
 
-		if value == 255 then
-			value = -1
+	if vesselCode then
+		while index + 1 <= #decodedData do
+			local value = string.unpack_custom("I2", decodedData:sub(index, index + 1))
+
+			table.insert(equipedGems, value == 65535 and -1 or value)
+
+			index = index + 2
 		end
+	else
+		while index <= #decodedData do
+			local value = string.unpack_custom("I1", decodedData:sub(index, index))
 
-		table.insert(equipedGems, value)
+			if value == 255 then
+				value = -1
+			end
 
-		index = index + 1
+			table.insert(equipedGems, value)
+
+			index = index + 1
+		end
 	end
 
-	while #equipedGems < 4 do
+	if vesselCode ~= WheelVessels.isActive() then
+		equipedGems = {}
+	end
+
+	local gemSlots = WheelVessels.isActive() and WheelVessels.getCount() or 4
+
+	while #equipedGems < gemSlots do
 		table.insert(equipedGems, -1)
 	end
 
@@ -2999,6 +3020,13 @@ function WheelOfDestiny.onExportPreset()
 	})
 end
 
+-- 15.33 preset codes keep one u16 gem index per vessel (65535 = empty), see onImportConfig.
+function packVesselGems(dataParts, equipedGems)
+	for _, gemID in ipairs(WheelVessels.normalize(equipedGems)) do
+		table.insert(dataParts, string.pack_custom("I2", gemID < 0 and 65535 or gemID))
+	end
+end
+
 function WheelOfDestiny.onExportConfig()
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 	local pointInvested = WheelOfDestiny.pointInvested or {}
@@ -3020,21 +3048,25 @@ function WheelOfDestiny.onExportConfig()
 		end
 	end
 
-	local gems = getGemStruct()
-	local gemOrder = {
-		GemDomains.GREEN,
-		GemDomains.RED,
-		GemDomains.ACQUA,
-		GemDomains.PURPLE
-	}
+	if WheelVessels.isActive() then
+		packVesselGems(dataParts, equipedGems)
+	else
+		local gems = getGemStruct()
+		local gemOrder = {
+			GemDomains.GREEN,
+			GemDomains.RED,
+			GemDomains.ACQUA,
+			GemDomains.PURPLE
+		}
 
-	for _, domain in ipairs(gemOrder) do
-		local gemData = gems[domain]
-		local gemID = gemData and gemData.gemID or -1
-		local packedValue = string.pack_custom("I1", gemID < 0 and 255 or gemID)
+		for _, domain in ipairs(gemOrder) do
+			local gemData = gems[domain]
+			local gemID = gemData and gemData.gemID or -1
+			local packedValue = string.pack_custom("I1", gemID < 0 and 255 or gemID)
 
-		if packedValue and packedValue ~= "" then
-			table.insert(dataParts, packedValue)
+			if packedValue and packedValue ~= "" then
+				table.insert(dataParts, packedValue)
+			end
 		end
 	end
 
@@ -3123,21 +3155,25 @@ function WheelOfDestiny.getExportCode(preset)
 		end
 	end
 
-	local gems = getGemStruct(preset)
-	local gemOrder = {
-		GemDomains.GREEN,
-		GemDomains.RED,
-		GemDomains.ACQUA,
-		GemDomains.PURPLE
-	}
+	if WheelVessels.isActive() then
+		packVesselGems(dataParts, equipedGems)
+	else
+		local gems = getGemStruct(preset)
+		local gemOrder = {
+			GemDomains.GREEN,
+			GemDomains.RED,
+			GemDomains.ACQUA,
+			GemDomains.PURPLE
+		}
 
-	for _, domain in ipairs(gemOrder) do
-		local gemData = gems[domain]
-		local gemID = gemData and gemData.gemID or -1
-		local packedValue = string.pack_custom("I1", gemID < 0 and 255 or gemID)
+		for _, domain in ipairs(gemOrder) do
+			local gemData = gems[domain]
+			local gemID = gemData and gemData.gemID or -1
+			local packedValue = string.pack_custom("I1", gemID < 0 and 255 or gemID)
 
-		if packedValue and packedValue ~= "" then
-			table.insert(dataParts, packedValue)
+			if packedValue and packedValue ~= "" then
+				table.insert(dataParts, packedValue)
+			end
 		end
 	end
 
@@ -3296,7 +3332,7 @@ function WheelOfDestiny.onConfirmCreatePreset()
 			presetName = presetName,
 			availablePoints = totalPoints,
 			pointInvested = table.reserve(36, 0),
-			equipedGems = {
+			equipedGems = WheelVessels.isActive() and WheelVessels.emptyList() or {
 				-1,
 				-1,
 				-1,
