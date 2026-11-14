@@ -952,17 +952,24 @@ function WheelVessels.setupReshape(modsPanel, gemData)
 
 				costLabel:setText(string.format("%sk + %d %s", comma_value(cost.gold / 1000), cost.fragments, cost.greater and "G" or "L"))
 				costLabel:setColor(#reasons == 0 and "#c0c0c0" or "#d33c3c")
-				button:setEnabled(#reasons == 0)
+				-- Keep the button enabled: a disabled widget gets no hover, so the reason tooltip would never show.
+				button:setOn(#reasons == 0)
 
 				if #reasons == 0 then
 					button:setTooltip(tr("Re-roll this mod at random for %s.", formatCost(cost)))
+					costLabel:setTooltip(formatCost(cost))
 				else
 					button:setTooltip(table.concat(reasons, "\n"))
+					costLabel:setTooltip(table.concat(reasons, "\n"))
 				end
 
 				local gemID = gemData.gemID
 
 				function button.onClick()
+					if not button:isOn() then
+						return
+					end
+
 					WheelVessels.onReshape(gemID, modSlot)
 				end
 			end

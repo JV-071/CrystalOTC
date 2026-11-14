@@ -79,6 +79,10 @@ ReshapeButton1533 < Button
   margin-left: 4
   !text: tr('Reshape')
 
+  $!on:
+    color: #dfdfdf88
+    opacity: 0.8
+
 ReshapeCost1533 < Label
   margin-top: 2
   text-auto-resize: true
