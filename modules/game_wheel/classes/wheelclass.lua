@@ -1819,8 +1819,13 @@ function WheelOfDestiny.configureSummary()
 	end
 
 	local damage = 0
+	-- 15.33: the server adds the Revelation Mastery points to the slice points before it picks the stage.
+	-- configureSummary runs before configurePassives, so compute them here instead of reading the old values.
+	local extraPoints = WheelVessels.isActive() and WheelOfDestiny.getExtraPassivePoints() or {}
 
-	for _, points in ipairs(WheelOfDestiny.passivePoints) do
+	for domain, points in ipairs(WheelOfDestiny.passivePoints) do
+		points = points + (extraPoints[domain] or 0)
+
 		if points >= 1000 then
 			damage = damage + 20
 		elseif points >= 500 then
@@ -2541,8 +2546,9 @@ function onWheelOfDestinyApply(close, ignoreprotocol)
 	end
 end
 
-function WheelOfDestiny.configurePassives()
-	WheelOfDestiny.extraPassivePoints = table.reserve(4, 0)
+-- Revelation points per domain on top of the slice points (Revelation Mastery mods, 15.33 Mastery slices).
+function WheelOfDestiny.getExtraPassivePoints()
+	local extra = table.reserve(4, 0)
 
 	for i = 0, 3 do
 		local data = GemAtelier.getEquipedGem(i)
@@ -2557,17 +2563,23 @@ function WheelOfDestiny.configurePassives()
 
 				if bonus and bonus.domain then
 					local gemValue = getBonusValueUpgrade(data.supremeBonus, data.gemID, true, true)
-					local currentValue = WheelOfDestiny.extraPassivePoints[bonus.domain + 1] or 0
+					local currentValue = extra[bonus.domain + 1] or 0
 
-					WheelOfDestiny.extraPassivePoints[bonus.domain + 1] = gemValue + currentValue
+					extra[bonus.domain + 1] = gemValue + currentValue
 				end
 			end
 		end
 	end
 
 	if WheelVessels.isActive() then
-		WheelVessels.addExtraPassivePoints(WheelOfDestiny.extraPassivePoints)
+		WheelVessels.addExtraPassivePoints(extra)
 	end
+
+	return extra
+end
+
+function WheelOfDestiny.configurePassives()
+	WheelOfDestiny.extraPassivePoints = WheelOfDestiny.getExtraPassivePoints()
 
 	local passivel = "TL"
 
