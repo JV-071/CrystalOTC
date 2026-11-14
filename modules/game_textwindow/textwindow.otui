@@ -57,6 +57,15 @@ TextWindow < MainWindowHigh
     margin-bottom: 11
 
   Button
+    id: openArchiveButton
+    !text: tr("Magical Archive")
+    size: 100 20
+    text-offset: 0 0
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    visible: false
+
+  Button
     id: okButton
     size: 43 20
     text-offset: 0 0
