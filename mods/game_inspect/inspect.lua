@@ -1103,6 +1103,14 @@ local function onParseCyclopediaCharacterInspection(data)
 	showCharacter(data)
 end
 
+local function onParseItemDetail(data)
+	if type(data) ~= "table" then
+		return
+	end
+
+	onInspection(data.inspectionType, data.name, data.item, data.descriptions, data.imbuements)
+end
+
 local function hideAll()
 	hide()
 	hideCharacter()
@@ -1174,8 +1182,9 @@ function init()
 
 	hideCharacter()
 	connect(g_game, {
-		onInspection = onInspection,
+		onParseItemDetail = onParseItemDetail,
 		onParseCyclopediaCharacterInspection = onParseCyclopediaCharacterInspection,
+		onParseCharacterInspection = onParseCyclopediaCharacterInspection,
 		onGameStart = hideAll,
 		onGameEnd = hideAll
 	})
@@ -1195,8 +1204,9 @@ function terminate()
 	end
 
 	disconnect(g_game, {
-		onInspection = onInspection,
+		onParseItemDetail = onParseItemDetail,
 		onParseCyclopediaCharacterInspection = onParseCyclopediaCharacterInspection,
+		onParseCharacterInspection = onParseCyclopediaCharacterInspection,
 		onGameStart = hideAll,
 		onGameEnd = hideAll
 	})

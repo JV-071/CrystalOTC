@@ -134,7 +134,7 @@ function init()
 	end
 
 	connect(g_game, {
-		onInspection = onInspection,
+		onParseItemDetail = onParseItemDetail,
 		onLogin = loadProficiencyJson,
 		onGameStart = onGameStart,
 		onGameEnd = onGameEnd,
@@ -154,7 +154,7 @@ end
 
 function terminate()
 	disconnect(g_game, {
-		onInspection = onInspection,
+		onParseItemDetail = onParseItemDetail,
 		onLogin = loadProficiencyJson,
 		onGameStart = onGameStart,
 		onGameEnd = onGameEnd,
@@ -405,6 +405,23 @@ function requestOpenWindow(redirectItem)
 	WeaponProficiency:onClearSearch(true)
 	WeaponProficiency:onWeaponCategoryChange(category, nil, targetItemId, focusFirstChild)
 	show()
+end
+
+function onParseItemDetail(data)
+	if type(data) ~= "table" then
+		return
+	end
+
+	local descriptions = {}
+
+	for _, description in ipairs(data.descriptions or {}) do
+		descriptions[#descriptions + 1] = {
+			description.key or description[1] or "",
+			description.value or description[2] or ""
+		}
+	end
+
+	onInspection(data.inspectionType, data.name, data.item, descriptions)
 end
 
 function onInspection(inspectType, itemName, item, descriptions)

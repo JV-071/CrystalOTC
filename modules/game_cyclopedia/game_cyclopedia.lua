@@ -782,6 +782,11 @@ function controllerCyclopedia:onGameStart()
 				local itemId, descriptions = data, legacyDescriptions
 
 				if type(data) == "table" then
+					-- normal and proficiency inspections belong to game_inspect and game_proficiency
+					if data.inspectionType ~= InspectionResponseTypes.Cyclopedia then
+						return
+					end
+
 					itemId = data.item and data.item:getId() or 0
 					descriptions = data.descriptions or {}
 				end
