@@ -444,7 +444,11 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     }
                     break;
                 case Proto::GameServerRuleViolationCancel:
-                    parseRuleViolationCancel(msg);
+                    if (g_game.getClientVersion() >= 1533) {
+                        parseOutfitMemorial(msg); // 0xB0 is the outfit memorial on 15.33
+                    } else {
+                        parseRuleViolationCancel(msg);
+                    }
                     break;
                 case Proto::GameServerRuleViolationLock:
                     if (g_game.getClientVersion() >= 1310) {
@@ -7940,4 +7944,39 @@ PaperdollPtr ProtocolGame::getPaperdoll(const InputMessagePtr& msg) const {
         paperdoll->setShader(shader);
 
     return paperdoll;
+}
+
+void ProtocolGame::parseOutfitMemorial(const InputMessagePtr& msg)
+{
+    // Golden Outfit: 3 x u32 price (armor, +helmet, +boots), then 3 x (u16 n, n x owner name)
+    // Royal Costume: 3 x (u16 silver tokens, u16 golden tokens), then 3 x (u16 n, n x owner name)
+    const auto readNameLists = [&msg]() {
+        std::vector<std::vector<std::string>> lists;
+        for (auto i = 0; i < 3; ++i) {
+            std::vector<std::string> names;
+            const uint16_t count = msg->getU16();
+            names.reserve(count);
+            for (auto j = 0; j < count; ++j) {
+                names.emplace_back(msg->getString());
+            }
+            lists.emplace_back(std::move(names));
+        }
+        return lists;
+    };
+
+    std::vector<uint32_t> goldenPrices;
+    for (auto i = 0; i < 3; ++i) {
+        goldenPrices.push_back(msg->getU32());
+    }
+    const auto goldenOwners = readNameLists();
+
+    std::vector<std::vector<uint16_t>> royalPrices;
+    for (auto i = 0; i < 3; ++i) {
+        const uint16_t silverTokens = msg->getU16();
+        const uint16_t goldenTokens = msg->getU16();
+        royalPrices.push_back({ silverTokens, goldenTokens });
+    }
+    const auto royalOwners = readNameLists();
+
+    g_lua.callGlobalField("g_game", "onOutfitMemorial", goldenPrices, goldenOwners, royalPrices, royalOwners);
 }
