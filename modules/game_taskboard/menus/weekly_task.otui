@@ -55,6 +55,15 @@ KillSlots < Panel
     color: $var-text-cip-color
     text-auto-resize: true
 
+  UIWidget
+    id: doneIcon
+    anchors.top: parent.top
+    anchors.horizontalCenter: killAnyMonstersLabel.horizontalCenter
+    margin-top: 52
+    image-source: /images/icons/icon-yes
+    phantom: true
+    visible: false
+
 DeliverySlots < Panel
   text-align: top
   image-source: /images/ui/popupwindow-sem-borda-interna
@@ -73,7 +82,7 @@ DeliverySlots < Panel
     margin-left: 8
     size: 66 66
     virtual: true
-    phantom: true
+    phantom: false
     image-source: /images/ui/item
     image-border: 10
 
@@ -102,6 +111,15 @@ DeliverySlots < Panel
     font: verdana-11px-monochrome
     color: $var-text-cip-color
     text-auto-resize: true
+
+  UIWidget
+    id: doneIcon
+    anchors.top: parent.top
+    anchors.horizontalCenter: currentDeliveryLabel.horizontalCenter
+    margin-top: 52
+    image-source: /images/icons/icon-yes
+    phantom: true
+    visible: false
   
   UIButton
     id: deliverButton
@@ -229,6 +247,16 @@ WeeklyPanel < Panel
       $pressed:
         image-clip: 0 100 442 100
   
+  Label
+    id: xpInfoLabel
+    anchors.top: killTasks.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 9
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-align: center
+
   UIWindow
     id: weeklyProgress
     text: Weekly Progress
@@ -340,6 +368,7 @@ WeeklyPanel < Panel
         text-auto-resize: true
 
     UIWidget
+      id: huntingPointsHelp
       anchors.top: parent.top
       anchors.right: parent.right
       margin-top: 28
@@ -390,20 +419,11 @@ WeeklyPanel < Panel
     
     Label
       id: daysRemaining
-      text: 0
+      text: 0 day(s) remaining
       anchors.top: parent.top
       anchors.left: parent.left
       margin-top: 86
       margin-left: 10
-      font: verdana-11px-monochrome
-      color: $var-text-cip-color
-      text-auto-resize: true
-
-    Label
-      text: day(s) remaining
-      anchors.top: daysRemaining.top
-      anchors.left: daysRemaining.right
-      margin-left: 6
       font: verdana-11px-monochrome
       color: $var-text-cip-color
       text-auto-resize: true
@@ -428,6 +448,7 @@ WeeklyProgressPanel < UIWindow
   UIWidget
     anchors.top: parent.top
     anchors.left: parent.left
+    id: backdropResults
     margin-top: 59
     margin-left: 73
     image-source: /modules/game_taskboard/images/backdrop_weeklyresults
@@ -435,8 +456,72 @@ WeeklyProgressPanel < UIWindow
     visible: true
   
   Label
-    text: Select the difficulty for your next tasks.
+    id: resultKillLabel
     anchors.top: prev.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 16
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-align: center
+    visible: false
+
+  Label
+    id: resultDeliveryLabel
+    anchors.top: resultKillLabel.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 4
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-align: center
+    visible: false
+
+  UIWidget
+    id: resultRewardRow
+    anchors.top: resultDeliveryLabel.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 4
+    size: 200 14
+    visible: false
+
+    Label
+      id: resultRewardPrefix
+      anchors.left: parent.left
+      anchors.verticalCenter: parent.verticalCenter
+      font: verdana-11px-monochrome
+      color: $var-text-cip-color
+      text-auto-resize: true
+
+    UIWidget
+      id: resultHuntingIcon
+      anchors.left: resultRewardPrefix.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 2
+      size: 11 11
+      image-source: /modules/game_taskboard/images/preyhuntingtask-tokens
+
+    Label
+      id: resultRewardMiddle
+      anchors.left: resultHuntingIcon.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 3
+      font: verdana-11px-monochrome
+      color: $var-text-cip-color
+      text-auto-resize: true
+
+    UIWidget
+      id: resultSoulSealsIcon
+      anchors.left: resultRewardMiddle.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 2
+      size: 9 9
+      image-source: /modules/game_taskboard/images/icon-currency-soulseals
+
+  Label
+    id: selectDifficultyLabel
+    text: Select the difficulty for your next tasks.
+    anchors.top: backdropResults.bottom
     anchors.left: parent.left
     margin-top: 92
     margin-left: 30
@@ -448,7 +533,7 @@ WeeklyProgressPanel < UIWindow
     id: beginnerButton
     !tooltip: tr('Beginner tasks include easy creatures.')
     size: 108 20
-    anchors.top: prev.bottom
+    anchors.top: selectDifficultyLabel.bottom
     anchors.left: parent.left
     margin-top: 3
     margin-left: 106
