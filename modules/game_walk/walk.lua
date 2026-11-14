@@ -728,6 +728,14 @@ end
 
 function bindWalkKey(key, dir)
 	local gameRootPanel = modules.game_interface.getRootPanel()
+	local current = walkKeyHandlers[key]
+
+	-- The console resyncs the WASD and numpad walk keys every time the action bar rebinds its
+	-- hotkeys. Rebinding a key to the same direction on the same panel would abort a walk held on
+	-- that key, so an identical binding is kept as it is.
+	if current and current.panel == gameRootPanel and walkKeyDirs[key] == dir then
+		return
+	end
 
 	unbindWalkKey(key)
 
@@ -784,6 +792,7 @@ function bindWalkKey(key, dir)
 		end
 	}
 
+	handlers.panel = gameRootPanel
 	walkKeyHandlers[key] = handlers
 
 	g_keyboard.bindKeyDown(key, handlers.down, gameRootPanel, true)
