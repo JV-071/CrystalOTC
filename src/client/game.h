@@ -207,6 +207,9 @@ public:
     // 15.25 crosshair spells: aim position appended to the next say (consumed by sendTalk at >= 1530)
     void setNextTalkAim(const Position& pos) { m_nextTalkAim = pos; }
     Position takeNextTalkAim() { const Position pos = m_nextTalkAim; m_nextTalkAim = {}; return pos; }
+    // 15.33 per button cast type: wire aimMode of the next say (0 facing, 1 cursor tile, 2 crosshair tile, 3 towards target)
+    void setNextTalkAimMode(const uint8_t mode) { m_nextTalkAimMode = mode; }
+    uint8_t takeNextTalkAimMode() { const uint8_t mode = m_nextTalkAimMode; m_nextTalkAimMode = UINT8_MAX; return mode; }
 
     // channel related
     void openPrivateChannel(std::string_view receiver);
@@ -544,6 +547,7 @@ private:
     uint16_t m_pingDelay{ 1000 };
     uint16_t m_protocolVersion{ 0 };
     Position m_nextTalkAim{};
+    uint8_t m_nextTalkAimMode{ UINT8_MAX };
     uint16_t m_clientVersion{ 0 };
     uint32_t m_pingSent{ 0 };
     uint32_t m_pingReceived{ 0 };

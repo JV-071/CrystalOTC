@@ -294,10 +294,22 @@ end
 -- cursor/target tile position in the say packet, otherwise the server casts them on the
 -- caster's own tile. This is the missing glue: stage the aim, then talk normally - sendTalk
 -- appends the staged position (15.30 say tail) and clears it.
---   mode 1 = release-on-tile, mode 2 = cast at cursor tile, mode 3 = target (no tile aim).
+-- mode is the wire aimMode: 0 = facing direction, 1 = cursor tile, 2 = crosshair tile,
+-- 3 = towards target (no tile). 15.33 sends the mode as given (the tile only for 1 and 2);
+-- 15.30 only knows "tile or no tile".
 function g_game.talkSpell(words, mode, pos)
-	if pos and pos.x and pos.x ~= 0 and pos.x ~= 65535 and g_game.setNextTalkAim then
+	if not words or words == "" or not g_game.isOnline() then
+		return
+	end
+
+	local hasPos = pos and pos.x and pos.x ~= 0 and pos.x ~= 65535
+
+	if hasPos and g_game.setNextTalkAim then
 		g_game.setNextTalkAim(pos)
+	end
+
+	if type(mode) == "number" and g_game.setNextTalkAimMode then
+		g_game.setNextTalkAimMode(mode)
 	end
 
 	g_game.talk(words)

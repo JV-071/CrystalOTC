@@ -2009,7 +2009,8 @@ void Game::sendStartOfflineTraining(const uint8_t skillType)
 
 void Game::sendSelectSpellAim(const std::vector<uint16_t>& spellIds, bool enabled)
 {
-    if (!canPerformGameAction())
+    // 0xC8 was removed in 15.33: the cast type is chosen per action button and sent with the say.
+    if (!canPerformGameAction() || getClientVersion() >= 1533)
         return;
 
     m_protocolGame->sendSelectSpellAim(spellIds, enabled);
