@@ -524,3 +524,28 @@ TextListWithScroll < Panel
     anchors.right: prev.right
     step: 50
     pixels-scroll: true
+
+RewardCurrencyView < UIWidget
+  size: 56 20
+  margin-top: 6
+  image-source: /images/ui/button-verydarkgrey-down
+  image-border: 3
+  image-clip: 0 0 98 40
+
+  UIWidget
+    id: text
+    font: $var-cip-font-new
+    color: #c0c0c0
+    anchors.fill: parent
+    margin-top: 1
+    margin-right: 17
+    text-align: right
+    phantom: true
+
+RewardStoreSmallButton < UIButton
+  size: 26 20
+  margin-top: 6
+  image-source: /images/ui/button-instant-reward-store
+  image-clip: 0 0 26 20
+  $pressed:
+    image-clip: 0 20 26 20

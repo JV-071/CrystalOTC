@@ -132,6 +132,37 @@ MainWindowHigh
         icon-clip: 320 0 64 64
         @onHoverChange: modules.game_rewardwall.onHoverBonusChange(self, value)
 
+    Panel
+      id: streakBonusPanel
+      size: 421 52
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: 0
+      margin-left: 76
+      focusable: false
+      visible: false
+
+      Label
+        id: streakBonusText
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: streakBonusHelp.left
+        anchors.bottom: parent.bottom
+        margin-right: 6
+        text-align: left
+        text-wrap: true
+        font: $var-cip-font-new
+        color: #c0c0c0
+        phantom: true
+
+      UIWidget
+        id: streakBonusHelp
+        size: 12 12
+        anchors.right: parent.right
+        anchors.verticalCenter: parent.verticalCenter
+        margin-right: 6
+        image-source: /images/skin/show-gui-help-grey
+
     Label
       id: streakWarning
       text-align: center
@@ -486,58 +517,56 @@ MainWindowHigh
       anchors.right: parent.right
       margin-right: 4
 
-    UIWidget
-      id: footerGold1
-      size: 26 20
-      margin-top: 6
+    RewardCurrencyView
+      id: footerCosmetic
       anchors.left: parent.left
       anchors.top: footerSeparator.bottom
-      image-source: /images/ui/button-verydarkgrey-down
-      image-border: 3
-      image-clip: 0 0 98 40
+      !tooltip: tr('Cosmetic Tokens')
+      visible: false
+
+      RewardResourceIcon
+        id: gold
+
+    RewardCurrencyView
+      id: footerReroll
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-left: 6
+      !tooltip: tr('Bounty Task Reroll Tokens')
+      visible: false
+
+      RewardResourceIcon
+        id: gold
+        image-source: /images/game_taskboard/icon-currency-taskreroll
+
+    RewardCurrencyView
+      id: footerGold1
+      anchors.left: parent.left
+      anchors.top: footerSeparator.bottom
+      !tooltip: tr('Daily Reward Jokers')
 
       RewardResourceIcon
         id: gold
         image-source: /game_rewardwall/images/icon-daily-reward-joker
 
-      UIWidget
-        id: text
-        font: $var-cip-font-new
-        font-color: #c0c0c0
-        anchors.top: parent.top
-        anchors.left: parent.left
-        margin-top: 1
-        margin-left: 3
-        anchors.verticalCenter: parent.verticalCenter
-        text-align: center
-        phantom: true
-
-    UIWidget
+    RewardCurrencyView
       id: footerGold2
-      size: 52 20
-      anchors.left: footerGold1.right
+      anchors.left: prev.right
       anchors.top: footerSeparator.bottom
       margin-left: 6
-      margin-top: 6
-      image-source: /images/ui/button-verydarkgrey-down
-      image-border: 3
-      image-clip: 0 0 98 40
+      !tooltip: tr('Instant Reward Access')
 
       RewardResourceIcon
         id: gold
         image-source: /game_rewardwall/images/instant-reward-access-icon
 
-      UIWidget
-        id: text
-        font: $var-cip-font-new
-        font-color: #c0c0c0
-        anchors.top: parent.top
-        anchors.left: parent.left
-        margin-top: 1
-        margin-left: 29
-        anchors.verticalCenter: parent.verticalCenter
-        text-align: center
-        phantom: true
+    RewardStoreSmallButton
+      id: instantRewardStoreButton
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-left: 2
+      !tooltip: tr('Get more Instant Reward Access in the Store')
+      @onClick: modules.game_rewardwall.rewardWallController:onClickGetInstantRewardAccess()
 
     Button
       id: historyButton

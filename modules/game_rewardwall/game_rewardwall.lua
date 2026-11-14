@@ -36,10 +36,34 @@ local ZONE = {
 	ICON_ID = "condition_Rewards"
 }
 local bundleType = {
+	FIXED = 0,
 	XPBOOST = 3,
 	PREY = 2,
 	ITEMS = 1
 }
+
+-- 15.33 reward entry kinds (0xE4): 1 item, 2 prey wildcards, 3 XP boost, 4 cosmetic tokens, 5 reroll tokens
+local RewardEntryKind = {
+	ITEM = 1,
+	PREY_WILDCARDS = 2,
+	XP_BOOST = 3,
+	COSMETIC_TOKENS = 4,
+	REROLL_TOKENS = 5
+}
+
+-- optional official artwork, added by the owner outside git (see UI-1533-ASSETS.md)
+local REWARD_ICON_COSMETIC_1533 = "/images/game/1533/rewardwall/icon-reward-cosmetic"
+local COSMETIC_TOKEN_ICON_1533 = "/images/game/1533/rewardwall/icon-cosmetic-token"
+local streakBonuses = {}
+local lastRewardStreak = 0
+
+local function is1533()
+	return g_game.getClientVersion() >= 1533
+end
+
+local function imageExists(path)
+	return g_resources.fileExists(path .. ".png")
+end
 local STATUS = {
 	LOCKED = 3,
 	ACTIVE = 2,
@@ -702,6 +726,57 @@ local function getBonusDescription(bonusName, streakCount, activeBonuses)
 	return string.format("Allow [color=#909090]%s[/color]%s\nThis bonus is active because you are [color=%s]Premium[/color] and reached a reward streak of at least [color=#44AD25]%d[/color].%s", bonusName, isPremium and "" or "[color=#ff0000](Locked)[/color]", isPremium and "#44AD25" or "#ff0000", streakCount, isPremium and ("\n\nActive bonuses: [color=#909090]%s[/color]."):format(activeBonuses) or "")
 end
 
+local function pluralText(count, singular, plural)
+	return count == 1 and singular or plural
+end
+
+local function formatRewardEntry(entry)
+	local count = tonumber(entry.count) or 0
+	local kind = entry.bundleType
+
+	if kind == RewardEntryKind.ITEM then
+		return string.format("%dx %s", count, entry.name or "")
+	elseif kind == RewardEntryKind.PREY_WILDCARDS then
+		return string.format("%d %s", count, pluralText(count, "Prey Wildcard", "Prey Wildcards"))
+	elseif kind == RewardEntryKind.XP_BOOST then
+		-- the parser keeps the minutes in itemId and the percent in value
+		return string.format("%d minutes XP Boost %d%%", tonumber(entry.itemId) or 0, tonumber(entry.value) or 0)
+	elseif kind == RewardEntryKind.COSMETIC_TOKENS then
+		return string.format("%d %s", count, pluralText(count, "Cosmetic Token", "Cosmetic Tokens"))
+	elseif kind == RewardEntryKind.REROLL_TOKENS then
+		return string.format("%d %s", count, pluralText(count, "Reroll Token", "Reroll Tokens"))
+	end
+
+	return entry.name or ""
+end
+
+local function formatRewardEntries(day)
+	local lines = {}
+
+	for _, entry in ipairs(day and day.bundleItems or {}) do
+		table.insert(lines, formatRewardEntry(entry))
+	end
+
+	if #lines == 0 then
+		return tr("No reward")
+	end
+
+	return table.concat(lines, "\n")
+end
+
+local function getRewardIcon1533(day)
+	local first = day and day.bundleItems and day.bundleItems[1]
+	local kind = first and first.bundleType
+
+	if kind == RewardEntryKind.XP_BOOST then
+		return "game_rewardwall/images/icon-reward-xpboost"
+	elseif kind == RewardEntryKind.COSMETIC_TOKENS and imageExists(REWARD_ICON_COSMETIC_1533) then
+		return REWARD_ICON_COSMETIC_1533
+	end
+
+	return "game_rewardwall/images/icon-reward-fixeditems"
+end
+
 local function checkRewards(data)
 	local premium = g_game.getLocalPlayer():isPremium()
 	local rewardType = premium and data.premiumRewards or data.freeRewards
@@ -722,13 +797,24 @@ local function checkRewards(data)
 			break
 		end
 
+		rewardButton.rewardEntries = nil
+
 		local hasSelectableItems = reward.selectableItems and next(reward.selectableItems) ~= nil
 		local iconWidget = rewardButton
 		-- 15.33 days can have an empty reward list (and new token kinds 4 and 5)
 		local firstBundle = reward.bundleItems and reward.bundleItems[1]
 		local altFirstBundle = altReward and altReward.bundleItems and altReward.bundleItems[1]
 
-		if hasSelectableItems then
+		if is1533() then
+			-- 15.33 has no pick items rewards: every day is a fixed list that is claimed with one click
+			iconWidget:setIcon(getRewardIcon1533(reward))
+
+			rewardButton.bundleType = bundleType.FIXED
+			rewardButton.rewardEntries = {
+				free = data.freeRewards and data.freeRewards[index],
+				premium = data.premiumRewards and data.premiumRewards[index]
+			}
+		elseif hasSelectableItems then
 			iconWidget:setIcon("game_rewardwall/images/icon-reward-pickitems")
 
 			rewardButton.bundleType = bundleType.ITEMS
@@ -799,14 +885,103 @@ local function onRestingAreaState(zone, state, message)
 	end
 end
 
+local function getStreakBonusPercent(streak)
+	local count = #streakBonuses
+
+	if not streak or streak <= 0 or count == 0 then
+		return 0
+	end
+
+	-- the server sends one entry per streak length, the last entry covers every longer streak
+	return tonumber(streakBonuses[math.min(streak, count)]) or 0
+end
+
+local function updateStreakBonusText()
+	local ui = rewardWallController.ui
+
+	if not ui or not is1533() then
+		return
+	end
+
+	local panel = ui.restingAreaPanel.streakBonusPanel
+
+	panel.streakBonusText:setText(string.format("Your reward streak currently grants you a %d%% chance to gain double weapon proficiency XP.", getStreakBonusPercent(lastRewardStreak)))
+end
+
+local function setFooterBalance(widget, value)
+	if widget and widget.text then
+		widget.text:setText(tostring(value or 0))
+	end
+end
+
+local function updateTokenBalances()
+	local ui = rewardWallController.ui
+	local player = g_game.getLocalPlayer()
+
+	if not ui or not player or not is1533() then
+		return
+	end
+
+	setFooterBalance(ui.footerPanel.footerCosmetic, player:getResourceBalance(ResourceTypes.COSMETIC_TOKENS) or 0)
+	setFooterBalance(ui.footerPanel.footerReroll, player:getResourceBalance(ResourceTypes.BOUNTY_REROLL_TOKENS) or 0)
+end
+
+local function onRewardWallResourceBalance(resourceType, value)
+	if not rewardWallController.ui then
+		return
+	end
+
+	if resourceType == ResourceTypes.COSMETIC_TOKENS or resourceType == ResourceTypes.BOUNTY_REROLL_TOKENS then
+		updateTokenBalances()
+	elseif resourceType == ResourceTypes.DAILYREWARD_STREAK then
+		setFooterBalance(rewardWallController.ui.footerPanel.footerGold2, value)
+	end
+end
+
+local STREAK_HELP_TEXT_1533 = "Claim a daily reward every day to raise your reward streak by 1. If you miss a day, Daily Reward Jokers are used to keep the streak; without enough jokers it is reset.\n\nThe longer your reward streak, the higher your chance to gain double weapon proficiency XP."
+
+-- 15.33 replaced the resting area bonus icons with the reward streak bonus and shows the token balances in the footer
+local function applyVersionLayout()
+	local ui = rewardWallController.ui
+
+	if not ui then
+		return
+	end
+
+	local newLayout = is1533()
+	local resting = ui.restingAreaPanel
+	local footer = ui.footerPanel
+
+	resting.bonusIcons:setVisible(not newLayout)
+	resting.streakBonusPanel:setVisible(newLayout)
+	resting.streakBonusPanel.streakBonusHelp:setTooltip(STREAK_HELP_TEXT_1533)
+	footer.footerCosmetic:setVisible(newLayout)
+	footer.footerReroll:setVisible(newLayout)
+	footer.footerGold1:removeAnchor(AnchorLeft)
+
+	if newLayout then
+		footer.footerGold1:addAnchor(AnchorLeft, "footerReroll", AnchorRight)
+		footer.footerGold1:setMarginLeft(6)
+
+		if imageExists(COSMETIC_TOKEN_ICON_1533) then
+			footer.footerCosmetic.gold:setImageSource(COSMETIC_TOKEN_ICON_1533)
+		end
+	else
+		footer.footerGold1:addAnchor(AnchorLeft, "parent", AnchorLeft)
+		footer.footerGold1:setMarginLeft(0)
+	end
+end
+
 local function onDailyReward(data)
 	if not data then
 		return
 	end
 
 	bonuses = data.bonuses or {}
+	streakBonuses = data.streakBonuses or {}
 
 	checkRewards(data)
+	updateStreakBonusText()
 end
 
 local function onServerError(code, error)
@@ -875,6 +1050,9 @@ local function onOpenRewardWall(bonusShrines, nextRewardTime, dayStreakDay, wasD
 	pendingRewardButton = nil
 	bonusShrine = bonusShrines
 
+	lastRewardStreak = dayStreakLevel or 0
+
+	applyVersionLayout()
 	updateDailyRewards(dayStreakDay, wasDailyRewardTaken, nextRewardTime, canGetReward, timeLeft)
 	premiumStatusWindwos(g_game.getLocalPlayer():isPremium())
 	rewardWallController.ui:show()
@@ -891,6 +1069,14 @@ local function onOpenRewardWall(bonusShrines, nextRewardTime, dayStreakDay, wasD
 	rewardWallController.ui.footerPanel.footerGold1.text:setText(tokens or 0)
 	rewardWallController.ui.restingAreaPanel.restingAreaInfo.rewardStreakIcon:setImageSource("/game_rewardwall/images/" .. getDayStreakIcon(dayStreakLevel))
 	rewardWallController.ui.footerPanel.footerGold2.text:setText(g_game.getLocalPlayer():getResourceBalance(ResourceTypes.DAILYREWARD_STREAK))
+	updateStreakBonusText()
+	updateTokenBalances()
+
+	if is1533() then
+		-- the balances are not pushed on login, ask for the current values
+		g_game.sendResourceBalance(ResourceTypes.COSMETIC_TOKENS)
+		g_game.sendResourceBalance(ResourceTypes.BOUNTY_REROLL_TOKENS)
+	end
 end
 
 local function historyDescriptionMarginTop(descriptionLabel, text)
@@ -1144,7 +1330,8 @@ function rewardWallController:onInit()
 		onDailyReward = onDailyReward,
 		onRewardHistory = onRewardHistory,
 		onRestingAreaState = onRestingAreaState,
-		onDailyRewardCollectionState = onDailyRewardCollectionState
+		onDailyRewardCollectionState = onDailyRewardCollectionState,
+		onResourceBalance = onRewardWallResourceBalance
 	})
 	setupRewardWallUi()
 end
@@ -1162,6 +1349,8 @@ end
 
 function rewardWallController:onGameStart()
 	if g_game.getClientVersion() > 1140 then
+		applyVersionLayout()
+
 		if not ButtonRewardWall then
 			ButtonRewardWall = modules.game_mainpanel.addToggleButton("rewardWall", tr("Open Reward Wall"), "/images/options/button_reward_wall", toggle, false, 21)
 		end
@@ -1213,6 +1402,20 @@ function rewardWallController:onClickSendStoreRewardWall()
 	modules.game_store.openPremiumBoost()
 end
 
+local STORE_INSTANT_REWARD_ACCESS = 2
+
+function rewardWallController:onClickGetInstantRewardAccess()
+	if ButtonRewardWall then
+		ButtonRewardWall:setOn(false)
+	end
+
+	hide(true)
+
+	if modules.game_store and modules.game_store.openUsefulThings then
+		modules.game_store.openUsefulThings(STORE_INSTANT_REWARD_ACCESS)
+	end
+end
+
 function rewardWallController:onClickDisplayWindowsPickRewardWindow(event)
 	if event.target.rewardVisualMode ~= REWARD_BUTTON_MODE.COLLECTABLE or claimPending then
 		return
@@ -1260,7 +1463,7 @@ function rewardWallController:onClickDisplayWindowsPickRewardWindow(event)
 			windowsPickWindow:show()
 			g_modalManager.show(windowsPickWindow)
 		end
-	elseif event.target.bundleType == bundleType.XPBOOST or event.target.bundleType == bundleType.PREY then
+	elseif event.target.bundleType == bundleType.XPBOOST or event.target.bundleType == bundleType.PREY or event.target.bundleType == bundleType.FIXED then
 		if not beginClaim() then
 			return
 		end
@@ -1318,6 +1521,14 @@ end
 function rewardWallController:onhoverRewardType(event)
 	if not event.value then
 		clearInfoPanel()
+
+		return
+	end
+
+	local entries = event.target.rewardEntries
+
+	if entries then
+		showInfoPanelRewardSplit("Reward for Free Accounts:\n" .. formatRewardEntries(entries.free), "Reward for Premium Accounts:\n" .. formatRewardEntries(entries.premium))
 
 		return
 	end
