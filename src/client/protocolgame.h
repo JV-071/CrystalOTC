@@ -127,7 +127,7 @@ public:
     void sendRequestStoreOfferById(uint32_t offerId, uint8_t sortOrder = 0, uint8_t serviceType = 0);
     void sendRequestStoreSearch(const std::string_view searchText, uint8_t sortOrder = 0, uint8_t serviceType = 0);
     void sendOpenStore(uint8_t serviceType, std::string_view category);
-    void sendTransferCoins(std::string_view recipient, uint16_t amount);
+    void sendTransferCoins(std::string_view recipient, uint32_t amount);
     void sendOpenTransactionHistory(uint8_t entriesPerPage);
     void sendMarketLeave();
     void sendMarketBrowse(uint8_t browseId, uint16_t browseType, uint8_t tier = 0);

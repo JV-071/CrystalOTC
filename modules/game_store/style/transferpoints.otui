@@ -44,6 +44,7 @@ StoreWindow
 
   TextEdit
     id: transferPointsText
+    max-length: 29
     size: 150 16
     font: $var-cip-font-new
     color: #c0c0c0

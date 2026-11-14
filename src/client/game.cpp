@@ -1627,7 +1627,7 @@ void Game::openStore(const uint8_t serviceType, const std::string_view category)
     m_protocolGame->sendOpenStore(serviceType, category);
 }
 
-void Game::transferCoins(const std::string_view recipient, const uint16_t amount)
+void Game::transferCoins(const std::string_view recipient, const uint32_t amount)
 {
     if (!canPerformGameAction())
         return;

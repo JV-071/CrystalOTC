@@ -1426,7 +1426,7 @@ void ProtocolGame::sendOpenStore(const uint8_t serviceType, const std::string_vi
     send(msg);
 }
 
-void ProtocolGame::sendTransferCoins(const std::string_view recipient, const uint16_t amount)
+void ProtocolGame::sendTransferCoins(const std::string_view recipient, const uint32_t amount)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientTransferCoins);

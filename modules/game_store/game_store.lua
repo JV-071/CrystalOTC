@@ -327,6 +327,7 @@ local function releaseTransferPointsWindowRefs(window)
 	end
 
 	window.onEscape = nil
+	window.onEnter = nil
 	window.giftable = nil
 	window.amount = nil
 	window.amountBar = nil
@@ -2827,8 +2828,16 @@ function controllerShop:onTerminate()
 	auctionCharacterWindowStep = 0
 end
 
+local storeCoinPacketSize = 25
+
 function onStoreInit(url, coinsPacketSize)
 	GameStore.website.IMAGES_URL = url
+
+	local packetSize = tonumber(coinsPacketSize) or 0
+
+	if packetSize > 0 then
+		storeCoinPacketSize = packetSize
+	end
 end
 
 function onParseStoreGetCoin(getTibiaCoins, getTransferableCoins)
@@ -5059,7 +5068,7 @@ function transferPoints()
 
 	transferPointsWindow.giftable:setText(formatNumberWithCommas(playerBalance))
 
-	local giftCoinStep = 25
+	local giftCoinStep = storeCoinPacketSize
 	local canGiftCoins = giftCoinStep <= playerBalance
 	local giftAmountMin = canGiftCoins and giftCoinStep or 0
 	local giftAmountMax = canGiftCoins and math.floor(playerBalance / giftCoinStep) * giftCoinStep or 0
@@ -5092,7 +5101,7 @@ function transferPoints()
 		local hasRecipient = recipient:len() >= 1
 		local giftButton = transferPointsWindow.buttonOk
 
-		giftButton:setEnabled(hasRecipient)
+		giftButton:setEnabled(hasRecipient and canGiftCoins)
 	end
 
 	local function scheduleGiftTransferButtonState(recipientText)
@@ -5165,6 +5174,16 @@ function transferPoints()
 		g_game.transferCoins(receipient, amount)
 		closeTransferPointsWindow()
 	end
+
+	function transferPointsWindow.onEnter()
+		local giftButton = transferPointsWindow.buttonOk
+
+		if giftButton and giftButton:isEnabled() then
+			giftButton.onClick()
+		end
+	end
+
+	transferPointsWindow.transferPointsText:focus()
 end
 
 function search()

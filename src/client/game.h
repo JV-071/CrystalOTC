@@ -315,7 +315,7 @@ public:
     void sendRequestStoreOfferById(const uint32_t offerId, const uint8_t sortOrder, const uint8_t serviceType);
     void sendRequestStoreSearch(const std::string_view searchText, const uint8_t sortOrder, const uint8_t serviceType);
     void openStore(uint8_t serviceType = 0, std::string_view category = "");
-    void transferCoins(std::string_view recipient, uint16_t amount);
+    void transferCoins(std::string_view recipient, uint32_t amount);
     void openTransactionHistory(uint8_t entriesPerPage);
 
     //void reportRuleViolation2();
