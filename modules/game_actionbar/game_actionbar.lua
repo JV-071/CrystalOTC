@@ -3953,6 +3953,8 @@ function copySlot(fromSlotId, toSlotId, visible)
 	tmpslot.words = fromSlot.words
 	tmpslot.text = fromSlot.text
 	tmpslot.parameter = fromSlot.parameter
+	tmpslot.crossHairMode = fromSlot.crossHairMode
+	tmpslot.waveCastMode = fromSlot.waveCastMode
 	tmpslot.useType = fromSlot.useType
 	tmpslot.getTier = fromSlot.getTier
 	tmpslot.passiveId = fromSlot.passiveId
