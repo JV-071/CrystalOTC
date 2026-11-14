@@ -1524,6 +1524,9 @@ function GemAtelier.onSelectGem1533(panel, gemData)
 
 	if socketed then
 		destroyTip = tr("%s%sThe gem must be removed from its vessel before it can be destroyed.", destroyTip, #destroyTip > 0 and "\n" or "")
+	elseif WheelVessels.isGemSocketedOnServer(gemData.gemID) then
+		-- removed locally only: the server still has it in a vessel and refuses the dismantle until Apply
+		destroyTip = tr("%s%sPress Apply to save the removal from the vessel before you destroy the gem.", destroyTip, #destroyTip > 0 and "\n" or "")
 	end
 
 	content.destroy:setTooltip(destroyTip)

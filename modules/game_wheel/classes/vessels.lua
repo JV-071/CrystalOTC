@@ -1039,6 +1039,17 @@ function WheelVessels.rememberServerState()
 	confirmDismantle()
 end
 
+-- True when the server has the gem in a vessel (the server refuses to dismantle it then, whatever the local state).
+function WheelVessels.isGemSocketedOnServer(gemID)
+	for _, id in ipairs(serverVessels or WheelVessels.getVessels()) do
+		if id == gemID then
+			return true
+		end
+	end
+
+	return false
+end
+
 function WheelVessels.hasPendingChanges()
 	if not WheelVessels.isActive() or not serverPoints or not serverVessels then
 		return false
