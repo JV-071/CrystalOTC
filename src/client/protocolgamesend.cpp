@@ -1303,11 +1303,14 @@ void ProtocolGame::sendStatusTrackerBestiary(const uint16_t raceId, const bool s
     send(msg);
 }
 
-void ProtocolGame::sendBuyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location)
+void ProtocolGame::sendBuyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location, const bool useCosmeticTokens)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientBuyStoreOffer);
     msg->addU32(offerId);
+    if (g_game.getClientVersion() >= 1533) {
+        msg->addU8(useCosmeticTokens ? 1 : 0); // 15.33: pay with cosmetic tokens
+    }
     msg->addU8(action);
     if (action > 0 && action < 6) {
         msg->addString(name);

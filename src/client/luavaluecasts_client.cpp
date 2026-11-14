@@ -504,6 +504,8 @@ int push_luavalue(const SubOffer& subOffer) {
         g_lua.pushInteger(subOffer.basePrice);
         g_lua.setField("basePrice");
     }
+    g_lua.pushBoolean(subOffer.cosmeticTokens);
+    g_lua.setField("cosmeticTokens");
     if (g_game.getClientVersion() < 1310) {
         g_lua.pushString(subOffer.name);
         g_lua.setField("name");
@@ -630,6 +632,14 @@ int push_luavalue(const HomeOffer& homeOffer) {
     g_lua.setField("disabledReasonIndex");
     g_lua.pushInteger(homeOffer.unknownByte2);
     g_lua.setField("unknownByte2");
+    if (homeOffer.unknownByte2 == Otc::GameStoreInfoStatesType_t::STATE_SALE) {
+        g_lua.pushInteger(homeOffer.validUntil);
+        g_lua.setField("validUntil");
+        g_lua.pushInteger(homeOffer.basePrice);
+        g_lua.setField("basePrice");
+    }
+    g_lua.pushBoolean(homeOffer.cosmeticTokens);
+    g_lua.setField("cosmeticTokens");
     g_lua.pushInteger(homeOffer.type);
     g_lua.setField("type");
 

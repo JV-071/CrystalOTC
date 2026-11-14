@@ -1549,12 +1549,12 @@ void Game::seekInContainer(const uint8_t containerId, const uint16_t index)
     m_protocolGame->sendSeekInContainer(containerId, index);
 }
 
-void Game::buyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location)
+void Game::buyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location, const bool useCosmeticTokens)
 {
     if (!canPerformGameAction())
         return;
 
-    m_protocolGame->sendBuyStoreOffer(offerId, action, name, type, location);
+    m_protocolGame->sendBuyStoreOffer(offerId, action, name, type, location, useCosmeticTokens);
 }
 
 void Game::requestTransactionHistory(const uint32_t page, const uint32_t entriesPerPage)

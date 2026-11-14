@@ -418,6 +418,7 @@ struct SubOffer
     uint8_t state;
     uint32_t validUntil;
     uint32_t basePrice;
+    bool cosmeticTokens{ false }; // 15.33: can be bought with cosmetic tokens
     std::string name;         // oldProtocol
     std::string description;  // oldProtocol
     std::vector<std::string> icons; // oldProtocol
@@ -460,7 +461,10 @@ struct HomeOffer
     uint32_t price;
     uint8_t coinType;
     uint16_t disabledReasonIndex;
-    uint8_t unknownByte2;
+    uint8_t unknownByte2; // offer state
+    uint32_t validUntil{ 0 }; // 15.33, only for a sale state
+    uint32_t basePrice{ 0 }; // 15.33, only for a sale state
+    bool cosmeticTokens{ false }; // 15.33
     uint8_t type;
     std::string icon;
     uint16_t mountClientId;

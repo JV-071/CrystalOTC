@@ -890,6 +890,9 @@ void ProtocolGame::parsePreset(const InputMessagePtr& msg)
 void ProtocolGame::parseRequestPurchaseData(const InputMessagePtr& msg)
 {
     msg->getU32(); // transactionId
+    if (g_game.getClientVersion() >= 1533) {
+        msg->getU8(); // 15.33: buy with cosmetic tokens (bool)
+    }
     msg->getU8(); // productType
 }
 
@@ -1146,7 +1149,15 @@ void ProtocolGame::parseStoreOffers(const InputMessagePtr& msg)
                     }
                 }
 
-                offer.unknownByte2 = msg->getU8();
+                offer.unknownByte2 = msg->getU8(); // offer state
+                if (g_game.getClientVersion() >= 1533) {
+                    // 15.33 home offers carry the full price option: sale details, then the cosmetic token bool
+                    if (offer.unknownByte2 == Otc::GameStoreInfoStatesType_t::STATE_SALE) {
+                        offer.validUntil = msg->getU32();
+                        offer.basePrice = msg->getU32();
+                    }
+                    offer.cosmeticTokens = msg->getU8() != 0;
+                }
                 offer.type = msg->getU8();
 
                 if (offer.type == Otc::GameStoreInfoType_t::SHOW_NONE) {
@@ -1218,6 +1229,9 @@ void ProtocolGame::parseStoreOffers(const InputMessagePtr& msg)
                 if (subOffer.state == Otc::GameStoreInfoStatesType_t::STATE_SALE) {
                     subOffer.validUntil = msg->getU32();
                     subOffer.basePrice = msg->getU32();
+                }
+                if (g_game.getClientVersion() >= 1533) {
+                    subOffer.cosmeticTokens = msg->getU8() != 0; // 15.33: can be bought with cosmetic tokens
                 }
                 offer.subOffers.push_back(subOffer);
             }
