@@ -1018,6 +1018,7 @@ end
 local serverPoints
 local serverVessels
 local pendingWindow
+local confirmDismantle
 
 function WheelVessels.rememberServerState()
 	if not WheelVessels.isActive() then
@@ -1034,6 +1035,8 @@ function WheelVessels.rememberServerState()
 	end
 
 	serverVessels = copyList(WheelVessels.getVessels())
+
+	confirmDismantle()
 end
 
 function WheelVessels.hasPendingChanges()
@@ -1060,6 +1063,79 @@ function WheelVessels.hasPendingChanges()
 	end
 
 	return false
+end
+
+-- The server erases a dismantled gem from its revealed list, so every later gem index moves down by one.
+-- Presets keep raw indices: follow the shift so they do not point at a different gem of the same quality.
+local function shiftPresetGems(removedIndex)
+	local changed = false
+	local presets = {}
+	local seen = {}
+
+	for _, preset in pairs(WheelOfDestiny.internalPreset or {}) do
+		table.insert(presets, preset)
+	end
+
+	table.insert(presets, WheelOfDestiny.currentPreset)
+
+	for _, preset in ipairs(presets) do
+		if type(preset) == "table" and type(preset.equipedGems) == "table" and not seen[preset.equipedGems] then
+			seen[preset.equipedGems] = true
+
+			for i, gemID in pairs(preset.equipedGems) do
+				if type(gemID) == "number" then
+					if gemID == removedIndex then
+						preset.equipedGems[i] = -1
+						changed = true
+					elseif gemID > removedIndex then
+						preset.equipedGems[i] = gemID - 1
+						changed = true
+					end
+				end
+			end
+		end
+	end
+
+	if changed and g_game.getLocalPlayer() then
+		WheelOfDestiny.saveWheelPresets()
+	end
+end
+
+-- Sends a gem action (0xE7) and keeps the local preset data in step with what the server does.
+local function countGems()
+	local count = 0
+
+	for _ in pairs(WheelOfDestiny.atelierGems or {}) do
+		count = count + 1
+	end
+
+	return count
+end
+
+-- Dismantle sent but not yet confirmed by a 0x5F with one gem less (the server may refuse it).
+local pendingDismantle
+
+function confirmDismantle()
+	if not pendingDismantle then
+		return
+	end
+
+	if countGems() == pendingDismantle.count - 1 then
+		shiftPresetGems(pendingDismantle.index)
+
+		pendingDismantle = nil
+	end
+end
+
+function WheelVessels.sendGemAction(actionType, param, pos)
+	if WheelVessels.isActive() and actionType == 0 then
+		pendingDismantle = {
+			index = param,
+			count = countGems()
+		}
+	end
+
+	g_game.gemAction(actionType, param, pos)
 end
 
 -- Asks before a gem action would drop unsaved wheel changes. Returns true when the action was deferred.
@@ -1094,12 +1170,12 @@ function WheelVessels.deferGemAction(actionType, param, pos)
 			close()
 			onWheelOfDestinyApply(false)
 			WheelVessels.rememberServerState()
-			g_game.gemAction(actionType, param, pos)
+			WheelVessels.sendGemAction(actionType, param, pos)
 		end
 
 		local function discardAndSend()
 			close()
-			g_game.gemAction(actionType, param, pos)
+			WheelVessels.sendGemAction(actionType, param, pos)
 		end
 
 		pendingWindow = displayGeneralBox(tr("Unsaved Changes"), tr("You have changes on the wheel that are not applied yet.\nThe gem action reloads the wheel from the server and would discard them.\n\nApply your changes first?"), {
@@ -1125,6 +1201,7 @@ function WheelVessels.onGameEnd()
 	selectedVessel = -1
 	serverPoints = nil
 	serverVessels = nil
+	pendingDismantle = nil
 
 	if reshapeWindow then
 		reshapeWindow:destroy()
