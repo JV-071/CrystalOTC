@@ -7305,6 +7305,12 @@ void ProtocolGame::parseClientEvent(const InputMessagePtr& msg)
             g_lua.callGlobalField("g_game", "onClientEvent", type, spellId);
             break;
         }
+        case Otc::CLIENT_EVENT_TYPE_LEADER_MONSTER: {
+            const auto raceId = msg->getU16();
+            const auto charmPoints = msg->getU32();
+            g_lua.callGlobalField("g_game", "onClientEvent", type, raceId, charmPoints);
+            break;
+        }
         default:
             break;
     }
