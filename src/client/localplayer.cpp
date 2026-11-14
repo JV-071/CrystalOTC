@@ -191,6 +191,12 @@ void LocalPlayer::walk(const Position& oldPos, const Position& newPos)
             s_walkLog.preWalkConfirmed(*this, newPos, !isWalking());
 
         m_preWalks.pop_front();
+
+        // The step animation already ended, so a held walk may be waiting for this confirmation
+        // (canWalk allows only a limited number of unconfirmed steps). Let it continue now
+        // instead of on its next retry.
+        if (!isWalking())
+            callLuaField("onWalkConfirm");
         return;
     }
 

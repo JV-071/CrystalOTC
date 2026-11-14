@@ -687,6 +687,19 @@ local function onWalkFinish(player)
 	end
 end
 
+-- The server confirmed a prewalk after the step animation had already ended. A held walk that
+-- was waiting for that confirmation (two unconfirmed steps, high ping) sits on a 10 ms retry,
+-- so the retry is replaced and the walk continues right away.
+local function onWalkConfirm(player)
+	if walkRepeatRetryEvent then
+		removeEvent(walkRepeatRetryEvent)
+
+		walkRepeatRetryEvent = nil
+	end
+
+	onWalkFinish(player)
+end
+
 local function onAutoWalk(player)
 	return
 end
@@ -716,6 +729,7 @@ function WalkController:onGameStart()
 	self:registerEvents(LocalPlayer, {
 		onCancelWalk = onCancelWalk,
 		onWalkFinish = onWalkFinish,
+		onWalkConfirm = onWalkConfirm,
 		onAutoWalk = onAutoWalk
 	})
 
