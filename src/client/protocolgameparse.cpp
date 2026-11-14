@@ -371,7 +371,11 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                     parseCreaturesMark(msg);
                     break;
                 case Proto::GameServerPlayerHelpers:
-                    parsePlayerHelpers(msg);
+                    if (g_game.getClientVersion() >= 1533) {
+                        parseDepotSearchItems(msg); // the server sends 0x94 helpers only to old protocol clients
+                    } else {
+                        parsePlayerHelpers(msg);
+                    }
                     break;
                 case Proto::GameServerCreatureType:
                     parseCreatureType(msg);
@@ -8225,4 +8229,24 @@ void ProtocolGame::parseGemAtelierGemRevealed(const InputMessagePtr& msg)
 
     const uint16_t gemIndex = msg->getU16(); // index of the gem just revealed in the gem atelier
     g_lua.callGlobalField("g_game", "onGemAtelierGemRevealed", gemIndex);
+}
+
+void ProtocolGame::parseDepotSearchItems(const InputMessagePtr& msg)
+{
+    // depot search item list: u16 n, n x (u16 item id, u8 tier only for items with an upgrade classification, u16 count)
+    std::vector<std::vector<uint32_t>> items;
+    const uint16_t itemCount = msg->getU16();
+    items.reserve(itemCount);
+    for (auto i = 0; i < itemCount; ++i) {
+        const uint16_t itemId = msg->getU16();
+        uint8_t tier = 0;
+        const auto& thingType = g_things.getThingType(itemId, ThingCategoryItem);
+        if (thingType && std::cmp_greater(thingType->getClassification(), 0)) {
+            tier = msg->getU8();
+        }
+        const uint16_t count = msg->getU16();
+        items.push_back({ itemId, tier, count });
+    }
+
+    g_lua.callGlobalField("g_game", "onRecvDepotLockerItems", items);
 }

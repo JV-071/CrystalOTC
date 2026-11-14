@@ -145,6 +145,7 @@ namespace Proto
         GameServerCreatureUnpass = 146,
         GameServerCreatureMarks = 147,
         GameServerPlayerHelpers = 148,
+        GameServerDepotSearchItems = 148, // 0x94 at >= 1533, PlayerHelpers is old protocol only
         GameServerCreatureType = 149,
         GameServerEditText = 150,
         GameServerEditList = 151,
