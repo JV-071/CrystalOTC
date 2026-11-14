@@ -93,9 +93,9 @@ if not g_game.sendBossDifficultySelect and g_game.sendBossDifficultyAction then
 	end
 end
 
-if not g_game.sendSoulSealSelectCreature and g_game.sendSoulSealsAction then
+if not g_game.sendSoulSealSelectCreature and g_game.soulsealFightAction then
 	g_game.sendSoulSealSelectCreature = function(raceId)
-		g_game.sendSoulSealsAction(raceId)
+		g_game.soulsealFightAction(tonumber(raceId) or 0)
 	end
 end
 
