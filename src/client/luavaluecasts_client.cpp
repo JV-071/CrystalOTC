@@ -978,6 +978,10 @@ int push_luavalue(const CyclopediaCharacterGeneralStats& stats) {
     g_lua.setField("loyaltyMagicLevel");
     g_lua.pushInteger(stats.magicLevelPercent);
     g_lua.setField("magicLevelPercent");
+    g_lua.pushInteger(stats.dailyXpBoostPercent);
+    g_lua.setField("dailyXpBoostPercent");
+    g_lua.pushInteger(stats.dailyXpBoostRemainingTime);
+    g_lua.setField("dailyXpBoostRemainingTime");
 
     return 1;
 }
@@ -1484,6 +1488,8 @@ int push_luavalue(const CyclopediaCharacterOffenceStats& data)
 
     g_lua.pushNumber(data.critChanceConcoction);
     g_lua.setField("critChanceConcoction");
+    g_lua.pushNumber(data.critChanceEventBonus);
+    g_lua.setField("critChanceEventBonus");
 
     g_lua.pushNumber(data.critDamageTotal);
     g_lua.setField("critDamageTotal");

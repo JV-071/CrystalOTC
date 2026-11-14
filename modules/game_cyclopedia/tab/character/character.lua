@@ -1778,9 +1778,11 @@ function Cyclopedia.loadCharacterGeneralStats(data, skills, combats)
 			base = data.baseExpGain,
 			lowLevel = data.lowLevelExpBonus,
 			xpBoost = data.XpBoostPercent,
+			dailyBoost = data.dailyXpBoostPercent,
 			staminaMultiplier = data.staminaExpBonus
 		}, {
 			xpBoostRemainingSeconds = data.XpBoostBonusRemainingTime,
+			dailyBoostRemainingSeconds = data.dailyXpBoostRemainingTime,
 			staminaMinutes = data.staminaMinutes
 		})
 	end

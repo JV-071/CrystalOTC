@@ -528,6 +528,8 @@ struct CyclopediaCharacterGeneralStats
     uint16_t baseMagicLevel;
     uint16_t loyaltyMagicLevel;
     uint16_t magicLevelPercent;
+    uint16_t dailyXpBoostPercent{ 0 }; // 15.33
+    uint16_t dailyXpBoostRemainingTime{ 0 }; // 15.33
 };
 
 struct CyclopediaCharacterCombatStats
@@ -817,6 +819,7 @@ struct CyclopediaCharacterOffenceStats
     double critChanceImbuement;
     double critChanceWheel;
     double critChanceConcoction;
+    double critChanceEventBonus{ 0 }; // 15.33
 
     double critDamageTotal;
     double critDamageFlat;

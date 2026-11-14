@@ -5802,6 +5802,12 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
                 combats.emplace_back(element, specializedMagicLevel);
             }
 
+            if (g_game.getClientVersion() >= 1533) {
+                // 15.33: daily reward XP boost percent and remaining seconds (same pair as the end of 0xA0)
+                stats.dailyXpBoostPercent = msg->getU16();
+                stats.dailyXpBoostRemainingTime = msg->getU16();
+            }
+
             g_game.processCyclopediaCharacterGeneralStats(stats, skills, combats);
             break;
         }
@@ -6213,6 +6219,9 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
             data.critChanceImbuement = msg->getDouble();
             data.critChanceWheel = msg->getDouble();
             data.critChanceConcoction = msg->getDouble();
+            if (g_game.getClientVersion() >= 1533) {
+                data.critChanceEventBonus = msg->getDouble(); // 15.33: 7th critical hit chance value
+            }
 
             // Critical hit damage
             data.critDamageTotal = msg->getDouble();
