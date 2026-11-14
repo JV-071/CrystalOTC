@@ -2934,6 +2934,13 @@ function onParseStoreGetPurchaseStatus(purchaseStatus)
 				closePurchaseSuccessModal(messageBox)
 			end, 2000)
 		end
+
+		-- Enter plays the confirm animation like a click on the button
+		function messageBox.onEnter()
+			if buttonAnimation:isEnabled() then
+				buttonAnimation.onClick()
+			end
+		end
 	end
 end
 
