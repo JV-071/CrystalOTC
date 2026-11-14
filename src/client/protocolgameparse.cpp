@@ -295,6 +295,9 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 case Proto::GameServerCloseTrade:
                     parseCloseTrade(msg);
                     break;
+                case Proto::GameServerCharacterTradeConfiguration:
+                    parseCharacterTradeConfiguration(msg);
+                    break;
                 case Proto::GameServerAmbient:
                     parseWorldLight(msg);
                     break;
@@ -8130,4 +8133,83 @@ void ProtocolGame::parseTeamFinderList(const InputMessagePtr& msg)
     }
 
     g_lua.callGlobalField("g_game", "onTeamFinderList", tooManyRequests, teams);
+}
+
+void ProtocolGame::parseCharacterTradeConfiguration(const InputMessagePtr& msg)
+{
+    if (skipBefore1533(msg, Proto::GameServerCharacterTradeConfiguration)) {
+        return;
+    }
+
+    const uint8_t dataType = msg->getU8();
+    switch (dataType) {
+        case 0: { // base data: character overview and sell conditions
+            const auto& name = msg->getString();
+            const uint16_t level = msg->getU16();
+            const uint8_t vocation = msg->getU8(); // client vocation id (1-5, promoted 11-15)
+            const Outfit outfit = getOutfit(msg, false);
+            const uint8_t worldType = msg->getU8();
+            const uint32_t firstTimestamp = msg->getU32();
+            const uint32_t secondTimestamp = msg->getU32();
+            const uint16_t minimumBid = msg->getU16();
+            std::vector<std::tuple<std::string, uint8_t>> conditions;
+            const uint8_t conditionCount = msg->getU8();
+            for (auto i = 0; i < conditionCount; ++i) {
+                const auto& text = msg->getString();
+                const uint8_t status = msg->getU8();
+                conditions.emplace_back(text, status);
+            }
+            g_lua.callGlobalField("g_game", "onCharacterTradeBaseData", name, level, vocation, outfit, worldType, firstTimestamp, secondTimestamp, minimumBid, conditions);
+            break;
+        }
+        case 1:
+        case 2: { // items: id, tier (only for items with an upgrade classification), amount
+            std::vector<std::vector<uint32_t>> items;
+            const uint16_t itemCount = msg->getU16();
+            for (auto i = 0; i < itemCount; ++i) {
+                const uint16_t itemId = msg->getU16();
+                uint8_t tier = 0;
+                const auto& thingType = g_things.getThingType(itemId, ThingCategoryItem);
+                if (thingType && std::cmp_greater(thingType->getClassification(), 0)) {
+                    tier = msg->getU8();
+                }
+                const uint32_t amount = msg->getU32();
+                items.push_back({ itemId, tier, amount });
+            }
+            g_lua.callGlobalField("g_game", "onCharacterTradeItems", dataType, items);
+            break;
+        }
+        case 3: { // highlights (sales arguments): category, name, entries (id, text)
+            std::vector<std::tuple<uint8_t, std::string, std::vector<std::tuple<uint16_t, std::string>>>> groups;
+            const uint8_t groupCount = msg->getU8();
+            for (auto i = 0; i < groupCount; ++i) {
+                const uint8_t category = msg->getU8();
+                const auto& groupName = msg->getString();
+                std::vector<std::tuple<uint16_t, std::string>> entries;
+                const uint16_t entryCount = msg->getU16();
+                for (auto j = 0; j < entryCount; ++j) {
+                    const uint16_t id = msg->getU16();
+                    const auto& text = msg->getString();
+                    entries.emplace_back(id, text);
+                }
+                groups.emplace_back(category, groupName, std::move(entries));
+            }
+            g_lua.callGlobalField("g_game", "onCharacterTradeHighlights", groups);
+            break;
+        }
+        case 4: { // summary: auction fee and problem lines
+            const uint16_t fee = msg->getU16();
+            std::vector<std::string> problems;
+            const uint8_t problemCount = msg->getU8();
+            for (auto i = 0; i < problemCount; ++i) {
+                problems.emplace_back(msg->getString());
+            }
+            g_lua.callGlobalField("g_game", "onCharacterTradeSummary", fee, problems);
+            break;
+        }
+        default:
+            g_logger.warning("[ProtocolGame::parseCharacterTradeConfiguration] unknown data type {}, dropping the message", dataType);
+            msg->skipBytes(static_cast<uint16_t>(msg->getUnreadSize()));
+            break;
+    }
 }

@@ -125,6 +125,7 @@ namespace Proto
         GameServerOwnTrade = 125,
         GameServerCounterTrade = 126,
         GameServerCloseTrade = 127,
+        GameServerCharacterTradeConfiguration = 128, // 0x80
         GameServerAmbient = 130,
         GameServerGraphicalEffect = 131,
         GameServerTextEffect = 132,
