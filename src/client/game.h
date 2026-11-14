@@ -207,6 +207,9 @@ public:
     // 15.25 crosshair spells: aim position appended to the next say (consumed by sendTalk at >= 1530)
     void setNextTalkAim(const Position& pos) { m_nextTalkAim = pos; }
     Position takeNextTalkAim() { const Position pos = m_nextTalkAim; m_nextTalkAim = {}; return pos; }
+    // 15.33 per button cast type: wire aimMode of the next say (0 facing, 1 cursor tile, 2 crosshair tile, 3 towards target)
+    void setNextTalkAimMode(const uint8_t mode) { m_nextTalkAimMode = mode; }
+    uint8_t takeNextTalkAimMode() { const uint8_t mode = m_nextTalkAimMode; m_nextTalkAimMode = UINT8_MAX; return mode; }
 
     // channel related
     void openPrivateChannel(std::string_view receiver);
@@ -312,7 +315,7 @@ public:
     void sendRequestStoreOfferById(const uint32_t offerId, const uint8_t sortOrder, const uint8_t serviceType);
     void sendRequestStoreSearch(const std::string_view searchText, const uint8_t sortOrder, const uint8_t serviceType);
     void openStore(uint8_t serviceType = 0, std::string_view category = "");
-    void transferCoins(std::string_view recipient, uint16_t amount);
+    void transferCoins(std::string_view recipient, uint32_t amount);
     void openTransactionHistory(uint8_t entriesPerPage);
 
     //void reportRuleViolation2();
@@ -545,6 +548,7 @@ private:
     uint16_t m_pingDelay{ 1000 };
     uint16_t m_protocolVersion{ 0 };
     Position m_nextTalkAim{};
+    uint8_t m_nextTalkAimMode{ UINT8_MAX };
     uint16_t m_clientVersion{ 0 };
     uint32_t m_pingSent{ 0 };
     uint32_t m_pingReceived{ 0 };

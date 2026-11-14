@@ -107,6 +107,95 @@ local function setKillSlotCreature(panel, raceData, isAnyCreature)
 	end
 end
 
+local function setSlotDone(panel, done, countIds)
+	for _, id in ipairs(countIds) do
+		local label = panel:getChildById(id)
+
+		if label then
+			label:setVisible(not done)
+		end
+	end
+
+	-- the plain "of" label between the counts has no id
+	for _, child in ipairs(panel:getChildren()) do
+		if child:getText() == "of" then
+			child:setVisible(not done)
+		end
+	end
+
+	local doneIcon = panel:getChildById("doneIcon")
+
+	if doneIcon then
+		doneIcon:setVisible(done)
+	end
+end
+
+-- one delivery confirmation at a time; closed on logout and module unload
+local deliveryBox
+
+local function closeDeliveryBox()
+	if deliveryBox then
+		if not deliveryBox:isDestroyed() then
+			deliveryBox:destroy()
+		end
+
+		deliveryBox = nil
+	end
+end
+
+local function confirmDelivery(entry, itemName)
+	local count = entry.totalItems or 0
+	local taskId = entry.taskId or 0
+	local close = closeDeliveryBox
+
+	closeDeliveryBox()
+
+	deliveryBox = displayGeneralBox(tr("Confirm"), tr("Do you really want to deliver %sx %s?", TaskBoard:formatNumberWithCommas(count), itemName), {
+		{
+			text = tr("Yes"),
+			callback = function()
+				close()
+				g_game.sendDeliveryTask(taskId)
+			end
+		},
+		{
+			text = tr("No"),
+			callback = close
+		},
+		anchor = AnchorHorizontalCenter
+	}, function()
+		close()
+		g_game.sendDeliveryTask(taskId)
+	end, close)
+end
+
+-- clicking the delivery item offers the Cyclopedia entry (the board is modal, so it closes first)
+local function onDeliveryItemClicked(itemId)
+	local thingType = g_things.getThingType(itemId, ThingCategoryItem)
+	local modCyc = modules.game_cyclopedia
+	local cycApi = modCyc and modCyc.Cyclopedia
+
+	if not thingType or not thingType.isCyclopediaItem or not thingType:isCyclopediaItem() or not cycApi or not cycApi.openItemInCyclopedia then
+		return
+	end
+
+	local menu = g_ui.createWidget("PopupMenu")
+
+	menu:setGameMenu(true)
+	menu:addOption(tr("Cyclopedia"), function()
+		if TaskBoard.mainWindow and TaskBoard.mainWindow:isVisible() then
+			TaskBoard:toggleWindow()
+		end
+
+		if modCyc.show then
+			modCyc.show("items")
+		end
+
+		cycApi.openItemInCyclopedia(itemId)
+	end)
+	menu:display(g_window.getMousePosition())
+end
+
 local function fillKillSlot(panel, name, current, target, raceData, isAnyCreature)
 	if not panel then
 		return
@@ -121,16 +210,12 @@ local function fillKillSlot(panel, name, current, target, raceData, isAnyCreatur
 	panel:setText(displayName)
 	setKillSlotCreature(panel, raceData, isAnyCreature)
 
+	local done = (target or 0) > 0 and (current or 0) >= target
 	local currentLabel = panel:getChildById("killAnyMonstersLabel")
 
 	if currentLabel then
 		currentLabel:setText(TaskBoard:formatNumberWithCommas(current or 0))
-
-		if target <= current then
-			currentLabel:setColor("#44cc44")
-		else
-			currentLabel:setColor("#d33c3c")
-		end
+		currentLabel:setColor("#d33c3c")
 	end
 
 	local totalLabel = panel:getChildById("totalKillAnyMonstersLabel")
@@ -138,6 +223,9 @@ local function fillKillSlot(panel, name, current, target, raceData, isAnyCreatur
 	if totalLabel then
 		totalLabel:setText(TaskBoard:formatNumberWithCommas(target or 0))
 	end
+
+	-- like the official board: a finished task shows only a check mark
+	setSlotDone(panel, done, { "killAnyMonstersLabel", "totalKillAnyMonstersLabel" })
 end
 
 local function fillDeliverySlot(panel, entry)
@@ -146,9 +234,12 @@ local function fillDeliverySlot(panel, entry)
 	end
 
 	local thingType = g_things.getThingType(entry.taskItemId, 0)
+	local fullName = ""
 
 	if thingType then
-		local itemName = capitalizeWords(thingType:getName() or "")
+		fullName = thingType:getName() or ""
+
+		local itemName = capitalizeWords(fullName)
 
 		if #itemName > 17 then
 			itemName = itemName:sub(1, 17) .. "..."
@@ -161,8 +252,22 @@ local function fillDeliverySlot(panel, entry)
 
 	if itemIcon then
 		itemIcon:setItemId(entry.taskItemId or 0)
+		itemIcon:setTooltip(capitalizeWords(fullName))
+
+		local itemId = entry.taskItemId or 0
+
+		function itemIcon.onMouseRelease(widget, mousePos, mouseButton)
+			if mouseButton == MouseLeftButton or mouseButton == MouseRightButton then
+				onDeliveryItemClicked(itemId)
+
+				return true
+			end
+
+			return false
+		end
 	end
 
+	local delivered = (entry.completed or 0) ~= 0
 	local currentLabel = panel:getChildById("currentDeliveryLabel")
 
 	if currentLabel then
@@ -175,6 +280,8 @@ local function fillDeliverySlot(panel, entry)
 		end
 	end
 
+	setSlotDone(panel, delivered, { "currentDeliveryLabel", "totalDeliveryLabel" })
+
 	local totalLabel = panel:getChildById("totalDeliveryLabel")
 
 	if totalLabel then
@@ -184,14 +291,14 @@ local function fillDeliverySlot(panel, entry)
 	local deliverButton = panel:getChildById("deliverButton")
 
 	if deliverButton then
-		local taskId = entry.taskId or 0
-		local isCompleted = (entry.completed or 0) ~= 0
-		local hasItems = (entry.count or 0) > 0
+		-- the server only accepts a delivery of the full amount (inventory, stash and depot together)
+		local hasItems = (entry.count or 0) >= (entry.totalItems or 0) and (entry.totalItems or 0) > 0
 
-		deliverButton:setEnabled(hasItems and not isCompleted)
+		deliverButton:setVisible(not delivered)
+		deliverButton:setEnabled(hasItems and not delivered)
 
 		function deliverButton.onClick()
-			g_game.sendDeliveryTask(taskId)
+			confirmDelivery(entry, fullName)
 		end
 	end
 end
@@ -496,11 +603,18 @@ local function wireUnlockButton(button)
 	end
 end
 
+-- level gates of the weekly difficulties (IOWeeklyTasks::getUnlockedDifficulty: 30 / 150 / 300)
+local DIFFICULTY_REQUIRED_LEVEL = {
+	[0] = 0,
+	30,
+	150,
+	300
+}
 local DIFFICULTY_BUTTON_TOOLTIPS = {
 	[0] = tr("Beginner tasks include easy creatures."),
-	tr("Adept tasks include easy and medium creatures. (Requires level 30)"),
-	tr("Expert tasks include up to hard creatures. (Requires level 150)"),
-	(tr("Master tasks include the hardest creatures. (Requires level 400)"))
+	tr("Adept tasks include easy and medium creatures. (Requires level %d)", DIFFICULTY_REQUIRED_LEVEL[1]),
+	tr("Expert tasks include medium and hard creatures. (Requires level %d)", DIFFICULTY_REQUIRED_LEVEL[2]),
+	tr("Master tasks include hard and challenging creatures. (Requires level %d)", DIFFICULTY_REQUIRED_LEVEL[3])
 }
 
 local function wireDifficultyButton(button, difficulty)
@@ -552,9 +666,76 @@ local function buildBarProgress(weeklyTasks)
 	progressBar:setTooltip(tr("Weekly Progress: %d / %d tasks", total, PROGRESS_BAR_TOTAL_TASKS))
 end
 
+-- Hunting Task Points per finished task and the multiplier by finished tasks, as the server computes them
+-- (IOWeeklyTasks::getHTPPerKillTask / getHTPMultiplier); kill tasks pay by difficulty, delivery tasks 75
+local HTP_PER_KILL_TASK = {
+	[0] = 25,
+	50,
+	100,
+	110
+}
+local HTP_PER_DELIVERY_TASK = 75
+
+local function getHuntingTaskPointsMultiplier(completed)
+	if completed >= 17 then
+		return 8
+	elseif completed >= 13 then
+		return 5
+	elseif completed >= 9 then
+		return 3
+	elseif completed >= 5 then
+		return 2
+	end
+
+	return 1
+end
+
+local function buildHuntingPointsTooltip(weeklyTasks)
+	local kills = weeklyTasks.kill or 0
+	local deliveries = weeklyTasks.delivery or 0
+	local perKill = HTP_PER_KILL_TASK[weeklyTasks.difficulty or 0] or HTP_PER_KILL_TASK[0]
+	local multiplier = getHuntingTaskPointsMultiplier(kills + deliveries)
+	local total = weeklyTasks.totalPoints or (kills * perKill + deliveries * HTP_PER_DELIVERY_TASK) * multiplier
+
+	return table.concat({
+		tr("Hunting Task Points:"),
+		"",
+		string.format("   %2d * %3d   (from Kill Tasks)", kills, perKill),
+		string.format("+ %2d * %3d   (from Delivery Tasks)", deliveries, HTP_PER_DELIVERY_TASK),
+		"----------------------------------",
+		string.format("*      %d       (from completing Tasks)", multiplier),
+		string.format("=      %s       Hunting Task Points", TaskBoard:formatNumberWithCommas(total))
+	}, "\n")
+end
+
+local function buildXpInfo(weeklyTasks)
+	local label = TaskBoard.weeklyPanel and TaskBoard.weeklyPanel:recursiveGetChildById("xpInfoLabel")
+
+	if not label then
+		return
+	end
+
+	local killXp = weeklyTasks.killTaskXp or 0
+	local deliveryXp = weeklyTasks.deliveryTaskXp or 0
+
+	if killXp == 0 and deliveryXp == 0 then
+		label:setText("")
+	elseif killXp == deliveryXp then
+		label:setText(tr("Each task rewards you with %s XP.", TaskBoard:formatNumberWithCommas(killXp)))
+	else
+		label:setText(tr("Each kill task will reward you with %s XP and each delivery task will reward you with %s XP.", TaskBoard:formatNumberWithCommas(killXp), TaskBoard:formatNumberWithCommas(deliveryXp)))
+	end
+end
+
 local function buildRewards(weeklyTasks)
 	local huntingPoints = weeklyTasks.totalPoints or 0
 	local soulSealsPoints = weeklyTasks.totalTasksCompleted or 0
+
+	local help = TaskBoard.weeklyPanel and TaskBoard.weeklyPanel:recursiveGetChildById("huntingPointsHelp")
+
+	if help then
+		help:setTooltip(buildHuntingPointsTooltip(weeklyTasks))
+	end
 
 	if TaskBoard.weeklyPanel then
 		local huntingPointsLabel = TaskBoard.weeklyPanel:recursiveGetChildById("huntingPointsLabel")
@@ -574,16 +755,57 @@ local function buildRewards(weeklyTasks)
 	local daysRemainingLabel = TaskBoard.weeklyPanel and TaskBoard.weeklyPanel:recursiveGetChildById("daysRemaining")
 
 	if daysRemainingLabel and timeStamp > 0 then
-		local currentTime = os.time()
-		local diffSeconds = timeStamp - currentTime
+		local diffSeconds = math.max(0, timeStamp - os.time())
 		local daysRemaining = math.floor(diffSeconds / 86400)
 
-		if daysRemaining < 0 then
-			daysRemaining = 0
+		-- official: "N day(s) remaining", and "N hour(s) remaining" in red on the last day
+		if daysRemaining >= 1 then
+			daysRemainingLabel:setText(tr("%d day(s) remaining", daysRemaining))
+			daysRemainingLabel:setColor("#c0c0c0")
+		else
+			daysRemainingLabel:setText(tr("%d hour(s) remaining", math.ceil(diffSeconds / 3600)))
+			daysRemainingLabel:setColor("#d33c3c")
 		end
-
-		daysRemainingLabel:setText(daysRemaining)
 	end
+end
+
+-- results of the finished week, shown above the difficulty choice
+local function buildResults(weeklyTasks)
+	local panel = TaskBoard.weeklyProgressPanel
+
+	if not panel then
+		return
+	end
+
+	local killCount = #(weeklyTasks.killEntries or {})
+
+	if (weeklyTasks.killsAnyMonsters or 0) > 0 then
+		killCount = killCount + 1
+	end
+
+	local deliveryCount = #(weeklyTasks.deliveryEntries or {})
+	local show = weeklyTasks.weeklyTaskActive == 1 and (killCount > 0 or deliveryCount > 0)
+	local killLabel = panel:getChildById("resultKillLabel")
+	local deliveryLabel = panel:getChildById("resultDeliveryLabel")
+	local rewardRow = panel:getChildById("resultRewardRow")
+
+	killLabel:setVisible(show)
+	deliveryLabel:setVisible(show)
+	rewardRow:setVisible(show)
+
+	if not show then
+		return
+	end
+
+	killLabel:setText(tr("You have completed %d / %d kill tasks.", weeklyTasks.kill or 0, killCount))
+	deliveryLabel:setText(tr("You have completed %d / %d delivery tasks.", weeklyTasks.delivery or 0, deliveryCount))
+
+	local prefix = rewardRow:getChildById("resultRewardPrefix")
+	local middle = rewardRow:getChildById("resultRewardMiddle")
+
+	prefix:setText(tr("Total earned: %s", TaskBoard:formatNumberWithCommas(weeklyTasks.totalPoints or 0)))
+	middle:setText(tr("and %s", TaskBoard:formatNumberWithCommas(weeklyTasks.totalTasksCompleted or 0)))
+	rewardRow:setWidth(prefix:getTextSize().width + 2 + 11 + 3 + middle:getTextSize().width + 2 + 9)
 end
 
 function WeeklyTask:allowDifficultyWeeklyTasks(unlockedDifficulties)
@@ -642,6 +864,8 @@ function onWeeklyTasks(weeklyTasks)
 	buildDeliverySlots(weeklyTasks)
 	buildBarProgress(weeklyTasks)
 	buildRewards(weeklyTasks)
+	buildXpInfo(weeklyTasks)
+	buildResults(weeklyTasks)
 
 	WeeklyTask.isWeeklyTaskActive = weeklyTasks.weeklyTaskActive == 1
 
@@ -698,6 +922,10 @@ function onEngineWeeklyTaskData(header, monsters, items)
 		totalTasksCompleted = header.soulsealsEarned,
 		mondayTime = header.resetTimestamp,
 		weeklyTaskActive = header.weeklyProgressFinished,
+		-- engine difficulty is 1-4 (0 = no tasks yet), the module counts 0-3
+		difficulty = math.max(0, (header.difficulty or 1) - 1),
+		killTaskXp = header.maxExperience or 0,
+		deliveryTaskXp = header.maxDeliveryExperience or 0,
 		-- the engine reports 1-4, the module counts 0-3
 		unlockedDifficulties = math.max(0, (header.unlockedDifficulty or 1) - 1)
 	})
@@ -706,7 +934,8 @@ end
 function WeeklyTask:init()
 	connect(g_game, {
 		onWeeklyTasks = onWeeklyTasks,
-		onWeeklyTaskData = onEngineWeeklyTaskData
+		onWeeklyTaskData = onEngineWeeklyTaskData,
+		onGameEnd = closeDeliveryBox
 	})
 
 	if TaskBoard.weeklyPanel then
@@ -725,6 +954,8 @@ end
 function WeeklyTask:terminate()
 	disconnect(g_game, {
 		onWeeklyTasks = onWeeklyTasks,
-		onWeeklyTaskData = onEngineWeeklyTaskData
+		onWeeklyTaskData = onEngineWeeklyTaskData,
+		onGameEnd = closeDeliveryBox
 	})
+	closeDeliveryBox()
 end

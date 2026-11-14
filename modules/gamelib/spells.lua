@@ -6611,3 +6611,38 @@ function Spells.hasCrossHairTarget(spell)
 
 	return spell.crossHairTarget == true
 end
+
+-- Waves and beams whose direction can be chosen per action button in 15.33
+-- ("cast in facing direction / towards cursor position / towards target").
+-- Same set as the Magical Archive "aimattarget" flag; crosshair spells use their own options.
+local AIM_AT_TARGET_CONFIGURABLE = {
+	["Balanced Brawl"] = true,
+	["Chill Out"] = true,
+	["Divine Barrage"] = true,
+	["Energy Beam"] = true,
+	["Energy Wave"] = true,
+	["Ethereal Barrage"] = true,
+	["Fire Wave"] = true,
+	["Flurry of Blows"] = true,
+	["Front Sweep"] = true,
+	["Great Death Beam"] = true,
+	["Great Energy Beam"] = true,
+	["Great Fire Wave"] = true,
+	["Greater Flurry of Blows"] = true,
+	["Ice Wave"] = true,
+	["Lesser Front Sweep"] = true,
+	["Scorch"] = true,
+	["Shield Bash"] = true,
+	["Strong Ice Wave"] = true,
+	["Sweeping Takedown"] = true,
+	["Terra Wave"] = true,
+	["Thousand Fist Blows"] = true
+}
+
+function Spells.isAimAtTargetConfigurable(spell)
+	if type(spell) ~= "table" or Spells.hasCrossHairTarget(spell) then
+		return false
+	end
+
+	return AIM_AT_TARGET_CONFIGURABLE[spell.name] == true
+end

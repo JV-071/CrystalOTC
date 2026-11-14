@@ -8,7 +8,7 @@ GiftCoinsLabel < Label
 
 StoreWindow
   id: storeWindow
-  size: 278 227
+  size: 280 227
   padding: 3
   visible: false
   @onEscape: transferCancel()
@@ -44,6 +44,7 @@ StoreWindow
 
   TextEdit
     id: transferPointsText
+    max-length: 29
     size: 150 16
     font: $var-cip-font-new
     color: #c0c0c0

@@ -798,3 +798,44 @@ StoreWindow
         margin-top: 1
         margin-right: 1
         margin-bottom: 1
+
+  VerticalSeparator
+    id: cosmeticTokensSeparator
+    height: 16
+    anchors.left: btnSellCharacters.right
+    anchors.verticalCenter: btnSellCharacters.verticalCenter
+    margin-left: 6
+    visible: false
+
+  Panel
+    id: lblCosmeticTokens
+    size: 90 20
+    anchors.left: cosmeticTokensSeparator.right
+    anchors.top: btnSellCharacters.top
+    margin-left: 6
+    image-source: /images/ui/button-verydarkgrey-down
+    image-border: 5
+    image-clip: 0 0 98 40
+    !tooltip: tr('Cosmetic Tokens can be used to buy cosmetic products in the Store.')
+    phantom: false
+    focusable: false
+    visible: false
+
+    UIWidget
+      id: icon
+      size: 12 12
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 4
+      image-fixed-ratio: true
+      phantom: true
+
+    Label
+      id: value
+      anchors.right: icon.left
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 2
+      text-auto-resize: true
+      font: $var-cip-font-new
+      color: #c0c0c0
+      phantom: true

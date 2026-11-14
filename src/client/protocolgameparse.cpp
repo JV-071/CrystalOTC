@@ -3798,26 +3798,26 @@ void ProtocolGame::parseAutomapFlag(const InputMessagePtr& msg)
                     g_lua.callGlobalField("g_game", "onCyclopediaMapDiscoveryArea", areaId, active, poiTarget, points);
                     break;
                 }
-                case 9: { // Donations
+                case 9: { // Donations; the u64 amounts go to Lua as numbers so they do not wrap at 2^31
                     const uint64_t goal = msg->getU64();
-                    std::vector<std::vector<int>> areas;
+                    std::vector<std::vector<double>> areas;
                     for (int k = 0, n = msg->getU8(); k < n; ++k) {
                         const int areaId = msg->getU16();
                         const int improvedRespawnActive = msg->getU8();
                         const uint64_t donatedAmount = msg->getU64();
-                        areas.push_back({ areaId, improvedRespawnActive, static_cast<int>(donatedAmount) });
+                        areas.push_back({ static_cast<double>(areaId), static_cast<double>(improvedRespawnActive), static_cast<double>(donatedAmount) });
                     }
-                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<int>(goal), areas);
+                    g_lua.callGlobalField("g_game", "onCyclopediaMapDonations", static_cast<double>(goal), areas);
                     break;
                 }
-                case 10: { // SetCurrentArea
+                case 10: { // SetCurrentArea: the subarea being explored right now, 0 = none
                     const int areaId = msg->getU16();
                     g_lua.callGlobalField("g_game", "onCyclopediaMapCurrentArea", areaId);
                     break;
                 }
-                case 11: { // SetExploringArea
-                    const int subAreaId = msg->getU16();
-                    g_lua.callGlobalField("g_game", "onCyclopediaMapExploringArea", subAreaId);
+                case 11: { // ExplorationRewardInfo: speed bonus from fully explored areas
+                    const int speedBonus = msg->getU16();
+                    g_lua.callGlobalField("g_game", "onCyclopediaMapExplorationReward", speedBonus);
                     break;
                 }
                 default:
@@ -4889,7 +4889,9 @@ namespace
             { "itemId", std::to_string(item.itemId) },
             { "maxPurchases", std::to_string(item.maxPurchases) },
             { "currentPurchases", std::to_string(item.currentPurchases) },
-            { "nextCost", std::to_string(item.nextCost) }
+            { "nextCost", std::to_string(item.nextCost) },
+            { "status", std::to_string(item.status) },
+            { "itemId2", std::to_string(item.itemId2) }
         };
     }
 
@@ -5131,6 +5133,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             item.price = item.nextCost;
             item.currentPurchases = purchasedDisplayValue > 0 ? purchasedDisplayValue - 1 : 0;
             item.bought = (status == Otc::TASK_BOARD_SHOP_STATUS_BOUGHT || item.nextCost == 0) ? 1 : 0;
+            item.status = item.bought ? static_cast<uint8_t>(Otc::TASK_BOARD_SHOP_STATUS_BOUGHT) : status;
         } else {
             item.title = msg->getString();
             item.description = msg->getString();
@@ -5142,8 +5145,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             }
 
             if (offerType == Otc::TASK_BOARD_SHOP_OFFER_ITEM_DOUBLE) {
-                // TODO(winter-2025 follow-up): second item id (double bundle) is not yet used by UI.
-                msg->getU32();
+                item.itemId2 = msg->getU32(); // foot part of the bed, drawn under the first item
             }
 
             item.price = msg->getU32();
@@ -5159,6 +5161,7 @@ void ProtocolGame::parseTaskBoardShopData(const InputMessagePtr& msg)
             }
 
             item.bought = status == Otc::TASK_BOARD_SHOP_STATUS_BOUGHT ? 1 : 0;
+            item.status = status;
         }
 
         shopItems.emplace_back(item);
@@ -5923,8 +5926,8 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         case Otc::CYCLOPEDIA_CHARACTERINFO_RECENTDEATHS:
         {
             CyclopediaCharacterRecentDeaths data;
-            msg->getU16();
-            msg->getU16();
+            data.page = msg->getU16();
+            data.pageCount = msg->getU16();
 
             const uint16_t entriesCount = msg->getU16();
             for (auto i = 0; i < entriesCount; ++i) {
@@ -5940,8 +5943,8 @@ void ProtocolGame::parseCyclopediaCharacterInfo(const InputMessagePtr& msg)
         case Otc::CYCLOPEDIA_CHARACTERINFO_RECENTPVPKILLS:
         {
             CyclopediaCharacterRecentPvPKills data;
-            msg->getU16();
-            msg->getU16();
+            data.page = msg->getU16();
+            data.pageCount = msg->getU16();
 
             const uint16_t entriesCount = msg->getU16();
             for (auto i = 0; i < entriesCount; ++i) {
@@ -7317,29 +7320,21 @@ void ProtocolGame::parseMarketBrowse(const InputMessagePtr& msg)
 
 void ProtocolGame::parseBosstiaryData(const InputMessagePtr& msg)
 {
-    msg->getU16(); // Number of kills to achieve 'Bane Prowess'
-    msg->getU16(); // Number of kills to achieve 'Bane expertise'
-    msg->getU16(); // Number of kills to achieve 'Base Mastery'
+    // kills needed for Prowess, Expertise and Mastery of Bane, Archfoe and Nemesis,
+    // then the boss points each of those nine levels gives, in the same order
+    std::vector<uint16_t> killThresholds;
+    killThresholds.reserve(9);
+    for (auto i = 0; i < 9; ++i) {
+        killThresholds.emplace_back(msg->getU16());
+    }
 
-    msg->getU16(); // Number of kills to achieve 'Archfoe Prowess'
-    msg->getU16(); // Number of kills to achieve 'Archfoe Expertise'
-    msg->getU16(); // Number of kills to achieve 'Archfoe Mastery'
+    std::vector<uint16_t> pointRewards;
+    pointRewards.reserve(9);
+    for (auto i = 0; i < 9; ++i) {
+        pointRewards.emplace_back(msg->getU16());
+    }
 
-    msg->getU16(); // Number of kills to achieve 'Nemesis Prowess'
-    msg->getU16(); // Number of kills to achieve 'Nemesis Expertise'
-    msg->getU16(); // Number of kills to achieve 'Nemesis Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Bane Prowess'
-    msg->getU16(); // Points will receive when reach 'Bane Expertise'
-    msg->getU16(); // Points will receive when reach 'Base Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Archfoe Prowess'
-    msg->getU16(); // Points will receive when reach 'Archfoe Expertise'
-    msg->getU16(); // Points will receive when reach 'Archfoe Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Nemesis Prowess'
-    msg->getU16(); // Points will receive when reach 'Nemesis Expertise'
-    msg->getU16(); // Points will receive when reach 'Nemesis Mastery'
+    g_lua.callGlobalField("g_game", "onBosstiaryData", killThresholds, pointRewards);
 }
 
 void ProtocolGame::parseBosstiarySlots(const InputMessagePtr& msg)
@@ -7413,7 +7408,8 @@ void ProtocolGame::parseBosstiaryCooldownTimer(const InputMessagePtr& msg)
 
 void ProtocolGame::parseBosstiaryEntryChanged(const InputMessagePtr& msg)
 {
-    msg->getU32(); // bossId
+    const uint32_t bossId = msg->getU32();
+    g_lua.callGlobalField("g_game", "onBosstiaryEntryChanged", bossId);
 }
 
 void ProtocolGame::parseClientEvent(const InputMessagePtr& msg)

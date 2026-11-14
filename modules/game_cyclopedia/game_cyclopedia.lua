@@ -583,6 +583,76 @@ function Cyclopedia.onBestiaryEntryChanged(raceId)
 	Cyclopedia.setCyclopediaShortcutHighlightVisible(true)
 end
 
+-- 0x61: kills needed and boss points given per level, sent before every bosstiary and boss slots reply
+Cyclopedia.BosstiaryLevels = Cyclopedia.BosstiaryLevels or {
+	[0] = {
+		PROWESS = 25,
+		EXPERTISE = 100,
+		MASTERY = 300,
+		POINTS = { 5, 15, 30 }
+	},
+	[1] = {
+		PROWESS = 5,
+		EXPERTISE = 20,
+		MASTERY = 60,
+		POINTS = { 10, 30, 60 }
+	},
+	[2] = {
+		PROWESS = 1,
+		EXPERTISE = 3,
+		MASTERY = 5,
+		POINTS = { 10, 30, 60 }
+	}
+}
+
+local BOSSTIARY_CATEGORY_NAMES = {
+	[0] = "Bane",
+	[1] = "Archfoe",
+	[2] = "Nemesis"
+}
+
+function Cyclopedia.onBosstiaryData(killThresholds, pointRewards)
+	if type(killThresholds) ~= "table" or type(pointRewards) ~= "table" then
+		return
+	end
+
+	for category = 0, 2 do
+		local base = category * 3
+		local kills = {
+			tonumber(killThresholds[base + 1]),
+			tonumber(killThresholds[base + 2]),
+			tonumber(killThresholds[base + 3])
+		}
+		local points = {
+			tonumber(pointRewards[base + 1]),
+			tonumber(pointRewards[base + 2]),
+			tonumber(pointRewards[base + 3])
+		}
+
+		if kills[1] and kills[2] and kills[3] and points[1] and points[2] and points[3] then
+			Cyclopedia.BosstiaryLevels[category] = {
+				PROWESS = kills[1],
+				EXPERTISE = kills[2],
+				MASTERY = kills[3],
+				POINTS = points
+			}
+		end
+	end
+end
+
+function Cyclopedia.getBosstiaryLevels(category)
+	return Cyclopedia.BosstiaryLevels[tonumber(category) or 0] or Cyclopedia.BosstiaryLevels[0]
+end
+
+function Cyclopedia.getBosstiaryCategoryTooltip(category)
+	category = tonumber(category) or 0
+
+	local levels = Cyclopedia.getBosstiaryLevels(category)
+	local points = levels.POINTS or {}
+
+	return string.format("%s\n\nFor unlocking a level, you will receive the following boss points:\nProwess: %d\nExpertise: %d\nMastery: %d", BOSSTIARY_CATEGORY_NAMES[category] or BOSSTIARY_CATEGORY_NAMES[0], points[1] or 0, points[2] or 0, points[3] or 0)
+end
+
 function Cyclopedia.onBosstiaryEntryChanged(bossId)
 	bossId = tonumber(bossId)
 
@@ -676,7 +746,13 @@ function controllerCyclopedia:onInit()
 		onParseBestiaryRaces = Cyclopedia.loadBestiaryCategories,
 		onParseBestiaryOverview = Cyclopedia.loadBestiaryOverview,
 		onUpdateBestiaryMonsterData = Cyclopedia.loadBestiarySelectedCreature,
-		onBestiaryEntryChanged = Cyclopedia.onBestiaryEntryChanged
+		onBestiaryEntryChanged = Cyclopedia.onBestiaryEntryChanged,
+		onBosstiaryData = Cyclopedia.onBosstiaryData,
+		onCyclopediaMapDiscoveryData = Cyclopedia.onCyclopediaMapDiscoveryData,
+		onCyclopediaMapDiscoveryArea = Cyclopedia.onCyclopediaMapDiscoveryArea,
+		onCyclopediaMapDonations = Cyclopedia.onCyclopediaMapDonations,
+		onCyclopediaMapCurrentArea = Cyclopedia.onCyclopediaMapCurrentArea,
+		onCyclopediaMapExplorationReward = Cyclopedia.onCyclopediaMapExplorationReward
 	})
 	connect(g_things, {
 		onLoadDat = Cyclopedia.invalidateItemsIndex
@@ -1009,6 +1085,10 @@ function controllerCyclopedia:onGameStart()
 end
 
 function controllerCyclopedia:onGameEnd()
+	if Cyclopedia.resetMapDiscovery then
+		Cyclopedia.resetMapDiscovery()
+	end
+
 	if trackerMiniWindow and trackerMiniWindow.save then
 		trackerMiniWindow:saveSelfIndex()
 

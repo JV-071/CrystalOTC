@@ -567,6 +567,7 @@ void ProtocolGame::sendTalk(const Otc::MessageMode mode, const uint16_t channelI
 {
     // Consume any staged crosshair aim up front so an aborted/empty say never leaks it to the next one.
     const Position talkAimPos = g_game.takeNextTalkAim();
+    const uint8_t talkAimMode = g_game.takeNextTalkAimMode();
 
     if (message.empty())
         return;
@@ -598,7 +599,21 @@ void ProtocolGame::sendTalk(const Otc::MessageMode mode, const uint16_t channelI
 
     msg->addString(message);
 
-    if (g_game.getClientVersion() >= 1530) {
+    if (g_game.getClientVersion() >= 1533) {
+        // 15.33 say tail: [aimMode u8] (0 facing, 1 cursor tile, 2 crosshair tile, 3 towards target),
+        // then [x u16][y u16][z u8] only for aimMode 1 and 2. No trailing byte.
+        uint8_t aimMode = talkAimMode;
+        if (aimMode == UINT8_MAX)
+            aimMode = talkAimPos.isValid() ? 1 : 0; // no staged mode: a staged tile alone means cursor tile
+        else if (aimMode > 3)
+            aimMode = 0;
+        if ((aimMode == 1 || aimMode == 2) && !talkAimPos.isValid())
+            aimMode = 0;
+
+        msg->addU8(aimMode);
+        if (aimMode == 1 || aimMode == 2)
+            addPosition(msg, talkAimPos);
+    } else if (g_game.getClientVersion() >= 1530) {
         // 15.25 say tail: [aimMode u8]; if != 0: [x u16][y u16][z u8][seq u8].
         // Used by needPosition (crosshair) spells; harmless on plain chat (cleared per say).
         if (talkAimPos.isValid()) {
@@ -1440,7 +1455,7 @@ void ProtocolGame::sendOpenStore(const uint8_t serviceType, const std::string_vi
     send(msg);
 }
 
-void ProtocolGame::sendTransferCoins(const std::string_view recipient, const uint16_t amount)
+void ProtocolGame::sendTransferCoins(const std::string_view recipient, const uint32_t amount)
 {
     const auto& msg = std::make_shared<OutputMessage>();
     msg->addU8(Proto::ClientTransferCoins);

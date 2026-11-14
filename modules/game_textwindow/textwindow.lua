@@ -14,6 +14,34 @@ local function isTextWindowWriteable(itemId, maxLength, text)
 	return maxLength > #text or #text == 0 and maxLength > 0
 end
 
+-- Spellbooks (same ids as the server spellbook action) open the 15.33 Spellbook dialog:
+-- the spell list plus a button to the Magical Archive.
+local SPELLBOOK_ITEM_IDS = {
+	[3059] = true,
+	[6120] = true,
+	[8072] = true,
+	[8073] = true,
+	[8074] = true,
+	[8075] = true,
+	[8076] = true,
+	[8090] = true,
+	[11691] = true,
+	[14769] = true,
+	[16107] = true,
+	[20088] = true,
+	[20089] = true,
+	[20090] = true,
+	[21400] = true,
+	[22755] = true,
+	[25699] = true,
+	[29431] = true,
+	[34153] = true
+}
+
+local function isSpellBookText(itemId, writeable)
+	return not writeable and SPELLBOOK_ITEM_IDS[itemId] == true and g_game.getClientVersion() >= 1533
+end
+
 local function setTextWindowTitle(textWindow, writeable)
 	textWindow:setText(tr(writeable and "Edit Text" or "Show Text"))
 end
@@ -122,6 +150,8 @@ function onGameEditText(id, itemId, maxLength, text, writer, time)
 	local textEdit = textWindow:recursiveGetChildById("textEdit")
 	local okButton = textWindow:getChildById("okButton")
 	local cancelButton = textWindow:getChildById("cancelButton")
+	local openArchiveButton = textWindow:getChildById("openArchiveButton")
+	local spellBook = isSpellBookText(itemId, writeable)
 
 	if textItem:isHidden() then
 		textItem:show()
@@ -162,6 +192,12 @@ function onGameEditText(id, itemId, maxLength, text, writer, time)
 		desc = desc .. "\n"
 	end
 
+	if spellBook then
+		textWindow:setText(tr("Spellbook"))
+
+		desc = tr("You know the following spells. Look them up in the Magical Archive for details.")
+	end
+
 	description:setText(desc)
 	okButton:setText(tr("Ok"))
 	cancelButton:setText(tr("Cancel"))
@@ -192,6 +228,18 @@ function onGameEditText(id, itemId, maxLength, text, writer, time)
 
 	okButton.onClick = doneFunc
 	cancelButton.onClick = destroy
+
+	if spellBook and openArchiveButton then
+		openArchiveButton:setVisible(true)
+
+		function openArchiveButton.onClick()
+			destroy()
+
+			if modules.game_cyclopedia and modules.game_cyclopedia.show then
+				modules.game_cyclopedia.show("magicalArchives")
+			end
+		end
+	end
 
 	if not writeable then
 		textWindow.onEnter = doneFunc

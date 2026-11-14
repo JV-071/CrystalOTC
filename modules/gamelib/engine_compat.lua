@@ -619,6 +619,14 @@ if Thing then
 	end)
 end
 
+-- ThingType is not a Thing in Lua; Cyclopedia.openItemInCyclopedia and the Task Board delivery items
+-- call isCyclopediaItem on the type returned by g_things.getThingType
+if ThingType then
+	install(ThingType, "isCyclopediaItem", function(self)
+		return self.getCyclopediaType and self:getCyclopediaType() > 0 or false
+	end)
+end
+
 if LocalPlayer then
 	install(LocalPlayer, "getBlessingsIconColor", function(self)
 		if self and self.getBlessVisualState then

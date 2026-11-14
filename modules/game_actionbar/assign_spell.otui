@@ -131,7 +131,7 @@ SpellListLabel < Panel
 
 MainWindowHigh
   !text: tr('Assign Spell')
-  size: 375 609
+  size: 375 660
   font: $var-cip-font-new
   color: #909090
   text-offset: 0 2
@@ -157,7 +157,7 @@ MainWindowHigh
     anchors.top: splitter.bottom
     anchors.left: parent.left
     anchors.right: parent.right
-    height: 420
+    height: 380
     margin-top: 11
     image-source: /images/ui/1pixel-down-frame
     image-border: 3
@@ -253,14 +253,37 @@ MainWindowHigh
     anchors.left: prev.right
     margin-left: 4
     margin-top: 11
+    @onTextChange: modules.game_actionbar.refreshSpellAssignPreviewFormula()
+
+  Label
+    id: targetOptionsLabel
+    !text: tr("Target options:")
+    anchors.left: parent.left
+    anchors.top: parameterTextEdit.bottom
+    margin-top: 10
+    margin-left: -1
+    font: $var-cip-font-new
+    color: #707070
+    text-auto-resize: true
+
+  Label
+    id: targetOptionsNoneLabel
+    !text: tr("None")
+    anchors.left: parent.left
+    anchors.top: targetOptionsLabel.bottom
+    margin-top: 6
+    margin-left: 1
+    font: $var-cip-font-new
+    color: #707070
+    text-auto-resize: true
 
   Panel
     id: castModePanel
     anchors.left: parent.left
     anchors.right: parent.right
-    anchors.top: parameterTextEdit.bottom
-    margin-top: 0
-    height: 0
+    anchors.top: targetOptionsLabel.bottom
+    margin-top: 6
+    height: 58
     visible: false
 
     RoundedCheckBox

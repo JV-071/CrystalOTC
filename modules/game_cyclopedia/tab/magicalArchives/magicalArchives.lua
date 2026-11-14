@@ -321,6 +321,7 @@ local function normalizeSpell(entry, previewById)
 		id = id,
 		name = entry.name or "Unknown",
 		words = entry.formulaWithoutParams or "",
+		parameterHints = type(entry.parameterHints) == "string" and entry.parameterHints or "",
 		spellGroup = group,
 		type = entry.isRune and "Conjure" or "Instant",
 		isRune = entry.isRune == true,
@@ -497,8 +498,13 @@ local function collectDirectionalSpellIds()
 	return ids
 end
 
+-- 15.33 removed the Aim at Target option (0xC8): waves and beams get their cast type per action button.
+local function isAimAtTargetOptionAvailable()
+	return g_game.getClientVersion() < 1533
+end
+
 local function sendDirectionalSpellsAimUpdate(enabled)
-	if not g_game or not g_game.sendSelectSpellAim then
+	if not g_game or not g_game.sendSelectSpellAim or not isAimAtTargetOptionAvailable() then
 		return
 	end
 
@@ -1215,9 +1221,19 @@ local function updateRuneSpellUI(spell)
 	createVocationIcons(UI:recursiveGetChildById("runeVocationsPanel"), spell.vocations, true)
 end
 
+local function setAssignSpellButtonEnabled(enabled)
+	local assignSpellBtn = UI and UI:recursiveGetChildById("assignSpellBtn")
+
+	if assignSpellBtn then
+		assignSpellBtn:setEnabled(enabled)
+	end
+end
+
 local function selectSpellDetails(spell)
 	currentSpell = spell
 	lastSelectedSpellId = spell and spell.id or nil
+
+	setAssignSpellButtonEnabled(spell ~= nil)
 
 	local emptyState = UI:recursiveGetChildById("emptyState")
 
@@ -1249,7 +1265,9 @@ local function selectSpellDetails(spell)
 	local spellWords = spellDetails:recursiveGetChildById("spellWords")
 
 	if spellWords then
-		spellWords:setText(spell.words or "")
+		local hints = spell.parameterHints or ""
+
+		spellWords:setText((spell.words or "") .. (hints ~= "" and " " .. hints or ""))
 	end
 
 	local spellLevel = spellDetails:recursiveGetChildById("spellLevel")
@@ -1280,7 +1298,7 @@ local function selectSpellDetails(spell)
 	local aimTargetBox = UI:recursiveGetChildById("aimTargetBox")
 
 	if aimTargetBox then
-		local showAimTarget = isDirectionalSpell(spell)
+		local showAimTarget = isDirectionalSpell(spell) and isAimAtTargetOptionAvailable()
 
 		aimTargetBox:setVisible(showAimTarget)
 
@@ -1386,6 +1404,14 @@ function updateSpellListUI()
 		emptyLabel:setTextAlign(AlignCenter)
 
 		currentSpell = nil
+
+		setAssignSpellButtonEnabled(false)
+
+		local aimTargetBox = UI:recursiveGetChildById("aimTargetBox")
+
+		if aimTargetBox then
+			aimTargetBox:setVisible(false)
+		end
 	else
 		local widgetToSelect = selectedWidget or firstWidget
 

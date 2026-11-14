@@ -500,6 +500,122 @@ local function updateAreaDonationButtons(panel)
 	donateButton:setEnabled(hasArea and selectedDonationAmount > 0 and g_game.getProtocolGame() ~= nil)
 end
 
+-- 0xDD discovery state from the server: sub 1 main area progress and subarea lists,
+-- sub 5 viewpoints of a subarea, sub 9 donations, sub 10 subarea being explored, sub 11 speed bonus
+local DISCOVERY_STATUS_COMPLETE = 3
+local DISCOVERY_PROGRESS_NOT_DISCOVERABLE = 255
+
+local function newMapDiscoveryState()
+	return {
+		mains = {},
+		discovered = {},
+		discoverable = {},
+		viewpoints = {},
+		donationGoal = 0,
+		donations = {},
+		exploringSubAreaId = 0,
+		speedBonus = 0
+	}
+end
+
+Cyclopedia.mapDiscovery = Cyclopedia.mapDiscovery or newMapDiscoveryState()
+
+local function setBarFill(bar, fill, ratio)
+	if not bar or not fill then
+		return
+	end
+
+	ratio = math.max(0, math.min(1, ratio or 0))
+
+	local inner = bar:getWidth() - fill:getMarginLeft() - fill:getMarginRight()
+
+	if inner <= 0 then
+		-- not laid out yet, try again on the next frame
+		addEvent(function()
+			if not bar:isDestroyed() and bar:getWidth() > 0 then
+				setBarFill(bar, fill, ratio)
+			end
+		end)
+
+		return
+	end
+
+	fill:setWidth(math.floor(inner * ratio))
+	fill:setVisible(ratio > 0)
+end
+
+local function applyDiscoveryInfo(panel, data, isSubarea)
+	local state = Cyclopedia.mapDiscovery
+	local mainAreaId = isSubarea and selectedParentAreaId or data.id
+	local main = state.mains[mainAreaId]
+	local bar = panel:recursiveGetChildById("discoveryProgress")
+	local percentLabel = panel:recursiveGetChildById("discoveryPercent")
+	local fill = panel:recursiveGetChildById("discoveryFill")
+
+	if main and main.progress ~= DISCOVERY_PROGRESS_NOT_DISCOVERABLE then
+		local progress = math.min(100, main.progress)
+
+		percentLabel:setText(string.format("%d%%", progress))
+		setBarFill(bar, fill, progress / 100)
+	else
+		-- the server lists only areas that can be explored; before its first list arrives show 0%
+		local listed = main ~= nil or next(state.mains) ~= nil
+
+		percentLabel:setText(listed and tr("Not discoverable") or "0%")
+		setBarFill(bar, fill, 0)
+	end
+
+	local tooltip = tr("Exploration progress of this area.")
+
+	if state.speedBonus > 0 then
+		tooltip = tooltip .. "\n" .. tr("While you stand in a fully explored subarea, your speed is increased by %d.", state.speedBonus)
+	end
+
+	bar:setTooltip(tooltip)
+
+	local status = panel:recursiveGetChildById("discoveryStatus")
+
+	if status and isSubarea then
+		local subId = data.id
+		local viewpoints = state.viewpoints[subId]
+
+		if state.discovered[subId] then
+			status:setText(tr("Subarea fully explored."))
+		elseif state.discoverable[subId] then
+			if viewpoints and viewpoints.count > 0 then
+				status:setText(tr("%d / %d viewpoints found", viewpoints.found, viewpoints.count))
+			else
+				status:setText(tr("Not explored yet."))
+			end
+		else
+			status:setText(tr("Not discoverable."))
+		end
+	end
+
+	local donationAreaId = getSelectedDonationAreaId()
+	local donation = state.donations[donationAreaId]
+	local donated = donation and donation.donated or 0
+	local goal = state.donationGoal or 0
+	local respawnBar = panel:recursiveGetChildById("respawnRateValue")
+	local amountLabel = panel:recursiveGetChildById("respawnRateAmount")
+
+	if amountLabel then
+		amountLabel:setText(comma_value(donated))
+	end
+
+	if respawnBar then
+		setBarFill(respawnBar, panel:recursiveGetChildById("respawnRateFill"), goal > 0 and donated / goal or 0)
+
+		local respawnTooltip = goal > 0 and tr("%s of %s gold donated.", comma_value(donated), comma_value(goal)) or tr("%s gold donated.", comma_value(donated))
+
+		if donation and donation.improved then
+			respawnTooltip = respawnTooltip .. "\n" .. tr("The improved respawn rate is active in this area.")
+		end
+
+		respawnBar:setTooltip(respawnTooltip)
+	end
+end
+
 local function updateAreaInfoPanel()
 	local panel = getAreaInfoPanel()
 	local data = getAreaData(selectedAreaId)
@@ -518,7 +634,6 @@ local function updateAreaInfoPanel()
 
 	panel:setText(isSubarea and tr("Subarea") or tr("Area"))
 	setElidedAreaPanelText(panel:recursiveGetChildById("areaName"), parentData and parentData.name or data.name)
-	panel:recursiveGetChildById("discoveryPercent"):setText("0%")
 
 	local description = panel:recursiveGetChildById("areaDescription")
 
@@ -526,6 +641,107 @@ local function updateAreaInfoPanel()
 	updateAreaDonationButtons(panel)
 	applyAreaPanelState(panel, data)
 	panel:setVisible(true)
+	applyDiscoveryInfo(panel, data, isSubarea)
+end
+
+local function refreshMapDiscoveryInfo()
+	if UI and getAreaInfoPanel() then
+		updateAreaInfoPanel()
+	end
+end
+
+function Cyclopedia.onCyclopediaMapDiscoveryData(mains, discovered, discoverable)
+	local state = Cyclopedia.mapDiscovery
+
+	state.mains = {}
+	state.discovered = {}
+	state.discoverable = {}
+
+	for _, entry in ipairs(mains or {}) do
+		local areaId = tonumber(entry[1])
+
+		if areaId then
+			state.mains[areaId] = {
+				status = tonumber(entry[2]) or 0,
+				progress = tonumber(entry[3]) or 0
+			}
+		end
+	end
+
+	for _, subId in ipairs(discovered or {}) do
+		state.discovered[tonumber(subId)] = true
+	end
+
+	for _, subId in ipairs(discoverable or {}) do
+		state.discoverable[tonumber(subId)] = true
+	end
+
+	refreshMapDiscoveryInfo()
+end
+
+function Cyclopedia.onCyclopediaMapDiscoveryArea(areaId, active, poiTarget, points)
+	areaId = tonumber(areaId)
+
+	if not areaId then
+		return
+	end
+
+	local found = 0
+	local count = 0
+
+	for _, point in ipairs(points or {}) do
+		count = count + 1
+
+		if (tonumber(point[4]) or 0) ~= 0 then
+			found = found + 1
+		end
+	end
+
+	local target = tonumber(poiTarget) or 0
+
+	Cyclopedia.mapDiscovery.viewpoints[areaId] = {
+		active = (tonumber(active) or 0) ~= 0,
+		found = found,
+		count = target > 0 and target or count
+	}
+
+	refreshMapDiscoveryInfo()
+end
+
+function Cyclopedia.onCyclopediaMapDonations(goal, areas)
+	local state = Cyclopedia.mapDiscovery
+
+	state.donationGoal = tonumber(goal) or 0
+	state.donations = {}
+
+	for _, entry in ipairs(areas or {}) do
+		local areaId = tonumber(entry[1])
+
+		if areaId then
+			state.donations[areaId] = {
+				improved = (tonumber(entry[2]) or 0) ~= 0,
+				donated = tonumber(entry[3]) or 0
+			}
+		end
+	end
+
+	refreshMapDiscoveryInfo()
+end
+
+function Cyclopedia.onCyclopediaMapCurrentArea(subAreaId)
+	Cyclopedia.mapDiscovery.exploringSubAreaId = tonumber(subAreaId) or 0
+
+	refreshMapDiscoveryInfo()
+end
+
+function Cyclopedia.onCyclopediaMapExplorationReward(speedBonus)
+	Cyclopedia.mapDiscovery.speedBonus = tonumber(speedBonus) or 0
+
+	refreshMapDiscoveryInfo()
+end
+
+function Cyclopedia.resetMapDiscovery()
+	Cyclopedia.mapDiscovery = newMapDiscoveryState()
 end
 
 function Cyclopedia.toggleMapSection(section)

@@ -241,6 +241,39 @@ BountyTaskSlotPanel < QtPanel
       font: verdana-11px-monochrome
       color: $var-text-cip-color
       text-auto-resize: true
+
+    // 15.33: Platinum tier icon drawn over the plain backdrop
+    UIWidget
+      id: tierIcon
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: 1
+      margin-left: 24
+      size: 33 43
+      phantom: true
+      visible: false
+
+    // 15.33: Elite task marker
+    UIWidget
+      id: eliteIcon
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: 5
+      margin-left: 230
+      size: 28 30
+      visible: false
+
+    UILabel
+      id: eliteText
+      text: Elite
+      anchors.top: parent.top
+      anchors.right: parent.right
+      margin-top: 15
+      margin-right: 22
+      font: verdana-11px-monochrome
+      color: #ff9854
+      text-auto-resize: true
+      visible: false
   
   UIWidget
     anchors.top: parent.top
@@ -382,11 +415,36 @@ BountyTaskSlotPanel < QtPanel
     margin-left: 6
 
   UIWidget
+    id: bountyPointsIcon
     anchors.top: asBounty.top
     anchors.left: bountyPointsLabel.right
     image-source: /modules/game_taskboard/images/icon-currency-bountypoints
     margin-top: -3
     margin-left: 4
+    !tooltip: tr('Bounty Points')
+
+  // 15.33: Elite dust reward
+  UILabel
+    id: dustLabel
+    anchors.top: asBounty.top
+    anchors.left: bountyPointsIcon.right
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-auto-resize: true
+    margin-top: -5
+    margin-left: 4
+    visible: false
+
+  UIWidget
+    id: dustIcon
+    anchors.top: asBounty.top
+    anchors.left: dustLabel.right
+    size: 9 6
+    image-source: /images/icons/icon-currency-dust
+    margin-top: -1
+    margin-left: 4
+    !tooltip: tr('Dust')
+    visible: false
 
   // Reroll
   UIWidget
@@ -409,11 +467,25 @@ BountyTaskSlotPanel < QtPanel
     margin-left: 6
   
   UIWidget
+    id: rerollIcon
     anchors.top: asReroll.top
     anchors.left: rerollLabel.right
     image-source: /modules/game_taskboard/images/icon-currency-taskreroll
     margin-top: -4
     margin-left: 5
+    !tooltip: tr('Bounty Reroll Token')
+
+  UILabel
+    id: rerollLimitLabel
+    !text: tr('(Limit reached!)')
+    anchors.top: asReroll.top
+    anchors.left: rerollIcon.right
+    font: verdana-11px-monochrome
+    color: $var-text-cip-color
+    text-auto-resize: true
+    margin-top: -5
+    margin-left: 6
+    visible: false
 
   Button
     id: selectTaskButton
@@ -456,6 +528,7 @@ BountyTaskPanel < Panel
     padding-top: 20
 
     UIWidget
+      id: difficultyHelp
       anchors.top: parent.top
       anchors.left: parent.left
       margin-top: 11
@@ -473,6 +546,7 @@ BountyTaskPanel < Panel
       margin-bottom: 11
 
     Label
+      id: difficultyLabel
       anchors.top: parent.top
       anchors.left: prev.right
       margin-top: 11
@@ -500,9 +574,32 @@ BountyTaskPanel < Panel
         self:addOption(tr('Master'))
         self:setCurrentOption(tr('Beginner'))
 
-    UIButton
+    // 15.33: Elite setting for the next tasks (hidden for older clients)
+    UIWidget
+      id: eliteIcon
       anchors.top: parent.top
-      anchors.left: prev.right
+      anchors.left: showFilterDifficulty.right
+      margin-top: 2
+      margin-left: 10
+      size: 28 30
+      opacity: 0.4
+      visible: false
+
+    QtCheckBox
+      id: eliteCheck
+      !text: tr('Elite')
+      anchors.top: parent.top
+      anchors.left: eliteIcon.right
+      margin-top: 10
+      margin-left: 6
+      width: 52
+      visible: false
+      @onCheckChange: modules.game_taskboard.TaskBoard.BountyTask:onEliteToggled(self:isChecked())
+
+    UIButton
+      id: preferredListButton
+      anchors.top: parent.top
+      anchors.left: showFilterDifficulty.right
       margin-top: 7
       margin-left: 26
       size: 108 20
@@ -563,10 +660,21 @@ BountyTaskPanel < Panel
         text-auto-resize: true
         font: verdana-11px-monochrome
     
+    UIWidget
+      id: rerollLimitIcon
+      anchors.top: parent.top
+      anchors.left: rerollPanel.right
+      margin-top: 12
+      margin-left: 6
+      size: 10 10
+      image-source: /images/icons/icon-inline-warning
+      !tooltip: tr('Limit reached.')
+      visible: false
+
     UIButton
       id: claimButton
       anchors.top: parent.top
-      anchors.left: prev.right
+      anchors.left: rerollPanel.right
       margin-top: 7
       margin-left: 16
       size: 108 20

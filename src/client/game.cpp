@@ -74,6 +74,8 @@ void Game::resetGameStates()
     m_localPlayer = nullptr;
     m_pingSent = 0;
     m_pingReceived = 0;
+    m_nextTalkAim = {};
+    m_nextTalkAimMode = UINT8_MAX;
     m_unjustifiedPoints = UnjustifiedPoints();
 
     for (const auto& it : m_containers) {
@@ -549,12 +551,12 @@ void Game::processCyclopediaCharacterAppearances(const OutfitColorStruct& curren
 
 void Game::processCyclopediaCharacterRecentDeaths(const CyclopediaCharacterRecentDeaths& data)
 {
-    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentDeaths", data);
+    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentDeaths", data, data.page, data.pageCount);
 }
 
 void Game::processCyclopediaCharacterRecentPvpKills(const CyclopediaCharacterRecentPvPKills& data)
 {
-    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentKills", data);
+    g_lua.callGlobalField("g_game", "onCyclopediaCharacterRecentKills", data, data.page, data.pageCount);
 }
 
 void Game::processBosstiaryInfo(const std::vector<BosstiaryData>& boss)
@@ -1014,8 +1016,12 @@ void Game::cancelAttackAndFollow()
 
 void Game::talk(const std::string_view message)
 {
-    if (!canPerformGameAction() || message.empty())
+    if (!canPerformGameAction() || message.empty()) {
+        // drop a staged spell aim so it never rides on a later chat message
+        m_nextTalkAim = {};
+        m_nextTalkAimMode = UINT8_MAX;
         return;
+    }
 
     talkChannel(Otc::MessageSay, 0, message);
 }
@@ -1621,7 +1627,7 @@ void Game::openStore(const uint8_t serviceType, const std::string_view category)
     m_protocolGame->sendOpenStore(serviceType, category);
 }
 
-void Game::transferCoins(const std::string_view recipient, const uint16_t amount)
+void Game::transferCoins(const std::string_view recipient, const uint32_t amount)
 {
     if (!canPerformGameAction())
         return;
@@ -2009,7 +2015,8 @@ void Game::sendStartOfflineTraining(const uint8_t skillType)
 
 void Game::sendSelectSpellAim(const std::vector<uint16_t>& spellIds, bool enabled)
 {
-    if (!canPerformGameAction())
+    // 0xC8 was removed in 15.33: the cast type is chosen per action button and sent with the say.
+    if (!canPerformGameAction() || getClientVersion() >= 1533)
         return;
 
     m_protocolGame->sendSelectSpellAim(spellIds, enabled);

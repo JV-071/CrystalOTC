@@ -69,7 +69,8 @@ function init()
 		onCombatAbsorbValuesChange = onCombatAbsorbValuesChange,
 		onMagicLevelBonusesChange = onMagicLevelBonusesChange,
 		onForgeBonusesChange = onForgeBonusesChange,
-		onExperienceRateChange = onExperienceRateChange
+		onExperienceRateChange = onExperienceRateChange,
+		onExpBoostTimeChange = onExpBoostTimeChange
 	})
 	connect(g_game, {
 		onGameStart = online,
@@ -171,7 +172,8 @@ function terminate()
 		onCombatAbsorbValuesChange = onCombatAbsorbValuesChange,
 		onMagicLevelBonusesChange = onMagicLevelBonusesChange,
 		onForgeBonusesChange = onForgeBonusesChange,
-		onExperienceRateChange = onExperienceRateChange
+		onExperienceRateChange = onExperienceRateChange,
+		onExpBoostTimeChange = onExpBoostTimeChange
 	})
 	disconnect(g_game, {
 		onGameStart = online,
@@ -2092,12 +2094,29 @@ function updateXpGainRateWidgetFromData(xpGainRateWidget, rates, context)
 		tooltip = tooltip .. string.format("\n- Voucher: %d%%", rates.voucher)
 	end
 
-	if (rates.xpBoost or 0) > 0 then
-		tooltip = tooltip .. string.format("\n- XP Boost: %d%% (%s h remaining)", rates.xpBoost, formatTimeBySeconds(context.xpBoostRemainingSeconds or 0))
-	end
+	if g_game.getClientVersion() >= 1533 then
+		-- 15.33 lists both boosts; a boost with time left but 0% is paused (e.g. in a protection zone)
+		local function appendBoostLine(label, percent, seconds)
+			percent = percent or 0
+			seconds = seconds or 0
 
-	if (rates.dailyBoost or 0) > 0 then
-		tooltip = tooltip .. string.format("\n- Daily Reward XP Boost: %d%% (%s h remaining)", rates.dailyBoost, formatTimeBySeconds(context.dailyBoostRemainingSeconds or 0))
+			if percent > 0 then
+				tooltip = tooltip .. string.format("\n- %s: +%d%% (%s h remaining)", label, percent, formatTimeBySeconds(seconds))
+			elseif seconds > 0 then
+				tooltip = tooltip .. string.format("\n- %s: paused (%s h remaining)", label, formatTimeBySeconds(seconds))
+			end
+		end
+
+		appendBoostLine("Daily Reward XP Boost", rates.dailyBoost, context.dailyBoostRemainingSeconds)
+		appendBoostLine("Store XP Boost", rates.xpBoost, context.xpBoostRemainingSeconds)
+	else
+		if (rates.xpBoost or 0) > 0 then
+			tooltip = tooltip .. string.format("\n- XP Boost: %d%% (%s h remaining)", rates.xpBoost, formatTimeBySeconds(context.xpBoostRemainingSeconds or 0))
+		end
+
+		if (rates.dailyBoost or 0) > 0 then
+			tooltip = tooltip .. string.format("\n- Daily Reward XP Boost: %d%% (%s h remaining)", rates.dailyBoost, formatTimeBySeconds(context.dailyBoostRemainingSeconds or 0))
+		end
 	end
 
 	if staminaMultiplier > 100 then
@@ -2146,7 +2165,14 @@ function updateExperienceRate(localPlayer)
 		end
 
 		if xpBoostButton then
-			if (ExpRating[ExperienceRate.XP_BOOST] or 0) > 0 then
+			local storeBoostRunning = (ExpRating[ExperienceRate.XP_BOOST] or 0) > 0
+
+			if g_game.getClientVersion() >= 1533 and localPlayer and localPlayer:getStoreExpBoostTime() > 0 then
+				-- 15.33 sends 0% while the store boost is paused; it still cannot be bought again
+				storeBoostRunning = true
+			end
+
+			if storeBoostRunning then
 				xpBoostButton:hide()
 			else
 				xpBoostButton:show()
@@ -2171,6 +2197,12 @@ function onExperienceRateChange(localPlayer, type, value)
 	ExpRating[type] = value
 
 	updateExperienceRate(localPlayer)
+end
+
+function onExpBoostTimeChange(localPlayer)
+	if skillsWindow then
+		updateExperienceRate(localPlayer)
+	end
 end
 
 local function formatImbuementPercent(value)

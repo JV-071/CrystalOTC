@@ -60,23 +60,6 @@ local SLOTS = {
 	[1] = "LeftBase",
 	[2] = "RightBase"
 }
-local CONFIG = {
-	[0] = {
-		MASTERY = 300,
-		PROWESS = 25,
-		EXPERTISE = 100
-	},
-	{
-		MASTERY = 60,
-		PROWESS = 5,
-		EXPERTISE = 20
-	},
-	{
-		MASTERY = 5,
-		PROWESS = 1,
-		EXPERTISE = 3
-	}
-}
 
 Cyclopedia.BossSlots = {}
 
@@ -195,16 +178,16 @@ function Cyclopedia.loadBossSlots(data)
 	local boostedKillCount = data.todaySlotData.killCount or 0
 	local fullText = ""
 
-	if boostedKillCount >= CONFIG[data.todaySlotData.bossRace].MASTERY then
+	if boostedKillCount >= Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).MASTERY then
 		fullText = "(fully unlocked)"
 	end
 
 	local progress = UI.BoostedProgress
 
-	progress.ProgressBorder1:setTooltip(string.format(" %d / %d %s", boostedKillCount, CONFIG[data.todaySlotData.bossRace].PROWESS, fullText))
-	progress.ProgressBorder2:setTooltip(string.format(" %d / %d %s", boostedKillCount, CONFIG[data.todaySlotData.bossRace].EXPERTISE, fullText))
-	progress.ProgressBorder3:setTooltip(string.format(" %d / %d %s", boostedKillCount, CONFIG[data.todaySlotData.bossRace].MASTERY, fullText))
-	Cyclopedia.setBosstiaryBossStars(progress, boostedKillCount, CONFIG[data.todaySlotData.bossRace])
+	progress.ProgressBorder1:setTooltip(string.format(" %d / %d %s", boostedKillCount, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).PROWESS, fullText))
+	progress.ProgressBorder2:setTooltip(string.format(" %d / %d %s", boostedKillCount, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).EXPERTISE, fullText))
+	progress.ProgressBorder3:setTooltip(string.format(" %d / %d %s", boostedKillCount, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).MASTERY, fullText))
+	Cyclopedia.setBosstiaryBossStars(progress, boostedKillCount, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace))
 	UI.MainLabel:setText(string.format("Equipment loot bonus: %d%%\nKill bonus: %dx", data.todaySlotData.lootBonus, data.todaySlotData.killBonus))
 	Cyclopedia.setBosstiarySlotsProgress(data.playerPoints, data.totalPointsNextBonus)
 
@@ -219,12 +202,12 @@ function Cyclopedia.loadBossSlots(data)
 	local unlockedBosses = data.bossIdSlotTwo
 
 	UI.MidTitle:setText(string.format("Boosted Boss: %s", format(raceData.name)))
-	Cyclopedia.setBosstiarySlotsBossProgress(UI.BoostedProgress, data.todaySlotData.killCount, CONFIG[data.todaySlotData.bossRace].PROWESS, CONFIG[data.todaySlotData.bossRace].EXPERTISE, CONFIG[data.todaySlotData.bossRace].MASTERY)
+	Cyclopedia.setBosstiarySlotsBossProgress(UI.BoostedProgress, data.todaySlotData.killCount, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).PROWESS, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).EXPERTISE, Cyclopedia.getBosstiaryLevels(data.todaySlotData.bossRace).MASTERY)
 	UI.TypeIcon:setImageSource(ICONS[data.todaySlotData.bossRace])
 
-	local tooltip = "Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30"
+	local tooltip = Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE)
 
-	tooltip = data.todaySlotData.bossRace == CATEGORY.ARCHFOE and "Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60" or "Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60"
+	tooltip = data.todaySlotData.bossRace == CATEGORY.ARCHFOE and Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE) or Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS)
 
 	UI.TypeIcon:setTooltip(tooltip)
 
@@ -326,10 +309,10 @@ function Cyclopedia.setLockedSlot(widget, slot, unlockedBosses)
 		internalWidget.Sprite:getCreature():setStaticWalking(1000)
 		internalWidget.TypeIcon:setImageSource(ICONS[internalData.category])
 
-		local tooltip = internalData.category == CATEGORY.ARCHFOE and "Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60" or "Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60"
+		local tooltip = internalData.category == CATEGORY.ARCHFOE and Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE) or Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS)
 
 		if internalData.category ~= CATEGORY.ARCHFOE then
-			tooltip = "Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30"
+			tooltip = Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE)
 		end
 
 		internalWidget.TypeIcon:setTooltip(tooltip)
@@ -353,24 +336,24 @@ function Cyclopedia.setActiveSlot(widget, slot, slotData, data, bossId)
 	widget.ActivedBoss:setVisible(true)
 	widget:setText(string.format("Slot %d: %s", slot, raceData.name))
 	widget.ActivedBoss.TypeIcon:setImageSource(ICONS[slotData.bossRace])
-	Cyclopedia.setBosstiarySlotsBossProgress(widget.ActivedBoss.Progress, currentKills, CONFIG[slotData.bossRace].PROWESS, CONFIG[slotData.bossRace].EXPERTISE, CONFIG[slotData.bossRace].MASTERY)
+	Cyclopedia.setBosstiarySlotsBossProgress(widget.ActivedBoss.Progress, currentKills, Cyclopedia.getBosstiaryLevels(slotData.bossRace).PROWESS, Cyclopedia.getBosstiaryLevels(slotData.bossRace).EXPERTISE, Cyclopedia.getBosstiaryLevels(slotData.bossRace).MASTERY)
 
-	local tooltip = slotData.bossRace == CATEGORY.ARCHFOE and "Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60" or "Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60"
+	local tooltip = slotData.bossRace == CATEGORY.ARCHFOE and Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE) or Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS)
 
 	if slotData.bossRace ~= CATEGORY.ARCHFOE then
-		tooltip = "Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30"
+		tooltip = Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE)
 	end
 
 	widget.ActivedBoss.TypeIcon:setTooltip(tooltip)
 	widget.ActivedBoss.Progress.ProgressBorder1:setTooltip()
 
-	local fullText = currentKills >= CONFIG[slotData.bossRace].MASTERY and "(fully unlocked)" or ""
+	local fullText = currentKills >= Cyclopedia.getBosstiaryLevels(slotData.bossRace).MASTERY and "(fully unlocked)" or ""
 	local progress = widget.ActivedBoss.Progress
 
-	progress.ProgressBorder1:setTooltip(string.format(" %d / %d %s", currentKills, CONFIG[slotData.bossRace].PROWESS, fullText))
-	progress.ProgressBorder2:setTooltip(string.format(" %d / %d %s", currentKills, CONFIG[slotData.bossRace].EXPERTISE, fullText))
-	progress.ProgressBorder3:setTooltip(string.format(" %d / %d %s", currentKills, CONFIG[slotData.bossRace].MASTERY, fullText))
-	Cyclopedia.setBosstiaryBossStars(progress, currentKills, CONFIG[slotData.bossRace])
+	progress.ProgressBorder1:setTooltip(string.format(" %d / %d %s", currentKills, Cyclopedia.getBosstiaryLevels(slotData.bossRace).PROWESS, fullText))
+	progress.ProgressBorder2:setTooltip(string.format(" %d / %d %s", currentKills, Cyclopedia.getBosstiaryLevels(slotData.bossRace).EXPERTISE, fullText))
+	progress.ProgressBorder3:setTooltip(string.format(" %d / %d %s", currentKills, Cyclopedia.getBosstiaryLevels(slotData.bossRace).MASTERY, fullText))
+	Cyclopedia.setBosstiaryBossStars(progress, currentKills, Cyclopedia.getBosstiaryLevels(slotData.bossRace))
 	widget.ActivedBoss.Sprite:setOutfit(raceData.outfit)
 	widget.ActivedBoss.Sprite:getCreature():setStaticWalking(1000)
 	widget.ActivedBoss.EquipmentLabel:setText(string.format("Equipment loot bonus: %d%%", slotData.lootBonus))
@@ -543,9 +526,9 @@ function Cyclopedia.readjustSelectBoss()
 			internalWidget.Sprite:getCreature():setStaticWalking(1000)
 			internalWidget.TypeIcon:setImageSource(icons[internalData.category])
 
-			local tooltip = "Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30"
+			local tooltip = Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE)
 
-			tooltip = internalData.category == CATEGORY.ARCHFOE and "Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60" or "Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60"
+			tooltip = internalData.category == CATEGORY.ARCHFOE and Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE) or Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS)
 
 			internalWidget.TypeIcon:setTooltip(tooltip)
 		end

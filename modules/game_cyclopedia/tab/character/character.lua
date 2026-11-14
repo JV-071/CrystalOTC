@@ -282,9 +282,13 @@ function showCharacter()
 					itemWidget:setIcon(Cyclopedia.InventorySlotStyles[i].icon)
 					itemWidget:setItem(nil)
 				end
+
+				itemWidget.dualWieldGhost = nil
+				itemWidget:setOpacity(1)
 			end
 		end
 
+		Cyclopedia.applyCharacterDualWieldSlot(player)
 		Cyclopedia.bindCharacterInventorySlots()
 		bindCharacterButtonIcon(UI.InfoBase.CharacterButton)
 
@@ -1415,7 +1419,43 @@ local function getRecentKillStatusInfo(status)
 	return tostring(status), "#C0C0C0"
 end
 
-function Cyclopedia.loadCharacterRecentKills(data)
+-- Battle results come in pages (0xDA types 3 and 4 start with u16 page, u16 page count)
+local BATTLE_RESULTS_PER_PAGE = 23
+
+local function updateBattleResultsPager(panel, infoType, page, pageCount)
+	if not panel or not panel.previous or not panel.next or not panel.pages then
+		return
+	end
+
+	page = math.max(1, tonumber(page) or 1)
+	pageCount = math.max(1, tonumber(pageCount) or 1)
+
+	panel.pages:setText(tr("Page %d / %d", page, pageCount))
+	panel.previous:setEnabled(page > 1)
+	panel.next:setEnabled(page < pageCount)
+
+	local function requestPage(newPage)
+		-- like 15.33, both buttons stay disabled until the requested page arrives
+		panel.previous:setEnabled(false)
+		panel.next:setEnabled(false)
+		g_game.requestCharacterInfo(0, infoType, BATTLE_RESULTS_PER_PAGE, newPage)
+	end
+
+	panel.previous.onClick = function()
+		requestPage(page - 1)
+	end
+
+	panel.next.onClick = function()
+		requestPage(page + 1)
+	end
+end
+
+function Cyclopedia.loadCharacterRecentKills(data, page, pageCount)
+	if not UI or not UI.RecentKills then
+		return
+	end
+
+	updateBattleResultsPager(UI.RecentKills, CyclopediaCharacterInfoTypes.RecentPVPKills, page, pageCount)
 	UI.RecentKills.ListBase.List:destroyChildren()
 
 	if not table.empty(data) then
@@ -1482,7 +1522,12 @@ function Cyclopedia.loadCharacterRecentKills(data)
 	end
 end
 
-function Cyclopedia.loadCharacterRecentDeaths(data)
+function Cyclopedia.loadCharacterRecentDeaths(data, page, pageCount)
+	if not UI or not UI.RecentDeaths then
+		return
+	end
+
+	updateBattleResultsPager(UI.RecentDeaths, CyclopediaCharacterInfoTypes.RecentDeaths, page, pageCount)
 	UI.RecentDeaths.ListBase.List:destroyChildren()
 
 	if not table.empty(data) then
@@ -2616,12 +2661,45 @@ function Cyclopedia.showCharacterPlayerDetails()
 	Cyclopedia.renderCharacterDescription()
 end
 
+-- A dual wielding weapon also fills the empty shield slot: drawn there half transparent,
+-- like the 15.33 inspection, and not an item of its own.
+function Cyclopedia.applyCharacterDualWieldSlot(player)
+	if not UI or not UI.InfoBase or not UI.InfoBase.inventoryPanel or not player then
+		return
+	end
+
+	local shieldWidget = UI.InfoBase.inventoryPanel["slot" .. InventorySlotRight]
+
+	if not shieldWidget or player:getInventoryItem(InventorySlotRight) then
+		return
+	end
+
+	local weapon = player:getInventoryItem(InventorySlotLeft)
+
+	if not weapon or not weapon.isDualWield or not weapon:isDualWield() then
+		return
+	end
+
+	local ghost = Item.create(weapon:getId(), 1)
+
+	if not ghost then
+		return
+	end
+
+	shieldWidget:setStyle("InventoryItemCyclopedia")
+	shieldWidget:setItem(ghost)
+	shieldWidget:setIcon("")
+	shieldWidget:setOpacity(0.5)
+
+	shieldWidget.dualWieldGhost = true
+end
+
 function Cyclopedia.onCharacterInventorySlotClick(slot, widget)
 	if not Cyclopedia.isCharacterInfoBaseActive() then
 		return
 	end
 
-	local item = widget:getItem()
+	local item = not widget.dualWieldGhost and widget:getItem() or nil
 
 	if not item then
 		Cyclopedia.showCharacterPlayerDetails()

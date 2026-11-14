@@ -326,7 +326,7 @@ Panel
     margin-bottom: 4
     margin-right: 3
     size: 16 16
-    @onClick:
+    @onClick: modules.game_console.openExivaOptions()
 
     $hover !disabled:
       image-clip: 0 96 16 16

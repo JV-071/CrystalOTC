@@ -429,6 +429,7 @@ void Client::registerLuaFunctions()
     g_lua.bindSingletonFunction("g_game", "sendWeaponProficiencySlotAction", &Game::sendWeaponProficiencySlotAction, &g_game);
     g_lua.bindSingletonFunction("g_game", "sendBossDifficultyAction", &Game::sendBossDifficultyAction, &g_game);
     g_lua.bindSingletonFunction("g_game", "setNextTalkAim", &Game::setNextTalkAim, &g_game);
+    g_lua.bindSingletonFunction("g_game", "setNextTalkAimMode", &Game::setNextTalkAimMode, &g_game);
     g_lua.bindSingletonFunction("g_game", "openWheelOfDestiny", &Game::openWheelOfDestiny, &g_game);
     g_lua.bindSingletonFunction("g_game", "applyWheelOfDestiny", &Game::applyWheelOfDestiny, &g_game);
     g_lua.bindSingletonFunction("g_game", "requestBless", &Game::requestBless, &g_game);
