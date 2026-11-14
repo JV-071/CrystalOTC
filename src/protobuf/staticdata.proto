@@ -10,6 +10,21 @@ message Staticdata {
 	repeated Quest quests = 5;
 }
 
+// 15.33 inserts the creature classes as field 2 and moves the other lists up by one.
+message Staticdata1533 {
+	repeated Creature monsters = 1;
+	repeated CreatureClass creatureClasses = 2;
+	repeated Achievement achievements = 3;
+	repeated House houses = 4;
+	repeated Creature bosses = 5;
+	repeated Quest quests = 6;
+}
+
+message CreatureClass {
+	optional uint32 id = 1;
+	optional string name = 2;
+}
+
 message Outfit {
 	optional int32 looktype = 1;
 	optional OutfitColors colors = 2;

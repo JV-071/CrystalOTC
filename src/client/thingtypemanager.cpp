@@ -401,7 +401,18 @@ bool ThingTypeManager::loadStaticData(const std::string& file)
         std::stringstream datFileStream;
         g_resources.readFileStream(g_resources.resolvePath(fmt::format("{}{}", file, staticDataFile)), datFileStream);
         auto staticDataLib = staticdata::Staticdata();
-        if (!staticDataLib.ParseFromIstream(&datFileStream)) {
+        if (g_game.getClientVersion() >= 1533) {
+            // 15.33 adds the creature classes as field 2; move the shared lists into the old message.
+            auto staticData1533 = staticdata::Staticdata1533();
+            if (!staticData1533.ParseFromIstream(&datFileStream)) {
+                throw stdext::exception("Couldn't parse staticdata lib.");
+            }
+            staticDataLib.mutable_monsters()->Swap(staticData1533.mutable_monsters());
+            staticDataLib.mutable_achievements()->Swap(staticData1533.mutable_achievements());
+            staticDataLib.mutable_houses()->Swap(staticData1533.mutable_houses());
+            staticDataLib.mutable_bosses()->Swap(staticData1533.mutable_bosses());
+            staticDataLib.mutable_quests()->Swap(staticData1533.mutable_quests());
+        } else if (!staticDataLib.ParseFromIstream(&datFileStream)) {
             throw stdext::exception("Couldn't parse staticdata lib.");
         }
 
