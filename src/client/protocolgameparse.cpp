@@ -7915,14 +7915,19 @@ void ProtocolGame::parseOpenWheelWindow(const InputMessagePtr& msg)
 }
 
 // 0x60 - parse wheel active spell augments sent on login
+// Lua: g_game.onWheelSpellAugments(augments), augments = { {spellId, modifier, value}, ... }
 void ProtocolGame::parseWheelSpellAugments(const InputMessagePtr& msg)
 {
+    std::vector<std::tuple<uint16_t, uint8_t, int32_t>> augments;
     const uint16_t count = msg->getU16();
+    augments.reserve(count);
     for (uint16_t i = 0; i < count; ++i) {
-        msg->getU16(); // spellId
-        msg->getU8();  // unknown byte
-        msg->getU32(); // stage / modifier flag
+        const uint16_t spellId = msg->getU16();
+        const uint8_t modifier = msg->getU8();
+        const auto value = static_cast<int32_t>(msg->getU32());
+        augments.emplace_back(spellId, modifier, value);
     }
+    g_lua.callGlobalField("g_game", "onWheelSpellAugments", augments);
 }
 
 void ProtocolGame::parseAttachedPaperdoll(const InputMessagePtr& msg) {
