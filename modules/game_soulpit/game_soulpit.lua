@@ -171,11 +171,17 @@ local function clearSoulPitSelection()
 	updatePreviewSelection()
 end
 
+-- the engine passes one table per mastered creature ({ raceId = "123", name = ... }, values as text);
+-- plain race ids are accepted too
 local function buildAnimusMasteriesSet(animusMasteries)
 	animusMasteriesSet = {}
 
-	for _, raceId in ipairs(animusMasteries or {}) do
-		animusMasteriesSet[raceId] = true
+	for _, entry in ipairs(animusMasteries or {}) do
+		local raceId = tonumber(type(entry) == "table" and entry.raceId or entry)
+
+		if raceId and raceId > 0 then
+			animusMasteriesSet[raceId] = true
+		end
 	end
 end
 
@@ -304,6 +310,12 @@ local function createSoulPitRow(list, race, rowIndex, hasSoulSeal)
 		nameLabel:setText(capitalizeWords(race.name))
 	end
 
+	local masteryIcon = row:getChildById("masteryIcon")
+
+	if masteryIcon then
+		masteryIcon:setVisible(hasSoulSeal == true)
+	end
+
 	local soulSealsRequiredLabel = row:getChildById("soulSealsRequired")
 
 	if soulSealsRequiredLabel then
@@ -398,32 +410,73 @@ function onShowSoulSealOptionChange(combo)
 	populateCreatureList(text)
 end
 
+local confirmBox
+
+local function closeConfirmBox()
+	if confirmBox then
+		if not confirmBox:isDestroyed() then
+			confirmBox:destroy()
+		end
+
+		confirmBox = nil
+	end
+end
+
+-- like the official dialog: ask before spending the Soulseals
 function fight()
 	if not selectedSoulPitRace then
 		return
 	end
 
-	sendSoulSealSelectCreature(selectedSoulPitRace.raceId)
+	local race = selectedSoulPitRace
+	local price = getSoulSealsRequired(race.difficulty)
+
+	local function accept()
+		closeConfirmBox()
+		sendSoulSealSelectCreature(race.raceId)
+	end
+
+	closeConfirmBox()
+
+	confirmBox = displayGeneralBox(tr("Confirm"), tr('Are you sure you want to fight "%s" for %d Soulseals?', capitalizeWords(race.name), price), {
+		{
+			text = tr("Yes"),
+			callback = accept
+		},
+		{
+			text = tr("No"),
+			callback = closeConfirmBox
+		}
+	}, accept, closeConfirmBox)
+end
+
+local function onSoulPitResourceBalance(resourceType, value)
+	if resourceType == SOUL_SEALS_RESOURCE then
+		updateSoulSealsBalance(value)
+	end
 end
 
 function init()
 	g_ui.importStyle("game_soulpit")
 	connect(g_game, {
 		onGameEnd = destroyDialog,
-		onSoulPitModal = onSoulPitModal
+		onSoulPitModal = onSoulPitModal,
+		onResourceBalance = onSoulPitResourceBalance
 	})
 end
 
 function terminate()
 	disconnect(g_game, {
 		onGameEnd = destroyDialog,
-		onSoulPitModal = onSoulPitModal
+		onSoulPitModal = onSoulPitModal,
+		onResourceBalance = onSoulPitResourceBalance
 	})
 	destroyDialog()
 end
 
 function destroyDialog()
 	cancelListBuild()
+	closeConfirmBox()
 
 	if soulpitWindow then
 		g_modalManager.hide(soulpitWindow)

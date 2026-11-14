@@ -18,6 +18,18 @@ SoulPitCreatureRow < UIWidget
     margin-left: 4
     font: verdana-11px-monochrome
     color: $var-text-cip-color
+    text-auto-resize: true
+
+  // animus mastery completed for this creature
+  UIWidget
+    id: masteryIcon
+    anchors.left: creatureName.right
+    anchors.top: creatureName.top
+    margin-left: 2
+    margin-top: -3
+    image-source: /images/game/cyclopedia/icons/indicator_soulcore
+    phantom: true
+    visible: false
 
   UIWidget
     id: soulSealIcon
