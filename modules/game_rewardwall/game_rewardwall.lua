@@ -773,6 +773,11 @@ local function onDailyRewardCollectionState(state)
 end
 
 local function onRestingAreaState(zone, state, message)
+	-- 15.33 no longer sends a text, so the icon would get an empty tooltip
+	if not message or message == "" then
+		message = tr("You are within a resting area.")
+	end
+
 	updatePlayerRestingAreaState(zone, state, message)
 
 	if ZONE.LAST_ZONE == zone then
