@@ -2945,6 +2945,15 @@ void ProtocolGame::parsePlayerCancelAttack(const InputMessagePtr& msg)
 
 void ProtocolGame::parsePlayerModes(const InputMessagePtr& msg)
 {
+    if (g_game.getClientVersion() >= 1533) {
+        // 15.33: [chase][secure][pvpMode], the fight mode byte is gone
+        const auto chaseMode = static_cast<Otc::ChaseModes>(msg->getU8());
+        const bool safeMode = static_cast<bool>(msg->getU8());
+        const auto pvpMode = static_cast<Otc::PVPModes>(msg->getU8());
+        g_game.processPlayerModes(g_game.getFightMode(), chaseMode, safeMode, pvpMode);
+        return;
+    }
+
     const auto fightMode = static_cast<Otc::FightModes>(msg->getU8());
     const auto chaseMode = static_cast<Otc::ChaseModes>(msg->getU8());
     const bool safeMode = static_cast<bool>(msg->getU8());
