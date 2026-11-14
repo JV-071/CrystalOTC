@@ -658,6 +658,20 @@ local function onWalkFinish(player)
 		return
 	end
 
+	-- The first step ended before the keyboard delay ran out (step time below hotkeyDelay, i.e. a
+	-- fast character). With the key still held the repeat starts now, otherwise the character
+	-- stood still for the rest of the delay after the first step and after every turn.
+	if walkRepeatEvent and smartWalkDir and canContinueHeldWalk() then
+		removeEvent(walkRepeatEvent)
+
+		walkRepeatEvent = nil
+		walkRepeatActive = true
+
+		continueWalk(0)
+
+		return
+	end
+
 	if nextWalkDir and canContinueHeldWalk() then
 		if not hasPhysicallyPressedWalkKey() then
 			nextWalkDir = nil
@@ -758,7 +772,12 @@ function bindWalkKey(key, dir)
 			activeWalkKeys[key] = true
 
 			changeWalkDir(dir)
-			restartWalkRepeatDelay()
+
+			-- a second key pressed during a running walk (diagonal, turn) keeps the repeat going
+			if not walkRepeatActive then
+				restartWalkRepeatDelay()
+			end
+
 			walk(smartWalkDir or dir)
 		end,
 		up = function()
@@ -786,7 +805,12 @@ function bindWalkKey(key, dir)
 				stopWalkRepeat()
 			elseif smartWalkDir ~= previousDir then
 				cancelWalkEvent()
-				restartWalkRepeatDelay()
+
+				-- releasing one of two held keys keeps a running walk going in the remaining direction
+				if not walkRepeatActive then
+					restartWalkRepeatDelay()
+				end
+
 				walk(smartWalkDir)
 			end
 		end
