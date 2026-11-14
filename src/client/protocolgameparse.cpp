@@ -7320,29 +7320,21 @@ void ProtocolGame::parseMarketBrowse(const InputMessagePtr& msg)
 
 void ProtocolGame::parseBosstiaryData(const InputMessagePtr& msg)
 {
-    msg->getU16(); // Number of kills to achieve 'Bane Prowess'
-    msg->getU16(); // Number of kills to achieve 'Bane expertise'
-    msg->getU16(); // Number of kills to achieve 'Base Mastery'
+    // kills needed for Prowess, Expertise and Mastery of Bane, Archfoe and Nemesis,
+    // then the boss points each of those nine levels gives, in the same order
+    std::vector<uint16_t> killThresholds;
+    killThresholds.reserve(9);
+    for (auto i = 0; i < 9; ++i) {
+        killThresholds.emplace_back(msg->getU16());
+    }
 
-    msg->getU16(); // Number of kills to achieve 'Archfoe Prowess'
-    msg->getU16(); // Number of kills to achieve 'Archfoe Expertise'
-    msg->getU16(); // Number of kills to achieve 'Archfoe Mastery'
+    std::vector<uint16_t> pointRewards;
+    pointRewards.reserve(9);
+    for (auto i = 0; i < 9; ++i) {
+        pointRewards.emplace_back(msg->getU16());
+    }
 
-    msg->getU16(); // Number of kills to achieve 'Nemesis Prowess'
-    msg->getU16(); // Number of kills to achieve 'Nemesis Expertise'
-    msg->getU16(); // Number of kills to achieve 'Nemesis Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Bane Prowess'
-    msg->getU16(); // Points will receive when reach 'Bane Expertise'
-    msg->getU16(); // Points will receive when reach 'Base Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Archfoe Prowess'
-    msg->getU16(); // Points will receive when reach 'Archfoe Expertise'
-    msg->getU16(); // Points will receive when reach 'Archfoe Mastery'
-
-    msg->getU16(); // Points will receive when reach 'Nemesis Prowess'
-    msg->getU16(); // Points will receive when reach 'Nemesis Expertise'
-    msg->getU16(); // Points will receive when reach 'Nemesis Mastery'
+    g_lua.callGlobalField("g_game", "onBosstiaryData", killThresholds, pointRewards);
 }
 
 void ProtocolGame::parseBosstiarySlots(const InputMessagePtr& msg)
@@ -7416,7 +7408,8 @@ void ProtocolGame::parseBosstiaryCooldownTimer(const InputMessagePtr& msg)
 
 void ProtocolGame::parseBosstiaryEntryChanged(const InputMessagePtr& msg)
 {
-    msg->getU32(); // bossId
+    const uint32_t bossId = msg->getU32();
+    g_lua.callGlobalField("g_game", "onBosstiaryEntryChanged", bossId);
 }
 
 void ProtocolGame::parseClientEvent(const InputMessagePtr& msg)

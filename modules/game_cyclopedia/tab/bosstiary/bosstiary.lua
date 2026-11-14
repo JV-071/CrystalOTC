@@ -23,9 +23,9 @@ function showBosstiary()
 
 	UI:show()
 	g_game.requestBosstiaryInfo()
-	UI.FilterBase.BaneIcon:setTooltip("Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30")
-	UI.FilterBase.ArchfoeIcon:setTooltip("Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60")
-	UI.FilterBase.NemesisIcon:setTooltip("Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60")
+	UI.FilterBase.BaneIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(0))
+	UI.FilterBase.ArchfoeIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(1))
+	UI.FilterBase.NemesisIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(2))
 	UI.StarBase.Info1:setTooltip("Once you have reached the Prowess level, you can assign the boss\nto a boss slot.")
 	UI.StarBase.Info2:setTooltip("Once you have reached the Expertise Level, you can display the\nboss on a Podium of Vigour.")
 	UI.StarBase.Info3:setTooltip("Once you have reached the Mastery Level, youl will receive an\nadditional 25% loot bonus when the boss is assigned to a boss slot.")
@@ -79,23 +79,6 @@ local CATEGORY = {
 	ARCHFOE = 1,
 	NEMESIS = 2
 }
-local CONFIG = {
-	[0] = {
-		PROWESS = 25,
-		EXPERTISE = 100,
-		MASTERY = 300
-	},
-	{
-		PROWESS = 5,
-		EXPERTISE = 20,
-		MASTERY = 60
-	},
-	{
-		PROWESS = 1,
-		EXPERTISE = 3,
-		MASTERY = 5
-	}
-}
 
 function Cyclopedia.setBosstiaryBossStars(widget, kills, config)
 	local bronzeFill = widget.bronzeStar:getChildById("bronzeStarFill")
@@ -147,26 +130,26 @@ function Cyclopedia.CreateBosstiaryCreature(data)
 
 	local fullText = ""
 
-	if data.kills >= CONFIG[data.category].MASTERY then
+	if data.kills >= Cyclopedia.getBosstiaryLevels(data.category).MASTERY then
 		fullText = "(fully unlocked)"
 	end
 
-	widget.ProgressBorder1:setTooltip(string.format(" %d / %d %s", data.kills, CONFIG[data.category].PROWESS, fullText))
-	widget.ProgressBorder2:setTooltip(string.format(" %d / %d %s", data.kills, CONFIG[data.category].EXPERTISE, fullText))
-	widget.ProgressBorder3:setTooltip(string.format(" %d / %d %s", data.kills, CONFIG[data.category].MASTERY, fullText))
-	Cyclopedia.setBosstiaryBossStars(widget, data.kills, CONFIG[data.category])
+	widget.ProgressBorder1:setTooltip(string.format(" %d / %d %s", data.kills, Cyclopedia.getBosstiaryLevels(data.category).PROWESS, fullText))
+	widget.ProgressBorder2:setTooltip(string.format(" %d / %d %s", data.kills, Cyclopedia.getBosstiaryLevels(data.category).EXPERTISE, fullText))
+	widget.ProgressBorder3:setTooltip(string.format(" %d / %d %s", data.kills, Cyclopedia.getBosstiaryLevels(data.category).MASTERY, fullText))
+	Cyclopedia.setBosstiaryBossStars(widget, data.kills, Cyclopedia.getBosstiaryLevels(data.category))
 	widget.TypeIcon:setImageSource(icons[data.category])
 
 	if data.category == CATEGORY.BANE then
-		widget.TypeIcon:setTooltip("Bane\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 5\nExpertise: 15\nMastery: 30")
+		widget.TypeIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE))
 	elseif data.category == CATEGORY.ARCHFOE then
-		widget.TypeIcon:setTooltip("Archfoe\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60")
+		widget.TypeIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE))
 	elseif data.category == CATEGORY.NEMESIS then
-		widget.TypeIcon:setTooltip("Nemesis\n\nFor unlocking a level, you will receive the following boss points:\nProwess: 10\nExpertise: 30\nMastery: 60")
+		widget.TypeIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS))
 	end
 
 	widget.ProgressValue:setText(data.kills)
-	Cyclopedia.SetBestiaryProgress(46, widget.ProgressBack, widget.ProgressBack33, widget.ProgressBack55, data.kills, CONFIG[data.category].PROWESS, CONFIG[data.category].EXPERTISE, CONFIG[data.category].MASTERY, 47, 12)
+	Cyclopedia.SetBestiaryProgress(46, widget.ProgressBack, widget.ProgressBack33, widget.ProgressBack55, data.kills, Cyclopedia.getBosstiaryLevels(data.category).PROWESS, Cyclopedia.getBosstiaryLevels(data.category).EXPERTISE, Cyclopedia.getBosstiaryLevels(data.category).MASTERY, 47, 12)
 
 	-- raceId unknown to the client (missing in staticdata.dat) -> outfit.type == 0; setOutfit would
 	-- only spam the log with "invalid thing type client id 0 in category 4" and draw an empty tile
@@ -187,6 +170,7 @@ function Cyclopedia.CreateBosstiaryCreature(data)
 
 		widget:setText(format(data.name))
 		widget.TrackCheck:enable()
+		widget.TrackCheck:setVisible(true)
 
 		local override = Cyclopedia._bosstiaryTrackerOverrides[data.raceId]
 		local trackerActived = override ~= nil and override or data.isTrackerActived
@@ -202,6 +186,11 @@ function Cyclopedia.CreateBosstiaryCreature(data)
 		end
 
 		widget.TrackCheck:disable()
+
+		if g_game.getClientVersion() >= 1533 then
+			-- 15.33 only offers tracking once the boss has been killed
+			widget.TrackCheck:setVisible(false)
+		end
 	end
 end
 
@@ -209,6 +198,11 @@ function Cyclopedia.LoadBosstiaryCreatures(data)
 	if not UI then
 		return
 	end
+
+	-- the boss points per level come with 0x61 right before this list
+	UI.FilterBase.BaneIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.BANE))
+	UI.FilterBase.ArchfoeIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.ARCHFOE))
+	UI.FilterBase.NemesisIcon:setTooltip(Cyclopedia.getBosstiaryCategoryTooltip(CATEGORY.NEMESIS))
 
 	local maxCategoriesPerPage = 8
 
@@ -447,18 +441,18 @@ function Cyclopedia.changeBosstiaryFilter(widget, isCheck)
 				creature.visible = widget:isChecked()
 			end
 		elseif id == "FewKillsCheck" then
-			if creature.kills ~= 0 and creature.kills < CONFIG[creature.category].PROWESS then
+			if creature.kills ~= 0 and creature.kills < Cyclopedia.getBosstiaryLevels(creature.category).PROWESS then
 				creature.visible = widget:isChecked()
 			end
 		elseif id == "ProwessCheck" then
-			if creature.kills ~= 0 and creature.kills >= CONFIG[creature.category].PROWESS and creature.kills <= CONFIG[creature.category].EXPERTISE then
+			if creature.kills ~= 0 and creature.kills >= Cyclopedia.getBosstiaryLevels(creature.category).PROWESS and creature.kills <= Cyclopedia.getBosstiaryLevels(creature.category).EXPERTISE then
 				creature.visible = widget:isChecked()
 			end
 		elseif id == "ExpertiseCheck" then
-			if creature.kills ~= 0 and creature.kills >= CONFIG[creature.category].EXPERTISE and creature.kills <= CONFIG[creature.category].MASTERY then
+			if creature.kills ~= 0 and creature.kills >= Cyclopedia.getBosstiaryLevels(creature.category).EXPERTISE and creature.kills <= Cyclopedia.getBosstiaryLevels(creature.category).MASTERY then
 				creature.visible = widget:isChecked()
 			end
-		elseif id == "MasteryCheck" and creature.kills ~= 0 and creature.kills >= CONFIG[creature.category].MASTERY then
+		elseif id == "MasteryCheck" and creature.kills ~= 0 and creature.kills >= Cyclopedia.getBosstiaryLevels(creature.category).MASTERY then
 			creature.visible = widget:isChecked()
 		end
 	end
