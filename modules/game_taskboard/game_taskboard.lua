@@ -178,8 +178,21 @@ local function onTaskBoardResourceBalance()
 	TaskBoard.SoulSealsPoints:getChildById("value"):setText(TaskBoard:formatNumberWithCommas(TaskBoard:getResourceBalance("soulSeals")))
 end
 
+local TAB_ORDER = {
+	TAB_BOUNTY,
+	TAB_WEEKLY,
+	TAB_SHOP
+}
+
 function TaskBoard:showTab(tab)
+	self.currentTab = tab
+
 	self:updateMenuSelection(tab)
+
+	-- the Preferred List belongs to the Bounty tab; do not leave it over another tab
+	if tab ~= TAB_BOUNTY and self.preferredListPanel and self.preferredListPanel:isVisible() and self.BountyTask then
+		self.BountyTask:closePreferredList()
+	end
 
 	if self.bountyTaskPanel then
 		self.bountyTaskPanel:setVisible(tab == TAB_BOUNTY)
@@ -209,6 +222,60 @@ end
 
 function TaskBoard:showTaskShopTab()
 	self:showTab(TAB_SHOP)
+end
+
+-- Tab / Shift+Tab walk through the three tabs like the official tab bar; off while the Preferred List
+-- (with its search field) is open
+function TaskBoard:cycleTab(step)
+	if not self.mainWindow or not self.mainWindow:isVisible() then
+		return
+	end
+
+	if self.preferredListPanel and self.preferredListPanel:isVisible() then
+		return
+	end
+
+	local index = 1
+
+	for i, tab in ipairs(TAB_ORDER) do
+		if tab == self.currentTab then
+			index = i
+		end
+	end
+
+	index = (index - 1 + step) % #TAB_ORDER + 1
+
+	local tab = TAB_ORDER[index]
+
+	if tab == TAB_BOUNTY then
+		self:showBountyTab()
+	else
+		self:showTab(tab)
+	end
+end
+
+local function cycleTabForward()
+	TaskBoard:cycleTab(1)
+end
+
+local function cycleTabBackward()
+	TaskBoard:cycleTab(-1)
+end
+
+-- the bottom bar shows Bounty Points, Hunting Task Points and Soulseals; ask for exactly those
+-- (0xED with the resource type) instead of an untyped request
+local function requestTaskBoardBalances()
+	if not g_game.sendResourceBalance then
+		return
+	end
+
+	g_game.sendResourceBalance(TaskBoard.resourceTypes.bountyPoints)
+	g_game.sendResourceBalance(TaskBoard.resourceTypes.taskHunting)
+	g_game.sendResourceBalance(TaskBoard.resourceTypes.soulSeals)
+
+	if TaskBoard:is1533() then
+		g_game.sendResourceBalance(ResourceTypes.BOUNTY_REROLL_TOKENS)
+	end
 end
 
 function init()
@@ -251,6 +318,9 @@ function init()
 	TaskBoard.SoulSealsPoints = TaskBoard.mainWindow:recursiveGetChildById("soulSealsPanel")
 
 	TaskBoard:updateMenuSelection(TAB_BOUNTY)
+	TaskBoard.currentTab = TAB_BOUNTY
+	g_keyboard.bindKeyPress("Tab", cycleTabForward, TaskBoard.mainWindow)
+	g_keyboard.bindKeyPress("Shift+Tab", cycleTabBackward, TaskBoard.mainWindow)
 	TaskBoard.BountyTask:init()
 	TaskBoard.TaskShop:init()
 	TaskBoard.WeeklyTask:init()
@@ -265,6 +335,12 @@ function terminate()
 		onClientEvent = onTaskBoardClientEvent
 	})
 	TaskBoard:clearBountyShortcutHighlight()
+
+	if TaskBoard.mainWindow then
+		g_keyboard.unbindKeyPress("Tab", cycleTabForward, TaskBoard.mainWindow)
+		g_keyboard.unbindKeyPress("Shift+Tab", cycleTabBackward, TaskBoard.mainWindow)
+	end
+
 	TaskBoard.BountyTask:terminate()
 	TaskBoard.TaskShop:terminate()
 	TaskBoard.WeeklyTask:terminate()
@@ -272,7 +348,7 @@ end
 
 function TaskBoard:toggleWindow(mode)
 	if not self.mainWindow:isVisible() then
-		g_game.sendResourceBalance()
+		requestTaskBoardBalances()
 		self.mainWindow:setVisible(true)
 		self.mainWindow:focus()
 
