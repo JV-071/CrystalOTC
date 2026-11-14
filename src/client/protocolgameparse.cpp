@@ -2423,8 +2423,20 @@ void ProtocolGame::parseCreatureData(const InputMessagePtr& msg)
         case 0: // creature update
             getCreature(msg);
             break;
-        case 11: // creature mana percent
-        case 12: // creature show status
+        case 11: { // creature mana percent
+            const uint8_t manaPercent = msg->getU8();
+            if (creature) {
+                creature->setManaPercent(manaPercent);
+            }
+            break;
+        }
+        case 12: { // creature show status
+            const bool showStatus = msg->getU8() != 0;
+            if (creature) {
+                creature->setShowStatus(showStatus);
+            }
+            break;
+        }
         case 13: // player vocation
             setCreatureVocation(msg, creatureId);
             break;

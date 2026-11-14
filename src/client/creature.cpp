@@ -907,6 +907,25 @@ void Creature::setHealthPercent(const uint8_t healthPercent)
         onDeath();
 }
 
+void Creature::setManaPercent(const uint8_t manaPercent)
+{
+    if (m_manaPercent == manaPercent) return;
+
+    const uint8_t oldManaPercent = m_manaPercent;
+    m_manaPercent = manaPercent;
+
+    callLuaField("onManaPercentChange", manaPercent, oldManaPercent);
+}
+
+void Creature::setShowStatus(const bool showStatus)
+{
+    if (m_showStatus == showStatus) return;
+
+    m_showStatus = showStatus;
+
+    callLuaField("onShowStatusChange", showStatus);
+}
+
 void Creature::setDirection(const Otc::Direction direction)
 {
     if (direction == Otc::InvalidDirection)
