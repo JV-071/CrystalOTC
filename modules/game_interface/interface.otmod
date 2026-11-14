@@ -64,5 +64,6 @@ Module
     - game_soulpit
     - game_bossdifficulty
     - game_customisepodium
+    - game_outfitmemorial
   @onLoad: init()
   @onUnload: terminate()

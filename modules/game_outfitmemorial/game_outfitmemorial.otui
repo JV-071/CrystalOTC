@@ -1,0 +1,94 @@
+OutfitMemorialTabButton < UIButton
+  size: 233 34
+  checkable: true
+  image-clip: 0 0 233 34
+
+  $checked:
+    image-clip: 0 34 233 34
+
+  $pressed:
+    image-clip: 0 34 233 34
+
+OutfitMemorialWindow < MainWindow
+  id: outfitMemorialWindow
+  !text: tr('Outfit Memorial')
+  size: 500 470
+  @onEscape: modules.game_outfitmemorial.close()
+
+  UIWidget
+    id: tabFrame
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: -7
+    height: 36
+    image-source: /images/ui/1pixel-down-frame
+    image-border: 10
+
+    OutfitMemorialTabButton
+      id: goldenOutfitTab
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin: 1
+      image-source: /images/game/cyclopedia/button-golden-outfit
+      !tooltip: tr('Golden Outfit')
+      @onClick: modules.game_outfitmemorial.selectTab(1)
+
+    OutfitMemorialTabButton
+      id: royalCostumeTab
+      anchors.top: parent.top
+      anchors.right: parent.right
+      margin: 1
+      image-source: /images/game/cyclopedia/button-royal-costume-outfit
+      !tooltip: tr('Royal Costume')
+      @onClick: modules.game_outfitmemorial.selectTab(2)
+
+  Panel
+    id: textFrame
+    anchors.top: tabFrame.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: bottomSeparator.top
+    margin-top: 10
+    margin-bottom: 10
+    image-source: /images/ui/1pixel-down-frame
+    image-border: 10
+
+    MultilineTextEdit
+      id: memorialText
+      anchors.fill: parent
+      margin: 1
+      padding: 5 18 5 5
+      font: $var-cip-font-new
+      color: #c0c0c0
+      background-color: #363636
+      border-width: 0
+      editable: false
+      focusable: false
+      cursor-visible: false
+      text-wrap: true
+      vertical-scrollbar: memorialScroll
+
+    VerticalQtScrollBar
+      id: memorialScroll
+      anchors.top: memorialText.top
+      anchors.bottom: memorialText.bottom
+      anchors.right: memorialText.right
+      margin: 1 1 1 0
+      step: 14
+      pixels-scroll: true
+
+  HorizontalSeparator
+    id: bottomSeparator
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: closeButton.top
+    margin-bottom: 10
+
+  Button
+    id: closeButton
+    !text: tr('Close')
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    size: 43 20
+    @onClick: modules.game_outfitmemorial.close()
