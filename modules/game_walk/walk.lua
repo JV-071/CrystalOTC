@@ -788,11 +788,16 @@ function bindWalkKey(key, dir)
 			changeWalkDir(dir)
 
 			-- a second key pressed during a running walk (diagonal, turn) keeps the repeat going
-			if not walkRepeatActive then
+			if walkRepeatActive then
+				-- the running repeat may have nothing pending (walk lock after stairs, a floor change
+				-- step that never animates), so a step that cannot start now is retried
+				if not walk(smartWalkDir or dir) then
+					continueWalk(10)
+				end
+			else
 				restartWalkRepeatDelay()
+				walk(smartWalkDir or dir)
 			end
-
-			walk(smartWalkDir or dir)
 		end,
 		up = function()
 			if not activeWalkKeys[key] then
@@ -821,11 +826,14 @@ function bindWalkKey(key, dir)
 				cancelWalkEvent()
 
 				-- releasing one of two held keys keeps a running walk going in the remaining direction
-				if not walkRepeatActive then
+				if walkRepeatActive then
+					if not walk(smartWalkDir) then
+						continueWalk(10)
+					end
+				else
 					restartWalkRepeatDelay()
+					walk(smartWalkDir)
 				end
-
-				walk(smartWalkDir)
 			end
 		end
 	}
