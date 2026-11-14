@@ -939,8 +939,10 @@ function g_game.closeRuleViolation(reporter) end
 
 function g_game.cancelRuleViolation() end
 
+---@param category integer
 ---@param comment string
-function g_game.reportBug(comment) end
+---@param position Position
+function g_game.reportBug(category, comment, position) end
 
 ---@param target string
 ---@param reason integer
