@@ -74,6 +74,8 @@ void Game::resetGameStates()
     m_localPlayer = nullptr;
     m_pingSent = 0;
     m_pingReceived = 0;
+    m_nextTalkAim = {};
+    m_nextTalkAimMode = UINT8_MAX;
     m_unjustifiedPoints = UnjustifiedPoints();
 
     for (const auto& it : m_containers) {
@@ -1014,8 +1016,12 @@ void Game::cancelAttackAndFollow()
 
 void Game::talk(const std::string_view message)
 {
-    if (!canPerformGameAction() || message.empty())
+    if (!canPerformGameAction() || message.empty()) {
+        // drop a staged spell aim so it never rides on a later chat message
+        m_nextTalkAim = {};
+        m_nextTalkAimMode = UINT8_MAX;
         return;
+    }
 
     talkChannel(Otc::MessageSay, 0, message);
 }
