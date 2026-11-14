@@ -5521,6 +5521,8 @@ function assignPassive(slotId)
 		window.contentPanel.preview.previewIcon:setImageSource(focusedChild.source)
 		window.contentPanel.preview.previewIcon:setImageClip("0 0 32 32")
 		passiveList:ensureChildVisible(focusedChild)
+		window.contentPanel.buttonOk:setEnabled(true)
+		window.contentPanel.buttonApply:setEnabled(true)
 	end
 
 	for _, id in ipairs(passiveIds) do
@@ -5539,20 +5541,31 @@ function assignPassive(slotId)
 		applyPassiveAssignFocus(focusedChild)
 	end
 
-	local children = passiveList:getChildren()
+	local function setPassiveButtonsEnabled(enabled)
+		window.contentPanel.buttonOk:setEnabled(enabled)
+		window.contentPanel.buttonApply:setEnabled(enabled)
+	end
 
-	if children and #children > 0 then
-		window.contentPanel.preview.previewLabel:setColor("#c0c0c0")
+	-- Like 15.33: an edit preselects the assigned ability, a new assignment starts without a selection.
+	window.contentPanel.preview.previewLabel:setColor("#c0c0c0")
+	window.contentPanel.preview.previewLabel:setText(tr("No passive ability selected"))
+	window.contentPanel.preview.previewIcon:setImageSource("")
+	setPassiveButtonsEnabled(false)
+
+	local editSlot = findSlotById(slotId)
+	local currentPassiveId = editSlot and tonumber(editSlot.passiveId) or nil
+
+	if currentPassiveId then
 		scheduleEvent(function()
 			if window:isDestroyed() then
 				return
 			end
 
-			local first = passiveList:getChildren()[1]
+			local current = passiveList:getChildById(tostring(currentPassiveId))
 
-			if first then
-				applyPassiveAssignFocus(first)
-				passiveList:focusChild(first, KeyboardFocusReason)
+			if current then
+				applyPassiveAssignFocus(current)
+				passiveList:focusChild(current, KeyboardFocusReason)
 			end
 		end, 1)
 	end
