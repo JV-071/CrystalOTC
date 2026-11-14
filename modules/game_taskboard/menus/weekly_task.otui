@@ -249,6 +249,7 @@ WeeklyPanel < Panel
   
   Label
     id: xpInfoLabel
+    height: 14
     anchors.top: killTasks.bottom
     anchors.left: parent.left
     anchors.right: parent.right
@@ -457,6 +458,7 @@ WeeklyProgressPanel < UIWindow
   
   Label
     id: resultKillLabel
+    height: 14
     anchors.top: prev.bottom
     anchors.left: parent.left
     anchors.right: parent.right
@@ -468,6 +470,7 @@ WeeklyProgressPanel < UIWindow
 
   Label
     id: resultDeliveryLabel
+    height: 14
     anchors.top: resultKillLabel.bottom
     anchors.left: parent.left
     anchors.right: parent.right

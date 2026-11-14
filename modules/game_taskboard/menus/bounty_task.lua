@@ -390,7 +390,18 @@ function BountyTask:selectDifficulty(difficulty)
 	end
 
 	self.currentDifficulty = d or 0
-	g_game.sendSelectTaskDifficulty(d or 0)
+
+	-- 15.33 sends the Elite setting with the difficulty; take it from the checkbox so a click that the
+	-- server has not confirmed yet is not undone
+	local elite
+	local rerollBox = TaskBoard:is1533() and TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
+	local eliteCheck = rerollBox and rerollBox:getChildById("eliteCheck")
+
+	if eliteCheck then
+		elite = eliteCheck:isChecked()
+	end
+
+	g_game.sendSelectTaskDifficulty(d or 0, elite)
 end
 
 local bountyCreatureCache, selectedBountyRow, selectedBountyRace, listBuildEvent
