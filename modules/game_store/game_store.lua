@@ -4069,7 +4069,8 @@ local function openPurchaseConfirmation(product, offer, useCosmeticTokens)
 	}, acceptFunc, cancelFunc)
 
 	if acceptWindow and acceptWindow.priceCoin then
-		acceptWindow.priceCoin:setVisible(priceIcon ~= nil)
+		-- a free offer shows no currency icon
+		acceptWindow.priceCoin:setVisible(priceIcon ~= nil and (tonumber(offer.price) or 0) > 0)
 	end
 
 	if acceptWindow and not useCosmeticTokens and isOfferOnSale(offer) and acceptWindow.priceRow then
