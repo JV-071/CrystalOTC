@@ -742,6 +742,27 @@ struct CharacterInfoFamiliar
     uint32_t isCurrent;
 };
 
+struct MonsterPodiumCreature
+{
+    uint16_t raceId{ 0 };
+    std::string name; // boss podium only
+    Outfit outfit; // boss podium only
+    bool hasOutfit{ false };
+};
+
+struct MonsterPodiumData
+{
+    Outfit podiumOutfit; // creature currently shown on the podium
+    bool isBoss{ false };
+    std::vector<MonsterPodiumCreature> creatures;
+    Position position;
+    uint16_t itemClientId{ 0 };
+    uint8_t stackPos{ 0 };
+    bool showPlatform{ true };
+    bool showCreature{ false };
+    uint8_t direction{ 2 };
+};
+
 struct DailyRewardItem
 {
     uint16_t itemId;

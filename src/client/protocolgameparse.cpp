@@ -505,6 +505,9 @@ void ProtocolGame::parseMessage(const InputMessagePtr& msg)
                 case Proto::GameServerMonkData:
                     parseMonkData(msg);
                     break;
+                case Proto::GameServerConfigureMonsterPodium:
+                    parseConfigureMonsterPodium(msg);
+                    break;
                 case Proto::GameServerCyclopediaHouseAuctionMessage:
                     parseCyclopediaHouseAuctionMessage(msg);
                     break;
@@ -7979,4 +7982,59 @@ void ProtocolGame::parseOutfitMemorial(const InputMessagePtr& msg)
     const auto royalOwners = readNameLists();
 
     g_lua.callGlobalField("g_game", "onOutfitMemorial", goldenPrices, goldenOwners, royalPrices, royalOwners);
+}
+
+namespace {
+    // Opcodes that only the 15.33 protocol handles here; older versions keep dropping the rest of the frame
+    // (as the dispatcher default does) instead of guessing a layout.
+    bool skipBefore1533(const InputMessagePtr& msg, const int opcode)
+    {
+        if (g_game.getClientVersion() >= 1533) {
+            return false;
+        }
+
+        g_logger.warning("[{}] Unhandled opcode 0x{:02X} with {} unread bytes", g_game.getClientVersion(), opcode, msg->getUnreadSize());
+        msg->skipBytes(static_cast<uint16_t>(msg->getUnreadSize()));
+        return true;
+    }
+}
+
+void ProtocolGame::parseConfigureMonsterPodium(const InputMessagePtr& msg)
+{
+    if (skipBefore1533(msg, Proto::GameServerConfigureMonsterPodium)) {
+        return;
+    }
+
+    MonsterPodiumData data;
+    data.podiumOutfit = getOutfit(msg, false); // u16 lookType, colors and addons or u16 lookTypeEx
+
+    const uint16_t unknownCount = msg->getU16(); // list without a known layout, the server always sends 0
+    if (unknownCount != 0) {
+        g_logger.warning("[ProtocolGame::parseConfigureMonsterPodium] unknown list with {} entries, dropping the message", unknownCount);
+        msg->skipBytes(static_cast<uint16_t>(msg->getUnreadSize()));
+        return;
+    }
+
+    data.isBoss = msg->getU8() != 0; // podium of vigour (bosstiary) or podium of tenacity (bestiary)
+    const uint16_t creatureCount = msg->getU16();
+    data.creatures.reserve(creatureCount);
+    for (auto i = 0; i < creatureCount; ++i) {
+        MonsterPodiumCreature creature;
+        creature.raceId = msg->getU16();
+        if (data.isBoss) {
+            creature.name = msg->getString();
+            creature.outfit = getOutfit(msg, false);
+            creature.hasOutfit = true;
+        }
+        data.creatures.emplace_back(std::move(creature));
+    }
+
+    data.position = getPosition(msg);
+    data.itemClientId = msg->getU16();
+    data.stackPos = msg->getU8();
+    data.showPlatform = msg->getU8() != 0;
+    data.showCreature = msg->getU8() != 0;
+    data.direction = msg->getU8();
+
+    g_lua.callGlobalField("g_game", "onConfigureBossPodium", data);
 }

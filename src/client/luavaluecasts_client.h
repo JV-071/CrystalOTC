@@ -110,6 +110,7 @@ int push_luavalue(const DailyRewardItem& item);
 int push_luavalue(const DailyRewardBundle& bundle);
 int push_luavalue(const DailyRewardDay& day);
 int push_luavalue(const DailyRewardData& data);
+int push_luavalue(const MonsterPodiumData& data);
 
 // forge
 int push_luavalue(const ForgeOpenData& data);

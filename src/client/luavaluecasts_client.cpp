@@ -2203,3 +2203,42 @@ bool luavalue_cast(int index, GemData& gem)
 
     return true;
 }
+
+int push_luavalue(const MonsterPodiumData& data)
+{
+    g_lua.createTable(0, 9);
+    push_luavalue(data.podiumOutfit);
+    g_lua.setField("podiumOutfit");
+    g_lua.pushBoolean(data.isBoss);
+    g_lua.setField("isBoss");
+
+    g_lua.createTable(data.creatures.size(), 0);
+    for (size_t i = 0; i < data.creatures.size(); ++i) {
+        const auto& creature = data.creatures[i];
+        g_lua.createTable(0, 3);
+        g_lua.pushInteger(creature.raceId);
+        g_lua.setField("raceId");
+        if (creature.hasOutfit) {
+            g_lua.pushString(creature.name);
+            g_lua.setField("name");
+            push_luavalue(creature.outfit);
+            g_lua.setField("outfit");
+        }
+        g_lua.rawSeti(i + 1);
+    }
+    g_lua.setField("creatures");
+
+    push_luavalue(data.position);
+    g_lua.setField("position");
+    g_lua.pushInteger(data.itemClientId);
+    g_lua.setField("itemClientId");
+    g_lua.pushInteger(data.stackPos);
+    g_lua.setField("stackPos");
+    g_lua.pushBoolean(data.showPlatform);
+    g_lua.setField("showPlatform");
+    g_lua.pushBoolean(data.showCreature);
+    g_lua.setField("showCreature");
+    g_lua.pushInteger(data.direction);
+    g_lua.setField("direction");
+    return 1;
+}
