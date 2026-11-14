@@ -18,18 +18,70 @@ local function capitalizeWords(str)
 	end)
 end
 
-local function applyStarsBackdrop(starsWidget, stars)
+-- grade: 0 normal, 1 silver, 2 gold, 3 platinum (15.33)
+local GRADE_PLATINUM = 3
+-- the official client caps stored reroll tokens at 10 ("You can store up to 10 Reroll Tokens at a time")
+local MAX_REROLL_TOKENS = 10
+
+local DIFFICULTY_HELP_1530 = "Select one of three Bounty tasks to complete and earn a reward.\n\nTasks are grouped by difficulty:\n\n  Beginner tasks include easy creatures.\n  Adept tasks include easy and medium creatures.\n  Expert tasks include medium and hard creatures.\n  Master tasks include hard and challenging creatures.\n\nYou can change the difficulty at any time, but it only takes effect\n when selecting your next task.\n\nUse the Preferred List to customise which tasks can appear when\n you roll.\n\nTasks can be re-rolled using Reroll Tokens. One token can be\n claimed for free each day. You can store up to 10 Reroll Tokens at\n a time.\n\nThere is a chance for Silver and Gold tasks to appear, which grant\n greater rewards."
+local DIFFICULTY_HELP_1533 = "Select one of three Bounty tasks to complete and earn a reward.\n\nTasks are grouped by difficulty:\n\n  Beginner tasks include easy creatures.\n  Adept tasks include easy and medium creatures.\n  Expert tasks include medium and hard creatures.\n  Master tasks include hard and challenging creatures.\n\nWhen Elite is enabled, all new tasks roll as Elite tasks, where\n monsters deal 100% more damage and take 50% less. In return,\n rewards include 100% more XP and additional dust based on\n difficulty. Dust is only awarded to Premium accounts.\n\nYou can change the difficulty and Elite setting at any time, but\n changes only apply to your next task.\n\nUse the Preferred List to customise which tasks can appear when\n you roll.\n\nTasks can be re-rolled using Reroll Tokens. One token can be\n claimed for free each day from the Daily Reward Wall. You can store\n up to 10 Reroll Tokens at a time.\n\nThere is a chance for Silver and Gold tasks to appear, which grant\n greater rewards. Whenever you don't choose a monster, its chance for\n these improved tasks increases and even a chance for Platinum\n tasks is added."
+local DIFFICULTY_LABEL_TOOLTIP = "Beginner tasks include easy creatures.\nAdept tasks include easy and medium creatures.\nExpert tasks include medium and hard creatures.\nMaster tasks include hard and challenging creatures."
+local ELITE_TOOLTIP = "When Elite is enabled, all new tasks roll as Elite tasks, where\nmonsters deal 100% more damage and take 50% less.\nIn return, rewards include 100% more XP and additional dust\nbased on difficulty. Dust is only awarded to Premium accounts."
+
+local function applyStarsBackdrop(starsWidget, data)
 	if not starsWidget then
 		return
 	end
 
-	local stars = tonumber(stars) or 0
+	local grade = tonumber(data and data.grade) or tonumber(data and data.stars) or 0
+	local stars = math.min(tonumber(data and data.stars) or grade, 2)
+	local tierIcon = starsWidget:getChildById("tierIcon")
+	local platinumIcon = grade >= GRADE_PLATINUM and TaskBoard:asset1533("icon-bounty-task-platinum") or nil
+
+	if tierIcon then
+		tierIcon:setVisible(platinumIcon ~= nil)
+	end
+
+	if platinumIcon then
+		-- like the 15.33 board: plain backdrop with the tier icon drawn on top of it
+		starsWidget:setClipping(false)
+		starsWidget:setImageSource(BACKDROP_BY_STARS[0])
+		tierIcon:setImageSource(platinumIcon)
+		tierIcon:setTooltip(tr("Platinum Task"))
+
+		return
+	end
 
 	if stars > 0 then
 		starsWidget:setSize(tosize("279 44"))
 	end
 
 	starsWidget:setImageSource(BACKDROP_BY_STARS[stars] or BACKDROP_BY_STARS[0])
+	-- without the Platinum artwork a Platinum task keeps the Gold backdrop; say what it is
+	starsWidget:setTooltip(grade >= GRADE_PLATINUM and tr("Platinum Task") or "")
+end
+
+local function applyEliteMarker(starsWidget, isElite)
+	if not starsWidget then
+		return
+	end
+
+	local icon = starsWidget:getChildById("eliteIcon")
+	local text = starsWidget:getChildById("eliteText")
+	local image = isElite and TaskBoard:asset1533("icon-difficulty") or nil
+
+	if icon then
+		icon:setVisible(image ~= nil)
+
+		if image then
+			icon:setImageSource(image)
+			icon:setTooltip(tr("Elite"))
+		end
+	end
+
+	if text then
+		text:setVisible(isElite and image == nil)
+	end
 end
 
 local BOUNTY_TRACKER_TOOLTIP_FOOTER = "Click in this window to open the Task Board dialog."
@@ -202,7 +254,8 @@ function BountyTask:fillSlotPanel(panel, data, selected)
 
 	local starsBox = panel:getChildById("stars")
 
-	applyStarsBackdrop(starsBox, data.stars)
+	applyStarsBackdrop(starsBox, data)
+	applyEliteMarker(starsBox, data.isElite == true)
 
 	local creature = panel:recursiveGetChildById("slotCreature")
 	local raceId = tonumber(data.raceId) or 0
@@ -247,6 +300,23 @@ function BountyTask:fillSlotPanel(panel, data, selected)
 	tgt:setText(TaskBoard:formatNumberWithCommas(data.totalKills or 0))
 	expL:setText(TaskBoard:formatNumberWithCommas(data.experiencePoints or 0))
 	bpL:setText(TaskBoard:formatNumberWithCommas(data.bountyPoints or 0))
+
+	-- 15.33 Elite tasks also reward dust: " and N <dust icon>"
+	local dust = tonumber(data.dustReward) or 0
+	local dustL = panel:getChildById("dustLabel")
+	local dustIcon = panel:getChildById("dustIcon")
+
+	if dustL and dustIcon then
+		dustL:setText(tr(" and %s", TaskBoard:formatNumberWithCommas(dust)))
+		dustL:setVisible(dust > 0)
+		dustIcon:setVisible(dust > 0)
+	end
+
+	local limitL = panel:getChildById("rerollLimitLabel")
+
+	if limitL then
+		limitL:setVisible(BountyTask.rerollTokens ~= nil and BountyTask.rerollTokens >= MAX_REROLL_TOKENS)
+	end
 
 	local btn = panel:getChildById("selectTaskButton")
 
@@ -319,6 +389,7 @@ function BountyTask:selectDifficulty(difficulty)
 		end
 	end
 
+	self.currentDifficulty = d or 0
 	g_game.sendSelectTaskDifficulty(d or 0)
 end
 
@@ -884,7 +955,7 @@ function BountyTask:rerollTasks()
 
 	if tokens == 1 and rerollButton then
 		rerollButton:setEnabled(false)
-		rerollButton:setTooltip(tr("You don't have more reroll tokens."))
+		rerollButton:setTooltip(tr("You have no rerolls left."))
 	end
 
 	g_game.sendRerollTasks()
@@ -1007,10 +1078,41 @@ local function applyBountyTalismanRow(talismanId, data, labelWidget, upgradeButt
 	end
 end
 
+local function updateRerollLimit(rerollTokens)
+	BountyTask.rerollTokens = tonumber(rerollTokens) or 0
+
+	local limitReached = BountyTask.rerollTokens >= MAX_REROLL_TOKENS
+	local panel = TaskBoard.bountyTaskPanel
+
+	if not panel then
+		return
+	end
+
+	local limitIcon = panel:recursiveGetChildById("rerollLimitIcon")
+
+	if limitIcon then
+		limitIcon:setVisible(limitReached and TaskBoard:is1533())
+	end
+
+	local container = panel:recursiveGetChildById("dailyTasks")
+
+	if container then
+		for _, slot in ipairs(container:getChildren()) do
+			local label = slot:getChildById("rerollLimitLabel")
+
+			if label then
+				label:setVisible(limitReached)
+			end
+		end
+	end
+end
+
 local function applyRerollTokens(rerollTokensValue, rerollButton, rerollTokens)
 	if rerollTokensValue then
 		rerollTokensValue:setText(rerollTokens and tostring(rerollTokens) or "0")
 	end
+
+	updateRerollLimit(rerollTokens)
 
 	if not rerollButton then
 		return
@@ -1043,8 +1145,119 @@ local function onBountyResourceBalance(resourceType, value)
 		rerollBox:getChildById("rerollButton"), math.min(tonumber(value) or 0, 255))
 end
 
-function onBountyTasksDaily(slots, rerollTokens, claimUnlocked, difficultyBountyTask, talismanData, preferredListData)
+-- 15.33 removed the "Claim Daily" reroll token button (the token comes from the Daily Reward Wall now)
+-- and added the Elite setting next to the difficulty; one panel serves both, laid out per version.
+local updatingEliteCheck = false
+
+function BountyTask:applyVersionLayout()
+	local rerollBox = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
+
+	if not rerollBox then
+		return
+	end
+
+	local is1533 = TaskBoard:is1533()
+	local eliteIcon = rerollBox:getChildById("eliteIcon")
+	local eliteCheck = rerollBox:getChildById("eliteCheck")
+	local preferredButton = rerollBox:getChildById("preferredListButton")
+	local claimButton = rerollBox:getChildById("claimButton")
+	local difficultyLabel = rerollBox:getChildById("difficultyLabel")
+	local difficultyHelp = rerollBox:getChildById("difficultyHelp")
+	local limitIcon = rerollBox:getChildById("rerollLimitIcon")
+	local iconImage = is1533 and TaskBoard:asset1533("icon-difficulty") or nil
+
+	if eliteIcon then
+		eliteIcon:setVisible(iconImage ~= nil)
+
+		if iconImage then
+			eliteIcon:setImageSource(iconImage)
+			eliteIcon:setTooltip(ELITE_TOOLTIP)
+		end
+	end
+
+	if eliteCheck then
+		eliteCheck:setVisible(is1533)
+		eliteCheck:setTooltip(ELITE_TOOLTIP)
+		eliteCheck:breakAnchors()
+		eliteCheck:addAnchor(AnchorTop, "parent", AnchorTop)
+
+		if iconImage then
+			eliteCheck:addAnchor(AnchorLeft, "eliteIcon", AnchorRight)
+			eliteCheck:setMarginLeft(6)
+		else
+			eliteCheck:addAnchor(AnchorLeft, "showFilterDifficulty", AnchorRight)
+			eliteCheck:setMarginLeft(16)
+		end
+	end
+
+	if preferredButton then
+		preferredButton:breakAnchors()
+		preferredButton:addAnchor(AnchorTop, "parent", AnchorTop)
+		preferredButton:addAnchor(AnchorLeft, is1533 and "eliteCheck" or "showFilterDifficulty", AnchorRight)
+		preferredButton:setMarginLeft(is1533 and 16 or 26)
+	end
+
+	if claimButton then
+		claimButton:setVisible(not is1533)
+	end
+
+	if limitIcon and not is1533 then
+		limitIcon:setVisible(false)
+	end
+
+	if difficultyLabel then
+		difficultyLabel:setText(is1533 and tr("Task Difficulty") or tr("Task Difficulty:"))
+		difficultyLabel:setTooltip(is1533 and DIFFICULTY_LABEL_TOOLTIP or "")
+	end
+
+	if difficultyHelp then
+		difficultyHelp:setTooltip(is1533 and DIFFICULTY_HELP_1533 or DIFFICULTY_HELP_1530)
+	end
+
+	rerollBox:updateLayout()
+end
+
+local function setEliteChecked(enabled)
+	local rerollBox = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
+
+	if not rerollBox then
+		return
+	end
+
+	local eliteCheck = rerollBox:getChildById("eliteCheck")
+	local eliteIcon = rerollBox:getChildById("eliteIcon")
+
+	if eliteCheck and eliteCheck:isChecked() ~= enabled then
+		updatingEliteCheck = true
+		eliteCheck:setChecked(enabled)
+		updatingEliteCheck = false
+	end
+
+	if eliteIcon then
+		eliteIcon:setOpacity(enabled and 1.0 or 0.4)
+	end
+end
+
+function BountyTask:onEliteToggled(checked)
+	if updatingEliteCheck or not TaskBoard:is1533() then
+		return
+	end
+
+	local rerollBox = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
+	local eliteIcon = rerollBox and rerollBox:getChildById("eliteIcon")
+
+	if eliteIcon then
+		eliteIcon:setOpacity(checked and 1.0 or 0.4)
+	end
+
+	-- 0x5F action 2 carries both settings; they apply to the next tasks only
+	g_game.sendSelectTaskDifficulty(self.currentDifficulty or 0, checked)
+end
+
+function onBountyTasksDaily(slots, rerollTokens, claimUnlocked, difficultyBountyTask, talismanData, preferredListData, eliteEnabled)
 	updateBountyKillTracker(slots)
+	BountyTask.rerollTokens = tonumber(rerollTokens) or 0
+	BountyTask.currentDifficulty = tonumber(difficultyBountyTask) or 0
 
 	local container = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("dailyTasks")
 
@@ -1088,7 +1301,9 @@ function onBountyTasksDaily(slots, rerollTokens, claimUnlocked, difficultyBounty
 	filterDifficulty:setCurrentOption(bountyDifficultyOptionText(difficultyBountyTask), true)
 	applyRerollTokens(rerollTokensValue, rerollButton, rerollTokens)
 
-	if tonumber(claimUnlocked) == 0 then
+	if TaskBoard:is1533() then
+		setEliteChecked(eliteEnabled == true)
+	elseif tonumber(claimUnlocked) == 0 then
 		claimButton:setEnabled(true)
 		claimButton:setImageClip("0 0 108 20")
 
@@ -1142,6 +1357,8 @@ end
 
 local function onGameStartBounty()
 	bountyCreatureCache = nil
+
+	BountyTask:applyVersionLayout()
 
 	scheduleEvent(buildBountyCreatureCache, 500)
 	scheduleEvent(function()
@@ -1242,7 +1459,7 @@ function onEngineBountyPreferredData(preferredSlots, _, allRaceIds)
 	BountyTask.engineRaceIds = allRaceIds or {}
 
 	onBountyTasksDaily(data.slots, data.rerollTokens, data.claimUnlocked, data.difficulty,
-		data.talismanData, preferredListData)
+		data.talismanData, preferredListData, data.eliteEnabled)
 end
 
 function BountyTask:init()
@@ -1254,6 +1471,7 @@ function BountyTask:init()
 		onGameStart = onGameStartBounty,
 		onGameEnd = onGameEndBounty
 	})
+	BountyTask:applyVersionLayout()
 	scheduleEvent(refreshBountyKillTrackerFromCache, 0)
 end
 

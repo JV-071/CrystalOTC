@@ -77,6 +77,25 @@ local function onTaskBoardGameStart()
 	scheduleEvent(syncBountyShortcutHighlight, 0)
 end
 
+function TaskBoard:is1533()
+	return g_game.getClientVersion() >= 1533
+end
+
+-- Official 15.33 artwork is not shipped in git; the owner drops it under data/images/game/1533/taskboard/
+-- (see UI-1533-ASSETS.md). Returns the image path when the file is there, nil otherwise, so every caller
+-- keeps a fallback and the board works without the files.
+local assetCache = {}
+
+function TaskBoard:asset1533(name)
+	local path = "/images/game/1533/taskboard/" .. name
+
+	if assetCache[path] == nil then
+		assetCache[path] = g_resources.fileExists(path .. ".png") and true or false
+	end
+
+	return assetCache[path] and path or nil
+end
+
 TaskBoard.resourceTypes = {
 	soulSeals = 87,
 	bountyPoints = 86,
