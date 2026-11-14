@@ -72,7 +72,7 @@ public:
     void setForgeBonuses(double momentum, double transcendence, double amplification);
     void setExperienceRate(Otc::ExperienceRate_t type, uint16_t value);
     void setStoreExpBoostTime(uint16_t value);
-    void setDailyExpBoostTime(uint16_t value) { m_dailyExpBoostTime = value; }
+    void setDailyExpBoostTime(uint16_t value);
     void setHarmony(uint8_t harmony);
     void setSerene(bool serene);
 

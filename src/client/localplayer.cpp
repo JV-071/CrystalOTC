@@ -747,6 +747,16 @@ void LocalPlayer::setStoreExpBoostTime(uint16_t value)
         return;
 
     m_storeExpBoostTime = value;
+    callLuaField("onExpBoostTimeChange");
+}
+
+void LocalPlayer::setDailyExpBoostTime(uint16_t value)
+{
+    if (m_dailyExpBoostTime == value)
+        return;
+
+    m_dailyExpBoostTime = value;
+    callLuaField("onExpBoostTimeChange");
 }
 
 void LocalPlayer::setHarmony(const uint8_t harmony)
