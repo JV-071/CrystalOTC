@@ -44,6 +44,8 @@ function ensureWheelWindows()
 		return
 	end
 
+	g_ui.importStyle("styles/vessels1533")
+
 	wheelWindow = g_ui.displayUI("wheel")
 	mainPanel = wheelWindow:getChildById("mainPanel")
 	wheelOfDestinyWindow = g_ui.loadUI("styles/wheelMenu", mainPanel)
@@ -113,6 +115,7 @@ end
 -- builds the UI on demand. The same ref must go to connect and disconnect.
 local function onDestinyWheelProxy(...)
 	ensureWheelWindows()
+	WheelVessels.applyTables()
 	return WheelOfDestiny.onDestinyWheel(...)
 end
 
@@ -235,6 +238,7 @@ end
 function onGameEnd()
 	hide()
 	WheelOfDestiny.saveWheelPresets()
+	WheelVessels.onGameEnd()
 
 	-- the UI may have never been created (lazy-init) - then there is nothing to hide
 	if not wheelWindow then

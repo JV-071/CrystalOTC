@@ -77,6 +77,11 @@ function WheelOfDestiny.setPreviewMode(enabled)
 end
 
 local function normalizeEquipedGems(equipedGems)
+	if WheelVessels.isActive() then
+		-- 15.33: 8 vessels (gem index or -1) instead of 4 domains
+		return WheelVessels.normalize(equipedGems)
+	end
+
 	if type(equipedGems) ~= "table" then
 		return {
 			-1,
@@ -825,6 +830,7 @@ function WheelOfDestiny.removePoint(index, points)
 end
 
 function WheelOfDestiny.openPreviewWheel(playerId, vocationId)
+	WheelVessels.applyTables()
 	WheelOfDestiny.setPreviewMode(true)
 
 	local changeState = 0
@@ -933,7 +939,18 @@ function WheelOfDestiny.openPreviewWheel(playerId, vocationId)
 	end
 end
 
-function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
+function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements, vesselGems, scrollExtraPoints, monkQuest, huntingTaskShopPoints)
+	WheelVessels.applyTables()
+
+	WheelOfDestiny.scrollExtraPoints = scrollExtraPoints or {}
+	WheelOfDestiny.monkQuest = monkQuest == true or monkQuest == 1
+	WheelOfDestiny.huntingTaskShopPoints = tonumber(huntingTaskShopPoints) or 0
+
+	if WheelVessels.isActive() then
+		-- 15.33 sends 8 vessels; equipedGems is only the list of the filled ones
+		equipedGems = vesselGems
+	end
+
 	local isPreviewRequest = canView == 0 or not table.isIn({
 		1,
 		2,
@@ -2212,8 +2229,16 @@ function WheelOfDestiny.create(playerId, canView, changeState, vocationId, point
 	WheelOfDestiny.levelPoints = points
 	WheelOfDestiny.scrollPoints = scrollPoints
 	WheelOfDestiny.usedPromotionScrolls = usedPromotionScrolls
+	WheelVessels.applyTables()
+
 	WheelOfDestiny.equipedGems = normalizeEquipedGems(equipedGems)
 	WheelOfDestiny.atelierGems = atelierGems
+
+	if WheelVessels.isActive() then
+		-- presets may hold gems that were dismantled or do not fit the vessel quality
+		WheelVessels.sanitize()
+	end
+
 	WheelOfDestiny.basicModsUpgrade = basicUpgraded
 	WheelOfDestiny.supremeModsUpgrade = supremeUpgraded
 	WheelOfDestiny.extraGemPoints = 0
@@ -2416,6 +2441,16 @@ local function getGemStruct(preset)
 end
 
 local function getLocalGemStruct()
+	if WheelVessels.isActive() then
+		local vessels = {}
+
+		for i, gemID in ipairs(WheelVessels.getVessels()) do
+			vessels[i] = gemID
+		end
+
+		return vessels
+	end
+
 	local struct = {
 		-1,
 		-1,
@@ -2438,6 +2473,30 @@ end
 
 function onWheelOfDestinyApply(close, ignoreprotocol)
 	if WheelOfDestiny.changeState == 0 then
+		if close then
+			hide()
+		end
+
+		return
+	end
+
+	if WheelVessels.isActive() then
+		-- 15.33 0x62: slot points, then the 8 vessels (gem index or -1)
+		if not ignoreprotocol then
+			local vessels = getLocalGemStruct()
+
+			if WheelOfDestiny.currentPreset then
+				WheelOfDestiny.currentPreset.equipedGems = vessels
+			end
+
+			g_game.applyWheelVessels(WheelOfDestiny.pointInvested, vessels)
+		end
+
+		if g_game.getLocalPlayer() then
+			WheelOfDestiny.updateCurrentPreset()
+			WheelOfDestiny.saveWheelPresets()
+		end
+
 		if close then
 			hide()
 		end
@@ -2503,6 +2562,10 @@ function WheelOfDestiny.configurePassives()
 				end
 			end
 		end
+	end
+
+	if WheelVessels.isActive() then
+		WheelVessels.addExtraPassivePoints(WheelOfDestiny.extraPassivePoints)
 	end
 
 	local passivel = "TL"
@@ -3951,6 +4014,12 @@ function WheelOfDestiny.onGemVesselClick(domain)
 	wheelOfDestinyWindow.selection.tabContent:setVisible(false)
 	wheelOfDestinyWindow.selection.gemContent:setVisible(true)
 
+	if WheelVessels.isActive() then
+		WheelVessels.showVesselSummary()
+
+		return
+	end
+
 	local filledCount = GemAtelier.getFilledVesselCount(domain)
 	local data = GemAtelier.getEquipedGem(domain)
 
@@ -4069,6 +4138,15 @@ function WheelOfDestiny.onChangeGemButton(domain)
 	gemAtelierWindow:show(true)
 	wheelMenuButton:setChecked(false)
 	gemMenuButton:setChecked(true)
+
+	if WheelVessels.isActive() then
+		Workshop.createFragments()
+		GemAtelier.resetFields()
+		GemAtelier.showGems(true)
+		WheelVessels.onClickVessel(WheelVessels.getFirstVesselToShow())
+
+		return
+	end
 
 	local currentDomain = WheelOfDestiny.lastSelectedGemVessel and WheelOfDestiny.lastSelectedGemVessel:getId():gsub("selectVessel", "") or 0
 	local data = GemAtelier.getEquipedGem(tonumber(currentDomain))

@@ -1,0 +1,86 @@
+VesselSocket1533 < UIWidget
+  size: 32 40
+
+  UIWidget
+    id: backdrop
+    size: 32 32
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    image-source: /images/game/wheel/backdrop_skillwheel_socket_inactive
+    phantom: true
+
+  UIWidget
+    id: gem
+    size: 30 30
+    anchors.centerIn: backdrop
+    image-source: /images/game/wheel/icons-gematelier-gemvariants
+    image-clip: 0 0 32 32
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: lock
+    size: 8 12
+    anchors.top: parent.top
+    anchors.right: parent.right
+    margin-top: 1
+    margin-right: 1
+    image-source: /images/game/wheel/icon-locked
+    phantom: true
+
+  UIWidget
+    id: marker
+    size: 34 34
+    anchors.centerIn: backdrop
+    image-source: /images/game/wheel/marker_skillwheelsocket
+    phantom: true
+    visible: false
+
+  Label
+    id: quality
+    anchors.top: backdrop.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-align: center
+    font: Verdana-8px
+    color: #909090
+    phantom: true
+
+VesselGrid1533 < Panel
+  anchors.fill: parent
+  margin-top: 20
+  margin-left: 6
+  margin-right: 6
+  margin-bottom: 4
+
+  Panel
+    id: sockets
+    size: 134 82
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    layout:
+      type: grid
+      cell-size: 32 40
+      cell-spacing: 2
+      num-columns: 4
+
+  Label
+    id: status
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-bottom: 4
+    text-align: center
+    font: Verdana Bold-11px
+    color: #909090
+
+ReshapeButton1533 < Button
+  size: 64 20
+  margin-left: 4
+  !text: tr('Reshape')
+
+ReshapeCost1533 < Label
+  margin-top: 2
+  text-auto-resize: true
+  font: Verdana-8px
+  color: #c0c0c0

@@ -494,6 +494,14 @@ function getConvictionBonusTooltip(index)
 	local points = WheelOfDestiny.pointInvested[index]
 	local attribute = WheelConsts[bonus.conviction]
 
+	if WheelVessels.isActive() then
+		local tooltip = WheelVessels.getConvictionTooltip(bonus)
+
+		if tooltip then
+			return tooltip
+		end
+	end
+
 	if bonus.conviction == "vessel" then
 		local domain = bonus.domain
 
@@ -564,6 +572,14 @@ function getConvictionBonus(index, fullMessage)
 	local vocation = WheelOfDestiny.vocationId
 	local points = WheelOfDestiny.pointInvested[index]
 	local attribute = WheelConsts[bonus.conviction]
+
+	if WheelVessels.isActive() then
+		local text = WheelVessels.getConvictionText(bonus, fullMessage)
+
+		if text then
+			return text
+		end
+	end
 
 	if bonus.conviction == "vessel" then
 		local domain = bonus.domain
@@ -1266,6 +1282,8 @@ function getConvictionPerks()
 
 			if pointsInvested ~= bonus.maxPoints then
 				-- block empty
+			elseif WheelVessels.isActive() and WheelVessels.addConvictionPerk(convictions, bonus) then
+				-- 15.33 Gem Vessel and Revelation Mastery slices
 			elseif bonus.conviction == "special_1" then
 				convictions[t] = {
 					perk = attribute[vocation][1],
@@ -2863,7 +2881,14 @@ function getVesselBonus()
 
 	local DHcount = GemAtelier:getDamageAndHealing()
 
-	if DHcount > 0 then
+	if DHcount > 0 and WheelVessels.isActive() then
+		table.insert(bonuses, 1, {
+			text = "Damage and Healing",
+			tooltip = "Each full Gem Vessel slice of the wheel grants +1 damage and healing.",
+			bonusType = "damagehealing",
+			value = "+" .. DHcount
+		})
+	elseif DHcount > 0 then
 		table.insert(bonuses, 1, {
 			text = "Damage and Healing",
 			tooltip = "If the Vessel Resonance matches the gem quality in this domain, a\nbonus of +1 to all damage and healing is granted. This bonus is\nincreased by 1 for greater gems.\n\nRegardless of the match, gems will always grant mod bonuses\nbased on the Vessel Resonance.\n? Lesser gems match Dormant Vessels (VR I)\n? Regular gems match Awakened Vessels (VR II)\n? Greater gems match Radiant Vessels (VR III)",
