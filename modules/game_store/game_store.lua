@@ -1419,6 +1419,29 @@ local function formatNumberWithCommas(value)
 	return sign .. formattedValue
 end
 
+-- a sale price is shown in the sale colour; the tooltip names the base price and when the sale ends
+local function applyListOfferSale(priceLabel, offer)
+	if not priceLabel or not offer then
+		return
+	end
+
+	local basePrice = tonumber(offer.basePrice) or 0
+
+	if offer.state ~= GameStore.States.STATE_SALE or basePrice <= (tonumber(offer.price) or 0) then
+		return
+	end
+
+	local text = string.format("Regular price: %s", formatNumberWithCommas(basePrice))
+	local validUntil = tonumber(offer.validUntil) or 0
+
+	if validUntil > 0 then
+		text = text .. "\n" .. string.format("On sale until %s", os.date("%Y-%m-%d, %H:%M", validUntil))
+	end
+
+	priceLabel:setColor("#f7af48")
+	priceLabel:setTooltip(text)
+end
+
 local function getCoinsBalance()
 	local function extractNumber(text)
 		if type(text) ~= "string" then
@@ -2742,7 +2765,8 @@ function controllerShop:onInit()
 		onAuctionCharacterCheckRequirements = onAuctionCharacterCheckRequirements,
 		onAuctionCharacterItemsInventory = onAuctionCharacterItemsInventory,
 		onAuctionCharacterItemsStore = onAuctionCharacterItemsStore,
-		onAuctionCharacterArguments = onAuctionCharacterArguments
+		onAuctionCharacterArguments = onAuctionCharacterArguments,
+		onResourceBalance = onStoreResourceBalance
 	})
 end
 
@@ -3040,6 +3064,7 @@ function onParseStoreCreateProducts(storeProducts)
 				local balance = isTransferable and coinsBalance1 or coinsBalance2
 
 				priceLabel:setColor("#c0c0c0")
+				applyListOfferSale(priceLabel, subOffer)
 
 				if isTransferable then
 					priceLabel:setIcon("/images/icons/icon-tibiacointransferable")
@@ -3175,6 +3200,8 @@ function onParseStoreCreateHome(offer)
 			else
 				subOfferWidget.lblPrice:setIcon("/images/icons/icon-tibiacoin")
 			end
+
+			applyListOfferSale(subOfferWidget.lblPrice, subOffer)
 
 			visibleSubOffers = visibleSubOffers + 1
 		end
@@ -3537,6 +3564,11 @@ function gameOpenStore(skipHomeRequest)
 
 	showStoreWindow()
 	g_game.openStore()
+	updateCosmeticTokenBalance()
+
+	if g_game.getClientVersion() >= 1533 then
+		g_game.sendResourceBalance(ResourceTypes.COSMETIC_TOKENS)
+	end
 
 	if not skipHomeRequest and controllerShop.ui.listCategory:getChildCount() > 0 then
 		waitingInitialHome = true
@@ -3707,7 +3739,108 @@ function requestTransactionHistory(widget)
 	end
 end
 
-local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBalance1)
+local STORE_SALE_COLOR = "#f7af48"
+-- optional official artwork, added by the owner outside git (see UI-1533-ASSETS.md)
+local COSMETIC_TOKEN_ICON_1533 = "/images/game/1533/store/icon-cosmetic-token"
+local cosmeticTokenIconAvailable
+
+local function isStore1533()
+	return g_game.getClientVersion() >= 1533
+end
+
+local function getCosmeticTokenIcon()
+	if cosmeticTokenIconAvailable == nil then
+		cosmeticTokenIconAvailable = g_resources.fileExists(COSMETIC_TOKEN_ICON_1533 .. ".png") and true or false
+	end
+
+	return cosmeticTokenIconAvailable and COSMETIC_TOKEN_ICON_1533 or nil
+end
+
+local function getCosmeticTokenBalance()
+	local player = g_game.getLocalPlayer()
+
+	if not player then
+		return 0
+	end
+
+	return tonumber(player:getResourceBalance(ResourceTypes.COSMETIC_TOKENS)) or 0
+end
+
+function updateCosmeticTokenBalance()
+	if not controllerShop.ui then
+		return
+	end
+
+	local show = isStore1533()
+	local panel = controllerShop.ui.lblCosmeticTokens
+
+	controllerShop.ui.cosmeticTokensSeparator:setVisible(show)
+	panel:setVisible(show)
+
+	if not show then
+		return
+	end
+
+	local icon = getCosmeticTokenIcon()
+
+	panel.icon:setVisible(icon ~= nil)
+
+	if icon then
+		panel.icon:setImageSource(icon)
+		panel.value:setText(formatNumberWithCommas(getCosmeticTokenBalance()))
+	else
+		panel.value:setText(formatNumberWithCommas(getCosmeticTokenBalance()) .. " " .. tr("Tokens"))
+	end
+end
+
+function onStoreResourceBalance(resourceType)
+	if resourceType == ResourceTypes.COSMETIC_TOKENS then
+		updateCosmeticTokenBalance()
+	end
+end
+
+local function isOfferOnSale(offer)
+	return offer and offer.state == GameStore.States.STATE_SALE and (tonumber(offer.basePrice) or 0) > (tonumber(offer.price) or 0)
+end
+
+local function getOfferSaleText(offer)
+	local validUntil = tonumber(offer.validUntil) or 0
+
+	if validUntil > 0 then
+		return string.format("On sale until %s", os.date("%Y-%m-%d, %H:%M", validUntil))
+	end
+
+	return "On sale"
+end
+
+local function getOfferSaleTextShort(offer)
+	local validUntil = tonumber(offer.validUntil) or 0
+
+	if validUntil > 0 then
+		return string.format("until %s", os.date("%Y-%m-%d", validUntil))
+	end
+
+	return "sale"
+end
+
+-- offers that 15.33 also sells for Cosmetic Tokens; a token is worth one Tibia Coin
+local function getCosmeticTokenOffers(offers)
+	local result = {}
+
+	if not isStore1533() then
+		return result
+	end
+
+	for _, offer in ipairs(offers) do
+		if offer.cosmeticTokens and (not offer.id or offer.id ~= 0) then
+			table.insert(result, offer)
+		end
+	end
+
+	return result
+end
+
+local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBalance1, useCosmeticTokens)
 	local pricePanel = offerPanel:getChildById("lblPrice")
 
 	if not pricePanel then
@@ -3725,21 +3858,50 @@ local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBala
 	local isTransferable = offer.coinType == GameStore.CoinType.Transferable
 	local currentBalance = isTransferable and coinsBalance1 or coinsBalance2
 	local priceVal = tonumber(offer.price) or 0
+	local onSale = not useCosmeticTokens and isOfferOnSale(offer)
+
+	if useCosmeticTokens then
+		currentBalance = getCosmeticTokenBalance()
+	end
+
+	if onSale then
+		-- the base price struck out in front of the sale price, as in the 15.33 offer page
+		local basePrice = g_ui.createWidget("StoreStrikePrice", row)
+
+		basePrice:setId("lblBasePrice")
+		basePrice:setText(formatNumberWithCommas(tonumber(offer.basePrice) or 0))
+		row:moveChildToIndex(basePrice, 1)
+		pricePanel:setTooltip(getOfferSaleText(offer))
+	end
 
 	if priceText then
 		priceText:setText(formatNumberWithCommas(priceVal))
-		priceText:setColor("#c0c0c0")
+		priceText:setColor(currentBalance < priceVal and "#d33c3c" or (onSale and STORE_SALE_COLOR or "#c0c0c0"))
 	end
 
 	if priceCoin then
-		if isTransferable then
-			priceCoin:setImageSource("/images/icons/icon-tibiacointransferable")
+		local icon
+
+		if useCosmeticTokens then
+			icon = getCosmeticTokenIcon()
+
+			if not icon and priceText then
+				priceText:setText(formatNumberWithCommas(priceVal) .. " " .. tr("Tokens"))
+			end
+
+			pricePanel:setTooltip(tr("Cosmetic Tokens"))
+		elseif isTransferable then
+			icon = "/images/icons/icon-tibiacointransferable"
 		else
-			priceCoin:setImageSource("/images/icons/icon-tibiacoin")
+			icon = "/images/icons/icon-tibiacoin"
 		end
 
-		priceCoin:setImageFixedRatio(true)
-		priceCoin:setVisible(true)
+		if icon then
+			priceCoin:setImageSource(icon)
+			priceCoin:setImageFixedRatio(true)
+		end
+
+		priceCoin:setVisible(icon ~= nil and priceVal > 0)
 	end
 
 	local btnBuy = offerPanel:getChildById("btnBuy")
@@ -3747,10 +3909,187 @@ local function setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBala
 	if btnBuy then
 		if currentBalance < priceVal then
 			btnBuy:disable()
+
+			local reason
+
+			if useCosmeticTokens then
+				reason = tr("You do not have enough Cosmetic Tokens.")
+			elseif isTransferable then
+				reason = tr("You do not have enough transferable Tibia Coins.")
+			else
+				reason = tr("You do not have enough Tibia Coins.")
+			end
+
+			offerPanel.notEnoughText = reason
 		else
 			btnBuy:enable()
 		end
 	end
+end
+
+local function getOfferNameForPurchase(product, offer)
+	-- 15.33 adds the quantity only when there is more than one quantity or the quantity is above one
+	local count = offer.count or 1
+	local purchasable = 0
+
+	for _, o in ipairs(product.subOffers or {}) do
+		if not o.id or o.id ~= 0 then
+			purchasable = purchasable + 1
+		end
+	end
+
+	if purchasable > 1 or count > 1 or not isStore1533() then
+		return string.format("%dx %s", count, product.name)
+	end
+
+	return product.name
+end
+
+local function openPurchaseConfirmation(product, offer, useCosmeticTokens)
+	if acceptWindow then
+		destroyWindow(acceptWindow)
+	end
+
+	local isTransferable = offer.coinType == GameStore.CoinType.Transferable
+
+	if isConfigurableOffer(product, offer) then
+		fixServerNoSend0xF2()
+		g_game.buyStoreOffer(offer.id, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_OTHER, "", 0, "", useCosmeticTokens and true or false)
+		showStoreProcessingModal()
+
+		return
+	end
+
+	local function shouldAskBeforeBuying()
+		if modules.client_options and modules.client_options.getOption then
+			local value = modules.client_options.getOption("askBeforeBuying")
+
+			if value ~= nil then
+				return value
+			end
+		end
+
+		return true
+	end
+
+	local purchaseInProgress = false
+
+	local function acceptFunc()
+		if purchaseInProgress then
+			return
+		end
+
+		purchaseInProgress = true
+
+		if acceptWindow and applyShopDoNotShowAgainPreference then
+			applyShopDoNotShowAgainPreference(acceptWindow)
+		end
+
+		destroyWindow(acceptWindow)
+		addEvent(function()
+			fixServerNoSend0xF2()
+
+			local latestCurrentBalance
+
+			if useCosmeticTokens then
+				latestCurrentBalance = getCosmeticTokenBalance()
+			else
+				local latestBalance2, latestBalance1 = getCoinsBalance()
+
+				latestCurrentBalance = isTransferable and latestBalance1 or latestBalance2
+			end
+
+			if latestCurrentBalance >= offer.price then
+				if useCosmeticTokens then
+					g_game.buyStoreOffer(offer.id, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_OTHER, "", 0, "", true)
+				else
+					g_game.buyStoreOffer(offer.id, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_OTHER)
+				end
+
+				showStoreProcessingModal()
+			else
+				displayErrorBox(controllerShop.ui:getText(), useCosmeticTokens and tr("You don't have enough Cosmetic Tokens") or tr("You don't have enough coins"))
+				restoreStoreAfterOverlay()
+			end
+		end)
+	end
+
+	local function cancelFunc()
+		destroyWindow(acceptWindow)
+		restoreStoreAfterOverlay()
+	end
+
+	local formattedPrice = formatNumberWithCommas(tonumber(offer.price) or 0)
+	local productLineText = getOfferNameForPurchase(product, offer)
+	local confirmationMessage = string.format("Do you want to buy the product \"%s\"?", productLineText)
+	local priceIcon
+
+	if useCosmeticTokens then
+		priceIcon = getCosmeticTokenIcon()
+
+		if not priceIcon then
+			formattedPrice = formattedPrice .. " " .. tr("Cosmetic Tokens")
+		end
+	else
+		priceIcon = isTransferable and "/images/icons/icon-tibiacointransferable" or "/images/icons/icon-tibiacoin"
+	end
+
+	local data = getProductData(product)
+
+	if not shouldAskBeforeBuying() then
+		acceptFunc()
+
+		return
+	end
+
+	hideStoreForOverlay()
+
+	acceptWindow = displayGeneralSHOPBox(tr("Confirmation of Purchase"), confirmationMessage, productLineText, formattedPrice, priceIcon, {
+		{
+			text = tr("Buy"),
+			callback = acceptFunc
+		},
+		{
+			text = tr("Cancel"),
+			callback = cancelFunc
+		},
+		anchor = AnchorHorizontalCenter
+	}, acceptFunc, cancelFunc)
+
+	if acceptWindow and acceptWindow.priceCoin then
+		acceptWindow.priceCoin:setVisible(priceIcon ~= nil)
+	end
+
+	if acceptWindow and not useCosmeticTokens and isOfferOnSale(offer) and acceptWindow.priceRow then
+		-- sale: struck out base price before the price and the sale end after the coin icon
+		local basePrice = g_ui.createWidget("StoreStrikePrice", acceptWindow.priceRow)
+
+		basePrice:setText(formatNumberWithCommas(tonumber(offer.basePrice) or 0))
+		acceptWindow.priceRow:moveChildToIndex(basePrice, 2)
+
+		local saleLabel = g_ui.createWidget("StoreSaleLabel", acceptWindow.priceRow)
+
+		saleLabel:setText("(" .. getOfferSaleTextShort(offer) .. ")")
+		acceptWindow.priceRow:setTooltip(getOfferSaleText(offer))
+	end
+
+	if data then
+		createProductImage(acceptWindow.Box, data)
+	end
+end
+
+local function addOfferPanelDisabledTooltip(offerPanel, text)
+	local btnBuy = offerPanel:getChildById("btnBuy")
+	local tooltipOverlay = g_ui.createWidget("UIWidget", offerPanel)
+
+	tooltipOverlay:setId("tooltipOverlay")
+	tooltipOverlay:setFocusable(false)
+	tooltipOverlay:setSize(btnBuy:getSize())
+	tooltipOverlay:setPosition(btnBuy:getPosition())
+	tooltipOverlay:parseColoreDisplayToolTip(text)
+	tooltipOverlay:setOpacity(0)
+	tooltipOverlay:addAnchor(AnchorLeft, btnBuy:getId(), AnchorLeft)
+	tooltipOverlay:addAnchor(AnchorTop, btnBuy:getId(), AnchorTop)
 end
 
 function chooseOffert(self, focusedChild)
@@ -3901,98 +4240,44 @@ function chooseOffert(self, focusedChild)
 				end
 			end
 
+			if not offer.disabled and offerPanel.notEnoughText then
+				addOfferPanelDisabledTooltip(offerPanel, string.format("[color=#ff0000]%s[/color]", offerPanel.notEnoughText))
+			end
+
 			offerPanel:getChildById("btnBuy").onClick = function(widget)
-				if acceptWindow then
-					destroyWindow(acceptWindow)
-				end
+				openPurchaseConfirmation(product, offer, false)
+			end
+		end
+	end
 
-				local isTransferable = offer.coinType == GameStore.CoinType.Transferable
+	-- 15.33: offers that can also be paid with Cosmetic Tokens get a second set of buy buttons below "or"
+	local cosmeticOffers = getCosmeticTokenOffers(offers)
 
-				if isConfigurableOffer(product, offer) then
-					fixServerNoSend0xF2()
-					g_game.buyStoreOffer(offer.id, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_OTHER)
-					showStoreProcessingModal()
+	if #cosmeticOffers > 0 then
+		g_ui.createWidget("StoreOrSeparator", offerStackPanel)
 
-					return
-				end
+		for _, offer in ipairs(cosmeticOffers) do
+			local offerPanel = g_ui.createWidget("OfferPanel2", offerStackPanel)
+			local btnBuy = offerPanel:getChildById("btnBuy")
 
-				local function shouldAskBeforeBuying()
-					if modules.client_options and modules.client_options.getOption then
-						local value = modules.client_options.getOption("askBeforeBuying")
+			if #validOffers > 1 then
+				btnBuy:setText("Buy  " .. tostring(offer.count or 1))
+			else
+				btnBuy:setText(tr("Buy"))
+			end
 
-						if value ~= nil then
-							return value
-						end
-					end
+			setOfferPanelPriceRow(offerPanel, offer, coinsBalance2, coinsBalance1, true)
 
-					return true
-				end
+			if offer.disabled then
+				btnBuy:disable()
+				btnBuy:setOpacity(0.8)
+				addOfferPanelDisabledTooltip(offerPanel, "[color=#ff0000]The product is not available for this character.[/color]")
+			elseif offerPanel.notEnoughText then
+				addOfferPanelDisabledTooltip(offerPanel, string.format("[color=#ff0000]%s[/color]", offerPanel.notEnoughText))
+			end
 
-				local purchaseInProgress = false
-
-				local function acceptFunc()
-					if purchaseInProgress then
-						return
-					end
-
-					purchaseInProgress = true
-
-					if acceptWindow and applyShopDoNotShowAgainPreference then
-						applyShopDoNotShowAgainPreference(acceptWindow)
-					end
-
-					destroyWindow(acceptWindow)
-					addEvent(function()
-						fixServerNoSend0xF2()
-
-						local latestBalance2, latestBalance1 = getCoinsBalance()
-						local latestCurrentBalance = isTransferable and latestBalance1 or latestBalance2
-
-						if latestCurrentBalance >= offer.price then
-							g_game.buyStoreOffer(offer.id, GameStore.ClientOfferTypes.CLIENT_STORE_OFFER_OTHER)
-							showStoreProcessingModal()
-						else
-							displayErrorBox(controllerShop.ui:getText(), tr("You don't have enough coins"))
-							restoreStoreAfterOverlay()
-						end
-					end)
-				end
-
-				local function cancelFunc()
-					destroyWindow(acceptWindow)
-					restoreStoreAfterOverlay()
-				end
-
-				local formattedPrice = formatNumberWithCommas(tonumber(offer.price) or 0)
-				local offerCount = offer.count or 1
-				local productLineText = string.format("%dx %s", offerCount, product.name)
-				local confirmationMessage = string.format("Do you want to buy the product \"%s\"?", productLineText)
-				local priceIcon = isTransferable and "/images/icons/icon-tibiacointransferable" or "/images/icons/icon-tibiacoin"
-				local data = getProductData(product)
-
-				if not shouldAskBeforeBuying() then
-					acceptFunc()
-
-					return
-				end
-
-				hideStoreForOverlay()
-
-				acceptWindow = displayGeneralSHOPBox(tr("Confirmation of Purchase"), confirmationMessage, productLineText, formattedPrice, priceIcon, {
-					{
-						text = tr("Buy"),
-						callback = acceptFunc
-					},
-					{
-						text = tr("Cancel"),
-						callback = cancelFunc
-					},
-					anchor = AnchorHorizontalCenter
-				}, acceptFunc, cancelFunc)
-
-				if data then
-					createProductImage(acceptWindow.Box, data)
-				end
+			btnBuy.onClick = function(widget)
+				openPurchaseConfirmation(product, offer, true)
 			end
 		end
 	end

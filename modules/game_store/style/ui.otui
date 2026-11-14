@@ -429,3 +429,51 @@ StoreDescriptionLine < UIWidget
     text-auto-resize: true
     anchors.left: parent.left
     anchors.right: parent.right
+StoreStrikePrice < Label
+  height: 16
+  text-auto-resize: true
+  text-align: left
+  font: $var-cip-font-new
+  color: #808080
+  phantom: true
+
+  UIWidget
+    id: strike
+    height: 1
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    background-color: #808080
+    phantom: true
+
+StoreOrSeparator < Panel
+  height: 14
+  margin-top: 4
+
+  Label
+    id: orLabel
+    anchors.horizontalCenter: parent.horizontalCenter
+    anchors.verticalCenter: parent.verticalCenter
+    text-auto-resize: true
+    font: $var-cip-font-new
+    color: #c0c0c0
+    !text: tr('or')
+
+  HorizontalSeparator
+    anchors.left: parent.left
+    anchors.right: orLabel.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 4
+
+  HorizontalSeparator
+    anchors.left: orLabel.right
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    margin-left: 4
+
+StoreSaleLabel < Label
+  height: 14
+  text-auto-resize: true
+  text-align: leftCenter
+  font: $var-cip-font-new
+  color: #f7af48
