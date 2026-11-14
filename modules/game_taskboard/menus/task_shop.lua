@@ -161,14 +161,16 @@ local function onShopResourceBalance(resourceType)
 	end
 end
 
+local function onShopGameEnd()
+	TaskShop:cancelPurchase()
+end
+
 function TaskShop:init()
 	connect(g_game, {
 		onShopTasks = onShopTasks,
 		onTaskHuntingShopData = onEngineTaskHuntingShopData,
 		onResourceBalance = onShopResourceBalance,
-		onGameEnd = function()
-			TaskShop:cancelPurchase()
-		end
+		onGameEnd = onShopGameEnd
 	})
 end
 
@@ -176,7 +178,8 @@ function TaskShop:terminate()
 	disconnect(g_game, {
 		onShopTasks = onShopTasks,
 		onTaskHuntingShopData = onEngineTaskHuntingShopData,
-		onResourceBalance = onShopResourceBalance
+		onResourceBalance = onShopResourceBalance,
+		onGameEnd = onShopGameEnd
 	})
 	self:cancelPurchase()
 	self:clearShop()
