@@ -930,7 +930,8 @@ end
 -- Rotating the active sub-action (cast, cooldown end, cooldown tick) only changes what the slot
 -- shows. The slot hotkey stays the same and its handler reads the slot when pressed, so the full
 -- setupHotkeys() that loadSpell/loadText/loadObject would run (rebinding every slot, the WASD
--- walk keys and the turn keys) is skipped here. Only this slot's hotkey label is refreshed.
+-- walk keys and the turn keys) is skipped here. The hotkey label and slot.hotkey are not touched
+-- by the load, and loadSpell/loadText/loadObject refresh the tooltip themselves.
 local function applyActionDataToSlot(slot, data)
 	if not data or table.empty(data) then
 		return false
@@ -944,10 +945,6 @@ local function applyActionDataToSlot(slot, data)
 
 	if not ok then
 		error(applied, 0)
-	end
-
-	if syncSlotHotkeyMirror then
-		syncSlotHotkeyMirror(slot)
 	end
 
 	return applied
