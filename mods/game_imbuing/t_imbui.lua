@@ -144,7 +144,8 @@ function Imbuement.init()
 		end,
 		onResourceBalance = self.onResourceBalance,
 		onCloseImbuementWindow = self.offline,
-		onMessageDialog = self.onMessageDialog
+		-- our engine delivers 0xED message dialogs (code, message) as "onServerError"
+		onServerError = self.onMessageDialog
 	})
 end
 
@@ -159,7 +160,7 @@ function Imbuement.terminate()
 		onImbuementScroll = self.onImbuementScroll,
 		onResourceBalance = self.onResourceBalance,
 		onCloseImbuementWindow = self.offline,
-		onMessageDialog = self.onMessageDialog
+		onServerError = self.onMessageDialog
 	})
 
 	if self.messageWindow then
