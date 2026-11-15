@@ -1610,7 +1610,7 @@ function GemAtelier.refreshModifyPanel(gemData)
 	local socketTip = ""
 
 	if not canEdit then
-		socketTip = tr("You must be inside a temple to change the gems in your vessels.")
+		socketTip = tr("You must be inside a temple to place or remove gems from Vessels.")
 	elseif mode == "socket" and gemData then
 		local selected = WheelVessels.getSelectedVessel()
 
@@ -1651,15 +1651,16 @@ function GemAtelier.refreshModifyPanel(gemData)
 			destroyTip = tr("You must be inside a temple to dismantle gems.")
 		end
 
-		if gemData.locked == 1 then
-			destroyTip = tr("%s%sBefore you can destroy the gem, you must unlock it.", destroyTip, #destroyTip > 0 and "\n" or "")
-		end
-
+		-- texts and order of the official client
 		if GemAtelier.isGemEquipped(gemData.gemID) then
-			destroyTip = tr("%s%sThe gem must be removed from its vessel before it can be destroyed.", destroyTip, #destroyTip > 0 and "\n" or "")
+			destroyTip = tr("%s%sThe gem must be removed from its Vessel before it can be dismantled.", destroyTip, #destroyTip > 0 and "\n" or "")
 		elseif WheelVessels.isGemSocketedOnServer(gemData.gemID) then
 			-- removed locally only: the server still has it in a vessel and refuses the dismantle until Apply
-			destroyTip = tr("%s%sPress Apply to save the removal from the vessel before you destroy the gem.", destroyTip, #destroyTip > 0 and "\n" or "")
+			destroyTip = tr("%s%sBefore you can dismantle the gem, you must apply the changes to your vessel configuration.", destroyTip, #destroyTip > 0 and "\n" or "")
+		end
+
+		if gemData.locked == 1 then
+			destroyTip = tr("%s%sBefore you can dismantle the gem, you must unlock it.", destroyTip, #destroyTip > 0 and "\n" or "")
 		end
 	end
 

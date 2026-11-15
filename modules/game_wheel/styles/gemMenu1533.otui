@@ -393,7 +393,7 @@ Panel
       !text: tr('Modify Gem')
 
     GemHelp1533
-      !tooltip: tr('Place the selected gem in the selected vessel or take it out, reshape one of its mods\nat random or dismantle it. Vessel changes are saved with Apply or Ok.')
+      !tooltip: tr("Reshaping a gem's mods lets you randomly re-roll each mod of the gem.")
 
     GemActionButton1533
       id: socketButton

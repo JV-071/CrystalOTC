@@ -1091,20 +1091,21 @@ function WheelVessels.setupReshapeRow(row, gemData, modSlot)
 	local goldShort = getGold() < cost.gold
 	local fragmentsShort = getFragments(cost.greater) < cost.fragments
 
+	-- texts and order of the official client
+	if goldShort then
+		table.insert(reasons, tr("You need at least %s gold to reshape gems at this position.", comma_value(cost.gold)))
+	end
+
+	if fragmentsShort then
+		table.insert(reasons, tr("You need at least %s %s fragments to reshape gems at this position.", comma_value(cost.fragments), cost.greater and "greater" or "lesser"))
+	end
+
 	if WheelOfDestiny.isPreview or WheelOfDestiny.changeState ~= 1 then
 		table.insert(reasons, tr("You need to be inside a temple to reshape gems."))
 	end
 
 	if gemData.locked == 1 then
-		table.insert(reasons, tr("Unlock the gem before you reshape it."))
-	end
-
-	if goldShort then
-		table.insert(reasons, tr("You need at least %s gold to reshape this mod.", comma_value(cost.gold)))
-	end
-
-	if fragmentsShort then
-		table.insert(reasons, tr("You need at least %d %s fragments to reshape this mod.", cost.fragments, cost.greater and "greater" or "lesser"))
+		table.insert(reasons, tr("Before you can reshape the gem, you must unlock it."))
 	end
 
 	local button = row.reshapeButton
