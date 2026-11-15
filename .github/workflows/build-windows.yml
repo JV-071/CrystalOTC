@@ -8,6 +8,7 @@ on:
       - "src/**"
       - "vcpkg.json"
       - "CMakeLists.txt"
+      - "CMakePresets.json"
       - ".github/workflows/build-windows.yml"
   push:
     branches: [main]
@@ -15,7 +16,13 @@ on:
       - "src/**"
       - "vcpkg.json"
       - "CMakeLists.txt"
+      - "CMakePresets.json"
       - ".github/workflows/build-windows.yml"
+      # The "latest" release bundles these, so it must be rebuilt when they change.
+      - "init.lua"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
 
 permissions:
   contents: read
@@ -102,11 +109,16 @@ jobs:
       - name: Get latest CMake and Ninja
         uses: lukka/get-cmake@v3.31.6
 
+      # The packaged build is the client only: unit tests are off, so no gtest
+      # binary can end up in the artifact, and the client is linked into a known
+      # folder (build/windows-release/bin) instead of the repository root.
       - name: Configure and Build
         uses: lukka/run-cmake@main
         with:
           configurePreset: windows-release
+          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF', '-DTOGGLE_BIN_FOLDER=ON']"
           buildPreset: windows-release
+          buildPresetAdditionalArgs: "['--target', 'otclient']"
 
       - name: Prepare artifact folder
         shell: pwsh
@@ -114,10 +126,31 @@ jobs:
           $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-          $exePath = Get-ChildItem -Recurse -Path "$env:GITHUB_WORKSPACE\build" -Filter "otclient*.exe" | Select-Object -First 1
+          $binDir = "$env:GITHUB_WORKSPACE\build\windows-release\bin"
+          $exePath = Get-Item "$binDir\otclient.exe" -ErrorAction SilentlyContinue
 
           if (-not $exePath) {
-            Write-Error "otclient*.exe not found!"
+            Write-Error "otclient.exe not found in $binDir"
+            exit 1
+          }
+
+          # Refuse to ship anything that is not the real client: it must be a GUI
+          # program (no console window), must not be a gtest binary and must carry
+          # the ANGLE renderer that the DirectX 11 / OpenGL options use.
+          $bytes = [System.IO.File]::ReadAllBytes($exePath.FullName)
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $peOffset + 0x5C)
+          if ($subsystem -ne 2) {
+            Write-Error "otclient.exe has PE subsystem $subsystem, expected 2 (Windows GUI)"
+            exit 1
+          }
+          $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+          if ($text.Contains("gtest_filter")) {
+            Write-Error "otclient.exe looks like a gtest binary, refusing to package it"
+            exit 1
+          }
+          if (-not $text.Contains("EGL_ANGLE_platform_angle")) {
+            Write-Error "otclient.exe does not contain ANGLE, refusing to package it"
             exit 1
           }
 
