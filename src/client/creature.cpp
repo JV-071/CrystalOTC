@@ -724,17 +724,49 @@ void Creature::updateWalkAnimation()
     const uint16_t stepDurationMs = getStepDuration(true);
 
     // The official client does not run one full 8-frame cycle per tile, which made the legs 2-3x
-    // too fast. Measured frame by frame at a 105 ms step, one cycle takes ~280 ms, so it spans ~2.65
-    // tiles and keeps running from one step to the next. The 300 ms phase durations in the
-    // appearances are the same for nearly every outfit and far too slow to be used as they are.
+    // too fast. Measured frame by frame at a 105 ms step, one cycle of an outfit with 8 x 300 ms
+    // walking phases takes ~280 ms, so it spans ~2.65 tiles and keeps running from one step to the
+    // next. The appearance durations are not real time, they are scaled with the step: 300 ms of
+    // them last 2.65 / 8 of a tile. Outfits with other phase counts or durations (4 x 300 ms,
+    // 8 x 100 ms, phases of 0 ms) scale the same way instead of all spanning 2.65 tiles.
     const double cycleSteps = g_gameConfig.getWalkAnimationCycleSteps();
     if (footAnimPhases > 2 && cycleSteps > 0 && stepDurationMs > 0 && m_walkingAnimationSpeed == 0) {
+        static constexpr double REFERENCE_CYCLE_MS = 8 * 300.0;
+
+        const ThingType* thingType = m_outfit.hasMount() ? getMountThingType() : getThingType();
+        const Animator* animator = thingType ? thingType->getAnimator() : nullptr;
+
+        double cycleMs = 0;
+        if (animator && animator->getAnimationPhases() == footAnimPhases) {
+            for (const auto& [minMs, maxMs] : animator->getPhaseDurations())
+                cycleMs += (minMs + maxMs) / 2.0;
+        }
+
+        const double cycleTiles = cycleMs > 0
+            ? cycleSteps * cycleMs / REFERENCE_CYCLE_MS
+            : cycleSteps * footAnimPhases / 8.0;
+
         const ticks_t now = g_clock.millis();
         const auto elapsedMs = static_cast<double>(std::max<ticks_t>(0, now - m_walkCycleLastTick));
         m_walkCycleLastTick = now;
 
-        m_walkCycle = static_cast<float>(std::fmod(m_walkCycle + elapsedMs / (stepDurationMs * cycleSteps), 1.0));
-        m_walkAnimationPhase = static_cast<uint8_t>(std::min(1 + static_cast<int>(m_walkCycle * footAnimPhases), footAnimPhases));
+        m_walkCycle = static_cast<float>(std::fmod(m_walkCycle + elapsedMs / (stepDurationMs * cycleTiles), 1.0));
+
+        int phase = std::min(static_cast<int>(m_walkCycle * footAnimPhases), footAnimPhases - 1);
+        if (cycleMs > 0) {
+            // pick the phase by its share of the cycle, so 0 ms phases are never shown
+            const double at = m_walkCycle * cycleMs;
+            double end = 0;
+            phase = 0;
+            for (const auto& [minMs, maxMs] : animator->getPhaseDurations()) {
+                end += (minMs + maxMs) / 2.0;
+                if (at < end || phase == footAnimPhases - 1)
+                    break;
+                ++phase;
+            }
+        }
+
+        m_walkAnimationPhase = static_cast<uint8_t>(1 + phase);
         return;
     }
 
