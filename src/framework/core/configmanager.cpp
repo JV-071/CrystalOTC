@@ -112,12 +112,22 @@ ConfigPtr ConfigManager::load(const std::string& file)
     return config;
 }
 
-void ConfigManager::setRenderBackend(const std::string& backend)
+std::string ConfigManager::normalizeRenderBackend(const std::string& backend)
 {
-    if (backend != "gl" && backend != "vulkan") {
-        g_logger.warning("[config] unknown render backend '{}' - ignoring", backend);
-        return;
-    }
+    std::string value = backend;
+    stdext::trim(value);
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (value == "d3d11" || value == "opengl" || value == "vulkan")
+        return value;
+    return "auto";
+}
+
+void ConfigManager::setRenderBackend(const std::string& requested)
+{
+    const std::string backend = normalizeRenderBackend(requested);
+    if (backend == "auto" && requested != "auto" && requested != "gl")
+        g_logger.warning("[config] unknown render backend '{}' - using auto", requested);
 
     m_publicConfig.graphics.renderBackend = backend;
 
@@ -191,7 +201,7 @@ void ConfigManager::loadPublicConfig(const std::string& fileName) {
         m_publicConfig.graphics.maxAtlasSize = std::max<int>(2048, reader.GetInteger("graphics", "maxAtlasSize", m_publicConfig.graphics.maxAtlasSize));
         m_publicConfig.graphics.mapAtlasSize = reader.GetInteger("graphics", "mapAtlasSize", m_publicConfig.graphics.mapAtlasSize);
         m_publicConfig.graphics.foregroundAtlasSize = reader.GetInteger("graphics", "foregroundAtlasSize", m_publicConfig.graphics.foregroundAtlasSize);
-        m_publicConfig.graphics.renderBackend = reader.Get("graphics", "renderBackend", m_publicConfig.graphics.renderBackend);
+        m_publicConfig.graphics.renderBackend = normalizeRenderBackend(reader.Get("graphics", "renderBackend", m_publicConfig.graphics.renderBackend));
         
         m_publicConfig.font.widget = reader.Get("font", "widget", m_publicConfig.font.widget);
         m_publicConfig.font.staticText = reader.Get("font", "static-text", m_publicConfig.font.staticText);

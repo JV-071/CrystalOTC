@@ -30,9 +30,13 @@ struct GraphicsConfig
     int16_t  mapAtlasSize = 0;
     int16_t foregroundAtlasSize = 2048;
 
-    // Render backend: "gl" (default, current path) or "vulkan" (new renderer,
-    // under construction). With "vulkan" and a failed initialization the client falls back to "gl".
-    std::string renderBackend = "gl";
+    // Render backend chosen in config.ini / graphics options:
+    //   "auto"   - DirectX 11 on Windows, OpenGL if that fails (default)
+    //   "d3d11"  - ANGLE on Direct3D 11 (Windows)
+    //   "opengl" - ANGLE on the desktop OpenGL driver (Windows), plain OpenGL elsewhere
+    //   "vulkan" - own Vulkan renderer (experimental, Windows), falls back to "auto"
+    // The old value "gl" and unknown values are read as "auto".
+    std::string renderBackend = "auto";
 };
 
 struct FontConfig
@@ -78,6 +82,9 @@ public:
     // The engine reads this value at STARTUP, so the change only takes effect after relaunching.
     // Called from the graphics options in the client (modules/client_options).
     void setRenderBackend(const std::string& backend);
+
+    // Maps a config value to one of auto, d3d11, opengl, vulkan ("gl" and unknown -> "auto").
+    static std::string normalizeRenderBackend(const std::string& backend);
 
     // The actual backend from config.ini (loaded at startup) - the graphics options synchronize
     // the engine list with it, so after a manual config.ini edit it doesn't show a stale choice.

@@ -30,6 +30,11 @@
 
 #include <timeapi.h>
 
+#ifdef OPENGL_ES
+#include <EGL/eglext.h>
+#include <EGL/eglext_angle.h>
+#endif
+
  // Include for DWM API
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
@@ -354,17 +359,45 @@ void WIN32Window::internalCreateWindow()
         g_logger.fatal("GetDC failed");
 }
 
-void WIN32Window::internalCreateGLContext()
-{
 #ifdef OPENGL_ES
-    m_eglDisplay = eglGetDisplay(m_deviceContext);
-    if (m_eglDisplay == EGL_NO_DISPLAY)
-        g_logger.fatal("EGL not supported");
+namespace {
+    const char* anglePlatformName(const int platformType)
+    {
+        switch (platformType) {
+            case EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE: return "DirectX 11";
+            case EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE: return "OpenGL";
+            default: return "ANGLE default";
+        }
+    }
+}
 
-    if (!eglInitialize(m_eglDisplay, NULL, NULL))
-        g_logger.fatal("Unable to initialize EGL");
+bool WIN32Window::tryCreateEGLContext(const int platformType)
+{
+    const char* name = anglePlatformName(platformType);
 
-    static int configList[] = {
+    if (platformType != 0) {
+        const EGLAttrib displayAttribs[] = {
+            EGL_PLATFORM_ANGLE_TYPE_ANGLE, platformType,
+            EGL_NONE
+        };
+        m_eglDisplay = eglGetPlatformDisplay(EGL_PLATFORM_ANGLE_ANGLE, static_cast<void*>(m_deviceContext), displayAttribs);
+    } else {
+        m_eglDisplay = eglGetDisplay(m_deviceContext);
+    }
+
+    if (m_eglDisplay == EGL_NO_DISPLAY) {
+        g_logger.warning("[graphics] {}: no EGL display (error 0x{:x})", name, eglGetError());
+        m_eglDisplay = 0;
+        return false;
+    }
+
+    if (!eglInitialize(m_eglDisplay, nullptr, nullptr)) {
+        g_logger.warning("[graphics] {}: eglInitialize failed (error 0x{:x})", name, eglGetError());
+        internalDestroyGLContext();
+        return false;
+    }
+
+    static const EGLint configList[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
         EGL_RED_SIZE, 8,
         EGL_GREEN_SIZE, 8,
@@ -373,30 +406,74 @@ void WIN32Window::internalCreateGLContext()
         EGL_NONE
     };
 
-    EGLint numConfig;
+    EGLint numConfig = 0;
+    if (!eglChooseConfig(m_eglDisplay, configList, &m_eglConfig, 1, &numConfig) || numConfig < 1) {
+        g_logger.warning("[graphics] {}: no ES3 RGBA8 config (error 0x{:x})", name, eglGetError());
+        internalDestroyGLContext();
+        return false;
+    }
 
-    if (!eglGetConfigs(m_eglDisplay, NULL, 0, &numConfig))
-        g_logger.fatal("No valid GL configurations");
+    m_eglSurface = eglCreateWindowSurface(m_eglDisplay, m_eglConfig, m_window, nullptr);
+    if (m_eglSurface == EGL_NO_SURFACE) {
+        g_logger.warning("[graphics] {}: unable to create EGL surface (error 0x{:x})", name, eglGetError());
+        m_eglSurface = 0;
+        internalDestroyGLContext();
+        return false;
+    }
 
-    if (!eglChooseConfig(m_eglDisplay, configList, &m_eglConfig, 1, &numConfig))
-        g_logger.fatal("Failed to choose EGL config");
-
-    if (numConfig != 1)
-        g_logger.warning("Didn't got the exact EGL config");
-
-    EGLint contextAtrrList[] = {
+    const EGLint contextAttribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
         EGL_NONE
     };
 
-    m_eglSurface = eglCreateWindowSurface(m_eglDisplay, m_eglConfig, m_window, NULL);
-    if (m_eglSurface == EGL_NO_SURFACE)
-        g_logger.fatal("Unable to create EGL surface: {}", eglGetError());
+    m_eglContext = eglCreateContext(m_eglDisplay, m_eglConfig, EGL_NO_CONTEXT, contextAttribs);
+    if (m_eglContext == EGL_NO_CONTEXT) {
+        g_logger.warning("[graphics] {}: unable to create EGL context (error 0x{:x})", name, eglGetError());
+        m_eglContext = 0;
+        internalDestroyGLContext();
+        return false;
+    }
 
-    m_eglContext = eglCreateContext(m_eglDisplay, m_eglConfig, EGL_NO_CONTEXT, contextAtrrList);
-    if (m_eglContext == EGL_NO_CONTEXT)
-        g_logger.fatal("Unable to create EGL context: {}", eglGetError());
+    // a context that cannot be made current is a failed backend too, so the next one is tried
+    if (!eglMakeCurrent(m_eglDisplay, m_eglSurface, m_eglSurface, m_eglContext)) {
+        g_logger.warning("[graphics] {}: unable to make the EGL context current (error 0x{:x})", name, eglGetError());
+        internalDestroyGLContext();
+        return false;
+    }
 
+    return true;
+}
+#endif
+
+void WIN32Window::internalCreateGLContext()
+{
+#ifdef OPENGL_ES
+    // One build, three renderers: ANGLE translates our GLES3 calls either to Direct3D 11 or to
+    // the desktop OpenGL driver, chosen here at startup. The Vulkan option is our own renderer
+    // (main.cpp); when it is unavailable we land here with the "auto" order.
+    const std::string requested = g_configs.getPublicConfig().graphics.renderBackend;
+
+    std::vector<int> order;
+    if (requested == "opengl")
+        order = { EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE, EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE };
+    else
+        order = { EGL_PLATFORM_ANGLE_TYPE_D3D11_ANGLE, EGL_PLATFORM_ANGLE_TYPE_OPENGL_ANGLE };
+    order.push_back(0); // ANGLE's own default display as the last resort
+
+    bool created = false;
+    for (const int platformType : order) {
+        if (tryCreateEGLContext(platformType)) {
+            setActiveRenderBackend(platformType != 0 ? anglePlatformName(platformType) : "DirectX (ANGLE default)");
+            created = true;
+            break;
+        }
+    }
+
+    if (!created)
+        g_logger.fatal("Unable to create a graphics context with DirectX 11 or OpenGL. Please update your graphics driver.");
+
+    // printed to the console only (the log file opens later in init.lua); main.cpp repeats it
+    g_logger.info("[graphics] render backend requested={} active={}", requested, getActiveRenderBackend());
 #else
     static PIXELFORMATDESCRIPTOR pfd = { sizeof(PIXELFORMATDESCRIPTOR),
                                          1,
@@ -425,6 +502,12 @@ void WIN32Window::internalCreateGLContext()
 
     if ((m_wglContext = wglCreateContext(m_deviceContext)) == nullptr)
         g_logger.fatal("Unable to create GL context");
+
+    // desktop OpenGL build (no ANGLE): DirectX is not available here
+    const std::string& requested = g_configs.getPublicConfig().graphics.renderBackend;
+    if (requested == "d3d11")
+        g_logger.warning("[graphics] DirectX 11 is not available in this build, using OpenGL");
+    setActiveRenderBackend("OpenGL");
 #endif
 }
 
