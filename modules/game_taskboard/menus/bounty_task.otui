@@ -580,7 +580,7 @@ BountyTaskPanel < Panel
       id: eliteIcon
       anchors.top: parent.top
       anchors.left: showFilterDifficulty.right
-      margin-top: 1
+      margin-top: 2
       margin-left: 10
       size: 28 30
       opacity: 0.4
