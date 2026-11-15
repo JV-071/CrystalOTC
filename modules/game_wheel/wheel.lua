@@ -358,6 +358,7 @@ function loadMenu(menuId)
 
 		wheelPanel = wheelOfDestinyWindow:getChildById("wheelPanel")
 		wheelPanel.onMouseMove = WheelOfDestiny.onMouseMove
+		wheelOfDestinyWindow.onMouseMove = WheelOfDestiny.onPageMouseMove
 		centerReferencePoint = wheelOfDestinyWindow:recursiveGetChildById("centerReferencePoint")
 
 		wheelMenuButton:setChecked(true)

@@ -436,15 +436,19 @@ Panel
         id: information
         anchors.fill: parent
         Label
+          id: hint
           anchors.top: parent.top
           anchors.left: parent.left
+          anchors.right: parent.right
           margin-top: 2
           margin-left: 6
+          margin-right: 6
+          text-wrap: true
           text-auto-resize: true
+          text-align: topleft
           font: Verdana Bold-11px
           color: #c0c0c0
-          visible: false
-          !text: tr('Fill or empty slice with a\nright-click.\n\nHold Alt, Shift, Ctrl, or\nCtrl+Shift to modify the step\nsize.')
+          !text: tr('Fill or empty a slice with a right-click.') .. '\n\n' .. tr('Hold Alt, Shift, Ctrl, or Ctrl+Shift to modify the step size.')
 
         Panel
           id: tabContent
@@ -455,6 +459,7 @@ Panel
           margin-left: 6
           margin-right: 6
           margin-bottom: 2
+          visible: false
 
           UIWidget
             image-source: /images/game/wheel/progressBg
@@ -516,18 +521,9 @@ Panel
             anchors.top: prev.bottom
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.bottom: parent.bottom
             margin-top: -4
             margin-left: -1
-
-          Label
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            margin-left: -1
-            margin-top: -1
-            text-auto-resize: true
-            font: Verdana Bold-11px
-            color: #c0c0c0
-            !text: tr('Fill or empty a slice with a\nright-click.')
 
       Panel
         id: manage

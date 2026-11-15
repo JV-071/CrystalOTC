@@ -493,11 +493,37 @@ function WheelOfDestiny:onMouseRelease(mousePosition, mouseButton)
 	return true
 end
 
+-- The Information tab shows the hovered slice; with no slice under the mouse it shows the
+-- right-click hint like the official client.
+function WheelOfDestiny.showInformationHint(visible)
+	local information = wheelOfDestinyWindow and wheelOfDestinyWindow.info.tabContent.information
+
+	if not information then
+		return
+	end
+
+	information.hint:setVisible(visible)
+	information.tabContent:setVisible(not visible)
+
+	if visible then
+		WheelOfDestiny.mouseIndex = 0
+	end
+end
+
+-- Mouse moves over the rest of the Wheel of Destiny page (side panels): no slice is hovered.
+function WheelOfDestiny.onPageMouseMove(widget, position, offset)
+	if wheelPanel and not wheelPanel:containsPoint(position) then
+		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
+	end
+end
+
 function WheelOfDestiny.onMouseMove(widget, position, offset)
 	local index = WheelOfDestiny.getSliceIndex(position)
 
 	if index == 0 then
 		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
 
 		return
 	end
@@ -506,16 +532,19 @@ function WheelOfDestiny.onMouseMove(widget, position, offset)
 		return
 	end
 
-	WheelOfDestiny.mouseIndex = index
-
 	local bonus = WheelBonus[index - 1]
 	local pointInvested = WheelOfDestiny.pointInvested[index]
 
 	if not pointInvested then
 		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
 
 		return
 	end
+
+	WheelOfDestiny.showInformationHint(false)
+
+	WheelOfDestiny.mouseIndex = index
 
 	local bar = wheelOfDestinyWindow.info.tabContent.information.tabContent.dedicationPB2
 
