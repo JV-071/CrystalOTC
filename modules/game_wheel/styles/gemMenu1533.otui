@@ -1,0 +1,607 @@
+// 15.33 Gem Atelier, sizes from the official layout (mainPanel 968 x 522):
+// caption 17, vessel row 124 (sockets 114 high), lower row 371 high:
+// Modify Gem 146 | filters 20 + gem grid 666 x 346 (4 x 3 cells of 160 x 108) | Gem Revelation 146
+
+GemModFrame1533 < UIWidget
+  size: 50 50
+  image-source: /images/game/wheel/backdrop_modgrades
+  image-clip: 0 0 50 50
+
+  UIWidget
+    id: hover
+    size: 50 50
+    anchors.centerIn: parent
+    image-source: /images/game/wheel/backdrop_modgrades
+    image-clip: 200 0 50 50
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: icon
+    size: 30 30
+    anchors.centerIn: parent
+    image-source: /images/game/wheel/icons-skillwheel-basicmods
+    image-clip: 0 0 30 30
+    phantom: true
+
+  UIWidget
+    id: potential
+    size: 50 50
+    anchors.centerIn: parent
+    image-source: /images/game/wheel/icons-modgrades-potential
+    image-clip: 0 0 50 50
+    phantom: true
+    visible: false
+
+VesselBox1533 < UIWidget
+  height: 114
+  image-source: /images/ui/2pixel-up-frame-borderimage
+  image-border: 3
+
+  UIWidget
+    id: backdrop
+    size: 34 39
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10
+    image-source: /images/game/wheel/backdrop_skillwheel_socket_active
+    phantom: true
+
+  UIWidget
+    id: bezel
+    size: 34 39
+    anchors.centerIn: backdrop
+    phantom: true
+    visible: false
+
+  UIItem
+    id: gem
+    size: 32 32
+    anchors.centerIn: backdrop
+    virtual: true
+    phantom: true
+    visible: false
+
+  Panel
+    id: mods
+    height: 50
+    anchors.bottom: parent.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-bottom: 5
+    phantom: true
+
+  UIWidget
+    id: overlay
+    anchors.fill: parent
+    margin: 1
+    image-repeated: true
+    phantom: true
+    visible: false
+
+GemCellMod1533 < UIWidget
+  size: 50 50
+  image-source: /images/game/wheel/backdrop_modgrades
+  image-clip: 0 0 50 50
+
+  UIWidget
+    id: potential
+    size: 50 50
+    anchors.centerIn: parent
+    image-source: /images/game/wheel/icons-modgrades-potential
+    image-clip: 0 0 50 50
+    phantom: true
+    visible: false
+
+GemCellBasicMod1533 < UIWidget
+  size: 30 30
+  anchors.centerIn: parent
+  image-source: /images/game/wheel/icons-skillwheel-basicmods
+  image-clip: 0 0 30 30
+  tooltip-delayed: true
+
+GemCellModRow1533 < Panel
+  height: 50
+  anchors.bottom: parent.bottom
+  anchors.horizontalCenter: parent.horizontalCenter
+  margin-bottom: 7
+  phantom: true
+  visible: false
+
+GemCell1533 < UIWidget
+  size: 160 108
+  image-source: /images/ui/2pixel-up-frame-borderimage
+  image-border: 3
+
+  UIButton
+    id: locker
+    size: 8 12
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: 12
+    margin-left: 12
+    image-source: /images/game/wheel/icon-unlocked
+    !tooltip: tr('Click to lock or unlock your gems.')
+    tooltip-delayed: true
+    $checked:
+      image-source: /images/game/wheel/icon-locked
+
+  UIItem
+    id: gemItem
+    size: 32 32
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10
+    virtual: true
+
+  UIWidget
+    id: gemRevelationItem
+    size: 32 32
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 10
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: gemDomainImage
+    size: 32 32
+    anchors.top: parent.top
+    anchors.right: parent.right
+    margin-top: 9
+    margin-right: 9
+    visible: false
+
+  GemCellModRow1533
+    id: modType0
+    width: 50
+    GemCellMod1533
+      id: fragmentType0
+      anchors.top: parent.top
+      anchors.left: parent.left
+      GemCellBasicMod1533
+        id: gemMod0
+
+  GemCellModRow1533
+    id: modType1
+    width: 102
+    GemCellMod1533
+      id: fragmentType0
+      anchors.top: parent.top
+      anchors.left: parent.left
+      GemCellBasicMod1533
+        id: gemMod0
+    GemCellMod1533
+      id: fragmentType1
+      anchors.top: parent.top
+      anchors.right: parent.right
+      GemCellBasicMod1533
+        id: gemMod1
+
+  GemCellModRow1533
+    id: modType2
+    width: 154
+    GemCellMod1533
+      id: fragmentType0
+      anchors.top: parent.top
+      anchors.left: parent.left
+      GemCellBasicMod1533
+        id: gemMod0
+    GemCellMod1533
+      id: fragmentType1
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      GemCellBasicMod1533
+        id: gemMod1
+    GemCellMod1533
+      id: fragmentType2
+      anchors.top: parent.top
+      anchors.right: parent.right
+      GemCellBasicMod1533
+        id: gemMod2
+        size: 35 35
+        image-source: /images/game/wheel/icons-skillwheel-suprememods
+        image-clip: 0 0 35 35
+        margin-left: 3
+        margin-bottom: 2
+
+GemActionButton1533 < Button
+  height: 20
+  $!on:
+    color: #8a8a8a
+    opacity: 0.6
+
+GemCost1533 < UIWidget
+  height: 20
+  image-source: /images/ui/progress
+  image-border: 7
+
+  UIWidget
+    id: icon
+    size: 12 12
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 3
+    image-source: /images/icons/icon-goldcoin
+    phantom: true
+
+  Label
+    id: value
+    anchors.right: icon.left
+    anchors.verticalCenter: parent.verticalCenter
+    margin-right: 2
+    text-auto-resize: true
+    font: small-9px
+    color: #c0c0c0
+    phantom: true
+
+ReshapeRow1533 < Panel
+  size: 132 91
+  visible: false
+
+  Label
+    id: effect
+    height: 39
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-wrap: true
+    text-auto-resize: false
+    text-align: bottom
+    color: #c0c0c0
+
+  GemModFrame1533
+    id: fragment
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    @onClick: modules.game_wheel.GemAtelier.onModRedirect(self)
+    @onHoverChange: modules.game_wheel.GemAtelier.onHoverGem(self, self:isHovered())
+
+  GemActionButton1533
+    id: reshapeButton
+    anchors.top: fragment.top
+    anchors.left: fragment.right
+    anchors.right: parent.right
+    margin-top: 3
+    margin-left: 5
+    !text: tr('Reshape')
+
+  GemCost1533
+    id: goldCost
+    width: 50
+    anchors.top: reshapeButton.bottom
+    anchors.left: reshapeButton.left
+    margin-top: 2
+
+  GemCost1533
+    id: fragmentCost
+    anchors.top: goldCost.top
+    anchors.left: goldCost.right
+    anchors.right: parent.right
+    margin-left: 2
+
+GemReveal1533 < Panel
+  height: 114
+  anchors.left: parent.left
+  anchors.right: parent.right
+
+  UIItem
+    id: item
+    size: 32 32
+    anchors.top: parent.top
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 18
+    virtual: true
+
+  Label
+    id: info
+    height: 26
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: next.top
+    margin-bottom: 4
+    text-wrap: true
+    text-auto-resize: false
+    text-align: bottom
+    color: #c0c0c0
+
+  UIButton
+    id: revealButton
+    size: 64 20
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    margin-bottom: 4
+    image-source: /images/game/wheel/reveal-button
+    image-clip: 0 0 64 20
+    image-border: 1
+    $pressed:
+      image-clip: 0 20 64 20
+    $!on:
+      image-clip: 0 40 64 20
+
+  Panel
+    id: cost
+    height: 20
+    anchors.bottom: parent.bottom
+    anchors.left: prev.right
+    anchors.right: parent.right
+    margin-left: 2
+    margin-bottom: 4
+    image-source: /images/ui/progress
+    image-border: 7
+    Panel
+      image-source: /images/icons/icon-goldcoin
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 3
+    Label
+      id: gold
+      anchors.right: prev.left
+      anchors.verticalCenter: parent.verticalCenter
+      margin-right: 2
+      text-auto-resize: true
+      color: #c0c0c0
+
+GemCaptionPanel1533 < Panel
+  image-source: /images/ui/t2pixel-up-frame-borderimage
+  image-border: 30
+
+GemCaption1533 < Label
+  anchors.top: parent.top
+  anchors.horizontalCenter: parent.horizontalCenter
+  margin-top: 2
+  color: #909090
+
+GemHelp1533 < UIWidget
+  size: 12 12
+  anchors.top: parent.top
+  anchors.right: parent.right
+  margin-top: 3
+  margin-right: 5
+  image-source: /images/icons/show_gui_help_grey
+
+Panel
+  anchors.fill: parent
+
+  Label
+    id: vesselCaption
+    height: 17
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    text-align: center
+    !text: tr('Select a Vessel to Modify Gems')
+    color: #c0c0c0
+
+  Panel
+    id: vesselRow
+    height: 124
+    anchors.top: prev.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-top: 5
+
+  GemCaptionPanel1533
+    id: modifyPanel
+    width: 146
+    anchors.top: vesselRow.bottom
+    anchors.left: parent.left
+    anchors.bottom: parent.bottom
+    margin-top: 5
+
+    GemCaption1533
+      !text: tr('Modify Gem')
+
+    GemHelp1533
+      !tooltip: tr('Place the selected gem in the selected vessel or take it out, reshape one of its mods\nat random or dismantle it. Vessel changes are saved with Apply or Ok.')
+
+    GemActionButton1533
+      id: socketButton
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 22
+      margin-left: 7
+      margin-right: 7
+      !text: tr('Place in Vessel')
+      @onClick: modules.game_wheel.GemAtelier.onSocketButton1533(self)
+
+    GemActionButton1533
+      id: dismantleButton
+      anchors.bottom: parent.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-bottom: 7
+      margin-left: 7
+      margin-right: 7
+      !text: tr('Dismantle')
+      @onClick: modules.game_wheel.GemAtelier.onDestroyGem(self)
+
+    ReshapeRow1533
+      id: reshape2
+      anchors.bottom: dismantleButton.top
+      anchors.left: dismantleButton.left
+      margin-bottom: 2
+
+    ReshapeRow1533
+      id: reshape1
+      anchors.bottom: reshape2.top
+      anchors.left: dismantleButton.left
+      margin-bottom: 10
+
+    ReshapeRow1533
+      id: reshape0
+      anchors.bottom: reshape1.top
+      anchors.left: dismantleButton.left
+      margin-bottom: 10
+
+  GemCaptionPanel1533
+    id: gemRevelation
+    width: 146
+    anchors.top: vesselRow.bottom
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-top: 5
+
+    GemCaption1533
+      !text: tr('Gem Revelation')
+
+    GemHelp1533
+      !tooltip: tr('Revealing a gem gives you a gem of matching quality and\nrandom mods based on the quality:\n\n* Lesser gems will have one random basic mod.\n* Regular gems will have two random basic mods.\n* Greater gems will have two random basic mods and\none supreme mod.')
+
+    Panel
+      id: revealList
+      anchors.fill: parent
+      margin: 22 7 7 7
+
+      GemReveal1533
+        id: gemRevel0
+        anchors.top: parent.top
+
+      GemReveal1533
+        id: gemRevel1
+        anchors.top: prev.bottom
+
+      GemReveal1533
+        id: gemRevel2
+        anchors.top: prev.bottom
+
+  Panel
+    id: filterPanel
+    height: 20
+    anchors.top: vesselRow.bottom
+    anchors.left: modifyPanel.right
+    anchors.right: gemRevelation.left
+    margin-top: 5
+    margin-left: 5
+    margin-right: 5
+
+    TextEdit
+      id: searchText
+      size: 155 20
+      anchors.top: parent.top
+      anchors.left: parent.left
+      focusable: true
+      !placeholder: tr('Type to search')
+      box-text-padding: 27
+      @onTextChange: modules.game_wheel.GemAtelier.onSearchChange(self)
+
+      Button
+        id: clearSearchButton
+        anchors.top: parent.top
+        anchors.right: parent.right
+        margin-top: 1
+        margin-right: 1
+        size: 18 18
+        image-source: /images/store/button-erase-small-up
+        image-clip: 0 0 18 18
+        $pressed:
+          image-source: /images/store/button-erase-small-down
+          image-clip: 0 0 18 18
+        @onClick: self:getParent():setText("")
+
+    // kept for the shared filter code, there are no domains at 15.33
+    ComboBox
+      id: affinitiesBox
+      size: 0 20
+      anchors.top: parent.top
+      anchors.left: parent.left
+      visible: false
+      @onSetup: |
+        self:addOption("All Affinities")
+        self:setCurrentOption("All Affinities", true)
+
+    ComboBox
+      id: qualitiesBox
+      size: 155 20
+      anchors.top: parent.top
+      anchors.left: searchText.right
+      margin-left: 5
+      color: #c0c0c0
+      @onSetup: |
+        self:addOption("All Qualities")
+        self:addOption("Lesser")
+        self:addOption("Regular")
+        self:addOption("Greater")
+        self:setCurrentOption("All Qualities", true)
+
+    CheckBox
+      id: lockedOnly
+      !text: tr('Locked only')
+      text-auto-resize: true
+      anchors.left: qualitiesBox.right
+      anchors.verticalCenter: parent.verticalCenter
+      margin-left: 5
+      color: #c0c0c0
+      change-cursor-image: false
+      @onCheckChange: modules.game_wheel.GemAtelier.showLockedOnly(self)
+      $hover !disabled:
+        color: #c0c0c0
+
+    Panel
+      id: pagesPanel
+      width: 236
+      anchors.top: parent.top
+      anchors.bottom: parent.bottom
+      anchors.right: parent.right
+
+      UIButton
+        id: leftArrow
+        size: 20 20
+        anchors.left: parent.left
+        anchors.top: parent.top
+        image-source: /images/ui/arrow-left-button
+        image-clip: 0 0 20 20
+        @onClick: modules.game_wheel.GemAtelier.managePage(self, false)
+        $on:
+          image-clip: 0 20 20 20
+        $pressed:
+          image-clip: 0 40 20 20
+        $pressed !on:
+          image-clip: 0 0 20 20
+
+      Label
+        id: pagesLabel
+        anchors.left: leftArrow.right
+        anchors.right: rightArrow.left
+        anchors.verticalCenter: parent.verticalCenter
+        text-align: center
+        text-auto-resize: false
+        height: 14
+        !text: tr('Page 0 / 0 (0 Gems)')
+        color: #c0c0c0
+
+      UIButton
+        id: rightArrow
+        size: 20 20
+        anchors.right: parent.right
+        anchors.top: parent.top
+        image-source: /images/ui/arrow-right-button
+        image-clip: 0 0 20 20
+        @onClick: modules.game_wheel.GemAtelier.managePage(self, true)
+        $on:
+          image-clip: 0 20 20 20
+        $pressed:
+          image-clip: 0 40 20 20
+        $pressed !on:
+          image-clip: 0 0 20 20
+
+  UIWidget
+    id: gemsPanelBackground
+    anchors.top: filterPanel.bottom
+    anchors.left: filterPanel.left
+    anchors.right: filterPanel.right
+    anchors.bottom: parent.bottom
+    margin-top: 5
+    image-source: /images/ui/1pixel-down-frame
+    image-border: 1
+
+    Panel
+      id: gemContent
+      anchors.fill: parent
+      margin: 6 4 5 6
+      layout:
+        type: grid
+        cell-size: 160 108
+        cell-spacing: 5
+        num-lines: 3
+        num-columns: 4

@@ -28,6 +28,10 @@ local function onGameStart()
 		if not ret then
 			print("[wheel] Error loading wheel presets")
 		end
+
+		if wheelWindow then
+			loadGemAtelierWindow()
+		end
 	else
 		scheduleEvent(function()
 			g_modules.getModule("game_wheel"):unload()
@@ -35,24 +39,23 @@ local function onGameStart()
 	end
 end
 
--- Building the whole wheel UI moved from init() to here and deferred until the FIRST opening.
--- Reason (measured): the wheelMenu/gemMenu/fragmentMenu styles load ~500 PNGs (~98 MB of pixels
--- in RAM + ~500 decodes) into a window that init hides anyway - EVERY client startup paid
--- for this, including the login screen itself.
-function ensureWheelWindows()
-	if wheelWindow then
+local gemAtelierLayout
+
+-- The Gem Atelier has its own layout from 15.33 on (8 vessels in a row, Modify Gem panel), the
+-- window is rebuilt when a login switches to a client version that uses the other one.
+function loadGemAtelierWindow()
+	local layout = g_game.getClientVersion() >= 1533 and "styles/gemMenu1533" or "styles/gemMenu"
+
+	if gemAtelierWindow and gemAtelierLayout == layout then
 		return
 	end
 
-	g_ui.importStyle("styles/vessels1533")
+	if gemAtelierWindow then
+		gemAtelierWindow:destroy()
+	end
 
-	wheelWindow = g_ui.displayUI("wheel")
-	mainPanel = wheelWindow:getChildById("mainPanel")
-	wheelOfDestinyWindow = g_ui.loadUI("styles/wheelMenu", mainPanel)
-
-	wheelOfDestinyWindow:hide()
-
-	gemAtelierWindow = g_ui.loadUI("styles/gemMenu", mainPanel)
+	gemAtelierLayout = layout
+	gemAtelierWindow = g_ui.loadUI(layout, mainPanel)
 
 	gemAtelierWindow:hide()
 
@@ -74,6 +77,24 @@ function ensureWheelWindows()
 			end
 		end
 	end
+end
+
+-- Building the whole wheel UI moved from init() to here and deferred until the FIRST opening.
+-- Reason (measured): the wheelMenu/gemMenu/fragmentMenu styles load ~500 PNGs (~98 MB of pixels
+-- in RAM + ~500 decodes) into a window that init hides anyway - EVERY client startup paid
+-- for this, including the login screen itself.
+function ensureWheelWindows()
+	if wheelWindow then
+		return
+	end
+
+	wheelWindow = g_ui.displayUI("wheel")
+	mainPanel = wheelWindow:getChildById("mainPanel")
+	wheelOfDestinyWindow = g_ui.loadUI("styles/wheelMenu", mainPanel)
+
+	wheelOfDestinyWindow:hide()
+
+	loadGemAtelierWindow()
 
 	fragmentWindow = g_ui.loadUI("styles/fragmentMenu", mainPanel)
 

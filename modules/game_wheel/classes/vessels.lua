@@ -86,11 +86,6 @@ local QUALITY_NAMES = {
 	"Regular",
 	"Greater"
 }
-local QUALITY_SHORT = {
-	[0] = "L",
-	"R",
-	"G"
-}
 local PERK_ICON_IDS = {
 	"perkIconTopLeft",
 	"perkIconTopRight",
@@ -663,36 +658,6 @@ function WheelVessels.getFirstVesselToShow()
 	return 0
 end
 
--- Gem image of the given quality. Uses data/images/game/wheel/1533/icons-gematelier-gemvariants
--- (one 32x32 frame per quality, one row per vocation) when present, else the 15.30 sheet.
-function WheelVessels.setGemImage(widget, quality, big)
-	local vocation = math.max(1, WheelOfDestiny.vocationId or 1)
-
-	if big then
-		local source = WheelVessels.asset("icons-gematelier-gemvariants64")
-
-		if source then
-			widget:setImageSource(source)
-			widget:setImageClip(quality * 64 .. " " .. (vocation - 1) * 64 .. " 64 64")
-		else
-			widget:setImageSource("/images/game/wheel/icons-gematelier-gemvariants64")
-			widget:setImageClip(quality * 64 .. " " .. (vocation - 1) * 64 .. " 64 64")
-		end
-
-		return
-	end
-
-	local source = WheelVessels.asset("icons-gematelier-gemvariants")
-
-	if source then
-		widget:setImageSource(source)
-		widget:setImageClip(quality * 32 .. " " .. (vocation - 1) * 32 .. " 32 32")
-	else
-		widget:setImageSource("/images/game/wheel/icons-gematelier-gemvariants")
-		widget:setImageClip((vocation - 1) * 384 + quality * 32 .. " 0 32 32")
-	end
-end
-
 function WheelVessels.resetSelection()
 	selectedVessel = -1
 end
@@ -701,122 +666,252 @@ function WheelVessels.getSelectedVessel()
 	return selectedVessel
 end
 
--- Gem Atelier: 8 vessel sockets in place of the 4 domain sockets.
-function WheelVessels.setupAtelierPanel()
-	if not gemAtelierWindow then
-		return
+function WheelVessels.selectVessel(vessel)
+	selectedVessel = vessel
+
+	WheelVessels.setupAtelierPanel()
+end
+
+-- CipSoft 15.33 graphics are not in the repo: install_ui_graphics.py copies them to the ignored
+-- data/images/1533/ with their original paths. Returns the image path, nil when it is missing.
+local cipImages = {}
+
+function WheelVessels.cipImage(path)
+	if cipImages[path] == nil then
+		local fullPath = "/images/1533/" .. path
+
+		cipImages[path] = g_resources.fileExists(fullPath .. ".png") and fullPath or false
 	end
 
-	local active = WheelVessels.isActive()
-	local panel = gemAtelierWindow:recursiveGetChildById("vessels")
-	local legacyContent = panel and panel:getChildById("vesselsContent")
-	local affinitiesBox = gemAtelierWindow:recursiveGetChildById("affinitiesBox")
+	return cipImages[path] or nil
+end
 
-	if affinitiesBox then
-		affinitiesBox:setVisible(not active)
+-- Green check badge of a gem that sits in a vessel.
+function WheelVessels.setSocketedBadge(widget)
+	local image = WheelVessels.cipImage("images/skillwheel/icon-gem-socketed")
+
+	if image then
+		widget:setImageSource(image)
+		widget:setImageClip("0 0 32 32")
+		widget:setSize(tosize("32 32"))
+	else
+		widget:setImageSource("/images/game/wheel/icon-socketed")
+		widget:setImageClip("0 0 12 12")
+		widget:setSize(tosize("12 12"))
+	end
+end
+
+-- Socket bezels of icons-skillwheel-sockets: 6 colour groups (knight, paladin, sorcerer, druid,
+-- monk, other) of 3 frames (lesser, regular, greater), 34 x 39 each.
+local BEZEL_GROUP = {
+	0,
+	1,
+	2,
+	3,
+	4
+}
+local VESSEL_ROW_MARGIN = 5
+local VESSEL_SPACING = 2
+local MOD_SLOT_WIDTH = 49
+
+-- Box widths like the official row layout: one 49 px mod slot per quality step, the free width
+-- shared out in proportion.
+local function getVesselBoxWidths(rowWidth)
+	local preferred = {}
+	local total = 0
+
+	for vessel = 0, VESSEL_COUNT - 1 do
+		preferred[vessel] = (VESSEL_QUALITY[vessel] + 1) * MOD_SLOT_WIDTH
+		total = total + preferred[vessel]
 	end
 
-	if not panel then
-		return
+	local free = rowWidth - 2 * VESSEL_ROW_MARGIN - (VESSEL_COUNT - 1) * VESSEL_SPACING
+	local extra = math.max(0, free - total)
+	local widths = {}
+	local used = 0
+
+	for vessel = 0, VESSEL_COUNT - 1 do
+		widths[vessel] = preferred[vessel] + math.floor(extra * preferred[vessel] / total)
+		used = used + widths[vessel]
 	end
 
-	local grid = panel:getChildById("vesselGrid")
-
-	if legacyContent then
-		legacyContent:setVisible(not active)
+	if extra > 0 then
+		widths[VESSEL_COUNT - 1] = widths[VESSEL_COUNT - 1] + free - used
 	end
 
-	if not active then
-		if grid then
-			grid:setVisible(false)
+	return widths
+end
+
+local function createVesselBoxes(row)
+	for vessel = 0, VESSEL_COUNT - 1 do
+		local box = g_ui.createWidget("VesselBox1533", row)
+
+		box:setId("vesselBox" .. vessel)
+		box:addAnchor(AnchorTop, "parent", AnchorTop)
+		box:setMarginTop(VESSEL_ROW_MARGIN)
+
+		if vessel == 0 then
+			box:addAnchor(AnchorLeft, "parent", AnchorLeft)
+			box:setMarginLeft(VESSEL_ROW_MARGIN)
+		else
+			box:addAnchor(AnchorLeft, "vesselBox" .. vessel - 1, AnchorRight)
+			box:setMarginLeft(VESSEL_SPACING)
 		end
 
-		return
-	end
+		local slots = VESSEL_QUALITY[vessel] + 1
 
-	if not grid then
-		grid = g_ui.createWidget("VesselGrid1533", panel)
+		box.mods:setWidth(slots * MOD_SLOT_WIDTH)
 
-		grid:setId("vesselGrid")
-
-		for vessel = 0, VESSEL_COUNT - 1 do
-			local socket = g_ui.createWidget("VesselSocket1533", grid.sockets)
-
-			socket:setId("vesselSocket" .. vessel)
-
-			function socket.onClick()
+		-- locked vessels do not react, like the disabled boxes of the official client
+		local function onClick()
+			if WheelVessels.isVesselUnlocked(vessel) then
 				WheelVessels.onClickVessel(vessel)
 			end
 		end
+
+		box.onClick = onClick
+
+		for slot = 0, slots - 1 do
+			local frame = g_ui.createWidget("GemModFrame1533", box.mods)
+
+			frame:setId("mod" .. slot)
+			frame:addAnchor(AnchorTop, "parent", AnchorTop)
+			frame:addAnchor(AnchorLeft, "parent", AnchorLeft)
+			frame:setMarginLeft(slot * MOD_SLOT_WIDTH)
+
+			frame.onClick = onClick
+		end
+	end
+end
+
+-- Gem Atelier at 15.33: the row of 8 vessel boxes over the gem grid.
+function WheelVessels.setupAtelierPanel()
+	if not gemAtelierWindow or not WheelVessels.isActive() then
+		return
 	end
 
-	grid:setVisible(true)
+	local row = gemAtelierWindow:recursiveGetChildById("vesselRow")
 
+	if not row then
+		return
+	end
+
+	if not row:getChildById("vesselBox0") then
+		createVesselBoxes(row)
+	end
+
+	local rowWidth = row:getWidth()
+
+	if rowWidth < 200 then
+		-- not laid out yet: the width of mainPanel
+		rowWidth = 968
+	end
+
+	local widths = getVesselBoxWidths(rowWidth)
 	local count = WheelVessels.getActiveVesselCount()
 	local vessels = WheelVessels.getVessels()
-	local socketImage = WheelVessels.asset("vessel-socket")
+	local vocation = WheelOfDestiny.vocationId or 0
+	local gemNames = GemVocations[vocation]
+	local bezelImage = WheelVessels.cipImage("images/skillwheel/icons-skillwheel-sockets")
+	local backdropImage = WheelVessels.cipImage("images/skillwheel/backdrop_skillwheel_socket_active")
+	local gradesImage = WheelVessels.cipImage("images/skillwheel/backdrop_modgrades")
+	local ditherImage = WheelVessels.cipImage("images/ditherpattern")
+	local group = BEZEL_GROUP[vocation] or 5
 
 	for vessel = 0, VESSEL_COUNT - 1 do
-		local socket = grid.sockets:getChildById("vesselSocket" .. vessel)
+		local box = row:getChildById("vesselBox" .. vessel)
 		local quality = VESSEL_QUALITY[vessel]
 		local unlocked = vessel < count
 		local gem = vessels[vessel + 1] >= 0 and GemAtelier.getGemDataById(vessels[vessel + 1]) or nil
 
-		socket.backdrop:setImageSource(socketImage or (unlocked and "/images/game/wheel/backdrop_skillwheel_socket_active" or "/images/game/wheel/backdrop_skillwheel_socket_inactive"))
+		box:setWidth(widths[vessel])
+		box:setBorderWidth(vessel == selectedVessel and 2 or 0)
+		box:setBorderColor("white")
 
-		if socketImage then
-			socket.backdrop:setImageClip(quality * 34 .. " " .. (unlocked and 0 or 34) .. " 34 34")
-		end
-
-		socket.quality:setText(QUALITY_SHORT[quality])
-		socket.lock:setVisible(not unlocked)
-		socket.marker:setVisible(vessel == selectedVessel)
-		socket.gem:setVisible(gem ~= nil)
-
-		if gem then
-			WheelVessels.setGemImage(socket.gem, gem.gemType, false)
-			socket.gem:setOpacity(unlocked and 1 or 0.5)
-		end
-
-		local tooltip = tr("Vessel %d: %s gems", vessel + 1, QUALITY_NAMES[quality])
-
-		if not unlocked then
-			tooltip = tooltip .. "\n" .. tr("Locked: fill %d Gem Vessel slices of the wheel to unlock it.", vessel + 1)
-		end
-
-		if gem then
-			tooltip = tooltip .. "\n" .. tr("Holds a %s gem.", QUALITY_NAMES[gem.gemType])
-
-			if not unlocked then
-				tooltip = tooltip .. "\n" .. tr("The gem gives no bonus while the vessel is locked.")
-			end
+		-- socket: dark backdrop of an unlocked vessel, the bezel of its quality, the gem inside
+		if backdropImage then
+			box.backdrop:setImageSource(backdropImage)
+			box.backdrop:setSize(tosize("34 39"))
 		else
-			tooltip = tooltip .. "\n" .. tr("Empty")
+			box.backdrop:setImageSource("/images/game/wheel/backdrop_skillwheel_socket_active")
+			box.backdrop:setSize(tosize("34 34"))
 		end
 
-		socket:setTooltip(tooltip)
-	end
+		box.backdrop:setVisible(unlocked)
+		box.bezel:setVisible(bezelImage ~= nil)
 
-	grid.status:setText(tr("%d / %d unlocked", count, VESSEL_COUNT))
+		if bezelImage then
+			box.bezel:setImageSource(bezelImage)
+			box.bezel:setImageClip((group * 3 + quality) * 34 .. " 0 34 39")
+		end
+
+		box.gem:setVisible(gem ~= nil and gemNames ~= nil)
+
+		if gem and gemNames and gemNames[quality] then
+			box.gem:setItemId(gemNames[quality].id)
+		end
+
+		for slot = 0, quality do
+			local frame = box.mods:getChildById("mod" .. slot)
+
+			frame:setTooltip("")
+			frame.hover:setVisible(false)
+
+			if gem then
+				GemAtelier.setupModFrame(frame, gem, slot)
+				frame:setVisible(true)
+			else
+				-- an empty slot of an unlocked vessel, nothing in a locked one
+				frame:setVisible(unlocked)
+				frame.icon:setVisible(false)
+				frame.potential:setVisible(false)
+
+				if gradesImage then
+					frame:setImageSource(gradesImage)
+					frame:setImageClip("400 0 50 50")
+					frame:setOpacity(1)
+				else
+					frame:setImageSource("/images/game/wheel/backdrop_modgrades")
+					frame:setImageClip("0 0 50 50")
+					frame:setOpacity(0.35)
+				end
+			end
+		end
+
+		-- locked vessels are dimmed with the dither pattern of the official client
+		box.overlay:setVisible(not unlocked)
+
+		if ditherImage then
+			box.overlay:setImageSource(ditherImage)
+		else
+			box.overlay:setBackgroundColor("#00000080")
+		end
+	end
 end
 
 function WheelVessels.onClickVessel(vessel)
-	local gem = WheelVessels.getGemInVessel(vessel)
+	local qualitiesBox = gemAtelierWindow:recursiveGetChildById("qualitiesBox")
 
-	if vessel == selectedVessel and not gem then
+	-- a second click on the selected vessel drops the selection and the quality filter
+	if vessel == selectedVessel then
 		selectedVessel = -1
 
+		if qualitiesBox then
+			qualitiesBox:setCurrentIndex(1, true)
+		end
+
+		GemAtelier.onSortQuality(nil, 1)
 		WheelVessels.setupAtelierPanel()
 
 		return
 	end
 
+	local gem = WheelVessels.getGemInVessel(vessel)
+
 	if gem then
 		GemAtelier.redirectToGem(gem)
 	else
 		GemAtelier.onSortQuality(nil, VESSEL_QUALITY[vessel] + 2)
-
-		local qualitiesBox = gemAtelierWindow:recursiveGetChildById("qualitiesBox")
 
 		if qualitiesBox then
 			qualitiesBox:setCurrentIndex(VESSEL_QUALITY[vessel] + 2, true)
@@ -826,6 +921,7 @@ function WheelVessels.onClickVessel(vessel)
 	selectedVessel = vessel
 
 	WheelVessels.setupAtelierPanel()
+	GemAtelier.refreshModifyPanel(GemAtelier.getSelectedGemData())
 end
 
 -- Place or remove the selected gem; the change is sent with Apply/Ok (0x62) like the points.
@@ -902,78 +998,52 @@ local function formatCost(cost)
 	return tr("%s gold and %d %s fragment%s", comma_value(cost.gold), cost.fragments, cost.greater and "greater" or "lesser", cost.fragments == 1 and "" or "s")
 end
 
--- Reshape buttons next to each mod of the selected gem (replace the 15.30 "switch domain").
-function WheelVessels.setupReshape(modsPanel, gemData)
-	local active = WheelVessels.isActive()
+-- Reshape row of the 15.33 Modify Gem panel: the Reshape button and the gold and fragment cost.
+function WheelVessels.setupReshapeRow(row, gemData, modSlot)
+	local cost = RESHAPE_COST[modSlot]
+	local reasons = {}
+	local goldShort = getGold() < cost.gold
+	local fragmentsShort = getFragments(cost.greater) < cost.fragments
 
-	for modSlot = 0, 2 do
-		local button = modsPanel:getChildById("reshape" .. modSlot)
-		local costLabel = modsPanel:getChildById("reshapeCost" .. modSlot)
+	if WheelOfDestiny.isPreview or WheelOfDestiny.changeState ~= 1 then
+		table.insert(reasons, tr("You need to be inside a temple to reshape gems."))
+	end
 
-		if not button and active then
-			button = g_ui.createWidget("ReshapeButton1533", modsPanel)
+	if gemData.locked == 1 then
+		table.insert(reasons, tr("Unlock the gem before you reshape it."))
+	end
 
-			button:setId("reshape" .. modSlot)
-			button:addAnchor(AnchorLeft, "fragmentType" .. modSlot, AnchorRight)
-			button:addAnchor(AnchorVerticalCenter, "fragmentType" .. modSlot, AnchorVerticalCenter)
+	if goldShort then
+		table.insert(reasons, tr("You need at least %s gold to reshape this mod.", comma_value(cost.gold)))
+	end
 
-			costLabel = g_ui.createWidget("ReshapeCost1533", modsPanel)
+	if fragmentsShort then
+		table.insert(reasons, tr("You need at least %d %s fragments to reshape this mod.", cost.fragments, cost.greater and "greater" or "lesser"))
+	end
 
-			costLabel:setId("reshapeCost" .. modSlot)
-			costLabel:addAnchor(AnchorTop, "reshape" .. modSlot, AnchorBottom)
-			costLabel:addAnchor(AnchorHorizontalCenter, "reshape" .. modSlot, AnchorHorizontalCenter)
+	local button = row.reshapeButton
+
+	row.goldCost.value:setText(GemAtelier.formatPrice(cost.gold))
+	row.goldCost.value:setColor(goldShort and "#d33c3c" or "#c0c0c0")
+	row.goldCost:setTooltip(tr("%s gold", comma_value(cost.gold)))
+	row.fragmentCost.value:setText(tostring(cost.fragments))
+	row.fragmentCost.value:setColor(fragmentsShort and "#d33c3c" or "#c0c0c0")
+	row.fragmentCost.icon:setImageSource("/images/game/wheel/fragmentIcon")
+	row.fragmentCost.icon:setImageClip(cost.greater and "0 12 12 12" or "0 0 12 12")
+	row.fragmentCost:setTooltip(tr("%d %s fragment%s", cost.fragments, cost.greater and "greater" or "lesser", cost.fragments == 1 and "" or "s"))
+
+	-- Keep the button enabled: a disabled widget gets no hover, so the reason tooltip would never show.
+	button:setOn(#reasons == 0)
+	button:setTooltip(#reasons == 0 and tr("Re-roll this mod at random for %s.", formatCost(cost)) or table.concat(reasons, "\n"))
+
+	local gemID = gemData.gemID
+
+	function button.onClick()
+		if not button:isOn() then
+			return
 		end
 
-		if button then
-			local show = active and gemData ~= nil and modSlot <= gemData.gemType
-
-			button:setVisible(show)
-			costLabel:setVisible(show)
-
-			if show then
-				local cost = RESHAPE_COST[modSlot]
-				local reasons = {}
-
-				if WheelOfDestiny.isPreview or WheelOfDestiny.changeState ~= 1 then
-					table.insert(reasons, tr("You need to be inside a temple to reshape gems."))
-				end
-
-				if gemData.locked == 1 then
-					table.insert(reasons, tr("Unlock the gem before you reshape it."))
-				end
-
-				if getGold() < cost.gold then
-					table.insert(reasons, tr("You need at least %s gold to reshape this mod.", comma_value(cost.gold)))
-				end
-
-				if getFragments(cost.greater) < cost.fragments then
-					table.insert(reasons, tr("You need at least %d %s fragments to reshape this mod.", cost.fragments, cost.greater and "greater" or "lesser"))
-				end
-
-				costLabel:setText(string.format("%sk + %d %s", comma_value(cost.gold / 1000), cost.fragments, cost.greater and "G" or "L"))
-				costLabel:setColor(#reasons == 0 and "#c0c0c0" or "#d33c3c")
-				-- Keep the button enabled: a disabled widget gets no hover, so the reason tooltip would never show.
-				button:setOn(#reasons == 0)
-
-				if #reasons == 0 then
-					button:setTooltip(tr("Re-roll this mod at random for %s.", formatCost(cost)))
-					costLabel:setTooltip(formatCost(cost))
-				else
-					button:setTooltip(table.concat(reasons, "\n"))
-					costLabel:setTooltip(table.concat(reasons, "\n"))
-				end
-
-				local gemID = gemData.gemID
-
-				function button.onClick()
-					if not button:isOn() then
-						return
-					end
-
-					WheelVessels.onReshape(gemID, modSlot)
-				end
-			end
-		end
+		WheelVessels.onReshape(gemID, modSlot)
 	end
 end
 

@@ -13,6 +13,7 @@ local totalGemList = {}
 local currentSearchText = ""
 local cachedBasicMods = {}
 local cachedSupremeMods = {}
+local autoSelecting = false
 
 GemRevealPrice = {
 	[0] = 125000,
@@ -24,6 +25,15 @@ GemSwitchPrice = {
 	250000,
 	1000000
 }
+
+-- 15.30 grid: 5 x 3 cells, 15.33 grid: 4 x 3 cells
+function GemAtelier.getPageSize()
+	return WheelVessels.isActive() and 12 or 15
+end
+
+function GemAtelier.getCellStyle()
+	return WheelVessels.isActive() and "GemCell1533" or "GemPanel"
+end
 
 -- Prices like the official client: 125000 -> "125 k", 1000000 -> "1,000 k".
 function GemAtelier.formatPrice(value)
@@ -123,8 +133,8 @@ function GemAtelier.redirectToGem(gemData)
 			-- block empty
 		else
 			if gemData.gemID == data.gemID then
-				currentPage = math.ceil(index / 15)
-				foundIndex = math.max(1, index - 15)
+				currentPage = math.ceil(index / GemAtelier.getPageSize())
+				foundIndex = math.max(1, index - GemAtelier.getPageSize())
 			end
 
 			index = index + 1
@@ -134,18 +144,18 @@ function GemAtelier.redirectToGem(gemData)
 	end
 
 	local gemCount = 0
-	local beginList = (currentPage - 1) * 15 + 1
+	local beginList = (currentPage - 1) * GemAtelier.getPageSize() + 1
 	local focusedGem
 
 	for i, data in pairs(totalGemList) do
-		if gemCount == 15 then
+		if gemCount == GemAtelier.getPageSize() then
 			break
 		end
 
 		if i < beginList then
 			-- block empty
 		else
-			local widget = g_ui.createWidget("GemPanel", gemList)
+			local widget = g_ui.createWidget(GemAtelier.getCellStyle(), gemList)
 			local success = GemAtelier.setupGemWidget(widget, data)
 
 			if success then
@@ -223,17 +233,17 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 	end
 
 	local gemCount = 0
-	local beginList = (currentPage - 1) * 15 + 1
+	local beginList = (currentPage - 1) * GemAtelier.getPageSize() + 1
 
 	for i, data in pairs(totalGemList) do
-		if gemCount == 15 then
+		if gemCount == GemAtelier.getPageSize() then
 			break
 		end
 
 		if i < beginList then
 			-- block empty
 		else
-			local widget = g_ui.createWidget("GemPanel", gemList)
+			local widget = g_ui.createWidget(GemAtelier.getCellStyle(), gemList)
 			local success = GemAtelier.setupGemWidget(widget, data)
 
 			if success then
@@ -256,12 +266,24 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 	local panel = gemAtelierWindow:recursiveGetChildById("clickedPanel")
 	local children = gemList:getChildren()
 
+	-- the gem picked here is not a click: the vessel selection stays
+	autoSelecting = true
+
 	if #children == 0 then
-		panel.clickedContent:setVisible(false)
-		panel.cleanContent:setVisible(true)
+		if panel then
+			panel.clickedContent:setVisible(false)
+			panel.cleanContent:setVisible(true)
+		else
+			lastSelectedGem = nil
+
+			GemAtelier.refreshModifyPanel(nil)
+		end
 	else
 		gemList:focusChild(nil)
-		panel.cleanContent:setVisible(false)
+
+		if panel then
+			panel.cleanContent:setVisible(false)
+		end
 
 		if selectFirst then
 			gemList:focusChild(gemList:getFirstChild())
@@ -290,6 +312,8 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 			gemList:focusChild(children[1])
 		end
 	end
+
+	autoSelecting = false
 end
 
 function GemAtelier.matchGemText(data)
@@ -365,15 +389,13 @@ function GemAtelier.setupGemWidget(widget, data)
 	widget.gemRevelationItem:setTooltip(tmpData.name:gsub(" %(x 0%)", ""))
 
 	if WheelVessels.isActive() then
-		WheelVessels.setGemImage(widget.gemRevelationItem, data.gemType, false)
+		-- the gem sprite of its quality and the green check badge of a gem in a vessel
+		widget.gemItem:setItemId(tmpData.id)
+		widget.gemItem:setTooltip(tmpData.name:gsub(" %(x 0%)", ""))
 
-		-- the domain badge becomes a "socketed" badge
 		if GemAtelier.isGemEquipped(data.gemID) then
-			widget.gemDomainImage:setImageSource("/images/game/wheel/icon-socketed")
-			widget.gemDomainImage:setImageClip("0 0 12 12")
-			widget.gemDomainImage:setSize(tosize("12 12"))
+			WheelVessels.setSocketedBadge(widget.gemDomainImage)
 			widget.gemDomainImage:setVisible(true)
-			widget.gemDomainImage:setPhantom(false)
 			widget.gemDomainImage:setTooltip(WheelVessels.getVesselStatusText(data))
 		end
 	elseif GemAtelier.isGemEquipped(data.gemID) then
@@ -452,17 +474,26 @@ function GemAtelier.showGemRevelation()
 	}
 
 	for i = 0, 2 do
-		local itemWidget = revelation:recursiveGetChildById("gemRevelationItem" .. i)
-		local gemInfo = revelation:recursiveGetChildById("gemInfo" .. i)
-		local revealCost = revelation:recursiveGetChildById("gemRevealCost" .. i)
-		local button = revelation:recursiveGetChildById("revealButton" .. i)
+		-- 15.33 rows (gemMenu1533) use short ids inside gemRevel0..2
+		local row = revelation:recursiveGetChildById("gemRevel" .. i)
+		local itemWidget = revelation:recursiveGetChildById("gemRevelationItem" .. i) or row.item
+		local gemInfo = revelation:recursiveGetChildById("gemInfo" .. i) or row.info
+		local revealCost = revelation:recursiveGetChildById("gemRevealCost" .. i) or row.cost
+		local button = revelation:recursiveGetChildById("revealButton" .. i) or row.revealButton
 
 		itemWidget:setItemId(data[i].id)
 		gemInfo:setText(data[i].name:gsub("%d", comma_value(resources[i])))
-		gemInfo:setMarginTop(60)
 
-		if not gemInfo:isTextWrap() then
-			gemInfo:setMarginTop(67)
+		if row.info then
+			function button.onClick()
+				GemAtelier.onRevealGem(button, i)
+			end
+		else
+			gemInfo:setMarginTop(60)
+
+			if not gemInfo:isTextWrap() then
+				gemInfo:setMarginTop(67)
+			end
 		end
 
 		revealCost.gold:setText(GemAtelier.formatPrice(GemRevealPrice[i]))
@@ -506,7 +537,7 @@ function GemAtelier.configurePages()
 
 	local panel = gemAtelierWindow:recursiveGetChildById("filterPanel")
 	local totalCount = #totalGemList
-	local maxPage = math.max(1, math.ceil(totalCount / 15))
+	local maxPage = math.max(1, math.ceil(totalCount / GemAtelier.getPageSize()))
 
 	panel.pagesPanel.pagesLabel:setText(tr("Page %s / %s (%s Gems)", currentPage, maxPage, totalCount))
 
@@ -537,7 +568,7 @@ function GemAtelier.managePage(button, foward)
 	end
 
 	local totalCount = #WheelOfDestiny.atelierGems
-	local maxPage = math.max(1, math.ceil(totalCount / 15))
+	local maxPage = math.max(1, math.ceil(totalCount / GemAtelier.getPageSize()))
 
 	if foward then
 		currentPage = math.min(currentPage + 1, math.ceil(maxPage))
@@ -656,6 +687,10 @@ function GemAtelier.onSelectGem(selected, clicked)
 	lastSelectedGem:setBorderWidth(2)
 	lastSelectedGem:setBorderColor("white")
 
+	if WheelVessels.isActive() then
+		return GemAtelier.onSelectGem1533(gemData)
+	end
+
 	local panel = gemAtelierWindow:recursiveGetChildById("clickedPanel")
 
 	if panel.cleanContent:isVisible() then
@@ -684,16 +719,6 @@ function GemAtelier.onSelectGem(selected, clicked)
 	panel.clickedContent.gemDetails.gemName:setText(string.gsub(gemText, " %(x 0%)", ""))
 	panel.clickedContent.gemDetails.gemDetailItem:setImageClip(gemOffset .. " " .. vocationOffset .. " 64 64")
 	panel.clickedContent.gemDetails.domain:setImageClip(gemData.gemDomain * 26 .. " 0 26 26")
-
-	if WheelVessels.isActive() then
-		return GemAtelier.onSelectGem1533(panel, gemData)
-	end
-
-	panel.clickedContent.gemDetails.domain:setVisible(true)
-	panel.clickedContent.gemDetails.domainLabel:setText(tr("Domain Affinity"))
-	panel.clickedContent.switch:setVisible(true)
-	panel.clickedContent.switchCost:setVisible(true)
-	WheelVessels.setupReshape(panel.clickedContent.gemMods, nil)
 
 	local widgetMods = panel.clickedContent.gemMods
 
@@ -1475,80 +1500,172 @@ function GemAtelier.getSelectedGemData()
 	return GemAtelier.getGemDataById(lastSelectedGem.gemID)
 end
 
--- 15.33 part of onSelectGem: vessel status instead of the domain, reshape instead of switch domain.
-function GemAtelier.onSelectGem1533(panel, gemData)
-	local content = panel.clickedContent
-	local details = content.gemDetails
+-- 15.33 mod frame (GemModFrame1533: hover, icon, potential) of one mod of a gem: grade frame of the
+-- effective level, the potential grade when a lower mod holds it back, the mod icon, the effect as tooltip.
+function GemAtelier.setupModFrame(frame, gemData, slot)
+	local supreme = slot == 2
+	local bonus = slot == 0 and gemData.lesserBonus or slot == 1 and gemData.regularBonus or gemData.supremeBonus
+	local upgrades = supreme and WheelOfDestiny.supremeModsUpgrade or WheelOfDestiny.basicModsUpgrade
+	local upgradeTier = upgrades[bonus] or 0
+	local effectiveTier = GemAtelier.getEffectiveLevel(gemData, bonus, supreme, slot)
+	local icon = frame.icon
 
-	WheelVessels.setGemImage(details.gemDetailItem, gemData.gemType, true)
-	details.domain:setVisible(false)
-	details.domainLabel:setText(WheelVessels.getVesselStatusText(gemData))
+	frame:setImageSource("/images/game/wheel/backdrop_modgrades")
+	frame:setImageClip(effectiveTier * 50 .. " 0 50 50")
+	frame:setOpacity(1)
+	frame.potential:setVisible(effectiveTier < upgradeTier)
+	frame.potential:setImageClip(upgradeTier * 50 .. " 0 50 50")
+	icon:setVisible(true)
 
-	local widgetMods = content.gemMods
-
-	for i = 0, 2 do
-		widgetMods:recursiveGetChildById("fragmentType" .. i):setVisible(false)
-		widgetMods:recursiveGetChildById("gemModItem" .. i):setVisible(false)
-		widgetMods:recursiveGetChildById("modLabel" .. i):setVisible(false)
+	if supreme then
+		icon:setImageSource("/images/game/wheel/icons-skillwheel-suprememods")
+		icon:setImageClip(getSupremeModIconClip(bonus))
+		icon:setSize(tosize("35 35"))
+		icon:setMarginLeft(3)
+		icon:setMarginBottom(2)
+	else
+		icon:setImageSource("/images/game/wheel/icons-skillwheel-basicmods")
+		icon:setImageClip(bonus * 30 .. " 0 30 30")
+		icon:setSize(tosize("30 30"))
+		icon:setMarginLeft(0)
+		icon:setMarginBottom(0)
 	end
 
-	widgetMods.fragmentType0.gemModItem0:setImageClip(gemData.lesserBonus * 30 .. " 0 30 30")
-	GemAtelier.setupModAvailable(widgetMods, 0, 1, gemData)
-	GemAtelier.createGemInformation(widgetMods.modLabel0, gemData.lesserBonus, false, false, gemData, 0)
+	GemAtelier.createGemInformation(frame, bonus, supreme, true, gemData, slot)
 
-	if gemData.gemType > 0 then
-		widgetMods.fragmentType1.gemModItem1:setImageClip(gemData.regularBonus * 30 .. " 0 30 30")
-		GemAtelier.setupModAvailable(widgetMods, 1, 2, gemData)
-		GemAtelier.createGemInformation(widgetMods.modLabel1, gemData.regularBonus, false, false, gemData, 1)
+	frame.currentTier = effectiveTier
+	frame.modID = bonus
+	frame.isSupreme = supreme
+end
+
+-- 15.33 selection: a click on a gem in a vessel selects that vessel too, like the official client.
+function GemAtelier.onSelectGem1533(gemData)
+	if not autoSelecting then
+		local vessel = WheelVessels.getVesselOfGem(gemData.gemID)
+
+		if vessel and vessel ~= WheelVessels.getSelectedVessel() then
+			WheelVessels.selectVessel(vessel)
+		end
 	end
 
-	if gemData.gemType > 1 then
-		widgetMods.fragmentType2.gemModItem2:setImageClip(getSupremeModIconClip(gemData.supremeBonus))
-		GemAtelier.setupModAvailable(widgetMods, 2, 3, gemData)
-		GemAtelier.createGemInformation(widgetMods.modLabel2, gemData.supremeBonus, true, false, gemData, 2)
+	GemAtelier.refreshModifyPanel(gemData)
+end
+
+-- What the top button of Modify Gem does with the selected gem and vessel: "socket" (into the
+-- selected or a free vessel of its quality), "unsocket" (out of its vessel) or "replace" (into the
+-- selected vessel in place of its gem). Returns the mode and the gem it acts on.
+function GemAtelier.getSocketMode(gemData)
+	local vessel = WheelVessels.getSelectedVessel()
+	local vesselGem = vessel >= 0 and WheelVessels.getGemInVessel(vessel) or nil
+
+	if vesselGem then
+		if not gemData or gemData.gemID == vesselGem.gemID then
+			return "unsocket", vesselGem
+		end
+
+		if gemData.gemType == WheelVessels.getVesselQuality(vessel) then
+			return "replace", gemData
+		end
 	end
 
-	WheelVessels.setupReshape(widgetMods, gemData)
+	if gemData and GemAtelier.isGemEquipped(gemData.gemID) then
+		return "unsocket", gemData
+	end
 
-	content.switch:setVisible(false)
-	content.switchCost:setVisible(false)
+	return "socket", gemData
+end
 
-	local socketed = GemAtelier.isGemEquipped(gemData.gemID)
+local SOCKET_BUTTON_TEXT = {
+	socket = "Place in Vessel",
+	unsocket = "Remove from Vessel",
+	replace = "Replace Gem"
+}
+
+function GemAtelier.onSocketButton1533(button)
+	if not button:isOn() then
+		return true
+	end
+
+	local mode, gemData = GemAtelier.getSocketMode(GemAtelier.getSelectedGemData())
+
+	if not gemData then
+		return true
+	end
+
+	WheelVessels.manageVessel(gemData, mode == "unsocket")
+	GemAtelier.setupVesselPanel()
+	GemAtelier.showGems(false, lastSelectedGem and lastSelectedGem.gemIndex or 1)
+end
+
+-- Left column of the 15.33 Gem Atelier: place/remove/replace, one reshape row per mod, dismantle.
+function GemAtelier.refreshModifyPanel(gemData)
+	local panel = gemAtelierWindow and gemAtelierWindow:recursiveGetChildById("modifyPanel")
+
+	if not panel then
+		return
+	end
+
 	-- same rule as the Apply button: a wheel that cannot be saved gets no local vessel edits
 	local canEdit = WheelOfDestiny.changeState ~= 0 and not WheelOfDestiny.isPreview
+	local mode = GemAtelier.getSocketMode(gemData)
+	local socketTip = ""
 
-	content.placeVessel:setVisible(canEdit and not socketed)
-	content.removeVessel:setVisible(canEdit and socketed)
+	if not canEdit then
+		socketTip = tr("You must be inside a temple to change the gems in your vessels.")
+	elseif mode == "socket" and gemData then
+		local selected = WheelVessels.getSelectedVessel()
 
-	local selected = WheelVessels.getSelectedVessel()
-
-	if not socketed and selected >= 0 and WheelVessels.getVesselQuality(selected) ~= gemData.gemType then
-		content.placeVessel:setTooltip(tr("This gem does not fit the selected vessel; it goes to a free %s vessel.", WheelVessels.getQualityName(gemData.gemType)))
-	else
-		content.placeVessel:setTooltip(tr("Place the gem in a vessel. Press Apply or Ok to save."))
+		if selected >= 0 and WheelVessels.getVesselQuality(selected) ~= gemData.gemType then
+			socketTip = tr("This gem does not fit the selected vessel; it goes to a free %s vessel.", WheelVessels.getQualityName(gemData.gemType))
+		else
+			socketTip = tr("Place the gem in a vessel. Press Apply or Ok to save.")
+		end
+	elseif mode ~= "socket" then
+		socketTip = tr("Press Apply or Ok to save the change.")
 	end
 
+	panel.socketButton:setText(tr(SOCKET_BUTTON_TEXT[mode]))
+	panel.socketButton:setOn(canEdit and (mode ~= "socket" or gemData ~= nil))
+	panel.socketButton:setTooltip(socketTip)
+
+	for slot = 0, 2 do
+		local row = panel:getChildById("reshape" .. slot)
+		local show = gemData ~= nil and slot <= gemData.gemType
+
+		row:setVisible(show)
+
+		if show then
+			local supreme = slot == 2
+			local bonus = slot == 0 and gemData.lesserBonus or slot == 1 and gemData.regularBonus or gemData.supremeBonus
+
+			GemAtelier.setupModFrame(row.fragment, gemData, slot)
+			GemAtelier.createGemInformation(row.effect, bonus, supreme, false, gemData, slot)
+			WheelVessels.setupReshapeRow(row, gemData, slot)
+		end
+	end
+
+	local dismantle = panel.dismantleButton
 	local destroyTip = ""
-	local canInteract = WheelOfDestiny.changeState == 1 and gemData.locked == 0 and not WheelOfDestiny.isPreview
 
-	content.destroy:setOn(canInteract)
+	if gemData then
+		if WheelOfDestiny.changeState ~= 1 or WheelOfDestiny.isPreview then
+			destroyTip = tr("You must be inside a temple to dismantle gems.")
+		end
 
-	if gemData.locked == 1 then
-		destroyTip = tr("Before you can destroy the gem, you must unlock it.")
+		if gemData.locked == 1 then
+			destroyTip = tr("%s%sBefore you can destroy the gem, you must unlock it.", destroyTip, #destroyTip > 0 and "\n" or "")
+		end
+
+		if GemAtelier.isGemEquipped(gemData.gemID) then
+			destroyTip = tr("%s%sThe gem must be removed from its vessel before it can be destroyed.", destroyTip, #destroyTip > 0 and "\n" or "")
+		elseif WheelVessels.isGemSocketedOnServer(gemData.gemID) then
+			-- removed locally only: the server still has it in a vessel and refuses the dismantle until Apply
+			destroyTip = tr("%s%sPress Apply to save the removal from the vessel before you destroy the gem.", destroyTip, #destroyTip > 0 and "\n" or "")
+		end
 	end
 
-	if socketed then
-		destroyTip = tr("%s%sThe gem must be removed from its vessel before it can be destroyed.", destroyTip, #destroyTip > 0 and "\n" or "")
-	elseif WheelVessels.isGemSocketedOnServer(gemData.gemID) then
-		-- removed locally only: the server still has it in a vessel and refuses the dismantle until Apply
-		destroyTip = tr("%s%sPress Apply to save the removal from the vessel before you destroy the gem.", destroyTip, #destroyTip > 0 and "\n" or "")
-	end
-
-	content.destroy:setTooltip(destroyTip)
-
-	if #destroyTip > 0 then
-		content.destroy:setOn(false)
-	end
+	dismantle:setOn(gemData ~= nil and #destroyTip == 0)
+	dismantle:setTooltip(destroyTip)
 end
 
 function GemAtelier:getDamageAndHealing()
