@@ -70,6 +70,7 @@ public:
 
     double getPlayerDiagonalWalkSpeed() const { return m_playerDiagonalWalkSpeed; }
     double getCreatureDiagonalWalkSpeed() const { return m_creatureDiagonalWalkSpeed; }
+    double getWalkAnimationCycleSteps() const { return m_walkAnimationCycleSteps; }
 
     BitmapFontPtr getCreatureNameFont()  const { return m_creatureNameFont; }
     BitmapFontPtr getAnimatedTextFont()  const { return m_animatedTextFont; }
@@ -121,6 +122,7 @@ private:
     uint16_t m_shieldBlinkTicks{ 500 };
     uint16_t m_volatileSquareDuration{ 1000 };
     double m_creatureDiagonalWalkSpeed{ 3 };
+    double m_walkAnimationCycleSteps{ 2.65 };
 
     // Player
     double m_playerDiagonalWalkSpeed{ 3 };

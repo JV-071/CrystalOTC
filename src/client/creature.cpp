@@ -530,6 +530,7 @@ void Creature::walk(const Position& oldPos, const Position& newPos)
     // starts counting walk
     m_walking = true;
     m_walkTimer.restart();
+    m_walkCycleLastTick = g_clock.millis(); // the time between steps does not advance the legs
     m_walkedPixels = 0;
 
     // no direction need to be changed when the walk ends
@@ -716,11 +717,28 @@ void Creature::updateWalkAnimation()
     // Walk phases used to be driven by a free-running m_footTimer with a hard clamp [minFootDelay,
     // maxFootDelay], so they had nothing to do with the step tempo: at slow walk the character jogged
     // in place, and at fast walk it slid (frames could not keep up with the offset). We tie them to
-    // STEP PROGRESS, so that one full frame cycle lands exactly on one tile.
+    // the step tempo instead.
     // The phase range stays as before (1..footAnimPhases), so sprite indexing is left untouched.
     // we compute progress against the SAME step duration the movement uses (the regular step, also
     // on diagonals), otherwise the frames would not match the character's offset
     const uint16_t stepDurationMs = getStepDuration(true);
+
+    // The official client does not run one full 8-frame cycle per tile, which made the legs 2-3x
+    // too fast. Measured frame by frame at a 105 ms step, one cycle takes ~280 ms, so it spans ~2.65
+    // tiles and keeps running from one step to the next. The 300 ms phase durations in the
+    // appearances are the same for nearly every outfit and far too slow to be used as they are.
+    const double cycleSteps = g_gameConfig.getWalkAnimationCycleSteps();
+    if (footAnimPhases > 2 && cycleSteps > 0 && stepDurationMs > 0 && m_walkingAnimationSpeed == 0) {
+        const ticks_t now = g_clock.millis();
+        const auto elapsedMs = static_cast<double>(std::max<ticks_t>(0, now - m_walkCycleLastTick));
+        m_walkCycleLastTick = now;
+
+        m_walkCycle = static_cast<float>(std::fmod(m_walkCycle + elapsedMs / (stepDurationMs * cycleSteps), 1.0));
+        m_walkAnimationPhase = static_cast<uint8_t>(std::min(1 + static_cast<int>(m_walkCycle * footAnimPhases), footAnimPhases));
+        return;
+    }
+
+    // 2-frame outfits (and walk-animation-cycle-steps 0) run one full cycle per tile
     const float stepProgress = stepDurationMs > 0
         ? m_walkTimer.ticksElapsed() / static_cast<float>(stepDurationMs)
         : -1.f;
@@ -871,6 +889,7 @@ void Creature::terminateWalk()
     const auto self = static_self_cast<Creature>();
     m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self] {
         self->m_walkAnimationPhase = 0;
+        self->m_walkCycle = 0.f;
         self->m_walkFinishAnimEvent = nullptr;
     }, g_game.getServerBeat());
 }
@@ -964,6 +983,7 @@ void Creature::setOutfit(const Outfit& outfit, bool fireEvent)
     m_exactSize = 0;
     if (m_walkingAnimationSpeed == 0) {
         m_walkAnimationPhase = 0; // might happen when player is walking and outfit is changed.
+        m_walkCycle = 0.f;
     }
 
     if (m_outfit.isInvalid())

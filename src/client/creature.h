@@ -310,6 +310,11 @@ private:
     Position m_oldPosition;
 
     Timer m_footTimer;
+
+    // continuous leg cycle of 8-frame outfits, 0..1, kept from one step to the next
+    float m_walkCycle{ 0.f };
+    ticks_t m_walkCycleLastTick{ 0 };
+
     Timer m_outfitColorTimer;
 
     Outfit m_outfit;
