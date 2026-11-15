@@ -150,7 +150,7 @@ return {
 	showEventMessagesInConsole = true,
 	showStatusMessagesInConsole = true,
 	moveStack = false,
-	smartWalk = true,
+	combineWalkKeys = false,
 	freeWindowPlacement = true,
 	openNewTabsWhenReceivingPrivateMessages = false,
 	showOthersStatusMessagesInConsole = false,
