@@ -630,34 +630,63 @@ function WheelVessels.refreshMasteryIcons()
 	end
 end
 
--- Corner sockets of the wheel: lit when a vessel slice of the domain is full. Gems are no longer
--- bound to a domain, so the corner shows no gem; a click opens the vessel overview.
+-- Corners of the 15.33 wheel: no gem socket any more (SkillWheelCorner.qml draws only
+-- backdrop_skillwheel_largebonus_XX). Uses the 15.33 backdrop from data/images/1533/ when it is
+-- installed, else the 15.30 backdrop clipped to the part left of (or right of) its socket.
+local CORNER_NAMES = {
+	[0] = "TL",
+	"TR",
+	"BL",
+	"BR"
+}
+local CORNER_SIZE = 85
+local LEGACY_CORNER_WIDTH = 118
+-- the 15.30 socket circle takes the outer 34 columns of the backdrop
+local LEGACY_CORNER_CLIP = {
+	[0] = "0 0 84 85",
+	"34 0 84 85",
+	"0 0 84 85",
+	"34 0 84 85"
+}
+
 function WheelVessels.configureCornerSockets()
 	for domain = 0, 3 do
 		local background = wheelPanel:recursiveGetChildById("socketBackground" .. domain)
 		local socket = wheelPanel:recursiveGetChildById("gemSocket" .. domain)
-		local gemIcon = socket and socket:recursiveGetChildById("gemIcon" .. domain)
-		local filled = 0
+		local marker = wheelPanel:recursiveGetChildById("selectVessel" .. domain)
 
-		for _, index in ipairs(VesselIndex[domain] or {}) do
-			if isSlotFull(index + 1) then
-				filled = filled + 1
+		if background then
+			local image = WheelVessels.cipImage("images/skillwheel/backdrop_skillwheel_largebonus_" .. CORNER_NAMES[domain])
+
+			if image then
+				background:setImageSource(image)
+				background:setImageClip("0 0 " .. CORNER_SIZE .. " " .. CORNER_SIZE)
+				background:setSize(tosize(CORNER_SIZE .. " " .. CORNER_SIZE))
+			else
+				background:setImageSource("/images/game/wheel/backdrop_skillwheel_largebonus_socketdisabled_" .. domain)
+				background:setImageClip(LEGACY_CORNER_CLIP[domain])
+				background:setSize(tosize("84 " .. CORNER_SIZE))
 			end
 		end
 
-		if background then
-			background:setImageSource("/images/game/wheel/" .. (filled == 0 and "backdrop_skillwheel_largebonus_socketdisabled_" or "backdrop_skillwheel_largebonus_socketenabled_") .. domain)
-		end
-
 		if socket then
-			socket:setVisible(true)
-			socket:setImageSource(filled > 0 and "/images/game/wheel/backdrop_skillwheel_socket_active" or "/images/game/wheel/backdrop_skillwheel_socket_inactive")
-			socket:setImageClip("0 0 34 34")
-			socket:setTooltip(tr("Gem Vessel slices of this domain: %d / 2\nClick to see your gem vessels.", filled))
+			socket:setVisible(false)
 		end
 
-		if gemIcon then
-			gemIcon:setVisible(false)
+		if marker then
+			marker:setVisible(false)
+		end
+	end
+end
+
+-- Gives the 15.30 corner backdrops their full size back after a 15.33 login.
+function WheelVessels.resetCornerBackdrops()
+	for domain = 0, 3 do
+		local background = wheelPanel:recursiveGetChildById("socketBackground" .. domain)
+
+		if background then
+			background:setImageClip("0 0 " .. LEGACY_CORNER_WIDTH .. " " .. CORNER_SIZE)
+			background:setSize(tosize(LEGACY_CORNER_WIDTH .. " " .. CORNER_SIZE))
 		end
 	end
 end
@@ -1395,6 +1424,8 @@ function WheelOfDestiny.configureEquippedGems()
 
 		return
 	end
+
+	WheelVessels.resetCornerBackdrops()
 
 	return legacyConfigureEquippedGems()
 end
