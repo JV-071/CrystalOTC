@@ -2887,6 +2887,75 @@ function WheelOfDestiny.configureRevelationPerks()
 	end
 
 	wheelOfDestinyWindow.revelationPerks.tabContent.infoSpell3:setTooltip(m1)
+
+	WheelOfDestiny.layoutRevelationPerks()
+end
+
+-- Name column of the Revelation Perks list, cut like the official client: "Executioner's Thr..".
+local REVELATION_NAME_CHARS = 18
+
+local function setRevelationName(label, name)
+	label:setTooltip(name)
+
+	if #name > REVELATION_NAME_CHARS then
+		name = name:sub(1, REVELATION_NAME_CHARS - 1) .. ".."
+	end
+
+	label:setText(name)
+end
+
+-- Rows below "Damage and Healing": 15.33 lists the four Revelation Perks by name (Avatar of Steel,
+-- Combat Mastery, Executioner's Throw, Gift of Life), older versions keep the avatar first.
+function WheelOfDestiny.layoutRevelationPerks()
+	local content = wheelOfDestinyWindow.revelationPerks.tabContent
+	local rows = {
+		{
+			widget = content.avatar,
+			label = content.avatar.perk1,
+			domain = 4
+		},
+		{
+			widget = content.spell1,
+			label = content.spell1.perk2,
+			domain = 2
+		},
+		{
+			widget = content.spell2,
+			label = content.spell2.perk3,
+			domain = 1
+		},
+		{
+			widget = content.spell3,
+			label = content.spell3.perk4,
+			domain = 3
+		}
+	}
+
+	for _, row in ipairs(rows) do
+		row.name = getRevelationDisplayName(row.domain) or ""
+
+		setRevelationName(row.label, row.name)
+	end
+
+	if WheelVessels.isActive() then
+		table.sort(rows, function(a, b)
+			return a.name < b.name
+		end)
+	end
+
+	content.damage:setHeight(15)
+
+	local previous = content.damage
+
+	for _, row in ipairs(rows) do
+		row.widget:breakAnchors()
+		row.widget:addAnchor(AnchorTop, previous:getId(), AnchorBottom)
+		row.widget:addAnchor(AnchorLeft, "parent", AnchorLeft)
+		row.widget:setMarginTop(0)
+		row.widget:setHeight(15)
+
+		previous = row.widget
+	end
 end
 
 local function checkValidName(text)

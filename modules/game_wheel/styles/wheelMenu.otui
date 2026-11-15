@@ -1088,7 +1088,7 @@ Panel
         margin-top: 2
         Label
           id: perk3
-          !text: tr('Gift Of Life')
+          !text: tr('Gift of Life')
           width: 135
           anchors.top: parent.top
           anchors.left: parent.left
