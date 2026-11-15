@@ -1020,6 +1020,7 @@ void Client::registerLuaFunctions()
     g_lua.bindClassMemberFunction<LocalPlayer>("lockWalk", &LocalPlayer::lockWalk);
     g_lua.bindClassMemberFunction<LocalPlayer>("isWalkLocked", &LocalPlayer::isWalkLocked);
     g_lua.bindClassMemberFunction<LocalPlayer>("canWalk", &LocalPlayer::canWalk);
+    g_lua.bindClassMemberFunction<LocalPlayer>("getWalkWaitLeft", &LocalPlayer::getWalkWaitLeft);
     g_lua.bindClassMemberFunction<LocalPlayer>("setStates", &LocalPlayer::setStates);
     g_lua.bindClassMemberFunction<LocalPlayer>("setSkill", &LocalPlayer::setSkill);
     g_lua.bindClassMemberFunction<LocalPlayer>("setHealth", &LocalPlayer::setHealth);

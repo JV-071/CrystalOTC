@@ -69,6 +69,7 @@ public:
     uint16_t getMinStatictextDuration() const { return m_minStatictextDuration; }
 
     double getPlayerDiagonalWalkSpeed() const { return m_playerDiagonalWalkSpeed; }
+    double getPlayerDiagonalNextStepWait() const { return m_playerDiagonalNextStepWait; }
     double getCreatureDiagonalWalkSpeed() const { return m_creatureDiagonalWalkSpeed; }
     double getWalkAnimationCycleSteps() const { return m_walkAnimationCycleSteps; }
 
@@ -126,6 +127,7 @@ private:
 
     // Player
     double m_playerDiagonalWalkSpeed{ 3 };
+    double m_playerDiagonalNextStepWait{ 2 };
 
     // Render
     uint16_t m_invisibleTicksPerFrame{ 500 };

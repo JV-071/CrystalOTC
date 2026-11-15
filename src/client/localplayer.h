@@ -35,6 +35,7 @@ public:
 
     bool autoWalk(const Position& destination, bool retry = false);
     bool canWalk(bool ignoreLock = false);
+    int getWalkWaitLeft();
 
     void setStates(uint64_t states);
     void setSkill(Otc::Skill skillId, uint16_t level, uint16_t levelPercent);
@@ -167,6 +168,7 @@ private:
     void cancelWalk(Otc::Direction direction = Otc::InvalidDirection);
     void cancelAdjustInvalidPosEvent();
     void registerAdjustInvalidPosEvent();
+    uint16_t getNextStepWait();
 
     bool retryAutoWalk();
 
@@ -178,6 +180,8 @@ private:
     ScheduledEventPtr m_adjustInvalidPosEvent;
     ScheduledEventPtr m_autoWalkContinueEvent;
     ticks_t m_walkLockExpiration{ 0 };
+    // estimated time the last prewalk waits in the server walk queue before it is executed
+    uint16_t m_walkQueueDelay{ 0 };
 
     bool m_knownCompletePath{ false };
     bool m_premium{ false };
