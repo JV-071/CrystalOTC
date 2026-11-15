@@ -514,8 +514,20 @@ local function walk(dir)
 end
 
 function continueWalk(delay)
-	if not walkRepeatActive or not smartWalkDir or walkRepeatRetryEvent then
+	if not walkRepeatActive or not smartWalkDir then
 		return
+	end
+
+	-- A step that may go now (the end of a walk animation) replaces a pending 10 ms retry instead
+	-- of being dropped: otherwise the next step waited for that retry, one or two frames on a turn.
+	if walkRepeatRetryEvent then
+		if (delay or 0) > 0 then
+			return
+		end
+
+		removeEvent(walkRepeatRetryEvent)
+
+		walkRepeatRetryEvent = nil
 	end
 
 	walkRepeatRetryEvent = scheduleEvent(function()
@@ -564,9 +576,15 @@ local function walkInRunningRepeat(dir)
 		walkRepeatRetryEvent = nil
 	end
 
-	-- a refused step (walk lock after stairs) falls back to the retry, nothing else may be pending
+	-- A refused step (walk lock after stairs) falls back to the retry, nothing else may be pending.
+	-- A step refused because the character is still mid step needs no retry: the end of that step
+	-- continues the walk (onWalkFinish), and a retry pending then would delay it.
 	if not walk(dir) then
-		continueWalk(10)
+		local player = g_game.getLocalPlayer()
+
+		if not (player and player:isWalking()) then
+			continueWalk(10)
+		end
 	end
 end
 
