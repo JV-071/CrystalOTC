@@ -1218,14 +1218,9 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
                 : 2);
     }
 
-    auto duration = ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
-
-    if (isCameraFollowing() && isLocalPlayer()) {
-        const auto& localPlayer = static_self_cast<LocalPlayer>();
-        duration += 10 * std::max<int>(1, localPlayer->getPreWalkingSize());
-    }
-
-    return duration;
+    // No extra margin for the local player: it made every step 10-20 ms longer than the server
+    // allows. A step that reaches the server a little early is queued there, not refused.
+    return ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
 }
 
 Point Creature::getDisplacement() const
