@@ -90,6 +90,10 @@ if (ANDROID)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=3)
 elseif(WASM)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=2)
+elseif(MSVC)
+  # Windows renders through ANGLE (GLES3), which picks Direct3D 11 or desktop OpenGL at
+  # startup (config.ini renderBackend), so one build serves every renderer.
+  set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=3)
 endif()
 
 set(VERSION "1.0.0")
@@ -252,7 +256,12 @@ if(ANDROID)
   find_package(game-activity REQUIRED CONFIG)
   find_package(EGL REQUIRED)
 else()
-  if(NOT WASM)
+  if(MSVC)
+    # ANGLE replaces OpenGL32 + GLEW on Windows; it loads opengl32.dll itself when the
+    # OpenGL backend is chosen.
+    find_package(unofficial-angle CONFIG REQUIRED)
+    find_package(LuaJIT REQUIRED)
+  elseif(NOT WASM)
     find_package(OpenGL REQUIRED)
     if(DEFINED VCPKG_TARGET_TRIPLET)
       find_package(GLEW REQUIRED)
@@ -659,7 +668,12 @@ if(MSVC)
           ${PHYSFS_LIBRARY}
           ${ZLIB_LIBRARY}
           ${NLOHMANN_JSON_LIBRARY}
-          ${OPENGL_LIBRARIES}
+          unofficial::angle::libEGL
+          unofficial::angle::libGLESv2
+          d3d11.lib
+          dxgi.lib
+          dxguid.lib
+          d3d9.lib
           ${DirectX_LIBRARY}
           ${DirectX_LIBRARIES}
           ${OGG_LIBRARY}
@@ -671,7 +685,6 @@ if(MSVC)
           ${STDUUID}
           absl::log_internal_check_op
           Threads::Threads
-          GLEW::GLEW
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
