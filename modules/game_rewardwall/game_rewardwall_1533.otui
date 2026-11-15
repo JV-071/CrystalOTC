@@ -120,12 +120,14 @@ MainWindowHigh
       margin-right: 10
       focusable: false
 
+      // the help icon follows the text vertically, so the text keeps room for the
+      // 12px icon through the parent instead of anchoring to it (circular anchor)
       Label
         id: streakBonusText
         anchors.top: parent.top
         anchors.left: parent.left
-        anchors.right: streakBonusHelp.left
-        margin-right: 5
+        anchors.right: parent.right
+        margin-right: 17
         text-align: topLeft
         text-wrap: true
         text-auto-resize: true
