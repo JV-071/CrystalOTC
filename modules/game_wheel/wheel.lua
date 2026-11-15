@@ -507,8 +507,8 @@ function onResourceBalance()
 	local value = bankMoney + characterMoney
 
 	wheelWindow.moneyPanel.gold:setText(formatMoney(value, ","))
-	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
-	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
+	wheelWindow.lesserFragmentPanel.gold:setText(comma_value(lesserFragment))
+	wheelWindow.greaterFragmentPanel.gold:setText(comma_value(greaterFragment))
 end
 
 function loadConfigJson()

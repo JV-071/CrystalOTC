@@ -876,8 +876,8 @@ function WheelOfDestiny.openPreviewWheel(playerId, vocationId)
 	local value = bankMoney + characterMoney
 
 	wheelWindow.moneyPanel.gold:setText(formatMoney(value, ","))
-	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
-	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
+	wheelWindow.lesserFragmentPanel.gold:setText(comma_value(lesserFragment))
+	wheelWindow.greaterFragmentPanel.gold:setText(comma_value(greaterFragment))
 	WheelOfDestiny.create(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
 
 	if GemAtelier and gemAtelierWindow and gemAtelierWindow:isVisible() and GemAtelier.setupVesselPanel then
@@ -1052,8 +1052,8 @@ function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationI
 	local value = bankMoney + characterMoney
 
 	wheelWindow.moneyPanel.gold:setText(formatMoney(value, ","))
-	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
-	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
+	wheelWindow.lesserFragmentPanel.gold:setText(comma_value(lesserFragment))
+	wheelWindow.greaterFragmentPanel.gold:setText(comma_value(greaterFragment))
 	WheelOfDestiny.create(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
 	WheelVessels.rememberServerState()
 
@@ -1201,7 +1201,7 @@ function WheelOfDestiny.onCreate(vocationId)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	wheelPanel:recursiveGetChildById("fullColorWheel_15"):setVisible(true)
 	wheelPanel:recursiveGetChildById("fullColorWheel_16"):setVisible(true)
 	wheelPanel:recursiveGetChildById("fullColorWheel_21"):setVisible(true)
@@ -1279,7 +1279,7 @@ function onAddMax(index)
 
 	WheelOfDestiny.usedPoints = usedPoints
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1341,7 +1341,7 @@ function onAddOne(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1405,7 +1405,7 @@ function onAddCustom(index, count)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1472,7 +1472,7 @@ function onRmvMax(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1534,7 +1534,7 @@ function onRmvOne(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1657,9 +1657,9 @@ function WheelOfDestiny.configureDedicationPerk()
 		end
 	end
 
-	wheelOfDestinyWindow.dedicationPerks.tabContent.hitPoints.value:setText((health > 0 and "+" or "") .. health)
-	wheelOfDestinyWindow.dedicationPerks.tabContent.manaPoints.value:setText((mana > 0 and "+" or "") .. mana)
-	wheelOfDestinyWindow.dedicationPerks.tabContent.capPoints.value:setText((cap > 0 and "+" or "") .. cap)
+	wheelOfDestinyWindow.dedicationPerks.tabContent.hitPoints.value:setText((health > 0 and "+" or "") .. comma_value(health))
+	wheelOfDestinyWindow.dedicationPerks.tabContent.manaPoints.value:setText((mana > 0 and "+" or "") .. comma_value(mana))
+	wheelOfDestinyWindow.dedicationPerks.tabContent.capPoints.value:setText((cap > 0 and "+" or "") .. comma_value(cap))
 	wheelOfDestinyWindow.dedicationPerks.tabContent.mitigationPoints.value:setText(string.format("%.2f%%", mitigation))
 end
 
@@ -1863,11 +1863,11 @@ function WheelOfDestiny.configureSummary()
 		widget.info:setVisible(false)
 
 		if t == "Hit Points" then
-			widget.value:setText((health > 0 and "+" or "") .. health)
+			widget.value:setText((health > 0 and "+" or "") .. comma_value(health))
 		elseif t == "Mana" then
-			widget.value:setText((mana > 0 and "+" or "") .. mana)
+			widget.value:setText((mana > 0 and "+" or "") .. comma_value(mana))
 		elseif t == "Capacity" then
-			widget.value:setText((cap > 0 and "+" or "") .. cap)
+			widget.value:setText((cap > 0 and "+" or "") .. comma_value(cap))
 		elseif t == "Mitigation Mult." then
 			widget.value:setText(string.format("%.2f%%", mitigation))
 			widget.info:setTooltip("Increase your mitigation multiplicatively.")
@@ -2389,7 +2389,7 @@ function WheelOfDestiny.create(playerId, canView, changeState, vocationId, point
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 
 	wheelPanel:recursiveGetChildById("perkIconTopLeft").onClick = function()
 		WheelOfDestiny.onWheelPassiveClick(1)
