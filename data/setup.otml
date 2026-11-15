@@ -23,6 +23,9 @@ game
     volatile-square-duration: 1000
     adjust-creature-information-based-crop-size: false
     diagonal-walk-speed: 3
+    # tiles per full leg cycle of an outfit with 8 x 300 ms walking phases, from the official client;
+    # other outfits scale with their phase durations (0 = one cycle per tile)
+    walk-animation-cycle-steps: 2.65
 
   player
     diagonal-walk-speed: 3

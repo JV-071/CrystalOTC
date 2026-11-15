@@ -530,6 +530,7 @@ void Creature::walk(const Position& oldPos, const Position& newPos)
     // starts counting walk
     m_walking = true;
     m_walkTimer.restart();
+    m_walkCycleLastTick = g_clock.millis(); // the time between steps does not advance the legs
     m_walkedPixels = 0;
 
     // no direction need to be changed when the walk ends
@@ -716,11 +717,60 @@ void Creature::updateWalkAnimation()
     // Walk phases used to be driven by a free-running m_footTimer with a hard clamp [minFootDelay,
     // maxFootDelay], so they had nothing to do with the step tempo: at slow walk the character jogged
     // in place, and at fast walk it slid (frames could not keep up with the offset). We tie them to
-    // STEP PROGRESS, so that one full frame cycle lands exactly on one tile.
+    // the step tempo instead.
     // The phase range stays as before (1..footAnimPhases), so sprite indexing is left untouched.
-    // we compute progress against the SAME step duration the movement uses (diagonal-aware),
-    // otherwise on diagonals the frames would run ahead of the character's offset
-    const uint16_t stepDurationMs = getStepDuration(false);
+    // we compute progress against the SAME step duration the movement uses (the regular step, also
+    // on diagonals), otherwise the frames would not match the character's offset
+    const uint16_t stepDurationMs = getStepDuration(true);
+
+    // The official client does not run one full 8-frame cycle per tile, which made the legs 2-3x
+    // too fast. Measured frame by frame at a 105 ms step, one cycle of an outfit with 8 x 300 ms
+    // walking phases takes ~280 ms, so it spans ~2.65 tiles and keeps running from one step to the
+    // next. The appearance durations are not real time, they are scaled with the step: 300 ms of
+    // them last 2.65 / 8 of a tile. Outfits with other phase counts or durations (4 x 300 ms,
+    // 8 x 100 ms, phases of 0 ms) scale the same way instead of all spanning 2.65 tiles.
+    const double cycleSteps = g_gameConfig.getWalkAnimationCycleSteps();
+    if (footAnimPhases > 2 && cycleSteps > 0 && stepDurationMs > 0 && m_walkingAnimationSpeed == 0) {
+        static constexpr double REFERENCE_CYCLE_MS = 8 * 300.0;
+
+        const ThingType* thingType = m_outfit.hasMount() ? getMountThingType() : getThingType();
+        const Animator* animator = thingType ? thingType->getAnimator() : nullptr;
+
+        double cycleMs = 0;
+        if (animator && animator->getAnimationPhases() == footAnimPhases) {
+            for (const auto& [minMs, maxMs] : animator->getPhaseDurations())
+                cycleMs += (minMs + maxMs) / 2.0;
+        }
+
+        const double cycleTiles = cycleMs > 0
+            ? cycleSteps * cycleMs / REFERENCE_CYCLE_MS
+            : cycleSteps * footAnimPhases / 8.0;
+
+        const ticks_t now = g_clock.millis();
+        const auto elapsedMs = static_cast<double>(std::max<ticks_t>(0, now - m_walkCycleLastTick));
+        m_walkCycleLastTick = now;
+
+        m_walkCycle = static_cast<float>(std::fmod(m_walkCycle + elapsedMs / (stepDurationMs * cycleTiles), 1.0));
+
+        int phase = std::min(static_cast<int>(m_walkCycle * footAnimPhases), footAnimPhases - 1);
+        if (cycleMs > 0) {
+            // pick the phase by its share of the cycle, so 0 ms phases are never shown
+            const double at = m_walkCycle * cycleMs;
+            double end = 0;
+            phase = 0;
+            for (const auto& [minMs, maxMs] : animator->getPhaseDurations()) {
+                end += (minMs + maxMs) / 2.0;
+                if (at < end || phase == footAnimPhases - 1)
+                    break;
+                ++phase;
+            }
+        }
+
+        m_walkAnimationPhase = static_cast<uint8_t>(1 + phase);
+        return;
+    }
+
+    // 2-frame outfits (and walk-animation-cycle-steps 0) run one full cycle per tile
     const float stepProgress = stepDurationMs > 0
         ? m_walkTimer.ticksElapsed() / static_cast<float>(stepDurationMs)
         : -1.f;
@@ -818,10 +868,12 @@ void Creature::nextWalkUpdate()
 
 void Creature::updateWalk()
 {
-    // This used getStepDuration(true), i.e. 32 px covered in the time of a REGULAR step - when walking
-    // diagonally the character crossed the tile too fast, then stood still for the remaining 2/3 of
-    // the step time (hence the infamous diagonal "stutter"). We spread the pixels over the full step time.
-    const float walkTicksPerPixel = getStepDuration(false) / static_cast<float>(g_gameConfig.getSpriteSize());
+    // The 32 px of a tile are covered in the time of a REGULAR step, even on a diagonal. The server
+    // moves the creature at once and charges the 3x diagonal cost as a wait before the next step, so
+    // the extra time is spent standing on the destination tile, not crossing it. Spreading the pixels
+    // over the diagonal duration made diagonals glide at 1/3 speed. LocalPlayer::canWalk still waits
+    // for the full diagonal duration, so the time per tile matches the server.
+    const float walkTicksPerPixel = getStepDuration(true) / static_cast<float>(g_gameConfig.getSpriteSize());
 
     const int totalPixelsWalked = std::min<int>(m_walkTimer.ticksElapsed() / walkTicksPerPixel, g_gameConfig.getSpriteSize());
 
@@ -869,6 +921,7 @@ void Creature::terminateWalk()
     const auto self = static_self_cast<Creature>();
     m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self] {
         self->m_walkAnimationPhase = 0;
+        self->m_walkCycle = 0.f;
         self->m_walkFinishAnimEvent = nullptr;
     }, g_game.getServerBeat());
 }
@@ -962,6 +1015,7 @@ void Creature::setOutfit(const Outfit& outfit, bool fireEvent)
     m_exactSize = 0;
     if (m_walkingAnimationSpeed == 0) {
         m_walkAnimationPhase = 0; // might happen when player is walking and outfit is changed.
+        m_walkCycle = 0.f;
     }
 
     if (m_outfit.isInvalid())
@@ -1141,7 +1195,8 @@ int Creature::getDrawElevation() {
         int elevation = m_walkingTile->getDrawElevation();
 
         if (g_game.getFeature(Otc::GameSmoothWalkElevation)) {
-            const float factor = std::clamp<float>(getWalkTicksElapsed() / static_cast<float>(m_stepCache.getDuration(m_lastStepDirection)), .0f, 1.f);
+            // the tile is crossed in a regular step time, also on a diagonal (see updateWalk)
+            const float factor = std::clamp<float>(getWalkTicksElapsed() / static_cast<float>(m_stepCache.duration), .0f, 1.f);
             elevation = getSmoothedElevation(this, elevation, factor);
         }
 
@@ -1196,14 +1251,9 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
                 : 2);
     }
 
-    auto duration = ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
-
-    if (isCameraFollowing() && isLocalPlayer()) {
-        const auto& localPlayer = static_self_cast<LocalPlayer>();
-        duration += 10 * std::max<int>(1, localPlayer->getPreWalkingSize());
-    }
-
-    return duration;
+    // No extra margin for the local player: it made every step 10-20 ms longer than the server
+    // allows. A step that reaches the server a little early is queued there, not refused.
+    return ignoreDiagonal ? m_stepCache.duration : m_stepCache.getDuration(m_lastStepDirection);
 }
 
 Point Creature::getDisplacement() const

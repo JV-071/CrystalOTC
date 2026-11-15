@@ -70,6 +70,7 @@ public:
     appearances::ANIMATION_LOOP_TYPE getLoopType() const { return m_loopType; }
 
     uint16_t getTotalDuration() const;
+    const std::vector<std::pair<uint16_t, uint16_t>>& getPhaseDurations() const { return m_phaseDurations; }
 
 private:
     int getPingPongPhase();
