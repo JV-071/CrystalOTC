@@ -1089,6 +1089,69 @@ local function applyBountyTalismanRow(talismanId, data, labelWidget, upgradeButt
 	end
 end
 
+-- 15.33 lays the setup bar out like the official RowLayout: help, separator, then the difficulty, Elite
+-- and Preferred List controls centred between the two separators, and the reroll controls on the right.
+local SETUP_1533 = {
+	helpMarginLeft = 25,
+	labelToCombo = 11,
+	comboToIcon = 25,
+	iconToCheck = 6,
+	checkToPreferred = 17,
+	separatorToReroll = 24,
+	rerollToTokens = 15,
+	rightEdge = 10,
+	tokensToLimitIcon = 5
+}
+
+local function anchorWidget(widget, horizontalEdge, target, targetEdge, margin)
+	if not widget then
+		return
+	end
+
+	widget:breakAnchors()
+	widget:addAnchor(AnchorTop, "parent", AnchorTop)
+	widget:addAnchor(horizontalEdge, target, targetEdge)
+	widget:setMarginLeft(horizontalEdge == AnchorLeft and margin or 0)
+	widget:setMarginRight(horizontalEdge == AnchorRight and margin or 0)
+end
+
+-- explicit visibility, the board window may still be hidden; fitsText: the widget resizes to its text, which may not have happened yet right after setText
+local function widgetWidth(widget, fitsText)
+	if not widget or not widget:isExplicitlyVisible() then
+		return 0
+	end
+
+	local width = widget:getWidth()
+
+	if fitsText then
+		width = math.max(width, widget:getTextSize().width)
+	end
+
+	return width
+end
+
+-- the reroll limit warning takes room at the right edge, so the token box moves left while it is shown
+local function layoutRerollRightEdge(rerollBox)
+	if not rerollBox or not TaskBoard:is1533() then
+		return
+	end
+
+	local tokens = rerollBox:getChildById("rerollPanel")
+	local limitIcon = rerollBox:getChildById("rerollLimitIcon")
+
+	if not tokens then
+		return
+	end
+
+	local margin = SETUP_1533.rightEdge
+
+	if limitIcon and limitIcon:isExplicitlyVisible() then
+		margin = margin + limitIcon:getWidth() + SETUP_1533.tokensToLimitIcon
+	end
+
+	tokens:setMarginRight(margin)
+end
+
 local function updateRerollLimit(rerollTokens)
 	BountyTask.rerollTokens = tonumber(rerollTokens) or 0
 
@@ -1104,6 +1167,7 @@ local function updateRerollLimit(rerollTokens)
 
 	if limitIcon then
 		limitIcon:setVisible(limitReached)
+		layoutRerollRightEdge(limitIcon:getParent())
 	end
 
 	local container = panel:recursiveGetChildById("dailyTasks")
@@ -1161,6 +1225,88 @@ end
 -- and added the Elite setting next to the difficulty; one panel serves both, laid out per version.
 local updatingEliteCheck = false
 
+local function layoutSetupBar1533(rerollBox, iconImage)
+	local c = SETUP_1533
+	local help = rerollBox:getChildById("difficultyHelp")
+	local label = rerollBox:getChildById("difficultyLabel")
+	local combo = rerollBox:getChildById("showFilterDifficulty")
+	local eliteIcon = rerollBox:getChildById("eliteIcon")
+	local eliteCheck = rerollBox:getChildById("eliteCheck")
+	local preferred = rerollBox:getChildById("preferredListButton")
+	local separator = rerollBox:getChildById("rerollSeparator")
+	local group = rerollBox:getChildById("centerGroup")
+
+	if help then
+		help:setMarginLeft(c.helpMarginLeft)
+	end
+
+	-- right edge, built from the border inwards
+	anchorWidget(rerollBox:getChildById("rerollLimitIcon"), AnchorRight, "parent", AnchorRight, c.rightEdge)
+	anchorWidget(rerollBox:getChildById("rerollPanel"), AnchorRight, "parent", AnchorRight, c.rightEdge)
+	anchorWidget(rerollBox:getChildById("rerollButton"), AnchorRight, "rerollPanel", AnchorLeft, c.rerollToTokens)
+
+	if separator then
+		separator:breakAnchors()
+		separator:addAnchor(AnchorTop, "parent", AnchorTop)
+		separator:addAnchor(AnchorBottom, "parent", AnchorBottom)
+		separator:addAnchor(AnchorRight, "rerollButton", AnchorLeft)
+		separator:setMarginLeft(0)
+		separator:setMarginRight(c.separatorToReroll)
+	end
+
+	-- centre group: label, combobox, Elite icon, Elite checkbox, Preferred List; centerGroup gets the
+	-- width of the whole row and is centred between the separators, the label starts at its left edge
+	anchorWidget(label, AnchorLeft, "centerGroup", AnchorLeft, 0)
+	anchorWidget(combo, AnchorLeft, "difficultyLabel", AnchorRight, c.labelToCombo)
+
+	local groupWidth = widgetWidth(label, true) + c.labelToCombo + widgetWidth(combo)
+
+	if iconImage then
+		anchorWidget(eliteIcon, AnchorLeft, "showFilterDifficulty", AnchorRight, c.comboToIcon)
+		anchorWidget(eliteCheck, AnchorLeft, "eliteIcon", AnchorRight, c.iconToCheck)
+		groupWidth = groupWidth + c.comboToIcon + widgetWidth(eliteIcon) + c.iconToCheck
+	else
+		anchorWidget(eliteCheck, AnchorLeft, "showFilterDifficulty", AnchorRight, c.comboToIcon)
+		groupWidth = groupWidth + c.comboToIcon
+	end
+
+	anchorWidget(preferred, AnchorLeft, "eliteCheck", AnchorRight, c.checkToPreferred)
+	groupWidth = groupWidth + widgetWidth(eliteCheck) + c.checkToPreferred + widgetWidth(preferred)
+
+	if group then
+		group:setWidth(math.max(1, groupWidth))
+	end
+
+	layoutRerollRightEdge(rerollBox)
+end
+
+-- the 15.30 bar as declared in bounty_task.otui, restored when the client switches back from 15.33
+local function layoutSetupBar1530(rerollBox)
+	local help = rerollBox:getChildById("difficultyHelp")
+	local separator = rerollBox:getChildById("rerollSeparator")
+
+	if help then
+		help:setMarginLeft(20)
+	end
+
+	anchorWidget(rerollBox:getChildById("difficultyLabel"), AnchorLeft, "setupSeparator", AnchorRight, 26)
+	anchorWidget(rerollBox:getChildById("showFilterDifficulty"), AnchorLeft, "difficultyLabel", AnchorRight, 23)
+	anchorWidget(rerollBox:getChildById("preferredListButton"), AnchorLeft, "showFilterDifficulty", AnchorRight, 26)
+
+	if separator then
+		separator:breakAnchors()
+		separator:addAnchor(AnchorTop, "parent", AnchorTop)
+		separator:addAnchor(AnchorBottom, "parent", AnchorBottom)
+		separator:addAnchor(AnchorLeft, "preferredListButton", AnchorRight)
+		separator:setMarginLeft(26)
+		separator:setMarginRight(0)
+	end
+
+	anchorWidget(rerollBox:getChildById("rerollButton"), AnchorLeft, "rerollSeparator", AnchorRight, 26)
+	anchorWidget(rerollBox:getChildById("rerollPanel"), AnchorLeft, "rerollButton", AnchorRight, 16)
+	anchorWidget(rerollBox:getChildById("rerollLimitIcon"), AnchorLeft, "rerollPanel", AnchorRight, 6)
+end
+
 function BountyTask:applyVersionLayout()
 	local rerollBox = TaskBoard.bountyTaskPanel and TaskBoard.bountyTaskPanel:recursiveGetChildById("rerollTasks")
 
@@ -1171,7 +1317,6 @@ function BountyTask:applyVersionLayout()
 	local is1533 = TaskBoard:is1533()
 	local eliteIcon = rerollBox:getChildById("eliteIcon")
 	local eliteCheck = rerollBox:getChildById("eliteCheck")
-	local preferredButton = rerollBox:getChildById("preferredListButton")
 	local claimButton = rerollBox:getChildById("claimButton")
 	local difficultyLabel = rerollBox:getChildById("difficultyLabel")
 	local difficultyHelp = rerollBox:getChildById("difficultyHelp")
@@ -1190,23 +1335,6 @@ function BountyTask:applyVersionLayout()
 	if eliteCheck then
 		eliteCheck:setVisible(is1533)
 		eliteCheck:setTooltip(ELITE_TOOLTIP)
-		eliteCheck:breakAnchors()
-		eliteCheck:addAnchor(AnchorTop, "parent", AnchorTop)
-
-		if iconImage then
-			eliteCheck:addAnchor(AnchorLeft, "eliteIcon", AnchorRight)
-			eliteCheck:setMarginLeft(6)
-		else
-			eliteCheck:addAnchor(AnchorLeft, "showFilterDifficulty", AnchorRight)
-			eliteCheck:setMarginLeft(16)
-		end
-	end
-
-	if preferredButton then
-		preferredButton:breakAnchors()
-		preferredButton:addAnchor(AnchorTop, "parent", AnchorTop)
-		preferredButton:addAnchor(AnchorLeft, is1533 and "eliteCheck" or "showFilterDifficulty", AnchorRight)
-		preferredButton:setMarginLeft(is1533 and 16 or 26)
 	end
 
 	if claimButton then
@@ -1224,6 +1352,12 @@ function BountyTask:applyVersionLayout()
 
 	if difficultyHelp then
 		difficultyHelp:setTooltip(is1533 and DIFFICULTY_HELP_1533 or DIFFICULTY_HELP_1530)
+	end
+
+	if is1533 then
+		layoutSetupBar1533(rerollBox, iconImage)
+	else
+		layoutSetupBar1530(rerollBox)
 	end
 
 	rerollBox:updateLayout()

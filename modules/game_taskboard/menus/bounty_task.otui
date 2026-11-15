@@ -538,6 +538,7 @@ BountyTaskPanel < Panel
       !tooltip: tr('Select one of three Bounty tasks to complete and earn a reward.\n\nTasks are grouped by difficulty:\n\n  Beginner tasks include easy creatures.\n  Adept tasks include easy and medium creatures.\n  Expert tasks include medium and hard creatures.\n  Master tasks include hard and challenging creatures.\n\nYou can change the difficulty at any time, but it only takes effect\n when selecting your next task.\n\nUse the Preferred List to customise which tasks can appear when\n you roll.\n\nTasks can be re-rolled using Reroll Tokens. One token can be\n claimed for free each day. You can store up to 10 Reroll Tokens at\n a time.\n\nThere is a chance for Silver and Gold tasks to appear, which grant\n greater rewards.')
  
     VerticalSeparator
+      id: setupSeparator
       anchors.top: parent.top
       anchors.bottom: parent.bottom
       anchors.left: prev.right
@@ -579,7 +580,7 @@ BountyTaskPanel < Panel
       id: eliteIcon
       anchors.top: parent.top
       anchors.left: showFilterDifficulty.right
-      margin-top: 2
+      margin-top: 1
       margin-left: 10
       size: 28 30
       opacity: 0.4
@@ -611,6 +612,7 @@ BountyTaskPanel < Panel
         image-clip: 0 20 108 20
       
     VerticalSeparator
+      id: rerollSeparator
       anchors.top: parent.top
       anchors.bottom: parent.bottom
       anchors.left: prev.right
@@ -684,6 +686,25 @@ BountyTaskPanel < Panel
 
       $pressed:
         image-clip: 0 20 108 20
+
+    // 15.33: the difficulty, Elite and Preferred List controls sit centred between the two
+    // separators; centerSpan covers that gap and centerGroup (sized from Lua) is centred in it
+    UIWidget
+      id: centerSpan
+      anchors.top: parent.top
+      anchors.left: setupSeparator.right
+      anchors.right: rerollSeparator.left
+      height: 1
+      phantom: true
+      focusable: false
+
+    UIWidget
+      id: centerGroup
+      anchors.top: parent.top
+      anchors.horizontalCenter: centerSpan.horizontalCenter
+      size: 1 1
+      phantom: true
+      focusable: false
 
   /////////////////
   // Tasks Panel //
