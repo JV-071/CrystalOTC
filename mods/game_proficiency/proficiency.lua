@@ -645,7 +645,7 @@ function onProficiencyNotification(itemId, experience, hasHighlight, thingType)
 
 	if not WeaponProficiency.cacheList[itemId]._requestedInfo and g_game and g_game.sendWeaponProficiencyAction then
 		WeaponProficiency.cacheList[itemId]._requestedInfo = true
-		g_game.sendWeaponProficiencyAction(Otc.WEAPON_PROFICIENCY_ITEM_INFO, itemId)
+		g_game.sendWeaponProficiencyAction(0, itemId) -- 0 = WEAPON_PROFICIENCY_ITEM_INFO, Otc is not exposed to Lua
 	end
 
 	local realHighlight = WeaponProficiency:hasUnusedPerk(itemId, thingType)
