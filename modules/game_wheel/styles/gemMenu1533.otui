@@ -132,6 +132,7 @@ GemCell1533 < UIWidget
     anchors.horizontalCenter: parent.horizontalCenter
     margin-top: 10
     virtual: true
+    phantom: true
 
   UIWidget
     id: gemRevelationItem

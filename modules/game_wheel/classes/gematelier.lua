@@ -391,7 +391,6 @@ function GemAtelier.setupGemWidget(widget, data)
 	if WheelVessels.isActive() then
 		-- the gem sprite of its quality and the green check badge of a gem in a vessel
 		widget.gemItem:setItemId(tmpData.id)
-		widget.gemItem:setTooltip(tmpData.name:gsub(" %(x 0%)", ""))
 
 		if GemAtelier.isGemEquipped(data.gemID) then
 			WheelVessels.setSocketedBadge(widget.gemDomainImage)
