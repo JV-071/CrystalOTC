@@ -487,6 +487,8 @@ local function setOfficialTileVisual(button, pressed)
 	button.rewardIcon:setMarginTop(13 + shift)
 	button.rewardIcon:setMarginLeft(13 + shift)
 	button.countText:setMarginBottom(14 - shift)
+	-- the raised button text is 2px wider to the left until it is pressed
+	button.countText:setMarginLeft(collectable and not pressed and -2 or 0)
 	button.premiumBanner:setMarginTop(1 + shift)
 	button.premiumBanner:setMarginLeft(1 + shift)
 	button.ditherpattern:setVisible(mode == REWARD_BUTTON_MODE.COLLECTED or mode == REWARD_BUTTON_MODE.LOCKED)
