@@ -1091,14 +1091,16 @@ end
 
 -- 15.33 lays the setup bar out like the official RowLayout: help, separator, then the difficulty, Elite
 -- and Preferred List controls centred between the two separators, and the reroll controls on the right.
+-- Margins are anchor margins: an edge anchored to a widget's right edge starts on its last pixel, so the
+-- visible gap between two neighbours is one pixel less than the margin.
 local SETUP_1533 = {
 	helpMarginLeft = 25,
 	labelToCombo = 11,
-	comboToIcon = 25,
-	iconToCheck = 6,
-	checkToPreferred = 17,
-	separatorToReroll = 24,
-	rerollToTokens = 15,
+	comboToIcon = 26,
+	iconToCheck = 5,
+	checkToPreferred = 20,
+	separatorToReroll = 26,
+	rerollToTokens = 16,
 	rightEdge = 10,
 	tokensToLimitIcon = 5
 }
