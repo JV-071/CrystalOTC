@@ -666,6 +666,12 @@ local function onTeleport(player, newPos, oldPos)
 	local delay = (offsetX >= 3 or offsetY >= 3 or offsetZ >= 2) and TELEPORT_DELAY or STAIRS_DELAY
 
 	player:lockWalk(delay)
+
+	-- A floor change step is not a prewalk, so no walk animation ends after it and a held walk
+	-- would stand still until the key is pressed again. Continue it once the stairs lock is over.
+	if walkRepeatActive and smartWalkDir then
+		continueWalk(delay)
+	end
 end
 
 local function onWalkFinish(player)
