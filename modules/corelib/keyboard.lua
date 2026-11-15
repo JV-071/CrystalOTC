@@ -60,14 +60,31 @@ local NumpadKeyTokens = {
 	"Num+."
 }
 
+-- isKeyPressed(name) runs for every held walk key on every step, and each lookup scanned all
+-- key names. The name tables do not change at runtime, so the result is cached per name.
+local keyCodeCache = {}
+
 local function getKeyCode(key)
-	local normalized = KeyDescAliases[key:trim():lower()] or key:trim()
+	local cached = keyCodeCache[key]
+
+	if cached ~= nil then
+		return cached or nil
+	end
+
+	local normalized = (KeyDescAliases[key:trim():lower()] or key:trim()):lower()
+	local found
 
 	for keyCode, keyDesc in pairs(KeyCodeDescs) do
-		if keyDesc:lower() == normalized:lower() then
-			return keyCode
+		if keyDesc:lower() == normalized then
+			found = keyCode
+
+			break
 		end
 	end
+
+	keyCodeCache[key] = found or false
+
+	return found
 end
 
 local function splitKeyComboDesc(keyComboDesc)

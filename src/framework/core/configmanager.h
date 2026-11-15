@@ -49,6 +49,9 @@ struct DebugConfig
     // Periodic memory/renderer diagnostics ([gc], [mem], [boot], [vulkan] frame stats).
     // Off by default - enable in config.ini ([debug] memoryLog = 1) when hunting RAM issues.
     bool memoryLog = false;
+    // Loop timing and walk timing ([perf], [hitch], [walk]) for hunting stutters.
+    // Off by default - enable in config.ini ([debug] perfLog = 1) and send the log file.
+    bool perfLog = false;
 };
 
 struct PublicConfig

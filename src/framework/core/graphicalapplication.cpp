@@ -24,6 +24,7 @@
 
 #include "asyncdispatcher.h"
 #include "clock.h"
+#include "configmanager.h"
 #include "eventdispatcher.h"
 #include "garbagecollection.h"
 #include "framework/graphics/drawpoolmanager.h"
@@ -54,6 +55,84 @@
 #endif
 
 GraphicalApplication g_app;
+
+namespace
+{
+    // Opt-in loop timing ([debug] perfLog = 1 in config.ini) for hunting stutters on player machines.
+    // Every thread owns its own instance, so nothing here is shared or locked. With the flag off the
+    // loops never touch it.
+    class LoopTimeLog
+    {
+    public:
+        explicit LoopTimeLog(const char* name) : m_name(name) {}
+
+        // Records one iteration (busy time, without the frame limiter sleep). Returns true when the
+        // iteration is a hitch the caller should describe, at most MAX_HITCH_LINES per window.
+        bool add(const ticks_t micros)
+        {
+            const auto ms = static_cast<size_t>(std::clamp<ticks_t>(micros / 1000, 0, BUCKETS - 1));
+            ++m_histogram[ms];
+            ++m_count;
+            m_maxMicros = std::max(m_maxMicros, micros);
+
+            if (micros < HITCH_MICROS)
+                return false;
+
+            ++m_hitches;
+            return m_hitchLines++ < MAX_HITCH_LINES;
+        }
+
+        void reportIfDue(const ticks_t nowMillis)
+        {
+            if (m_windowStart == 0)
+                m_windowStart = nowMillis;
+
+            if (nowMillis - m_windowStart < WINDOW_MILLIS || m_count == 0)
+                return;
+
+            g_logger.info("[perf] {} loop, last {} s: {} iterations, p50 {} ms, p99 {} ms, max {:.1f} ms, hitches {}",
+                          m_name, (nowMillis - m_windowStart) / 1000, m_count, percentile(50), percentile(99),
+                          m_maxMicros / 1000.0, m_hitches);
+
+            m_histogram.fill(0);
+            m_count = 0;
+            m_hitches = 0;
+            m_hitchLines = 0;
+            m_maxMicros = 0;
+            m_windowStart = nowMillis;
+        }
+
+    private:
+        static constexpr size_t BUCKETS = 256;
+        static constexpr ticks_t HITCH_MICROS = 40 * 1000;
+        static constexpr uint32_t MAX_HITCH_LINES = 10;
+        static constexpr ticks_t WINDOW_MILLIS = 10 * 1000;
+
+        // whole milliseconds, rounded down
+        size_t percentile(const uint32_t pct) const
+        {
+            const uint64_t target = (static_cast<uint64_t>(m_count) * pct + 99) / 100;
+            uint64_t seen = 0;
+            for (size_t i = 0; i < BUCKETS; ++i) {
+                seen += m_histogram[i];
+                if (seen >= target)
+                    return i;
+            }
+            return BUCKETS - 1;
+        }
+
+        const char* m_name;
+        std::array<uint32_t, BUCKETS> m_histogram{};
+        uint32_t m_count{ 0 };
+        uint32_t m_hitches{ 0 };
+        uint32_t m_hitchLines{ 0 };
+        ticks_t m_maxMicros{ 0 };
+        ticks_t m_windowStart{ 0 };
+    };
+
+    // time of the last GarbageCollection::poll, read by the map loop hitch line
+    ticks_t s_lastGcMicros = 0;
+}
 
 void GraphicalApplication::init(std::vector<std::string>& args, ApplicationContext* context)
 {
@@ -220,7 +299,13 @@ void GraphicalApplication::run()
         BS::multi_future<void> tasks;
 
         g_luaThreadId = g_eventThreadId = stdext::getThreadId();
+
+        const bool perfLog = g_configs.getPublicConfig().debug.perfLog;
+        LoopTimeLog loopLog("map");
+
         while (!m_stopping) {
+            const ticks_t loopStart = perfLog ? stdext::micros() : 0;
+
             poll();
 
             if (!g_window.isVisible()) {
@@ -228,9 +313,15 @@ void GraphicalApplication::run()
                 continue;
             }
 
+            const ticks_t pollEnd = perfLog ? stdext::micros() : 0;
+            ticks_t mapEnd = 0;
+            bool uiRendered = false;
+
             const bool canDrawForeground = !g_drawPool.isDrawing(DrawPoolType::FOREGROUND) && m_drawEvents->canDraw(DrawPoolType::FOREGROUND);
 
             if (canDrawMap()) {
+                uiRendered = canDrawForeground;
+
                 if (canDrawForeground) {
                     tasks.emplace_back(g_asyncDispatcher.submit_task([] {
                         AUTO_STAT(STATS_RENDER, "DrawForegroundUI");
@@ -257,11 +348,31 @@ void GraphicalApplication::run()
                     m_drawEvents->draw(DrawPoolType::MAP);
                 }
 
+                if (perfLog)
+                    mapEnd = stdext::micros();
+
                 tasks.wait();
                 tasks.clear();
             } else if (canDrawForeground) {
+                uiRendered = true;
                 AUTO_STAT(STATS_RENDER, "DrawForegroundUI");
                 g_ui.render(DrawPoolType::FOREGROUND);
+            }
+
+            if (perfLog) {
+                const ticks_t loopEnd = stdext::micros();
+
+                if (loopLog.add(loopEnd - loopStart)) {
+                    // "map" covers preload and the map pool, "wait" is the time spent waiting
+                    // for the UI, light and foreground map tasks after the map was done
+                    g_logger.info("[hitch] map loop {:.1f} ms: poll {:.1f} ms (gc {:.1f} ms), map {:.1f} ms, wait {:.1f} ms, ui {}",
+                                  (loopEnd - loopStart) / 1000.0, (pollEnd - loopStart) / 1000.0, s_lastGcMicros / 1000.0,
+                                  mapEnd ? (mapEnd - pollEnd) / 1000.0 : 0.0,
+                                  mapEnd ? (loopEnd - mapEnd) / 1000.0 : 0.0,
+                                  uiRendered ? "yes" : "no");
+                }
+
+                loopLog.reportIfDue(stdext::millis());
             }
 
             m_mapProcessFrameCounter.update();
@@ -273,13 +384,21 @@ void GraphicalApplication::run()
     emscripten_set_main_loop(([] { g_app.mainLoop(); }), 0, 1);
 #else
     m_running = true;
+
+    const bool perfLog = g_configs.getPublicConfig().debug.perfLog;
+    LoopTimeLog renderLoopLog("render");
+
     while (!m_stopping) {
+        const ticks_t loopStart = perfLog ? stdext::micros() : 0;
+
         mainPoll();
 
         if (!g_window.isVisible()) {
             stdext::millisleep(10);
             continue;
         }
+
+        const ticks_t pollEnd = perfLog ? stdext::micros() : 0;
 
 #ifdef WIN32
         // Stage 4: with a working Vulkan batch the draw queue is NOT executed by
@@ -308,6 +427,8 @@ void GraphicalApplication::run()
 #endif
         }
 
+        const ticks_t drawEnd = perfLog ? stdext::micros() : 0;
+
         // update screen pixels
         {
             AUTO_STAT(STATS_RENDER, "SwapBuffers");
@@ -335,6 +456,18 @@ void GraphicalApplication::run()
 #endif
         }
 
+        if (perfLog) {
+            const ticks_t loopEnd = stdext::micros();
+
+            if (renderLoopLog.add(loopEnd - loopStart)) {
+                g_logger.info("[hitch] render loop {:.1f} ms: poll {:.1f} ms, draw {:.1f} ms, present {:.1f} ms",
+                              (loopEnd - loopStart) / 1000.0, (pollEnd - loopStart) / 1000.0,
+                              (drawEnd - pollEnd) / 1000.0, (loopEnd - drawEnd) / 1000.0);
+            }
+
+            renderLoopLog.reportIfDue(stdext::millis());
+        }
+
         if (m_graphicFrameCounter.update()) {
             g_dispatcher.addEvent([this, fps = FPS()] {
                 g_lua.callGlobalField("g_app", "onFps", fps);
@@ -352,7 +485,12 @@ void GraphicalApplication::run()
 
 void GraphicalApplication::poll()
 {
-    GarbageCollection::poll();
+    if (g_configs.getPublicConfig().debug.perfLog) {
+        const ticks_t gcStart = stdext::micros();
+        GarbageCollection::poll();
+        s_lastGcMicros = stdext::micros() - gcStart;
+    } else
+        GarbageCollection::poll();
 
     Application::poll();
 

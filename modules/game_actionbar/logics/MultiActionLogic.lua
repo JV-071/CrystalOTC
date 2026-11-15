@@ -879,11 +879,7 @@ local function clearSlotDisplayFields(slot)
 	end
 end
 
-local function applyActionDataToSlot(slot, data)
-	if not data or table.empty(data) then
-		return false
-	end
-
+local function loadActionDataIntoSlot(slot, data)
 	if clearSlotProgressWidgets then
 		clearSlotProgressWidgets(slot)
 	end
@@ -926,6 +922,29 @@ local function applyActionDataToSlot(slot, data)
 
 	if applied and refreshMultiActionSlotCooldownDisplay then
 		refreshMultiActionSlotCooldownDisplay(slot, false)
+	end
+
+	return applied
+end
+
+-- Rotating the active sub-action (cast, cooldown end, cooldown tick) only changes what the slot
+-- shows. The slot hotkey stays the same and its handler reads the slot when pressed, so the full
+-- setupHotkeys() that loadSpell/loadText/loadObject would run (rebinding every slot, the WASD
+-- walk keys and the turn keys) is skipped here. The hotkey label and slot.hotkey are not touched
+-- by the load, and loadSpell/loadText/loadObject refresh the tooltip themselves.
+local function applyActionDataToSlot(slot, data)
+	if not data or table.empty(data) then
+		return false
+	end
+
+	beginActionBarBatch()
+
+	local ok, applied = pcall(loadActionDataIntoSlot, slot, data)
+
+	endActionBarBatch()
+
+	if not ok then
+		error(applied, 0)
 	end
 
 	return applied

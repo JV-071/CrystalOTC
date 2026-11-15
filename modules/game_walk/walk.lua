@@ -540,6 +540,23 @@ function continueWalk(delay)
 	end, delay or 0)
 end
 
+-- A key pressed or released during a running held walk steps at once without restarting the
+-- repeat delay.
+local function walkInRunningRepeat(dir)
+	-- The step replaces a pending retry. Otherwise both could send a step: a floor change step
+	-- does not animate, so the retry would not see isWalking() and would send a second one.
+	if walkRepeatRetryEvent then
+		removeEvent(walkRepeatRetryEvent)
+
+		walkRepeatRetryEvent = nil
+	end
+
+	-- a refused step (walk lock after stairs) falls back to the retry, nothing else may be pending
+	if not walk(dir) then
+		continueWalk(10)
+	end
+end
+
 local function addWalkEvent(dir, delay)
 	if walkEvent and pendingWalkEventDir == dir and (delay == nil or delay <= 0) then
 		return
@@ -658,6 +675,20 @@ local function onWalkFinish(player)
 		return
 	end
 
+	-- The first step ended before the keyboard delay ran out (step time below hotkeyDelay, i.e. a
+	-- fast character). With the key still held the repeat starts now, otherwise the character
+	-- stood still for the rest of the delay after the first step and after every turn.
+	if walkRepeatEvent and smartWalkDir and canContinueHeldWalk() then
+		removeEvent(walkRepeatEvent)
+
+		walkRepeatEvent = nil
+		walkRepeatActive = true
+
+		continueWalk(0)
+
+		return
+	end
+
 	if nextWalkDir and canContinueHeldWalk() then
 		if not hasPhysicallyPressedWalkKey() then
 			nextWalkDir = nil
@@ -671,6 +702,19 @@ local function onWalkFinish(player)
 			addWalkEvent(nextWalkDir, 0)
 		end
 	end
+end
+
+-- The server confirmed a prewalk after the step animation had already ended. A held walk that
+-- was waiting for that confirmation (two unconfirmed steps, high ping) sits on a 10 ms retry,
+-- so the retry is replaced and the walk continues right away.
+local function onWalkConfirm(player)
+	if walkRepeatRetryEvent then
+		removeEvent(walkRepeatRetryEvent)
+
+		walkRepeatRetryEvent = nil
+	end
+
+	onWalkFinish(player)
 end
 
 local function onAutoWalk(player)
@@ -702,6 +746,7 @@ function WalkController:onGameStart()
 	self:registerEvents(LocalPlayer, {
 		onCancelWalk = onCancelWalk,
 		onWalkFinish = onWalkFinish,
+		onWalkConfirm = onWalkConfirm,
 		onAutoWalk = onAutoWalk
 	})
 
@@ -728,6 +773,14 @@ end
 
 function bindWalkKey(key, dir)
 	local gameRootPanel = modules.game_interface.getRootPanel()
+	local current = walkKeyHandlers[key]
+
+	-- The console resyncs the WASD and numpad walk keys every time the action bar rebinds its
+	-- hotkeys. Rebinding a key to the same direction on the same panel would abort a walk held on
+	-- that key, so an identical binding is kept as it is.
+	if current and current.panel == gameRootPanel and walkKeyDirs[key] == dir then
+		return
+	end
 
 	unbindWalkKey(key)
 
@@ -750,8 +803,14 @@ function bindWalkKey(key, dir)
 			activeWalkKeys[key] = true
 
 			changeWalkDir(dir)
-			restartWalkRepeatDelay()
-			walk(smartWalkDir or dir)
+
+			-- a second key pressed during a running walk (diagonal, turn) keeps the repeat going
+			if walkRepeatActive then
+				walkInRunningRepeat(smartWalkDir or dir)
+			else
+				restartWalkRepeatDelay()
+				walk(smartWalkDir or dir)
+			end
 		end,
 		up = function()
 			if not activeWalkKeys[key] then
@@ -778,12 +837,19 @@ function bindWalkKey(key, dir)
 				stopWalkRepeat()
 			elseif smartWalkDir ~= previousDir then
 				cancelWalkEvent()
-				restartWalkRepeatDelay()
-				walk(smartWalkDir)
+
+				-- releasing one of two held keys keeps a running walk going in the remaining direction
+				if walkRepeatActive then
+					walkInRunningRepeat(smartWalkDir)
+				else
+					restartWalkRepeatDelay()
+					walk(smartWalkDir)
+				end
 			end
 		end
 	}
 
+	handlers.panel = gameRootPanel
 	walkKeyHandlers[key] = handlers
 
 	g_keyboard.bindKeyDown(key, handlers.down, gameRootPanel, true)

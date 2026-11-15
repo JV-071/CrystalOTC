@@ -28,7 +28,127 @@
 #include "map.h"
 #include "tile.h"
 #include "framework/core/clock.h"
+#include "framework/core/configmanager.h"
 #include "framework/core/eventdispatcher.h"
+
+namespace
+{
+    // Opt-in walk timing ([debug] perfLog = 1 in config.ini) for hunting walk stutters on player
+    // machines. Only the local player goes through here and everything runs on the map thread,
+    // so a plain static is enough. With the flag off none of this is touched.
+    struct WalkTimeLog
+    {
+        static constexpr ticks_t WINDOW_MILLIS = 10 * 1000;
+        // a pause between two steps shorter than this is not a stall
+        static constexpr ticks_t STALL_MILLIS = 20;
+        // a pause longer than this is the player stopping, not a stall
+        static constexpr ticks_t CONTINUOUS_MILLIS = 500;
+        static constexpr uint32_t MAX_LINES = 10;
+
+        std::deque<std::pair<Position, ticks_t>> sent;
+        ticks_t lastStepEnd{ 0 };
+        ticks_t windowStart{ 0 };
+        uint32_t steps{ 0 };
+        uint32_t serverSteps{ 0 };
+        uint32_t stalls{ 0 };
+        uint32_t confirms{ 0 };
+        uint32_t lateConfirms{ 0 };
+        uint32_t cancels{ 0 };
+        uint32_t timeouts{ 0 };
+        uint32_t lines{ 0 };
+        // set while cancelWalk runs the prewalk timeout handler by hand
+        bool cancelling{ false };
+        ticks_t maxStall{ 0 };
+        ticks_t rttSum{ 0 };
+        ticks_t maxRtt{ 0 };
+
+        static bool enabled() { return g_configs.getPublicConfig().debug.perfLog; }
+
+        bool canLogLine() { return lines++ < MAX_LINES; }
+
+        void stepStarted(LocalPlayer& player, const bool server, const size_t unconfirmed)
+        {
+            const ticks_t now = stdext::millis();
+
+            if (lastStepEnd != 0) {
+                const ticks_t gap = now - lastStepEnd;
+                if (gap >= STALL_MILLIS && gap < CONTINUOUS_MILLIS) {
+                    ++stalls;
+                    maxStall = std::max(maxStall, gap);
+                    if (canLogLine()) {
+                        g_logger.info("[walk] stall {} ms before {} step, {} unconfirmed, step {} ms, ping {} ms",
+                                      gap, server ? "server" : "client", unconfirmed, player.getStepDuration(), g_game.getPing());
+                    }
+                }
+            }
+
+            lastStepEnd = 0;
+            ++(server ? serverSteps : steps);
+            reportIfDue(player, now);
+        }
+
+        void preWalkSent(const Position& pos)
+        {
+            sent.emplace_back(pos, stdext::millis());
+            if (sent.size() > 8)
+                sent.pop_front();
+        }
+
+        void preWalkConfirmed(LocalPlayer& player, const Position& pos, const bool animationDone)
+        {
+            const ticks_t now = stdext::millis();
+
+            while (!sent.empty() && sent.front().first != pos)
+                sent.pop_front();
+
+            if (!sent.empty()) {
+                const ticks_t rtt = now - sent.front().second;
+                sent.pop_front();
+                ++confirms;
+                rttSum += rtt;
+                maxRtt = std::max(maxRtt, rtt);
+            }
+
+            // the step animation finished before the server confirmed the step
+            if (animationDone)
+                ++lateConfirms;
+
+            reportIfDue(player, now);
+        }
+
+        void dropped(const bool timeout, const size_t unconfirmed)
+        {
+            sent.clear();
+            ++(timeout ? timeouts : cancels);
+            if (canLogLine()) {
+                g_logger.info("[walk] {}, {} unconfirmed steps", timeout ? "prewalk timeout" : "step cancelled",
+                              unconfirmed);
+            }
+        }
+
+        void reportIfDue(LocalPlayer& player, const ticks_t now)
+        {
+            if (windowStart == 0)
+                windowStart = now;
+
+            if (now - windowStart < WINDOW_MILLIS)
+                return;
+
+            if (steps + serverSteps > 0) {
+                g_logger.info("[walk] last {} s: steps {} (server {}), stalls {} (max {} ms), confirms {} (rtt avg {} ms, max {} ms, after animation end {}), cancels {}, timeouts {}, step {} ms, ping {} ms",
+                              (now - windowStart) / 1000, steps, serverSteps, stalls, maxStall, confirms,
+                              confirms ? rttSum / confirms : 0, maxRtt, lateConfirms, cancels, timeouts,
+                              player.getStepDuration(), g_game.getPing());
+            }
+
+            steps = serverSteps = stalls = confirms = lateConfirms = cancels = timeouts = lines = 0;
+            maxStall = rttSum = maxRtt = 0;
+            windowStart = now;
+        }
+    };
+
+    WalkTimeLog s_walkLog;
+}
 
 void LocalPlayer::lockWalk(const uint16_t millis)
 {
@@ -67,13 +187,25 @@ void LocalPlayer::walk(const Position& oldPos, const Position& newPos)
     m_autoWalkRetries = 0;
 
     if (isPreWalking() && newPos == m_preWalks.front()) {
+        if (WalkTimeLog::enabled())
+            s_walkLog.preWalkConfirmed(*this, newPos, !isWalking());
+
         m_preWalks.pop_front();
+
+        // The step animation already ended, so a held walk may be waiting for this confirmation
+        // (canWalk allows only a limited number of unconfirmed steps). Let it continue now
+        // instead of on its next retry.
+        if (!isWalking())
+            callLuaField("onWalkConfirm");
         return;
     }
 
     cancelAdjustInvalidPosEvent();
     m_preWalks.clear();
     m_serverWalk = true;
+
+    if (WalkTimeLog::enabled())
+        s_walkLog.stepStarted(*this, true, 0);
 
     Creature::walk(oldPos, newPos);
 }
@@ -82,8 +214,15 @@ void LocalPlayer::preWalk(Otc::Direction direction)
 {
     m_lastMapDuration = -1;
 
+    if (WalkTimeLog::enabled())
+        s_walkLog.stepStarted(*this, false, m_preWalks.size());
+
     const auto& oldPos = getPosition();
     Creature::walk(oldPos, m_preWalks.emplace_back(oldPos.translatedToDirection(direction)));
+
+    if (WalkTimeLog::enabled())
+        s_walkLog.preWalkSent(m_preWalks.back());
+
     Creature::onPositionChange(getLastStepToPosition(), getLastStepFromPosition());
     registerAdjustInvalidPosEvent();
 }
@@ -106,6 +245,9 @@ void LocalPlayer::onWalking() {
 void LocalPlayer::registerAdjustInvalidPosEvent() {
     cancelAdjustInvalidPosEvent();
     m_adjustInvalidPosEvent = g_dispatcher.scheduleEvent([this, self = asLocalPlayer()] {
+        if (WalkTimeLog::enabled() && !s_walkLog.cancelling)
+            s_walkLog.dropped(true, m_preWalks.size());
+
         m_preWalks.clear();
         g_game.resetMapUpdatedAt();
         m_adjustInvalidPosEvent = nullptr;
@@ -151,8 +293,13 @@ void LocalPlayer::cancelWalk(const Otc::Direction direction)
 
     g_map.notificateCameraMove(m_walkOffset);
 
+    if (WalkTimeLog::enabled())
+        s_walkLog.dropped(false, m_preWalks.size());
+
     if (m_adjustInvalidPosEvent) {
+        s_walkLog.cancelling = true;
         m_adjustInvalidPosEvent->execute();
+        s_walkLog.cancelling = false;
     }
 
     lockWalk();
@@ -234,6 +381,10 @@ void LocalPlayer::terminateWalk()
 {
     Creature::terminateWalk();
     m_serverWalk = false;
+
+    if (WalkTimeLog::enabled())
+        s_walkLog.lastStepEnd = stdext::millis();
+
     callLuaField("onWalkFinish");
 }
 

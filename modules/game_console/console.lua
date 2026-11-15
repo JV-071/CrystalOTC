@@ -666,8 +666,29 @@ function syncMovingKeys()
 		return
 	end
 
-	unbindMovingKeys()
-	bindMovingKeys()
+	-- Runs on every action bar setupHotkeys(). Unbinding all walk keys first aborted a walk held on
+	-- W/A/S/D or the numpad, so only keys taken by a hotkey are unbound and the rest are rebound in
+	-- place (bindWalkKey keeps an identical binding).
+	local gameWalk = modules.game_walk
+
+	if not gameWalk.getWasdMovementKeyDirs then
+		unbindMovingKeys()
+		bindMovingKeys()
+
+		return
+	end
+
+	for _, keyDir in ipairs(gameWalk.getWasdMovementKeyDirs()) do
+		if gameWalk.isMovementKeyBlockedByHotkey and gameWalk.isMovementKeyBlockedByHotkey(keyDir[1]) then
+			gameWalk.unbindWalkKey(keyDir[1])
+		else
+			gameWalk.bindWalkKey(keyDir[1], keyDir[2])
+		end
+	end
+
+	if gameWalk.syncWasdTurnKeyLayout then
+		gameWalk.syncWasdTurnKeyLayout(true)
+	end
 end
 
 local function getNpcModalChatProxy()

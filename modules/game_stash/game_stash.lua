@@ -714,13 +714,20 @@ end
 
 function onPositionChange(creature, newPos, oldPos)
 	if creature == g_game.getLocalPlayer() then
+		-- Runs on every step. Focus goes back to the game panel only when the stash was actually
+		-- open (or waiting to come back), so walking does not pull focus out of the chat input.
+		local wasOpen = stashOverlayReturn or stashWindow and stashWindow:isVisible()
+
 		stashOverlayReturn = false
 
 		clearStashOverlayHooks()
 		g_modalManager.hide(stashWindow)
 		stashWindow:hide()
 		resetSelectAmount()
-		releaseStashWindowFocus()
+
+		if wasOpen then
+			releaseStashWindowFocus()
+		end
 	end
 end
 
