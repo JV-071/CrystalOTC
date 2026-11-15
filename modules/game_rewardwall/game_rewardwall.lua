@@ -64,6 +64,41 @@ end
 local function imageExists(path)
 	return g_resources.fileExists(path .. ".png")
 end
+
+-- official 15.33 graphics copied by the owner into data/images/1533/ (git ignored, see
+-- install_ui_graphics.py); the names are the original ones from the client resources
+local OFFICIAL_1533_ROOT = "/images/1533/images/"
+
+local function official1533(name, fallback)
+	local path = OFFICIAL_1533_ROOT .. name
+
+	if imageExists(path) then
+		return path
+	end
+
+	return fallback
+end
+
+local UI_CLASSIC = "game_rewardwall"
+local UI_1533 = "game_rewardwall_1533"
+
+-- the 15.33 window (game_rewardwall_1533.otui) has no resting area bonus icons
+local function usesNewLayout()
+	local ui = rewardWallController.ui
+
+	return ui ~= nil and ui.restingAreaPanel ~= nil and ui.restingAreaPanel.bonusIcons == nil
+end
+
+local TEXT_1533 = {
+	premiumActive = "Great! You benefit from the maximum number of rewards thanks to your Premium status.",
+	premiumMissing = "With a Premium account, you would receive even more rewards.",
+	noStreakBonus = "You currently have no Reward Streak Bonus.",
+	streakBonus = "Your reward streak currently grants you a %d%% chance to gain double weapon proficiency XP.",
+	streakHelp = "Claim your daily reward once between two regular server saves to keep your streak rising. Your streak grants a chance of up to %d%% to gain double weapon proficiency XP.",
+	hurry = "Hurry! Claim your daily reward at latest in %s (before the next regular server save) to raise your reward streak by one.",
+	claimed = "Congratulations! You claimed your daily reward in time. Come back after the next regular server save for more rewards.",
+	jokers = "Daily Reward Jokers help you to keep your reward streak. If there is a day on which you're unable to claim your daily reward, you can use a joker to continue your streak. The more jokers you have, the more days you can cover.\nEvery character will receive a Daily Reward Joker on the first day of each month.\nTo be on the safe side, remember to collect your reward on a daily basis."
+}
 local STATUS = {
 	LOCKED = 3,
 	ACTIVE = 2,
@@ -128,6 +163,17 @@ local function claimInstantDailyReward()
 end
 
 local function premiumStatusWindwos(isPremium)
+	if usesNewLayout() then
+		local premiumStatus = rewardWallController.ui.premiumStatus
+
+		premiumStatus.premiumMessage:setText(isPremium and TEXT_1533.premiumActive or TEXT_1533.premiumMissing)
+		premiumStatus.premiumButton:setOn(not isPremium)
+		rewardWallController.ui.infoPanel.free:setColor(isPremium and "#909090" or "#FFFFFF")
+		rewardWallController.ui.infoPanel.premium:setColor(isPremium and "#FFFFFF" or "#909090")
+
+		return
+	end
+
 	rewardWallController.ui.premiumStatus.premiumMessage:setText(isPremium and "Great! You benefit from the best possible rewards and bonuses due to your premium status." or "With a Premium account, you would benefit from even better rewards and bonuses.")
 	rewardWallController.ui.premiumStatus.premiumButton:setOn(not isPremium)
 	rewardWallController.ui.premiumStatus.premiumMessage:setMarginTop(-5)
@@ -385,15 +431,14 @@ local function getBonusStrings(bonuses)
 end
 
 local function visibleHistory(bool)
-	for i, widget in ipairs(rewardWallController.ui:getChildren()) do
-		if widget:getId() == "historyPanel" then
-			widget:setVisible(bool)
-		else
-			widget:setVisible(not bool)
-		end
+	-- the footer stays, every other part of the window makes room for the history
+	for _, widget in ipairs(rewardWallController.ui:getChildren()) do
+		local id = widget:getId()
 
-		if i == 5 then
-			break
+		if id == "historyPanel" then
+			widget:setVisible(bool)
+		elseif id ~= "footerPanel" then
+			widget:setVisible(not bool)
 		end
 	end
 end
@@ -417,6 +462,36 @@ local REWARD_BUTTON_MODE = {
 	COLLECTED = 4
 }
 local pendingRewardButton
+local TILE_BUTTON_UP = "/images/ui/button-grey-up"
+local TILE_BUTTON_DOWN = "/images/ui/button-grey-down"
+
+-- 15.33 tile: parchment backdrop in a sunken frame, the claimable day is a raised button and
+-- every day except the current one is dithered (RewardWallDialog.qml)
+local function setOfficialTileVisual(button, pressed)
+	local mode = button.rewardVisualMode
+	local collectable = mode == REWARD_BUTTON_MODE.COLLECTABLE
+
+	if collectable then
+		button:setImageSource(pressed and TILE_BUTTON_DOWN or TILE_BUTTON_UP)
+		button:setImageBorder(3)
+	else
+		button:setImageSource(button.officialFrame)
+		button:setImageBorder(1)
+	end
+
+	button:setImageClip("0 0 0 0")
+
+	local shift = pressed and 1 or 0
+
+	button.rewardIcon:setMarginTop(13 + shift)
+	button.rewardIcon:setMarginLeft(13 + shift)
+	button.countText:setMarginBottom(14 - shift)
+	-- the raised button text is 2px wider to the left until it is pressed
+	button.countText:setMarginLeft(collectable and not pressed and -2 or 0)
+	button.premiumBanner:setMarginTop(1 + shift)
+	button.premiumBanner:setMarginLeft(1 + shift)
+	button.ditherpattern:setVisible(mode == REWARD_BUTTON_MODE.COLLECTED or mode == REWARD_BUTTON_MODE.LOCKED)
+end
 
 local function setRewardDayButtonState(button, mode)
 	if not button then
@@ -424,6 +499,12 @@ local function setRewardDayButtonState(button, mode)
 	end
 
 	button.rewardVisualMode = mode
+
+	if button.officialArt then
+		setOfficialTileVisual(button, false)
+
+		return
+	end
 
 	local dither = button.ditherpattern
 
@@ -456,6 +537,12 @@ local function restoreRewardButtonVisual(button)
 		return
 	end
 
+	if button.officialArt then
+		setOfficialTileVisual(button, false)
+
+		return
+	end
+
 	button:setImageSource(REWARD_CONTAINER_ACTIVE)
 	button:setImageClip("0 0 66 66")
 end
@@ -479,7 +566,11 @@ local function wireRewardButtonClick(button)
 
 		pendingRewardButton = widget
 
-		widget:setImageClip("66 0 66 66")
+		if widget.officialArt then
+			setOfficialTileVisual(widget, true)
+		else
+			widget:setImageClip("66 0 66 66")
+		end
 
 		return true
 	end
@@ -562,6 +653,41 @@ local function updateRewardGoldCollectableOverlay(overlay)
 	end
 end
 
+local function setupClaimButton(button, slot, rewardButton)
+	if not button then
+		return
+	end
+
+	button:setPhantom(false)
+
+	function button.onClick()
+		if rewardButton.rewardVisualMode == REWARD_BUTTON_MODE.COLLECTABLE and not claimPending then
+			onClickPickReward(rewardButton)
+		end
+	end
+
+	-- the slot holds the hover text, the button on top of it would swallow the hover
+	function button.onHoverChange(widget, hovered)
+		if slot.onHoverChange then
+			slot:onHoverChange(hovered)
+		end
+	end
+end
+
+local function updateLoopArrow(dayStreakDay)
+	local arrowLoop = rewardWallController.ui.dailyRewardsPanel.arrowLoop
+
+	if not arrowLoop or not usesNewLayout() then
+		return
+	end
+
+	-- RewardWallDialog.qml: active once a cycle is complete and the first day is next again
+	local active = lastRewardStreak ~= 0 and dayStreakDay == 0
+	local name = active and "icon-rewardarrow-loop-active" or "icon-rewardarrow-loop-inactive"
+
+	arrowLoop:setImageSource(official1533("dailyreward/" .. name, "/game_rewardwall/images/" .. name))
+end
+
 local function getRestingAreaTimeLeftFrame(widget)
 	if not widget then
 		return nil
@@ -611,6 +737,38 @@ local function updateRestingAreaTimeLeft(notCollected, timeLeft)
 	end
 end
 
+-- the info icon next to the timer explains the streak state (rewardStreakStateInfoText)
+local lastTimerHelpState
+
+local function updateTimerHelp(canClaim, timeLeft)
+	local ui = rewardWallController.ui
+
+	if not usesNewLayout() or not ui.restingAreaPanel.restingAreaInfo.timeLeftHelp then
+		return
+	end
+
+	if canClaim ~= nil then
+		lastTimerHelpState = {
+			canClaim = canClaim,
+			timeLeft = timeLeft,
+			startTime = os.time()
+		}
+	end
+
+	local state = lastTimerHelpState or {}
+	local text
+
+	if state.canClaim then
+		local remaining = resolveRemainingSeconds(state.timeLeft, os.time() - (state.startTime or os.time()))
+
+		text = string.format(TEXT_1533.hurry, formatCountdownHHMM(remaining))
+	else
+		text = TEXT_1533.claimed
+	end
+
+	ui.restingAreaPanel.restingAreaInfo.timeLeftHelp:setTooltip(text)
+end
+
 local function initRewardGoldSlots()
 	local panel = rewardWallController.ui and rewardWallController.ui.dailyRewardsPanel
 
@@ -647,13 +805,20 @@ local function updateDailyRewards(dayStreakDay, wasDailyRewardTaken, nextRewardT
 		local rewardArrow = dailyRewardsPanel:getChildById("arrow" .. i)
 
 		if rewardArrow then
-			if i < currentIndex then
+			local active = i < currentIndex
+
+			if rewardArrow.officialActive then
+				rewardArrow:setImageSource(active and rewardArrow.officialActive or rewardArrow.officialInactive)
+				rewardArrow:setImageClip("0 0 0 0")
+			elseif active then
 				rewardArrow:setImageClip(REWARD_ARROW_CLIPS.CURRENT_LEFT)
 			else
 				rewardArrow:setImageClip(REWARD_ARROW_CLIPS.DEFAULT)
 			end
 		end
 	end
+
+	updateLoopArrow(dayStreakDay)
 
 	for i = 1, 7 do
 		local rewardWidget = dailyRewardsPanel:getChildById("reward" .. i)
@@ -676,7 +841,13 @@ local function updateDailyRewards(dayStreakDay, wasDailyRewardTaken, nextRewardT
 		elseif i == currentIndex then
 			setRewardGoldSlotState(goldSlot)
 
-			if canClaim then
+			if canClaim and usesNewLayout() then
+				-- 15.33 shows a Claim button under the claimable day
+				local overlay = setupRewardGoldOverlay(goldSlot, "RewardGoldClaim")
+
+				setupClaimButton(overlay, goldSlot, rewardButton)
+				setRewardDayButtonState(rewardButton, REWARD_BUTTON_MODE.COLLECTABLE)
+			elseif canClaim then
 				local overlay = setupRewardGoldOverlay(goldSlot, "RewardGoldCollectable")
 
 				updateRewardGoldCollectableOverlay(overlay)
@@ -699,6 +870,7 @@ local function updateDailyRewards(dayStreakDay, wasDailyRewardTaken, nextRewardT
 	end
 
 	updateRestingAreaTimeLeft(canClaim, timeLeft)
+	updateTimerHelp(canClaim, timeLeft)
 end
 
 local function getDayStreakIcon(dayStreakLevel)
@@ -777,6 +949,52 @@ local function getRewardIcon1533(day)
 	return "game_rewardwall/images/icon-reward-fixeditems"
 end
 
+-- RewardWallDialog.qml dailyRewardIcon: one 30x30 icon per kind of the first entry
+local OFFICIAL_REWARD_ICONS = {
+	[RewardEntryKind.ITEM] = "dailyreward/icon-reward-temple-teleport",
+	[RewardEntryKind.PREY_WILDCARDS] = "dailyreward/icon-reward-wildcard",
+	[RewardEntryKind.XP_BOOST] = "dailyreward/icon-reward-xp-boost",
+	[RewardEntryKind.COSMETIC_TOKENS] = "dailyreward/icon-reward-cosmetic"
+}
+
+-- dailyRewardNumbersText: the amount of the first entry, the percent for an XP boost
+local function getRewardNumbersText(day)
+	local first = day and day.bundleItems and day.bundleItems[1]
+
+	if not first then
+		return ""
+	end
+
+	if first.bundleType == RewardEntryKind.XP_BOOST then
+		return string.format("%d%%", tonumber(first.value) or 0)
+	end
+
+	return string.format("x%d", tonumber(first.count) or 0)
+end
+
+local function fillOfficialTile(button, day, premium)
+	local first = day and day.bundleItems and day.bundleItems[1]
+	local iconName = first and OFFICIAL_REWARD_ICONS[first.bundleType]
+	local iconPath = iconName and official1533(iconName)
+
+	button:setIcon("")
+
+	if iconPath then
+		button.rewardIcon:setImageSource(iconPath)
+		button.rewardIcon:setVisible(true)
+	else
+		-- no official icon for this kind (reroll tokens): show the repo artwork scaled down
+		local fallback = getRewardIcon1533(day)
+
+		button.rewardIcon:setImageSource(fallback:sub(1, 1) == "/" and fallback or "/" .. fallback)
+		button.rewardIcon:setVisible(first ~= nil)
+	end
+
+	button.countText:setText(getRewardNumbersText(day))
+	button.countText:setVisible(true)
+	button.premiumBanner:setVisible(premium and button.premiumBanner:getImageSource() ~= "")
+end
+
 local function checkRewards(data)
 	local premium = g_game.getLocalPlayer():isPremium()
 	local rewardType = premium and data.premiumRewards or data.freeRewards
@@ -807,7 +1025,11 @@ local function checkRewards(data)
 
 		if is1533() then
 			-- 15.33 has no pick items rewards: every day is a fixed list that is claimed with one click
-			iconWidget:setIcon(getRewardIcon1533(reward))
+			if rewardButton.officialArt then
+				fillOfficialTile(rewardButton, reward, premium)
+			else
+				iconWidget:setIcon(getRewardIcon1533(reward))
+			end
 
 			rewardButton.bundleType = bundleType.FIXED
 			rewardButton.rewardEntries = {
@@ -854,6 +1076,12 @@ local function onDailyRewardCollectionState(state)
 		[DailyRewardStatus.DAILY_REWARD_NOTCOLLECTED] = "You did not claim your daily reward in time. If you don't claim your reward now, your [color=#D33C3C]streak will be reset.[/color]",
 		[DailyRewardStatus.DAILY_REWARD_NOTAVAILABLE] = "idk"
 	}
+
+	if usesNewLayout() then
+		-- the server sends this after every open and only tells whether today's reward was
+		-- taken, not that a claim was missed, so the official window would show no warning
+		return
+	end
 
 	rewardWallController.ui.restingAreaPanel.streakWarning:parseColoredText(text[state], "#c0c0c0")
 end
@@ -904,8 +1132,23 @@ local function updateStreakBonusText()
 	end
 
 	local panel = ui.restingAreaPanel.streakBonusPanel
+	local percent = getStreakBonusPercent(lastRewardStreak)
 
-	panel.streakBonusText:setText(string.format("Your reward streak currently grants you a %d%% chance to gain double weapon proficiency XP.", getStreakBonusPercent(lastRewardStreak)))
+	if not usesNewLayout() then
+		panel.streakBonusText:setText(string.format(TEXT_1533.streakBonus, percent))
+
+		return
+	end
+
+	panel.streakBonusText:setText(percent > 0 and string.format(TEXT_1533.streakBonus, percent) or TEXT_1533.noStreakBonus)
+
+	local maxPercent = 0
+
+	for _, value in ipairs(streakBonuses) do
+		maxPercent = math.max(maxPercent, tonumber(value) or 0)
+	end
+
+	panel.streakBonusHelp:setTooltip(string.format(TEXT_1533.streakHelp, maxPercent > 0 and maxPercent or 7))
 end
 
 local function setFooterBalance(widget, value)
@@ -945,6 +1188,13 @@ local function applyVersionLayout()
 	local ui = rewardWallController.ui
 
 	if not ui then
+		return
+	end
+
+	if usesNewLayout() then
+		-- game_rewardwall_1533.otui already has the 15.33 parts in place
+		ui.restingAreaPanel.restingAreaInfo.jokerHelp:setTooltip(TEXT_1533.jokers)
+
 		return
 	end
 
@@ -1067,7 +1317,9 @@ local function onOpenRewardWall(bonusShrines, nextRewardTime, dayStreakDay, wasD
 
 	rewardWallController.ui.restingAreaPanel.restingAreaInfo.restingAreaGold.text:setText(tokens or 0)
 	rewardWallController.ui.footerPanel.footerGold1.text:setText(tokens or 0)
-	rewardWallController.ui.restingAreaPanel.restingAreaInfo.rewardStreakIcon:setImageSource("/game_rewardwall/images/" .. getDayStreakIcon(dayStreakLevel))
+	local streakIcon = getDayStreakIcon(dayStreakLevel)
+
+	rewardWallController.ui.restingAreaPanel.restingAreaInfo.rewardStreakIcon:setImageSource(usesNewLayout() and official1533("dailyreward/" .. streakIcon, "/game_rewardwall/images/" .. streakIcon) or "/game_rewardwall/images/" .. streakIcon)
 	rewardWallController.ui.footerPanel.footerGold2.text:setText(g_game.getLocalPlayer():getResourceBalance(ResourceTypes.DAILYREWARD_STREAK))
 	updateStreakBonusText()
 	updateTokenBalances()
@@ -1251,8 +1503,10 @@ local function setupRewardWallHovers()
 		rewardWallController:onhoverStatusPlayer(e)
 	end)
 
+	local bonusIcons = ui.restingAreaPanel.bonusIcons
+
 	for i = 1, 6 do
-		wireHover(ui.restingAreaPanel.bonusIcons:getChildById("bonusIcon" .. i), function(e)
+		wireHover(bonusIcons and bonusIcons:getChildById("bonusIcon" .. i), function(e)
 			rewardWallController:onhoverBonus(e)
 		end)
 	end
@@ -1272,11 +1526,125 @@ local function setupRewardWallHovers()
 	end
 end
 
+-- swap in the official 15.33 graphics when the owner installed them (data/images/1533/)
+local function applyOfficialArtwork()
+	local ui = rewardWallController.ui
+
+	if not usesNewLayout() then
+		return
+	end
+
+	local frame = official1533("1pixel-down-frame")
+	local backdrop = official1533("dailyreward/reward-scroll-backdrop")
+	local banner = official1533("dailyreward/icon-reward-premium-banner")
+	local dither = official1533("ditherpattern")
+
+	for i = 1, 7 do
+		local rewardPanel = ui.dailyRewardsPanel:getChildById("reward" .. i)
+		local button = rewardPanel and rewardPanel:getChildById("rewardButton" .. i)
+
+		if button and button.backdrop and frame and backdrop then
+			button.officialArt = true
+			button.officialFrame = frame
+
+			button:setImageSource(frame)
+			button:setImageBorder(1)
+			button:setImageClip("0 0 0 0")
+			button.backdrop:setImageSource(backdrop)
+			button.backdrop:setVisible(true)
+			button.premiumBanner:setImageSource(banner or "")
+
+			if dither then
+				button.ditherpattern:setImageSource(dither)
+				button.ditherpattern:setImageRepeated(true)
+			end
+		end
+	end
+
+	local arrowActive = official1533("dailyreward/icon-rewardarrow-active")
+	local arrowInactive = official1533("dailyreward/icon-rewardarrow-inactive")
+
+	if arrowActive and arrowInactive then
+		for i = 1, 6 do
+			local arrow = ui.dailyRewardsPanel:getChildById("arrow" .. i)
+
+			if arrow then
+				arrow.officialActive = arrowActive
+				arrow.officialInactive = arrowInactive
+
+				arrow:setImageSource(arrowInactive)
+				arrow:setImageClip("0 0 0 0")
+			end
+		end
+	end
+
+	local restingInfo = ui.restingAreaPanel.restingAreaInfo
+	local help = official1533("skin/classic/show-gui-help-grey")
+
+	if help then
+		restingInfo.timeLeftHelp:setImageSource(help)
+		restingInfo.jokerHelp:setImageSource(help)
+		ui.restingAreaPanel.streakBonusPanel.streakBonusHelp:setImageSource(help)
+	end
+
+	ui.streakArrow:setImageSource(official1533("icon-arrow-rightlarge", "/images/game/forge/icon-arrow-rightlarge"))
+
+	local footer = ui.footerPanel
+	local jokerIcon = official1533("icon-daily-reward-joker", "/game_rewardwall/images/icon-daily-reward-joker")
+	local cosmeticIcon = official1533("icon-cosmetic-token", imageExists(COSMETIC_TOKEN_ICON_1533) and COSMETIC_TOKEN_ICON_1533 or nil)
+
+	if cosmeticIcon then
+		footer.footerCosmetic.gold:setImageSource(cosmeticIcon)
+	end
+
+	footer.footerReroll.gold:setImageSource(official1533("taskboard/icon-currency-taskreroll", "/images/game_taskboard/icon-currency-taskreroll"))
+	footer.footerGold1.gold:setImageSource(jokerIcon)
+	footer.footerGold2.gold:setImageSource(official1533("instant-reward-access-icon", "/game_rewardwall/images/instant-reward-access-icon"))
+	restingInfo.restingAreaGold.gold:setImageSource(jokerIcon)
+end
+
 local function setupRewardWallUi()
 	rewardWallController.ui.footerPanel.footerGold1.text:setTextAlign(AlignRightCenter)
+	applyOfficialArtwork()
 	clearInfoPanel()
 	setupRewardWallHovers()
 	initRewardGoldSlots()
+end
+
+-- the window is built before the protocol version is known; 15.33 gets its own landscape layout
+local function loadRewardWallUi(name)
+	local controller = rewardWallController
+
+	if controller.ui and controller.dataUI and controller.dataUI.name == name then
+		return
+	end
+
+	stopDailyRewardSlotTimer()
+	stopRestingAreaTimer()
+
+	pendingRewardButton = nil
+	lastTimerHelpState = nil
+
+	if controller.ui then
+		g_modalManager.hide(controller.ui)
+		controller.ui:destroy()
+
+		controller.ui = nil
+	end
+
+	controller.dataUI = {
+		name = name
+	}
+	controller.ui = g_ui.loadUI("/game_rewardwall/" .. name, g_ui.getRootWidget())
+
+	if not controller.ui then
+		g_logger.error("[game_rewardwall] failed to load " .. name .. ".otui")
+
+		return
+	end
+
+	controller.ui:hide()
+	setupRewardWallUi()
 end
 
 function onHoverBonusChange(widget, hovered)
@@ -1315,7 +1683,8 @@ end
 
 function rewardWallController:onInit()
 	g_ui.importStyle("styles/style.otui")
-	rewardWallController:loadUI("game_rewardwall")
+	g_ui.importStyle("styles/style1533.otui")
+	rewardWallController:loadUI(UI_CLASSIC)
 
 	if not rewardWallController.ui then
 		g_logger.error("[game_rewardwall] failed to load game_rewardwall.otui")
@@ -1349,6 +1718,7 @@ end
 
 function rewardWallController:onGameStart()
 	if g_game.getClientVersion() > 1140 then
+		loadRewardWallUi(is1533() and UI_1533 or UI_CLASSIC)
 		applyVersionLayout()
 
 		if not ButtonRewardWall then
@@ -1514,6 +1884,18 @@ function rewardWallController:onhoverStatusPlayer(event)
 	local DEFAULT_MESSAGE = "Unknown bonus."
 	local id = event.target:getId()
 	local info = playerStatus[id]
+
+	if usesNewLayout() then
+		-- same texts as the info icons of the 15.33 window
+		local restingPanel = rewardWallController.ui.restingAreaPanel
+		local newLayoutStatus = {
+			rewardStreakIcon = restingPanel.streakBonusPanel.streakBonusHelp:getTooltip(),
+			timeLeft = restingPanel.restingAreaInfo.timeLeftHelp:getTooltip(),
+			restingAreaGold = TEXT_1533.jokers
+		}
+
+		info = newLayoutStatus[id] or info
+	end
 
 	showInfoPanelDescription(info or DEFAULT_MESSAGE, true)
 end
