@@ -42,8 +42,18 @@ msbuild vc18\otclient.vcxproj /p:Configuration=DirectX /p:Platform=x64
 ```
 
 The executable is produced as `CrystalOTC.exe` in the repository root.
-Select the renderer with `renderBackend = vulkan` or `gl` in `config.ini`
-(also available in-game under Options -> Graphics).
+One build contains every renderer. Choose it in-game under Options -> Graphics
+(Graphics engine) or in `config.ini`, section `[graphics]`:
+
+| `renderBackend` | Renderer |
+|---|---|
+| `auto` (default) | DirectX 11, OpenGL if DirectX 11 fails |
+| `d3d11` | DirectX 11 (ANGLE on Direct3D 11) |
+| `opengl` | OpenGL (ANGLE on the desktop OpenGL driver) |
+| `vulkan` | Vulkan, experimental own renderer; falls back to `auto` |
+
+The old value `gl` is read as `auto`. The change takes effect after a client
+restart, and the log shows `[graphics] render backend requested=... active=...`.
 
 ## Building (Linux / Docker / Android)
 
