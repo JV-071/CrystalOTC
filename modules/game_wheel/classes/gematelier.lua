@@ -1577,7 +1577,7 @@ end
 local SOCKET_BUTTON_TEXT = {
 	socket = "Place in Vessel",
 	unsocket = "Remove from Vessel",
-	replace = "Replace Gem"
+	replace = "Replace Vessel"
 }
 
 function GemAtelier.onSocketButton1533(button)
