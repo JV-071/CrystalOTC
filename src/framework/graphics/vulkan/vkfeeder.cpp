@@ -29,10 +29,30 @@ namespace
         float tx{ 0.0f };
         float ty{ 0.0f };
 
+        // True when the pool is stretched (the map scaled to its widget). Vertices are then
+        // snapped to whole screen pixels - see applyVertex.
+        bool snap{ false };
+
         void apply(float& x, float& y) const
         {
             x = x * sx + tx;
             y = y * sy + ty;
+        }
+
+        // GL draws a scaled pool 1:1 into its FBO and stretches the FBO as ONE quad, so it never
+        // shows seams. Here every sprite is stretched on its own by a fractional factor (about
+        // 1.8 for a typical map), which can leave a pixel centre a hair inside a quad's right
+        // or bottom edge; NEAREST then rounds to the texel PAST the sprite (padding or the next
+        // frame of the sheet) and a whole column or row of the map turns dark. Snapping the
+        // mapped positions to whole pixels keeps shared edges identical (same input, same
+        // rounding) and puts every pixel centre at least half a pixel inside its quad.
+        void applyVertex(float& x, float& y) const
+        {
+            apply(x, y);
+            if (snap) {
+                x = std::round(x);
+                y = std::round(y);
+            }
         }
     };
 
@@ -339,6 +359,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
             mapping.sy = static_cast<float>(fbDest.height()) / static_cast<float>(fbSrc.height());
             mapping.tx = static_cast<float>(fbDest.x()) - static_cast<float>(fbSrc.x()) * mapping.sx;
             mapping.ty = static_cast<float>(fbDest.y()) - static_cast<float>(fbSrc.y()) * mapping.sy;
+            mapping.snap = mapping.sx != 1.0f || mapping.sy != 1.0f;
         }
 
         // The FBO clipped the drawing to dest naturally - without this the map would spill
@@ -400,7 +421,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
                 float y = dy + ly * sy;
 
                 if (toScreen)
-                    mapping.apply(x, y);
+                    mapping.applyVertex(x, y);
 
                 data[i].pos[0] = x;
                 data[i].pos[1] = y;
@@ -619,7 +640,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
             // Inside a temporary framebuffer we stay in local coordinates - the release step
             // maps them onto the screen retroactively (it knows the dest rect).
             if (!insideFb)
-                mapping.apply(x, y);
+                mapping.applyVertex(x, y);
 
             VkSpriteVertex& v = out[i];
             v.pos[0] = x;
@@ -629,8 +650,39 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
                 // Texture coordinates arrive in SOURCE PIXELS (GL normalized them with the
                 // texture matrix) - we normalize into the atlas region. Clamp, because the
                 // atlas cannot repeat a tile (its neighbor is a foreign image, not a wrap).
-                const float un = std::clamp((texcoords[i * 2] - chunkOffX) * invW, 0.0f, 1.0f);
-                const float vn = std::clamp((texcoords[i * 2 + 1] - chunkOffY) * invH, 0.0f, 1.0f);
+                // A source coordinate on its triangle's min/max edge moves inward by a tiny
+                // fraction of a texel. NEAREST still picks the same texels everywhere inside,
+                // but a pixel centre that lands exactly on (or rounds past) the far edge can no
+                // longer fetch the neighbouring sheet frame or the atlas padding.
+                const int tri = i - (i % 3);
+                float su = texcoords[i * 2];
+                float sv = texcoords[i * 2 + 1];
+                {
+                    constexpr float kTexelInset = 1.0f / 64.0f;
+                    float minU = texcoords[tri * 2], maxU = minU;
+                    float minV = texcoords[tri * 2 + 1], maxV = minV;
+                    for (int k = 1; k < 3; ++k) {
+                        minU = std::min(minU, texcoords[(tri + k) * 2]);
+                        maxU = std::max(maxU, texcoords[(tri + k) * 2]);
+                        minV = std::min(minV, texcoords[(tri + k) * 2 + 1]);
+                        maxV = std::max(maxV, texcoords[(tri + k) * 2 + 1]);
+                    }
+                    if (maxU - minU > 2.0f * kTexelInset) {
+                        if (su == minU)
+                            su += kTexelInset;
+                        else if (su == maxU)
+                            su -= kTexelInset;
+                    }
+                    if (maxV - minV > 2.0f * kTexelInset) {
+                        if (sv == minV)
+                            sv += kTexelInset;
+                        else if (sv == maxV)
+                            sv -= kTexelInset;
+                    }
+                }
+
+                const float un = std::clamp((su - chunkOffX) * invW, 0.0f, 1.0f);
+                const float vn = std::clamp((sv - chunkOffY) * invH, 0.0f, 1.0f);
                 v.uv[0] = activeSlot->uvMin[0] + un * spanU;
                 v.uv[1] = activeSlot->uvMin[1] + vn * spanV;
             } else {
