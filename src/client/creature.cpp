@@ -718,9 +718,9 @@ void Creature::updateWalkAnimation()
     // in place, and at fast walk it slid (frames could not keep up with the offset). We tie them to
     // STEP PROGRESS, so that one full frame cycle lands exactly on one tile.
     // The phase range stays as before (1..footAnimPhases), so sprite indexing is left untouched.
-    // we compute progress against the SAME step duration the movement uses (diagonal-aware),
-    // otherwise on diagonals the frames would run ahead of the character's offset
-    const uint16_t stepDurationMs = getStepDuration(false);
+    // we compute progress against the SAME step duration the movement uses (the regular step, also
+    // on diagonals), otherwise the frames would not match the character's offset
+    const uint16_t stepDurationMs = getStepDuration(true);
     const float stepProgress = stepDurationMs > 0
         ? m_walkTimer.ticksElapsed() / static_cast<float>(stepDurationMs)
         : -1.f;
@@ -818,10 +818,12 @@ void Creature::nextWalkUpdate()
 
 void Creature::updateWalk()
 {
-    // This used getStepDuration(true), i.e. 32 px covered in the time of a REGULAR step - when walking
-    // diagonally the character crossed the tile too fast, then stood still for the remaining 2/3 of
-    // the step time (hence the infamous diagonal "stutter"). We spread the pixels over the full step time.
-    const float walkTicksPerPixel = getStepDuration(false) / static_cast<float>(g_gameConfig.getSpriteSize());
+    // The 32 px of a tile are covered in the time of a REGULAR step, even on a diagonal. The server
+    // moves the creature at once and charges the 3x diagonal cost as a wait before the next step, so
+    // the extra time is spent standing on the destination tile, not crossing it. Spreading the pixels
+    // over the diagonal duration made diagonals glide at 1/3 speed. LocalPlayer::canWalk still waits
+    // for the full diagonal duration, so the time per tile matches the server.
+    const float walkTicksPerPixel = getStepDuration(true) / static_cast<float>(g_gameConfig.getSpriteSize());
 
     const int totalPixelsWalked = std::min<int>(m_walkTimer.ticksElapsed() / walkTicksPerPixel, g_gameConfig.getSpriteSize());
 
