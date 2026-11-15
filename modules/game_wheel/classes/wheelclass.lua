@@ -1021,6 +1021,11 @@ function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationI
 	end
 
 	if not wheelWindow:isVisible() then
+		if not WheelOfDestiny.openRequested then
+			return
+		end
+
+		WheelOfDestiny.openRequested = false
 		showWheelWindow()
 		WheelOfDestiny.resetPassiveFocus()
 	end
@@ -2374,6 +2379,8 @@ function WheelOfDestiny.create(playerId, canView, changeState, vocationId, point
 	end
 
 	WheelOfDestiny.onCreate(vocationId)
+	WheelOfDestiny.serverPointInvested = table.copy(WheelOfDestiny.pointInvested)
+	WheelOfDestiny.serverEquipedGems = table.copy(WheelOfDestiny.equipedGems)
 end
 
 function WheelOfDestiny.resetPassiveFocus()
@@ -2436,8 +2443,27 @@ local function getLocalGemStruct()
 	return struct
 end
 
+function WheelOfDestiny.hasChanges()
+	if not WheelOfDestiny.serverPointInvested then
+		return false
+	end
+
+	if not table.compare(WheelOfDestiny.serverPointInvested, WheelOfDestiny.pointInvested) then
+		return true
+	end
+
+	local currentGems = normalizeEquipedGems(WheelOfDestiny.equipedGems)
+	local serverGems = normalizeEquipedGems(WheelOfDestiny.serverEquipedGems or {})
+
+	if not table.compare(serverGems, currentGems) then
+		return true
+	end
+
+	return false
+end
+
 function onWheelOfDestinyApply(close, ignoreprotocol)
-	if WheelOfDestiny.changeState == 0 then
+	if WheelOfDestiny.changeState == 0 or (not ignoreprotocol and not WheelOfDestiny.hasChanges()) then
 		if close then
 			hide()
 		end
@@ -2467,6 +2493,8 @@ function onWheelOfDestinyApply(close, ignoreprotocol)
 
 		g_logger.debug(string.format("[WheelApply] Sending gems -> GREEN:%d  RED:%d  ACQUA:%d  PURPLE:%d", g, r, a, p))
 		g_game.sendApplyWheelPoints(WheelOfDestiny.pointInvested, g, r, a, p)
+		WheelOfDestiny.serverPointInvested = table.copy(WheelOfDestiny.pointInvested)
+		WheelOfDestiny.serverEquipedGems = table.copy(WheelOfDestiny.equipedGems)
 	end
 
 	local player = g_game.getLocalPlayer()
@@ -2475,6 +2503,8 @@ function onWheelOfDestinyApply(close, ignoreprotocol)
 		WheelOfDestiny.updateCurrentPreset()
 		WheelOfDestiny.saveWheelPresets()
 	end
+
+	WheelOfDestiny.checkApplyButton()
 
 	if close then
 		hide()
@@ -3738,18 +3768,31 @@ function WheelOfDestiny.checkApplyButton()
 		return
 	end
 
-	local pointsArray = WheelOfDestiny.currentPreset.pointInvested or {}
+	local hasChanges = WheelOfDestiny.hasChanges()
+	local pointsArray = WheelOfDestiny.currentPreset and WheelOfDestiny.currentPreset.pointInvested or {}
 	local presetMatches = table.compare(pointsArray, WheelOfDestiny.pointInvested)
 	local managePanel = wheelWindow:recursiveGetChildById("manage")
 
-	managePanel.applyPresetChanges:setEnabled(not presetMatches)
-	managePanel.renamePreset:setEnabled(presetMatches)
+	if managePanel and managePanel.applyPresetChanges then
+		managePanel.applyPresetChanges:setEnabled(not presetMatches)
+	end
+	if managePanel and managePanel.renamePreset then
+		managePanel.renamePreset:setEnabled(presetMatches)
+	end
 
 	local closeButton = wheelWindow:recursiveGetChildById("close")
 	local okButton = wheelWindow:recursiveGetChildById("ok")
+	local applyButton = wheelWindow:recursiveGetChildById("apply")
 
-	closeButton:setText(presetMatches and "Close" or "Cancel")
-	okButton:setEnabled(true)
+	if closeButton then
+		closeButton:setText(hasChanges and "Cancel" or "Close")
+	end
+	if applyButton then
+		applyButton:setEnabled(hasChanges and WheelOfDestiny.changeState == 1)
+	end
+	if okButton then
+		okButton:setEnabled(true)
+	end
 end
 
 function WheelOfDestiny.loadWheelPresets()
