@@ -490,7 +490,7 @@ bool VkSpriteBatch::createPipeline()
     bindingDesc.stride = sizeof(VkSpriteVertex);
     bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    VkVertexInputAttributeDescription attrs[4]{};
+    VkVertexInputAttributeDescription attrs[5]{};
     attrs[0].location = 0;
     attrs[0].binding = 0;
     attrs[0].format = VK_FORMAT_R32G32_SFLOAT;
@@ -510,12 +510,16 @@ bool VkSpriteBatch::createPipeline()
     // per frame.
     attrs[3].format = VK_FORMAT_R8G8B8A8_UNORM;
     attrs[3].offset = offsetof(VkSpriteVertex, color);
+    attrs[4].location = 4;
+    attrs[4].binding = 0;
+    attrs[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    attrs[4].offset = offsetof(VkSpriteVertex, uvRect);
 
     VkPipelineVertexInputStateCreateInfo vertexInput{};
     vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertexInput.vertexBindingDescriptionCount = 1;
     vertexInput.pVertexBindingDescriptions = &bindingDesc;
-    vertexInput.vertexAttributeDescriptionCount = 4;
+    vertexInput.vertexAttributeDescriptionCount = 5;
     vertexInput.pVertexAttributeDescriptions = attrs;
 
     VkPipelineInputAssemblyStateCreateInfo assembly{};
@@ -971,6 +975,10 @@ void VkSpriteBatch::record(VkCommandBuffer cmd, const VkExtent2D& extent, const 
         for (int k = 0; k < 4; ++k) {
             v[k].layer = q.layer;
             std::memcpy(v[k].color, q.color, sizeof(q.color));
+            v[k].uvRect[0] = 0.0f; // the test scene needs no clamp
+            v[k].uvRect[1] = 0.0f;
+            v[k].uvRect[2] = 1.0f;
+            v[k].uvRect[3] = 1.0f;
         }
     }
 

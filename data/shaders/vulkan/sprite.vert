@@ -22,6 +22,7 @@ layout(location = 0) in vec2 inPos;    // pozycja rogu kafla w PIKSELACH ekranu
 layout(location = 1) in vec2 inUv;     // wspolrzedna w atlasie, znormalizowana [0,1]
 layout(location = 2) in float inLayer; // warstwa tablicy obrazow (male liczby calkowite)
 layout(location = 3) in vec4 inColor;  // R8G8B8A8_UNORM rozpakowany przez sprzet do [0,1]
+layout(location = 4) in vec4 inUvRect; // (minU, minV, maxU, maxV): srodki skrajnych tekseli kafla
 
 layout(push_constant) uniform Screen {
     vec2 invHalfSize;  // (2/szerokosc, 2/wysokosc) - piksele -> NDC jednym mnozeniem
@@ -30,6 +31,7 @@ layout(push_constant) uniform Screen {
 layout(location = 0) out vec2 fragUv;
 layout(location = 1) flat out float fragLayer;
 layout(location = 2) out vec4 fragColor;
+layout(location = 3) flat out vec4 fragUvRect;
 
 void main()
 {
@@ -43,4 +45,5 @@ void main()
     // dokladnie tej samej liczby zmiennoprzecinkowej, a sampler2DArray zaokragla ja do warstwy.
     fragLayer = inLayer;
     fragColor = inColor;
+    fragUvRect = inUvRect;
 }

@@ -19,6 +19,7 @@ layout(binding = 0) uniform sampler2DArray atlasSampler;
 layout(location = 0) in vec2 fragUv;
 layout(location = 1) flat in float fragLayer;
 layout(location = 2) in vec4 fragColor;
+layout(location = 3) flat in vec4 fragUvRect;
 
 layout(location = 0) out vec4 outColor;
 
@@ -26,5 +27,12 @@ void main()
 {
     // Atlas jest w formacie *_SRGB, wiec sprzet sam rozpakowuje sRGB -> liniowe przy probkowaniu,
     // a przy zapisie do zalacznika (rowniez *_SRGB) pakuje z powrotem. Zadnej recznej gammy.
-    outColor = texture(atlasSampler, vec3(fragUv, fragLayer)) * fragColor;
+    //
+    // Przyciecie do srodkow skrajnych tekseli kafla: probka wewnatrz kafla zostaje przy swoim
+    // tekselu, a ta, ktora blad zmiennoprzecinkowy albo srodek piksela lezacy dokladnie na
+    // krawedzi wypchnal POZA kafel (padding atlasu, sasiednia klatka arkusza = ciemne szwy na
+    // rozciagnietej mapie), dostaje teksel brzegowy - tak jak w GL. Siatka tekseli sie nie
+    // zmienia, wiec warstwy stroju (sprite + maski kolorow) pozostaja na sobie co do piksela.
+    vec2 uv = clamp(fragUv, fragUvRect.xy, fragUvRect.zw);
+    outColor = texture(atlasSampler, vec3(uv, fragLayer)) * fragColor;
 }

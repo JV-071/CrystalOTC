@@ -29,30 +29,21 @@ namespace
         float tx{ 0.0f };
         float ty{ 0.0f };
 
-        // True when the pool is stretched (the map scaled to its widget). Vertices are then
-        // snapped to whole screen pixels - see applyVertex.
-        bool snap{ false };
-
+        // Deliberately a plain affine map, never rounded per vertex. GL draws a scaled pool 1:1
+        // into its FBO and stretches the FBO as ONE quad, so every layer of an outfit (base
+        // sprite, the four color masks, addons, mount) lands on the same texel grid. Here every
+        // sprite is stretched on its own, and the layers have different tight bounding boxes,
+        // so rounding each quad's corners gave each quad its own effective scale: the texel
+        // columns of the base sprite and of a mask drifted up to a pixel apart and the white
+        // template showed as a light line along the mask edge. With one affine map the texel
+        // grid is the same for every quad, and shared tile edges stay bit-identical (same
+        // input, same float math). The other half of the problem, a pixel centre on a quad's
+        // edge fetching the texel past the sprite, is handled by the uvRect clamp in
+        // sprite.frag instead.
         void apply(float& x, float& y) const
         {
             x = x * sx + tx;
             y = y * sy + ty;
-        }
-
-        // GL draws a scaled pool 1:1 into its FBO and stretches the FBO as ONE quad, so it never
-        // shows seams. Here every sprite is stretched on its own by a fractional factor (about
-        // 1.8 for a typical map), which can leave a pixel centre a hair inside a quad's right
-        // or bottom edge; NEAREST then rounds to the texel PAST the sprite (padding or the next
-        // frame of the sheet) and a whole column or row of the map turns dark. Snapping the
-        // mapped positions to whole pixels keeps shared edges identical (same input, same
-        // rounding) and puts every pixel centre at least half a pixel inside its quad.
-        void applyVertex(float& x, float& y) const
-        {
-            apply(x, y);
-            if (snap) {
-                x = std::round(x);
-                y = std::round(y);
-            }
         }
     };
 
@@ -359,7 +350,6 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
             mapping.sy = static_cast<float>(fbDest.height()) / static_cast<float>(fbSrc.height());
             mapping.tx = static_cast<float>(fbDest.x()) - static_cast<float>(fbSrc.x()) * mapping.sx;
             mapping.ty = static_cast<float>(fbDest.y()) - static_cast<float>(fbSrc.y()) * mapping.sy;
-            mapping.snap = mapping.sx != 1.0f || mapping.sy != 1.0f;
         }
 
         // The FBO clipped the drawing to dest naturally - without this the map would spill
@@ -421,7 +411,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
                 float y = dy + ly * sy;
 
                 if (toScreen)
-                    mapping.applyVertex(x, y);
+                    mapping.apply(x, y);
 
                 data[i].pos[0] = x;
                 data[i].pos[1] = y;
@@ -617,6 +607,9 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
 
         const bool insideFb = !fbStack.empty();
 
+        // Flat clamp rectangle of the current triangle, see VkSpriteVertex::uvRect.
+        float uvRect[4]{ 0.0f, 0.0f, 1.0f, 1.0f };
+
         for (int i = 0; i < count; ++i) {
             // Oversized texture: at every triangle start pick the chunk under its bbox center.
             if (big && (i % 3) == 0) {
@@ -631,6 +624,47 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
                                 static_cast<float>(row * big->chunk));
             }
 
+            if ((i % 3) == 0) {
+                if (useTexcoords) {
+                    // The source rect this triangle shows is its texcoord bounding box (both
+                    // triangles of a quad span the whole rect). The fragment shader clamps the
+                    // sample to the CENTRES of the first and last texel of that rect: a sample
+                    // that is inside the rect keeps its texel, and one that float error or a
+                    // pixel centre right on the quad edge pushed past it (the old dark map
+                    // seams: padding or the next frame of the sheet) gets the edge texel, which
+                    // is what GL shows there. Nothing changes the texel grid itself, so all
+                    // layers of an outfit stay registered.
+                    float minU = texcoords[i * 2], maxU = minU;
+                    float minV = texcoords[i * 2 + 1], maxV = minV;
+                    for (int k = 1; k < 3; ++k) {
+                        minU = std::min(minU, texcoords[(i + k) * 2]);
+                        maxU = std::max(maxU, texcoords[(i + k) * 2]);
+                        minV = std::min(minV, texcoords[(i + k) * 2 + 1]);
+                        maxV = std::max(maxV, texcoords[(i + k) * 2 + 1]);
+                    }
+
+                    const auto texelRange = [](const float lo, const float hi, const float size,
+                                               float& outLo, float& outHi) {
+                        const float last = std::max(0.5f, size - 0.5f);
+                        outLo = std::clamp(std::floor(lo) + 0.5f, 0.5f, last);
+                        outHi = std::clamp(std::ceil(hi) - 0.5f, 0.5f, last);
+                        outHi = std::max(outHi, outLo); // a zero-width rect: one texel
+                    };
+
+                    float loU, hiU, loV, hiV;
+                    texelRange(minU - chunkOffX, maxU - chunkOffX, static_cast<float>(activeSlot->width), loU, hiU);
+                    texelRange(minV - chunkOffY, maxV - chunkOffY, static_cast<float>(activeSlot->height), loV, hiV);
+
+                    uvRect[0] = activeSlot->uvMin[0] + loU * invW * spanU;
+                    uvRect[1] = activeSlot->uvMin[1] + loV * invH * spanV;
+                    uvRect[2] = activeSlot->uvMin[0] + hiU * invW * spanU;
+                    uvRect[3] = activeSlot->uvMin[1] + hiV * invH * spanV;
+                } else {
+                    uvRect[0] = uvRect[2] = centerU;
+                    uvRect[1] = uvRect[3] = centerV;
+                }
+            }
+
             float x = positions[i * 2];
             float y = positions[i * 2 + 1];
 
@@ -640,7 +674,7 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
             // Inside a temporary framebuffer we stay in local coordinates - the release step
             // maps them onto the screen retroactively (it knows the dest rect).
             if (!insideFb)
-                mapping.applyVertex(x, y);
+                mapping.apply(x, y);
 
             VkSpriteVertex& v = out[i];
             v.pos[0] = x;
@@ -650,39 +684,10 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
                 // Texture coordinates arrive in SOURCE PIXELS (GL normalized them with the
                 // texture matrix) - we normalize into the atlas region. Clamp, because the
                 // atlas cannot repeat a tile (its neighbor is a foreign image, not a wrap).
-                // A source coordinate on its triangle's min/max edge moves inward by a tiny
-                // fraction of a texel. NEAREST still picks the same texels everywhere inside,
-                // but a pixel centre that lands exactly on (or rounds past) the far edge can no
-                // longer fetch the neighbouring sheet frame or the atlas padding.
-                const int tri = i - (i % 3);
-                float su = texcoords[i * 2];
-                float sv = texcoords[i * 2 + 1];
-                {
-                    constexpr float kTexelInset = 1.0f / 64.0f;
-                    float minU = texcoords[tri * 2], maxU = minU;
-                    float minV = texcoords[tri * 2 + 1], maxV = minV;
-                    for (int k = 1; k < 3; ++k) {
-                        minU = std::min(minU, texcoords[(tri + k) * 2]);
-                        maxU = std::max(maxU, texcoords[(tri + k) * 2]);
-                        minV = std::min(minV, texcoords[(tri + k) * 2 + 1]);
-                        maxV = std::max(maxV, texcoords[(tri + k) * 2 + 1]);
-                    }
-                    if (maxU - minU > 2.0f * kTexelInset) {
-                        if (su == minU)
-                            su += kTexelInset;
-                        else if (su == maxU)
-                            su -= kTexelInset;
-                    }
-                    if (maxV - minV > 2.0f * kTexelInset) {
-                        if (sv == minV)
-                            sv += kTexelInset;
-                        else if (sv == maxV)
-                            sv -= kTexelInset;
-                    }
-                }
-
-                const float un = std::clamp((su - chunkOffX) * invW, 0.0f, 1.0f);
-                const float vn = std::clamp((sv - chunkOffY) * invH, 0.0f, 1.0f);
+                // The coordinates themselves are passed through untouched: insetting them per
+                // triangle changed the texel scale per quad and misaligned outfit layers.
+                const float un = std::clamp((texcoords[i * 2] - chunkOffX) * invW, 0.0f, 1.0f);
+                const float vn = std::clamp((texcoords[i * 2 + 1] - chunkOffY) * invH, 0.0f, 1.0f);
                 v.uv[0] = activeSlot->uvMin[0] + un * spanU;
                 v.uv[1] = activeSlot->uvMin[1] + vn * spanV;
             } else {
@@ -697,6 +702,10 @@ void VkDrawFeeder::feedPool(VkSpriteBatch& batch, DrawPool* pool, const VkExtent
             v.color[1] = rgba[1];
             v.color[2] = rgba[2];
             v.color[3] = rgba[3];
+            v.uvRect[0] = uvRect[0];
+            v.uvRect[1] = uvRect[1];
+            v.uvRect[2] = uvRect[2];
+            v.uvRect[3] = uvRect[3];
         }
     }
 
