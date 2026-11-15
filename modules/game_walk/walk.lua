@@ -130,6 +130,19 @@ local DIAGONAL_MAP = {
 	}
 }
 
+-- The most recently pressed held direction wins and releasing it falls back to the previous one
+-- still held, like the official client. Two held straight keys (Up, then Right while Up is still
+-- down) are only combined into a diagonal with the combineWalkKeys option: every diagonal costs
+-- the time of 3 regular steps, so a turn with overlapping keys became a fast crossing, a stop and
+-- a restart of the legs. Explicit diagonal keys (numpad, diagonal hotkeys) walk diagonally anyway.
+local function shouldCombineWalkKeys()
+	if modules.client_options and type(modules.client_options.getOption) == "function" then
+		return modules.client_options.getOption("combineWalkKeys") == true
+	end
+
+	return g_settings.getBoolean("combineWalkKeys")
+end
+
 local function updateSmartWalkDir()
 	smartWalkDir = smartWalkDirs[1]
 
@@ -137,7 +150,7 @@ local function updateSmartWalkDir()
 		return
 	end
 
-	if modules.client_options.getOption("smartWalk") and #smartWalkDirs > 1 then
+	if #smartWalkDirs > 1 and shouldCombineWalkKeys() then
 		for _, d in ipairs(smartWalkDirs) do
 			if DIAGONAL_MAP[smartWalkDir] and DIAGONAL_MAP[smartWalkDir][d] then
 				smartWalkDir = DIAGONAL_MAP[smartWalkDir][d]

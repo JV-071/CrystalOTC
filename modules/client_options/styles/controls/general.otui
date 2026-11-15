@@ -392,14 +392,14 @@ UIWidget
     height: 22
   
     OptionCheckBox
-      id: smartWalk
-      !text: tr('Enable Smart Walking')
+      id: combineWalkKeys
+      !text: tr('Combine Walk Keys into Diagonals')
 
     UIWidget
-      id: smartWalkHelp
+      id: combineWalkKeysHelp
       image-source: /images/icons/show_gui_help_grey
       size: 12 12
       anchors.right: parent.right
       anchors.verticalCenter: parent.verticalCenter
       margin-right: 1
-      !tooltip: tr("Automatically detects when to perform diagonal movement\nbased on the combination of keys being pressed. This can\nmake movement feel smoother and more responsive, especially\nwhen changing directions quickly.")
+      !tooltip: tr("Two held arrow or WASD keys walk diagonally (Up and Right walk\nnorth east). When off, the last pressed key wins, as in the official\nclient, and a turn does not insert a slow diagonal step.\nNumpad and diagonal hotkeys always walk diagonally.")
