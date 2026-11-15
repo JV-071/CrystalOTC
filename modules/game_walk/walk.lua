@@ -711,7 +711,13 @@ local function onWalkFinish(player)
 			return
 		end
 
-		if not g_game.getFeature(GameAllowPreWalk) then
+		-- after a diagonal the walk ends before its wait does, so the queued key is tried when the
+		-- wait is over; an earlier try is refused by canWalk and nothing would try again
+		local left = stepWaitLeft(player)
+
+		if left > 0 then
+			addWalkEvent(nextWalkDir, left)
+		elseif not g_game.getFeature(GameAllowPreWalk) then
 			walk(nextWalkDir)
 		else
 			addWalkEvent(nextWalkDir, 0)
