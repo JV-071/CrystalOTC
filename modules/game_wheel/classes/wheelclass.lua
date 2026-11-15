@@ -657,7 +657,7 @@ function WheelOfDestiny.insertPoint(index, points)
 						table.insert(WheelOfDestiny.vesselEnabled[bonus.domain - 1], index)
 					end
 				else
-					widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+					widget:setImageSource(WheelVessels.mediumPerkSheet())
 					widget:setImageClip(iconInfo.iconRect)
 					modIcon:setVisible(false)
 				end
@@ -717,7 +717,7 @@ function WheelOfDestiny.checkFilledVessels(originalIndex)
 		if not gem then
 			-- block empty
 		else
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 
@@ -794,7 +794,7 @@ function WheelOfDestiny.removePoint(index, points)
 				local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 				local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-				widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+				widget:setImageSource(WheelVessels.mediumPerkSheet())
 				widget:setImageClip(iconInfo.iconRect)
 				widget:setSize(tosize("30 30"))
 				modIcon:setVisible(false)
@@ -830,7 +830,7 @@ function WheelOfDestiny.removePoint(index, points)
 			local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 			local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 			modIcon:setVisible(false)
@@ -1188,13 +1188,13 @@ function WheelOfDestiny.onCreate(vocationId)
 						widget:setSize(tosize("35 35"))
 						modIcon:setVisible(true)
 					else
-						widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+						widget:setImageSource(WheelVessels.mediumPerkSheet())
 						widget:setImageClip(iconInfo.iconRect)
 						widget:setSize(tosize("30 30"))
 						modIcon:setVisible(false)
 					end
 				else
-					widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+					widget:setImageSource(WheelVessels.mediumPerkSheet())
 					widget:setImageClip(iconInfo.iconRect)
 					widget:setSize(tosize("30 30"))
 
@@ -1203,6 +1203,7 @@ function WheelOfDestiny.onCreate(vocationId)
 					end
 				end
 			else
+				widget:setImageSource(WheelVessels.mediumPerkSheet())
 				widget:setImageClip(iconInfo.iconRect)
 			end
 		end
@@ -1582,7 +1583,7 @@ function resetWheel(ignoreprotocol)
 			local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 			local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 

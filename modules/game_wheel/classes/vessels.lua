@@ -93,6 +93,13 @@ local PERK_ICON_IDS = {
 	"perkIconBottomRight"
 }
 local ASSET_DIR = "/images/game/wheel/1533/"
+-- 15.33 icons-skillwheel-mediumperks: icons 0-36 as before, 37 is the Gem Vessel slice (it replaced
+-- the four Vessel Resonance icons 37-40), the old icons 41-48 moved to 38-45 and 46-61 are the
+-- Revelation Mastery slices, in the order of icons-skillwheel-largeperks.
+local MEDIUM_PERKS_1533 = "images/skillwheel/icons-skillwheel-mediumperks"
+local MEDIUM_PERKS_LEGACY = "/images/game/wheel/icons-skillwheel-mediumperks"
+local VESSEL_ICON_1533 = 37
+local MASTERY_ICON_1533 = 46
 
 local legacyTables
 local tablesActive = false
@@ -232,6 +239,54 @@ function WheelVessels.applyTables()
 			end
 		end
 	end
+
+	if WheelVessels.cipImage(MEDIUM_PERKS_1533) then
+		WheelVessels.remapMediumPerkIcons()
+	end
+end
+
+-- Moves the slice icons from the repo sheet positions to the 15.33 sheet ones.
+function WheelVessels.remapMediumPerkIcons()
+	local vesselSlots = {}
+
+	for _, index in ipairs(VESSEL_NODE_SLOTS) do
+		vesselSlots[index] = true
+	end
+
+	for _, icons in pairs(WheelIcons) do
+		for index, info in pairs(icons) do
+			local x = tonumber(tostring(info.iconRect):match("^(%d+)"))
+
+			if x then
+				local icon = math.floor(x / 30)
+
+				if vesselSlots[index] or icon >= 37 and icon <= 40 then
+					icon = VESSEL_ICON_1533
+				elseif icon >= 41 then
+					icon = icon - 3
+				end
+
+				icons[index] = {
+					iconRect = mediumPerkIconRect(icon),
+					miniIconRect = info.miniIconRect,
+					masteryDomain = info.masteryDomain
+				}
+			end
+		end
+	end
+end
+
+-- Sheet of the slice icons: the 15.33 one from data/images/1533/ when it is installed.
+function WheelVessels.mediumPerkSheet()
+	if WheelVessels.isActive() then
+		local image = WheelVessels.cipImage(MEDIUM_PERKS_1533)
+
+		if image then
+			return image
+		end
+	end
+
+	return MEDIUM_PERKS_LEGACY
 end
 
 function WheelVessels.isMasterySlot(index)
@@ -539,6 +594,7 @@ function WheelVessels.refreshMasteryIcons()
 	end
 
 	local masteryIcon = WheelVessels.asset("icon-revelation-mastery")
+	local sheet = WheelVessels.cipImage(MEDIUM_PERKS_1533)
 
 	for masteryIndex in pairs(MOVED_AUGMENTS) do
 		local widget = wheelPanel:recursiveGetChildById("icon" .. masteryIndex)
@@ -546,6 +602,7 @@ function WheelVessels.refreshMasteryIcons()
 
 		if widget then
 			local modIcon = widget:recursiveGetChildById("modIcon" .. masteryIndex)
+			local perkIcon = wheelPanel:recursiveGetChildById(PERK_ICON_IDS[domain])
 
 			if modIcon then
 				modIcon:setVisible(false)
@@ -553,12 +610,16 @@ function WheelVessels.refreshMasteryIcons()
 
 			widget:setSize(tosize("30 30"))
 
-			if masteryIcon then
+			if sheet and perkIcon then
+				-- the Revelation Mastery icon of the Revelation Perk the domain corner shows
+				local largePerk = math.floor(perkIcon:getImageClip().x / 34)
+
+				widget:setImageSource(sheet)
+				widget:setImageClip(mediumPerkIconRect(MASTERY_ICON_1533 + largePerk))
+			elseif masteryIcon then
 				widget:setImageSource(masteryIcon)
 				widget:setImageClip("0 0 30 30")
 			else
-				local perkIcon = wheelPanel:recursiveGetChildById(PERK_ICON_IDS[domain])
-
 				widget:setImageSource("/images/game/wheel/icons-skillwheel-largeperks")
 
 				if perkIcon then
