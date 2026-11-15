@@ -99,7 +99,6 @@ local TEXT_1533 = {
 	claimed = "Congratulations! You claimed your daily reward in time. Come back after the next regular server save for more rewards.",
 	jokers = "Daily Reward Jokers help you to keep your reward streak. If there is a day on which you're unable to claim your daily reward, you can use a joker to continue your streak. The more jokers you have, the more days you can cover.\nEvery character will receive a Daily Reward Joker on the first day of each month.\nTo be on the safe side, remember to collect your reward on a daily basis."
 }
-local collectionStateText
 local STATUS = {
 	LOCKED = 3,
 	ACTIVE = 2,
@@ -763,10 +762,6 @@ local function updateTimerHelp(canClaim, timeLeft)
 		local remaining = resolveRemainingSeconds(state.timeLeft, os.time() - (state.startTime or os.time()))
 
 		text = string.format(TEXT_1533.hurry, formatCountdownHHMM(remaining))
-
-		if collectionStateText then
-			text = text .. "\n\n" .. collectionStateText
-		end
 	else
 		text = TEXT_1533.claimed
 	end
@@ -1083,16 +1078,8 @@ local function onDailyRewardCollectionState(state)
 	}
 
 	if usesNewLayout() then
-		-- the official window shows the missed claim only in the timer help
-		local text1533 = {
-			[DailyRewardStatus.DAILY_REWARD_COLLECTED] = "You did not claim your daily reward in time.\nToo bad, you do not have enough Daily Reward Jokers.",
-			[DailyRewardStatus.DAILY_REWARD_NOTCOLLECTED] = "You did not claim your daily reward in time.\nIf you don't claim your reward now, your [color=#D33C3C]streak will be reset[/color]."
-		}
-
-		collectionStateText = text1533[state]
-
-		updateTimerHelp()
-
+		-- the server sends this after every open and only tells whether today's reward was
+		-- taken, not that a claim was missed, so the official window would show no warning
 		return
 	end
 
@@ -1637,7 +1624,6 @@ local function loadRewardWallUi(name)
 
 	pendingRewardButton = nil
 	lastTimerHelpState = nil
-	collectionStateText = nil
 
 	if controller.ui then
 		g_modalManager.hide(controller.ui)
