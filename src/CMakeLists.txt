@@ -611,7 +611,8 @@ if(MSVC)
 
   target_compile_definitions(otclient_core PRIVATE CRASH_HANDLER)
 
-  target_compile_options(otclient_core PUBLIC /MP /FS /Zf /EHsc /bigobj)
+  # /utf-8 matches the vc18 project: sources are UTF-8, not the build machine's code page.
+  target_compile_options(otclient_core PUBLIC /MP /FS /Zf /EHsc /bigobj /utf-8)
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -969,12 +970,14 @@ endif()
 # *****************************************************************************
 # Enable otclient console only for debug build
 # *****************************************************************************
+# RelWithDebInfo is what the windows-release preset (and CI) ships, so it is a
+# GUI program like the vc18 build; only Debug keeps the console window.
 if(WIN32)
   set_target_properties(${PROJECT_NAME}
           PROPERTIES
           LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE"
           LINK_FLAGS_RELEASE "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
-          LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:CONSOLE"
+          LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
           LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
   )
 endif(WIN32)
