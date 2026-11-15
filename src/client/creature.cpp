@@ -918,12 +918,26 @@ void Creature::terminateWalk()
     m_walkOffset = {};
     m_walking = false;
 
+    // The standing pose comes back one server beat after the step. The leg cycle of the local
+    // player is kept for a step longer, so a step that follows a short pause (a turn, the wait
+    // after a diagonal) continues the legs instead of starting them over from the first phase.
+    const int serverBeat = g_game.getServerBeat();
+    const int cycleResetDelay = isLocalPlayer() ? std::max<int>(serverBeat, getStepDuration(true) + 50) : serverBeat;
+
     const auto self = static_self_cast<Creature>();
-    m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self] {
+    m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self, serverBeat, cycleResetDelay] {
         self->m_walkAnimationPhase = 0;
+        if (cycleResetDelay > serverBeat) {
+            self->m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self] {
+                self->m_walkCycle = 0.f;
+                self->m_walkFinishAnimEvent = nullptr;
+            }, cycleResetDelay - serverBeat);
+            return;
+        }
+
         self->m_walkCycle = 0.f;
         self->m_walkFinishAnimEvent = nullptr;
-    }, g_game.getServerBeat());
+    }, serverBeat);
 }
 
 void Creature::setHealthPercent(const uint8_t healthPercent)
