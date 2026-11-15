@@ -947,6 +947,11 @@ function WheelVessels.setupAtelierPanel()
 
 			if gem then
 				GemAtelier.setupModFrame(frame, gem, slot)
+
+				-- a locked vessel is disabled in the official client, so its mods show no label
+				if not unlocked and frame.tooltip and frame.tooltip ~= "" then
+					frame:setTooltip("")
+				end
 			else
 				-- an empty slot: the dark mod circle, no tooltip. Clearing a tooltip only when there
 				-- is one keeps a hovered frame from hiding and showing its label again on a redraw.
