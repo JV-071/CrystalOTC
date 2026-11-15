@@ -230,6 +230,7 @@ private:
     PFN_vkCmdPipelineBarrier m_vkCmdPipelineBarrier{ nullptr };
     PFN_vkCmdCopyBufferToImage m_vkCmdCopyBufferToImage{ nullptr };
     PFN_vkCmdCopyImage m_vkCmdCopyImage{ nullptr };
+    PFN_vkCmdClearColorImage m_vkCmdClearColorImage{ nullptr };
 };
 
 #endif // WIN32

@@ -95,6 +95,7 @@ bool VkTextureAtlas::loadFunctions()
     m_vkCmdPipelineBarrier = reinterpret_cast<PFN_vkCmdPipelineBarrier>(fn("vkCmdPipelineBarrier"));
     m_vkCmdCopyBufferToImage = reinterpret_cast<PFN_vkCmdCopyBufferToImage>(fn("vkCmdCopyBufferToImage"));
     m_vkCmdCopyImage = reinterpret_cast<PFN_vkCmdCopyImage>(fn("vkCmdCopyImage"));
+    m_vkCmdClearColorImage = reinterpret_cast<PFN_vkCmdClearColorImage>(fn("vkCmdClearColorImage"));
 
     // We check the full set ONCE, at startup - otherwise a single missing function would only
     // reveal itself later as a jump to nullptr in the middle of sprite loading.
@@ -104,7 +105,8 @@ bool VkTextureAtlas::loadFunctions()
         !m_vkAllocateMemory || !m_vkFreeMemory || !m_vkMapMemory || !m_vkUnmapMemory ||
         !m_vkAllocateCommandBuffers || !m_vkFreeCommandBuffers ||
         !m_vkBeginCommandBuffer || !m_vkEndCommandBuffer || !m_vkQueueSubmit || !m_vkQueueWaitIdle ||
-        !m_vkCmdPipelineBarrier || !m_vkCmdCopyBufferToImage || !m_vkCmdCopyImage)
+        !m_vkCmdPipelineBarrier || !m_vkCmdCopyBufferToImage || !m_vkCmdCopyImage ||
+        !m_vkCmdClearColorImage)
         return fail("missing functions required to operate the atlas");
 
     // INSTANCE functions, not device ones - I take them from vkloader's globals.
@@ -332,6 +334,20 @@ bool VkTextureAtlas::ensureLayerCapacity(const uint32_t needed)
             VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             0, VK_ACCESS_TRANSFER_WRITE_BIT,
             VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Fresh layers start with undefined contents and uploads only write the sprite rectangles,
+    // so the padding around every slot would stay garbage. A sample that lands one texel past
+    // a slot edge then reads random memory and draws a dark seam across the map. Clearing the
+    // new layers to transparent black makes the gutters deterministic.
+    {
+        VkClearColorValue transparent{};
+        VkImageSubresourceRange range{};
+        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        range.levelCount = 1;
+        range.baseArrayLayer = m_gpuLayers;
+        range.layerCount = needed - m_gpuLayers;
+        m_vkCmdClearColorImage(cmd, newImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &transparent, 1, &range);
+    }
 
     if (m_gpuLayers > 0) {
         // The old image takes the source role. We know its layout exactly (m_layout), so the barrier
