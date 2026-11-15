@@ -25,6 +25,15 @@ GemSwitchPrice = {
 	1000000
 }
 
+-- Prices like the official client: 125000 -> "125 k", 1000000 -> "1,000 k".
+function GemAtelier.formatPrice(value)
+	if value >= 1000 and value % 1000 == 0 then
+		return comma_value(value / 1000) .. " k"
+	end
+
+	return comma_value(value)
+end
+
 function GemAtelier.resetFields()
 	lockedOnly = false
 	sortQuality = 1
@@ -449,14 +458,14 @@ function GemAtelier.showGemRevelation()
 		local button = revelation:recursiveGetChildById("revealButton" .. i)
 
 		itemWidget:setItemId(data[i].id)
-		gemInfo:setText(data[i].name:gsub("%d", resources[i]))
+		gemInfo:setText(data[i].name:gsub("%d", comma_value(resources[i])))
 		gemInfo:setMarginTop(60)
 
 		if not gemInfo:isTextWrap() then
 			gemInfo:setMarginTop(67)
 		end
 
-		revealCost.gold:setText(comma_value(GemRevealPrice[i] / 1000) .. "k")
+		revealCost.gold:setText(GemAtelier.formatPrice(GemRevealPrice[i]))
 
 		local toolTip = ""
 
@@ -716,7 +725,7 @@ function GemAtelier.onSelectGem(selected, clicked)
 	local enough = price <= totalBalance
 	local goldWidget = panel.clickedContent.switchCost.gold
 
-	goldWidget:setText(price / 1000 .. "k")
+	goldWidget:setText(GemAtelier.formatPrice(price))
 	goldWidget:setColor(enough and "#c0c0c0" or "#d33c3c")
 	panel.clickedContent.switchCost:setTooltip(comma_value(price))
 
