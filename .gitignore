@@ -393,3 +393,6 @@ assets_crypto.py
 __pycache__/
 records/
 _wip_stance_icons/
+
+# Official 15.33 UI graphics, copied locally by the owner (not ours to ship)
+data/images/1533/
