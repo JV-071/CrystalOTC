@@ -1195,7 +1195,8 @@ int Creature::getDrawElevation() {
         int elevation = m_walkingTile->getDrawElevation();
 
         if (g_game.getFeature(Otc::GameSmoothWalkElevation)) {
-            const float factor = std::clamp<float>(getWalkTicksElapsed() / static_cast<float>(m_stepCache.getDuration(m_lastStepDirection)), .0f, 1.f);
+            // the tile is crossed in a regular step time, also on a diagonal (see updateWalk)
+            const float factor = std::clamp<float>(getWalkTicksElapsed() / static_cast<float>(m_stepCache.duration), .0f, 1.f);
             elevation = getSmoothedElevation(this, elevation, factor);
         }
 
