@@ -29,6 +29,9 @@ game
 
   player
     diagonal-walk-speed: 3
+    # the step after a diagonal may be sent this many regular steps after it (official client: 2);
+    # the server queues it for the rest of the diagonal cost (diagonal-walk-speed = no early step)
+    diagonal-next-step-wait: 2
 
   render
     invisible-ticks-per-frame: 75

@@ -871,8 +871,8 @@ void Creature::updateWalk()
     // The 32 px of a tile are covered in the time of a REGULAR step, even on a diagonal. The server
     // moves the creature at once and charges the 3x diagonal cost as a wait before the next step, so
     // the extra time is spent standing on the destination tile, not crossing it. Spreading the pixels
-    // over the diagonal duration made diagonals glide at 1/3 speed. LocalPlayer::canWalk still waits
-    // for the full diagonal duration, so the time per tile matches the server.
+    // over the diagonal duration made diagonals glide at 1/3 speed. LocalPlayer::canWalk still keeps
+    // the time per tile of the server (see LocalPlayer::getNextStepWait).
     const float walkTicksPerPixel = getStepDuration(true) / static_cast<float>(g_gameConfig.getSpriteSize());
 
     const int totalPixelsWalked = std::min<int>(m_walkTimer.ticksElapsed() / walkTicksPerPixel, g_gameConfig.getSpriteSize());
@@ -1054,6 +1054,7 @@ void Creature::setSpeed(uint16_t speed)
         return;
 
     const uint16_t oldSpeed = m_speed;
+    const uint16_t oldStepDuration = isLocalPlayer() ? getStepDuration(true) : 0;
     m_speed = speed;
 
     // Cache for stepSpeed Law
@@ -1065,8 +1066,10 @@ void Creature::setSpeed(uint16_t speed)
         } else m_calculatedStepSpeed = 1;
     }
 
-    if (isLocalPlayer())
+    if (isLocalPlayer()) {
+        static_self_cast<LocalPlayer>()->onSpeedChangeWhileQueued(oldStepDuration);
         static_self_cast<LocalPlayer>()->registerAdjustInvalidPosEvent();
+    }
 
     // speed can change while walking (utani hur, paralyze, etc..)
     if (m_walking)

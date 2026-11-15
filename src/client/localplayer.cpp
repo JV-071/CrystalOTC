@@ -24,6 +24,7 @@
 
 #include "container.h"
 #include "game.h"
+#include "gameconfig.h"
 #include "item.h"
 #include "map.h"
 #include "tile.h"
@@ -179,7 +180,31 @@ bool LocalPlayer::canWalk(const bool ignoreLock)
     }
 
     // allow only if walk done, ex. diagonals may need additional ticks before taking another step
-    return m_walkTimer.ticksElapsed() >= getStepDuration();
+    return m_walkTimer.ticksElapsed() >= getNextStepWait();
+}
+
+// Time after the last step was sent at which the next one may be sent.
+// The server takes a step when its walk delay ends (the step cost, 3x after a diagonal) and queues a
+// step that arrives earlier; a newer step replaces the queued one (startAutoWalk clears the list).
+// Like the official client, the step after a diagonal is sent diagonal-next-step-wait regular steps
+// after it (2 of 3) and waits out the rest in the server queue. The time a step is queued is added,
+// so the step after it is sent only once the server took the queued one: at most one step is queued
+// and it is never replaced.
+uint16_t LocalPlayer::getNextStepWait()
+{
+    uint32_t wait = getStepDuration();
+    const uint32_t regular = getStepDuration(true);
+    if (wait > regular) { // the last step was a diagonal
+        const double factor = std::max<double>(1.0, g_gameConfig.getPlayerDiagonalNextStepWait());
+        wait = std::min<uint32_t>(wait, static_cast<uint32_t>(regular * factor));
+    }
+
+    return static_cast<uint16_t>(std::min<uint32_t>(wait + m_walkQueueDelay, UINT16_MAX));
+}
+
+int LocalPlayer::getWalkWaitLeft()
+{
+    return std::max<int>(0, static_cast<int>(getNextStepWait()) - static_cast<int>(m_walkTimer.ticksElapsed()));
 }
 
 void LocalPlayer::walk(const Position& oldPos, const Position& newPos)
@@ -203,6 +228,7 @@ void LocalPlayer::walk(const Position& oldPos, const Position& newPos)
     cancelAdjustInvalidPosEvent();
     m_preWalks.clear();
     m_serverWalk = true;
+    m_walkQueueDelay = 0;
 
     if (WalkTimeLog::enabled())
         s_walkLog.stepStarted(*this, true, 0);
@@ -217,6 +243,12 @@ void LocalPlayer::preWalk(Otc::Direction direction)
     if (WalkTimeLog::enabled())
         s_walkLog.stepStarted(*this, false, m_preWalks.size());
 
+    // A step sent before the server is ready for it (the step after a diagonal, see getNextStepWait)
+    // waits in the server queue until the walk delay of the previous step ends.
+    m_walkQueuePrevCost = getStepDuration();
+    const int queued = static_cast<int>(m_walkQueueDelay) + m_walkQueuePrevCost - static_cast<int>(m_walkTimer.ticksElapsed());
+    m_walkQueueDelay = static_cast<uint16_t>(std::clamp<int>(queued, 0, UINT16_MAX));
+
     const auto& oldPos = getPosition();
     Creature::walk(oldPos, m_preWalks.emplace_back(oldPos.translatedToDirection(direction)));
 
@@ -225,6 +257,25 @@ void LocalPlayer::preWalk(Otc::Direction direction)
 
     Creature::onPositionChange(getLastStepToPosition(), getLastStepFromPosition());
     registerAdjustInvalidPosEvent();
+}
+
+// The server computes the walk delay of the previous step with the speed it has when it checks it,
+// so a slower speed (paralyze) set while the last step still waits in its queue makes the server hold
+// that step longer. The step after it has to wait as long, or it would reach the server while the
+// queued one is still there and replace it (snap back). The speed change arrives before the
+// confirmation of the queued step only when the server changed it before taking the step.
+void LocalPlayer::onSpeedChangeWhileQueued(const uint16_t oldStepDuration)
+{
+    if (m_walkQueueDelay == 0 || !isPreWalking() || oldStepDuration == 0)
+        return;
+
+    const uint16_t newStepDuration = getStepDuration(true);
+    if (newStepDuration <= oldStepDuration) // faster: the server still takes the step when planned
+        return;
+
+    const uint32_t prevCost = static_cast<uint32_t>(m_walkQueuePrevCost) * newStepDuration / oldStepDuration;
+    m_walkQueueDelay = static_cast<uint16_t>(std::min<uint32_t>(m_walkQueueDelay + prevCost - m_walkQueuePrevCost, UINT16_MAX));
+    m_walkQueuePrevCost = static_cast<uint16_t>(std::min<uint32_t>(prevCost, UINT16_MAX));
 }
 
 void LocalPlayer::onWalking() {
@@ -251,7 +302,7 @@ void LocalPlayer::registerAdjustInvalidPosEvent() {
         m_preWalks.clear();
         g_game.resetMapUpdatedAt();
         m_adjustInvalidPosEvent = nullptr;
-    }, std::min<int>(std::max<int>(getStepDuration(), g_game.getPing()) + 100, 1000));
+    }, std::min<int>(std::max<int>(getStepDuration(), g_game.getPing()) + 100, 1000) + m_walkQueueDelay); // a queued step is confirmed later
 }
 
 void LocalPlayer::cancelAdjustInvalidPosEvent() {

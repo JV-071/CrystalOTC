@@ -221,6 +221,8 @@ void GameConfig::loadPlayerNode(const OTMLNodePtr& mainNode) {
     for (const auto& node : mainNode->children()) {
         if (node->tag() == "diagonal-walk-speed")
             m_playerDiagonalWalkSpeed = node->value<double>();
+        else if (node->tag() == "diagonal-next-step-wait")
+            m_playerDiagonalNextStepWait = node->value<double>();
     }
 }
 
