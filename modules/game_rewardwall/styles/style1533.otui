@@ -1,0 +1,85 @@
+// Reward Wall pieces of the 15.33 layout (game_rewardwall_1533.otui).
+// The official artwork is optional: game_rewardwall.lua swaps it in from
+// /images/1533/ when present and keeps these repo images otherwise.
+
+RewardTile1533 < UIWidget
+  size: 66 66
+  fixed-size: true
+  focusable: false
+  image-source: /game_rewardwall/images/container-bonus-inactive
+  image-clip: 0 0 66 66
+
+  UIWidget
+    id: backdrop
+    anchors.fill: parent
+    margin: 1
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: rewardIcon
+    size: 30 30
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: 13
+    margin-left: 13
+    phantom: true
+    visible: false
+
+  Label
+    id: countText
+    height: 12
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-bottom: 14
+    text-align: center
+    font: $var-cip-font-new
+    color: #35210d
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: premiumBanner
+    size: 22 23
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: 1
+    margin-left: 1
+    phantom: true
+    visible: false
+
+  UIWidget
+    id: ditherpattern
+    anchors.fill: parent
+    margin: 1
+    image-source: /game_rewardwall/images/ditherpattern
+    phantom: true
+    visible: false
+
+RewardArrow1533 < UIWidget
+  size: 5 7
+  phantom: true
+  image-source: /game_rewardwall/images/icon-rewardarrow
+  image-clip: 0 0 5 7
+
+RewardDay1533 < Panel
+  size: 66 91
+  anchors.top: parent.top
+  anchors.left: parent.left
+  margin-top: 22
+  focusable: false
+
+RewardGoldClaim < Button
+  anchors.centerIn: parent
+  size: 66 20
+  padding: 0
+  !text: tr('Claim')
+
+RewardHelpIcon < UIWidget
+  size: 12 12
+  image-source: /images/skin/show-gui-help-grey
+
+RewardCurrencyView1533 < RewardCurrencyView
+  size: 52 20
+  margin-top: 0

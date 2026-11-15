@@ -1,0 +1,486 @@
+MainWindowHigh
+  id: rewardWallWindow
+  !text: tr('Reward Wall')
+  size: 832 344
+  text-offset: 0 1
+  @onEscape: modules.game_rewardwall.rewardWallController:onClickToggle()
+
+  MiniPanel
+    id: historyPanel
+    anchors.top: parent.top
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    margin-top: -5
+    margin-bottom: 38
+    !text: tr('History')
+    text-offset: 0 2
+    font: $var-cip-font-new
+    color: #909090
+    visible: false
+
+    TextListWithScroll
+      id: historyList
+      anchors.fill: parent
+      margin-top: -3
+      margin-left: -1
+      margin-bottom: 2
+      background-color: #363636
+      padding-top: 1
+      focusable: false
+
+    HorizontalSeparator
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 12
+      margin-right: 12
+
+  MiniPanel
+    id: restingAreaPanel
+    size: 248 259
+    anchors.top: parent.top
+    anchors.left: parent.left
+    margin-top: -5
+    padding: 0
+    !text: tr('Reward Streak Bonus')
+    text-offset: -1 2
+    font: $var-cip-font-new
+    color: #909090
+    focusable: false
+
+    Panel
+      id: restingAreaInfo
+      size: 154 66
+      anchors.top: parent.top
+      anchors.left: parent.left
+      margin-top: 32
+      margin-left: 47
+      focusable: false
+
+      UIWidget
+        id: rewardStreakIcon
+        size: 66 44
+        anchors.top: parent.top
+        anchors.left: parent.left
+        margin-top: 11
+        image-source: /game_rewardwall/images/icon-rewardstreak-default
+        image-size: 66 44
+        image-fixed-ratio: true
+        text-align: center
+        text-offset: -1 -2
+        font: $var-cip-font-new
+        color: #c0c0c0
+
+      RestingAreaTimeLeft
+        id: timeLeft
+        anchors.top: parent.top
+        anchors.left: parent.left
+        margin-top: 11
+        margin-left: 71
+
+      RewardHelpIcon
+        id: timeLeftHelp
+        anchors.left: timeLeft.right
+        anchors.verticalCenter: timeLeft.verticalCenter
+        margin-left: 5
+
+      RewardCurrencyView
+        id: restingAreaGold
+        size: 66 20
+        margin-top: 5
+        anchors.top: timeLeft.bottom
+        anchors.left: timeLeft.left
+
+        RewardResourceIcon
+          id: gold
+          image-source: /game_rewardwall/images/icon-daily-reward-joker
+
+      RewardHelpIcon
+        id: jokerHelp
+        anchors.left: restingAreaGold.right
+        anchors.verticalCenter: restingAreaGold.verticalCenter
+        margin-left: 5
+
+    HorizontalSeparator
+      id: streakSeparator
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 113
+      margin-left: 10
+      margin-right: 10
+
+    Panel
+      id: streakBonusPanel
+      height: 40
+      anchors.top: streakSeparator.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 15
+      margin-left: 10
+      margin-right: 10
+      focusable: false
+
+      Label
+        id: streakBonusText
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: streakBonusHelp.left
+        margin-right: 5
+        text-align: topLeft
+        text-wrap: true
+        text-auto-resize: true
+        font: $var-cip-font-new
+        color: #c0c0c0
+        phantom: true
+
+      RewardHelpIcon
+        id: streakBonusHelp
+        anchors.right: parent.right
+        anchors.verticalCenter: streakBonusText.verticalCenter
+
+    // the official window has no visible warning, its text goes to the timer help
+    Label
+      id: streakWarning
+      size: 1 1
+      anchors.top: parent.top
+      anchors.left: parent.left
+      phantom: true
+      visible: false
+
+  UIWidget
+    id: streakArrow
+    size: 14 25
+    anchors.left: restingAreaPanel.right
+    anchors.verticalCenter: restingAreaPanel.verticalCenter
+    margin-left: 10
+    image-source: /images/game/forge/icon-arrow-rightlarge
+    phantom: true
+
+  MiniPanel
+    id: dailyRewardsPanel
+    size: 518 259
+    anchors.top: parent.top
+    anchors.right: parent.right
+    margin-top: -5
+    padding: 0
+    !text: tr('Daily Rewards')
+    text-offset: -1 2
+    font: $var-cip-font-new
+    color: #909090
+
+    RewardDay1533
+      id: reward1
+      margin-left: 13
+
+      RewardTile1533
+        id: rewardButton1
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold1
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward2
+      margin-left: 84
+
+      RewardTile1533
+        id: rewardButton2
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold2
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward3
+      margin-left: 155
+
+      RewardTile1533
+        id: rewardButton3
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold3
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward4
+      margin-left: 226
+
+      RewardTile1533
+        id: rewardButton4
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold4
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward5
+      margin-left: 297
+
+      RewardTile1533
+        id: rewardButton5
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold5
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward6
+      margin-left: 368
+
+      RewardTile1533
+        id: rewardButton6
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold6
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardDay1533
+      id: reward7
+      margin-left: 439
+
+      RewardTile1533
+        id: rewardButton7
+        anchors.top: parent.top
+        anchors.left: parent.left
+
+      RewardGoldSlot
+        id: rewardGold7
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+
+    RewardArrow1533
+      id: arrow1
+      anchors.left: reward1.right
+      anchors.top: reward1.top
+      margin-top: 30
+
+    RewardArrow1533
+      id: arrow2
+      anchors.left: reward2.right
+      anchors.top: reward2.top
+      margin-top: 30
+
+    RewardArrow1533
+      id: arrow3
+      anchors.left: reward3.right
+      anchors.top: reward3.top
+      margin-top: 30
+
+    RewardArrow1533
+      id: arrow4
+      anchors.left: reward4.right
+      anchors.top: reward4.top
+      margin-top: 30
+
+    RewardArrow1533
+      id: arrow5
+      anchors.left: reward5.right
+      anchors.top: reward5.top
+      margin-top: 30
+
+    RewardArrow1533
+      id: arrow6
+      anchors.left: reward6.right
+      anchors.top: reward6.top
+      margin-top: 30
+
+    UIWidget
+      id: arrowLoop
+      size: 435 13
+      anchors.top: parent.top
+      anchors.horizontalCenter: parent.horizontalCenter
+      margin-top: 113
+      image-source: /game_rewardwall/images/icon-rewardarrow-loop-inactive
+      phantom: true
+
+  // premium box and hover text sit inside the Daily Rewards frame like in the official window
+  Panel
+    id: premiumStatus
+    size: 128 112
+    anchors.top: dailyRewardsPanel.top
+    anchors.left: dailyRewardsPanel.left
+    margin-top: 136
+    margin-left: 23
+    focusable: false
+
+    BigPremiumButton
+      id: premiumButton
+      anchors.top: parent.top
+      anchors.left: parent.left
+      @onClick: modules.game_rewardwall.rewardWallController:onClickSendStoreRewardWall()
+
+    Label
+      id: premiumMessage
+      anchors.top: premiumButton.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 5
+      text-align: topLeft
+      text-wrap: true
+      text-auto-resize: true
+      font: $var-cip-font-new
+      color: #c0c0c0
+      phantom: true
+
+  VerticalSeparator
+    id: premiumSeparator
+    anchors.top: dailyRewardsPanel.top
+    anchors.bottom: dailyRewardsPanel.bottom
+    anchors.left: premiumStatus.right
+    margin-top: 136
+    margin-bottom: 7
+    margin-left: 10
+
+  Panel
+    id: infoPanel
+    anchors.top: dailyRewardsPanel.top
+    anchors.bottom: dailyRewardsPanel.bottom
+    anchors.left: premiumSeparator.right
+    anchors.right: dailyRewardsPanel.right
+    margin-top: 136
+    margin-bottom: 17
+    margin-left: 15
+    margin-right: 23
+    focusable: false
+
+    Label
+      id: free
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      text-align: topLeft
+      text-wrap: true
+      text-auto-resize: true
+      font: $var-cip-font-new
+      color: #808080
+      visible: false
+
+    Label
+      id: premium
+      anchors.top: free.bottom
+      anchors.left: parent.left
+      anchors.right: parent.right
+      margin-top: 8
+      text-align: topLeft
+      text-wrap: true
+      text-auto-resize: true
+      font: $var-cip-font-new
+      color: #909090
+      visible: false
+
+    Label
+      id: statusText
+      anchors.fill: parent
+      text-align: topLeft
+      text-wrap: true
+      font: $var-cip-font-new
+      color: #c0c0c0
+      focusable: false
+
+  Panel
+    id: footerPanel
+    height: 33
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    anchors.right: parent.right
+    margin-bottom: -4
+    focusable: false
+
+    HorizontalSeparator
+      id: footerSeparator
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+
+    RewardCurrencyView1533
+      id: footerCosmetic
+      anchors.left: parent.left
+      anchors.top: footerSeparator.bottom
+      margin-top: 6
+      !tooltip: tr('Cosmetic Tokens')
+
+      RewardResourceIcon
+        id: gold
+
+    RewardCurrencyView1533
+      id: footerReroll
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-top: 6
+      margin-left: 5
+      !tooltip: tr('Bounty Task Reroll Tokens')
+
+      RewardResourceIcon
+        id: gold
+        image-source: /images/game_taskboard/icon-currency-taskreroll
+
+    RewardCurrencyView1533
+      id: footerGold1
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-top: 6
+      margin-left: 5
+      !tooltip: tr('Daily Reward Jokers')
+
+      RewardResourceIcon
+        id: gold
+        image-source: /game_rewardwall/images/icon-daily-reward-joker
+
+    RewardCurrencyView1533
+      id: footerGold2
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-top: 6
+      margin-left: 5
+      !tooltip: tr('Instant Reward Access')
+
+      RewardResourceIcon
+        id: gold
+        image-source: /game_rewardwall/images/instant-reward-access-icon
+
+    RewardStoreSmallButton
+      id: instantRewardStoreButton
+      anchors.left: prev.right
+      anchors.top: footerSeparator.bottom
+      margin-left: 2
+      !tooltip: tr('Get more Instant Reward Access in the Store')
+      @onClick: modules.game_rewardwall.rewardWallController:onClickGetInstantRewardAccess()
+
+    Button
+      id: historyButton
+      !text: tr('History')
+      size: 43 20
+      anchors.bottom: parent.bottom
+      anchors.right: closeButton.left
+      margin-bottom: 5
+      margin-right: 5
+      @onClick: modules.game_rewardwall.rewardWallController:onClickshowHistory()
+
+    Button
+      id: closeButton
+      !text: tr('Close')
+      size: 43 20
+      anchors.right: parent.right
+      anchors.bottom: parent.bottom
+      margin-bottom: 5
+      @onClick: modules.game_rewardwall.rewardWallController:onClickToggle()
