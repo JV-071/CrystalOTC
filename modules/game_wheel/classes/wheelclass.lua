@@ -1663,18 +1663,82 @@ function WheelOfDestiny.configureDedicationPerk()
 	wheelOfDestinyWindow.dedicationPerks.tabContent.mitigationPoints.value:setText(string.format("%.2f%%", mitigation))
 end
 
-function WheelOfDestiny.configureConvictionPerk()
-	wheelOfDestinyWindow.convictionPerks.tabContent:destroyChildren()
-	wheelOfDestinyWindow.convictionPerks.tabContentScroll:setVisible(false)
+-- Rows of the compact perk lists (Conviction Perks, Vessels): one text line each, 9 fit without scrolling.
+local PERK_ROW_HEIGHT = 15
+local PERK_ROWS_VISIBLE = 9
 
-	local convictions = getConvictionPerks()
-
-	if #convictions > 8 then
-		wheelOfDestinyWindow.convictionPerks.tabContentScroll:setVisible(true)
+-- 15.33 order of the Conviction Perks list: Gem Vessel, skill boost, vocation specials, spell
+-- augments by name, Life Leech, Mana Leech, Revelation Mastery by name. Keys are the ones
+-- getConvictionPerks uses (1-4 specials, 5 skill, 6 life leech, 7 mana leech, 8-12 augments,
+-- 13 Gem Vessel, 21-24 Revelation Mastery).
+local function getConvictionRank(key)
+	if key == 13 then
+		return 1
+	elseif key == 5 then
+		return 2
+	elseif key >= 1 and key <= 4 then
+		return 3
+	elseif key >= 8 and key <= 12 then
+		return 4
+	elseif key == 6 then
+		return 5
+	elseif key == 7 then
+		return 6
+	elseif key >= 21 and key <= 24 then
+		return 7
 	end
 
-	for _, i in pairs(convictions) do
-		local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.convictionPerks.tabContent)
+	return 8
+end
+
+local function sortConvictionPerks(convictions)
+	local list = {}
+
+	for key, entry in pairs(convictions) do
+		table.insert(list, {
+			key = key,
+			entry = entry
+		})
+	end
+
+	local byRank = WheelVessels.isActive()
+
+	table.sort(list, function(a, b)
+		if byRank then
+			local rankA = getConvictionRank(a.key)
+			local rankB = getConvictionRank(b.key)
+
+			if rankA ~= rankB then
+				return rankA < rankB
+			end
+
+			if (rankA == 4 or rankA == 7) and a.entry.perk ~= b.entry.perk then
+				return tostring(a.entry.perk) < tostring(b.entry.perk)
+			end
+		end
+
+		return a.key < b.key
+	end)
+
+	return list
+end
+
+function WheelOfDestiny.configureConvictionPerk()
+	local panel = wheelOfDestinyWindow.convictionPerks
+
+	panel.tabContent:destroyChildren()
+
+	local list = sortConvictionPerks(getConvictionPerks())
+	local scrolling = #list > PERK_ROWS_VISIBLE
+
+	panel.tabContentScroll:setVisible(scrolling)
+	panel.tabContent:setMarginRight(scrolling and 16 or 6)
+
+	for _, item in ipairs(list) do
+		local i = item.entry
+		local widget = g_ui.createWidget("PerksPanel", panel.tabContent)
+
+		widget:setHeight(PERK_ROW_HEIGHT)
 
 		widget.perk:setText(i.perk)
 

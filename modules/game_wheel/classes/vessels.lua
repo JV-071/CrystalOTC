@@ -506,7 +506,7 @@ function WheelVessels.addConvictionPerk(convictions, bonus)
 		if not convictions[key] then
 			convictions[key] = {
 				points = 0,
-				perk = "Gem Vessels",
+				perk = "Gem Vessel",
 				tooltip = WheelVessels.getConvictionTooltip(bonus)
 			}
 		end
@@ -517,15 +517,11 @@ function WheelVessels.addConvictionPerk(convictions, bonus)
 		return true
 	elseif bonus.conviction == "revelation_mastery" then
 		local key = 20 + bonus.domain
-		local names = {
-			"RM Top Left",
-			"RM Top Right",
-			"RM Bottom Left",
-			"RM Bottom Right"
-		}
+		local perkName = getRevelationDisplayName(bonus.domain)
 
+		-- the official client names the entry after the Revelation Perk it feeds: "RM Gift of Life"
 		convictions[key] = {
-			perk = names[bonus.domain] or "Revelation Mastery",
+			perk = perkName and perkName ~= "" and "RM " .. perkName or "Revelation Mastery",
 			stringPoint = "+" .. MASTERY_POINTS,
 			tooltip = WheelVessels.getConvictionTooltip(bonus)
 		}
