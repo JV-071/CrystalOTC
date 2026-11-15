@@ -674,9 +674,18 @@ local function onTeleport(player, newPos, oldPos)
 	end
 end
 
+-- After a diagonal the character reaches the tile in a regular step time and then waits out the
+-- rest of the 3x diagonal cost. The next step of a held walk is planned for the moment that wait
+-- ends instead of polling every 10 ms.
+local function stepWaitLeft(player)
+	local left = player:getStepDuration(false, Directions.Invalid) - player:getWalkTicksElapsed()
+
+	return left > 0 and left or 0
+end
+
 local function onWalkFinish(player)
 	if walkRepeatActive and smartWalkDir then
-		continueWalk(0)
+		continueWalk(stepWaitLeft(player))
 
 		return
 	end
@@ -690,7 +699,7 @@ local function onWalkFinish(player)
 		walkRepeatEvent = nil
 		walkRepeatActive = true
 
-		continueWalk(0)
+		continueWalk(stepWaitLeft(player))
 
 		return
 	end
