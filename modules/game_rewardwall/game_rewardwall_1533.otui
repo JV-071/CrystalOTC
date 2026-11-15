@@ -88,16 +88,11 @@ MainWindowHigh
         anchors.verticalCenter: timeLeft.verticalCenter
         margin-left: 5
 
-      RewardCurrencyView
+      RewardJokerView1533
         id: restingAreaGold
-        size: 66 20
         margin-top: 5
         anchors.top: timeLeft.bottom
         anchors.left: timeLeft.left
-
-        RewardResourceIcon
-          id: gold
-          image-source: /game_rewardwall/images/icon-daily-reward-joker
 
       RewardHelpIcon
         id: jokerHelp

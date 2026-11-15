@@ -83,3 +83,34 @@ RewardHelpIcon < UIWidget
 RewardCurrencyView1533 < RewardCurrencyView
   size: 52 20
   margin-top: 0
+
+// TibiaCurrencyView without rightAligned: amount and icon centered as one group
+RewardJokerView1533 < UIWidget
+  size: 66 20
+  image-source: /images/ui/button-verydarkgrey-down
+  image-border: 3
+  image-clip: 0 0 98 40
+
+  UIWidget
+    id: text
+    anchors.top: parent.top
+    anchors.bottom: parent.bottom
+    anchors.horizontalCenter: parent.horizontalCenter
+    margin-top: 1
+    margin-left: -6
+    text-align: center
+    text-horizontal-auto-resize: true
+    font: $var-cip-font-new
+    color: #c0c0c0
+    phantom: true
+
+  UIWidget
+    id: gold
+    size: 11 11
+    anchors.left: text.right
+    anchors.top: parent.top
+    margin-top: 5
+    margin-left: 1
+    image-source: /game_rewardwall/images/icon-daily-reward-joker
+    image-size: 11 11
+    phantom: true
