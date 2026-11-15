@@ -233,11 +233,38 @@ function updateBigMouseCursorAvailability(panelsArg, useNativeMouseCursor)
 	end
 end
 
-local GRAPHICS_ENGINE_DISPLAY_NAMES = {
-	[0] = "DirectX 12",
-	"DirectX 12",
-	"OpenGL"
+-- Index in the graphics engine list <-> renderBackend value in config.ini.
+-- DirectX 11 and OpenGL both go through ANGLE (one build, chosen at startup);
+-- Vulkan is our own renderer and falls back to the automatic choice when unavailable.
+local GRAPHICS_ENGINE_LABELS = {
+	[0] = "(auto-select)",
+	"DirectX 11",
+	"OpenGL",
+	"Vulkan (experimental)"
 }
+local GRAPHICS_ENGINE_BACKENDS = {
+	[0] = "auto",
+	"d3d11",
+	"opengl",
+	"vulkan"
+}
+local GRAPHICS_ENGINE_DISPLAY_NAMES = {
+	[0] = "DirectX 11",
+	"DirectX 11",
+	"OpenGL",
+	"Vulkan"
+}
+
+local function graphicsEngineIndexOf(backend)
+	for index = 0, #GRAPHICS_ENGINE_BACKENDS do
+		if GRAPHICS_ENGINE_BACKENDS[index] == backend then
+			return index
+		end
+	end
+
+	-- "gl" (old config.ini value) and anything unknown is the automatic choice
+	return 0
+end
 local GRAPHICS_ENGINE_HELP_BODY = tr("In general, the client will automatically select the best graphics engine for you. Select the graphics engine of your choice from the drop-down menu if you should experience problems with the pre-selected one. Note that a restart of the client is necessary for this change to take effect.")
 
 function updateGraphicsEngineHelpTooltip(panelsArg, engineValue)
@@ -253,7 +280,12 @@ function updateGraphicsEngineHelpTooltip(panelsArg, engineValue)
 		return
 	end
 
-	local engineName = GRAPHICS_ENGINE_DISPLAY_NAMES[engineValue] or GRAPHICS_ENGINE_DISPLAY_NAMES[0]
+	-- the engine really in use (it can differ from the selection after a fallback or before a restart)
+	local engineName = g_window.getActiveRenderBackend and g_window.getActiveRenderBackend() or nil
+
+	if not engineName or engineName == "" then
+		engineName = GRAPHICS_ENGINE_DISPLAY_NAMES[engineValue] or GRAPHICS_ENGINE_DISPLAY_NAMES[0]
+	end
 
 	help:setTooltip(tr("Your current graphics engine is %s.\n\n%s", engineName, GRAPHICS_ENGINE_HELP_BODY))
 end
@@ -721,13 +753,8 @@ local function setupComboBox()
 	if graphicsEngineCombobox then
 		-- Vulkan is our own renderer (under construction). The choice is saved to config.ini as
 		-- renderBackend, because the engine reads it at STARTUP - the change requires a client restart.
-		for k, t in ipairs({
-			"(auto-select)",
-			"DirectX 12",
-			"OpenGL",
-			"Vulkan (experimental)"
-		}) do
-			graphicsEngineCombobox:addOption(t, k - 1)
+		for index = 0, #GRAPHICS_ENGINE_LABELS do
+			graphicsEngineCombobox:addOption(GRAPHICS_ENGINE_LABELS[index], index)
 		end
 
 		function graphicsEngineCombobox.onOptionChange(comboBox, option)
@@ -1943,13 +1970,10 @@ local function setup()
 	-- does nothing, and the old value loaded a moment later (e.g. 3) would show a dead engine.
 	-- setOption also fixes the saved profile (g_settings), so the mismatch disappears permanently.
 	if g_configs.getRenderBackend then
-		local backend = g_configs.getRenderBackend()
-		local engine = getOption("graphicsEngine")
+		local wanted = graphicsEngineIndexOf(g_configs.getRenderBackend())
 
-		if backend == "vulkan" and engine ~= 3 then
-			setOption("graphicsEngine", 3)
-		elseif backend ~= "vulkan" and engine == 3 then
-			setOption("graphicsEngine", 2)
+		if getOption("graphicsEngine") ~= wanted then
+			setOption("graphicsEngine", wanted)
 		end
 	end
 
@@ -2314,8 +2338,7 @@ local function commitRenderBackendChange()
 		return
 	end
 
-	-- 3 = Vulkan, the rest = the existing path
-	g_configs.setRenderBackend(to == 3 and "vulkan" or "gl")
+	g_configs.setRenderBackend(GRAPHICS_ENGINE_BACKENDS[to] or "auto")
 
 	local function doRestart()
 		if g_app and g_app.restart then
