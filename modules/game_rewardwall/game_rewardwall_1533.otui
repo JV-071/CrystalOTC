@@ -3,6 +3,9 @@ MainWindowHigh
   !text: tr('Reward Wall')
   size: 832 344
   text-offset: 0 1
+  // the official content runs from x=17 to x=817
+  padding-left: 17
+  padding-right: 15
   @onEscape: modules.game_rewardwall.rewardWallController:onClickToggle()
 
   MiniPanel
@@ -154,6 +157,7 @@ MainWindowHigh
     size: 14 25
     anchors.left: restingAreaPanel.right
     anchors.verticalCenter: restingAreaPanel.verticalCenter
+    margin-top: 1
     margin-left: 10
     image-source: /images/game/forge/icon-arrow-rightlarge
     phantom: true
@@ -272,37 +276,37 @@ MainWindowHigh
       id: arrow1
       anchors.left: reward1.right
       anchors.top: reward1.top
-      margin-top: 30
+      margin-top: 29
 
     RewardArrow1533
       id: arrow2
       anchors.left: reward2.right
       anchors.top: reward2.top
-      margin-top: 30
+      margin-top: 29
 
     RewardArrow1533
       id: arrow3
       anchors.left: reward3.right
       anchors.top: reward3.top
-      margin-top: 30
+      margin-top: 29
 
     RewardArrow1533
       id: arrow4
       anchors.left: reward4.right
       anchors.top: reward4.top
-      margin-top: 30
+      margin-top: 29
 
     RewardArrow1533
       id: arrow5
       anchors.left: reward5.right
       anchors.top: reward5.top
-      margin-top: 30
+      margin-top: 29
 
     RewardArrow1533
       id: arrow6
       anchors.left: reward6.right
       anchors.top: reward6.top
-      margin-top: 30
+      margin-top: 29
 
     UIWidget
       id: arrowLoop
@@ -310,6 +314,7 @@ MainWindowHigh
       anchors.top: parent.top
       anchors.horizontalCenter: parent.horizontalCenter
       margin-top: 113
+      margin-left: 1
       image-source: /game_rewardwall/images/icon-rewardarrow-loop-inactive
       phantom: true
 
@@ -320,7 +325,7 @@ MainWindowHigh
     anchors.top: dailyRewardsPanel.top
     anchors.left: dailyRewardsPanel.left
     margin-top: 136
-    margin-left: 23
+    margin-left: 22
     focusable: false
 
     BigPremiumButton
@@ -411,12 +416,13 @@ MainWindowHigh
       anchors.top: parent.top
       anchors.left: parent.left
       anchors.right: parent.right
+      margin-top: 1
 
     RewardCurrencyView1533
       id: footerCosmetic
       anchors.left: parent.left
       anchors.top: footerSeparator.bottom
-      margin-top: 6
+      margin-top: 5
       !tooltip: tr('Cosmetic Tokens')
 
       RewardResourceIcon
@@ -426,7 +432,7 @@ MainWindowHigh
       id: footerReroll
       anchors.left: prev.right
       anchors.top: footerSeparator.bottom
-      margin-top: 6
+      margin-top: 5
       margin-left: 5
       !tooltip: tr('Bounty Task Reroll Tokens')
 
@@ -438,7 +444,7 @@ MainWindowHigh
       id: footerGold1
       anchors.left: prev.right
       anchors.top: footerSeparator.bottom
-      margin-top: 6
+      margin-top: 5
       margin-left: 5
       !tooltip: tr('Daily Reward Jokers')
 
@@ -450,7 +456,7 @@ MainWindowHigh
       id: footerGold2
       anchors.left: prev.right
       anchors.top: footerSeparator.bottom
-      margin-top: 6
+      margin-top: 5
       margin-left: 5
       !tooltip: tr('Instant Reward Access')
 
@@ -462,6 +468,7 @@ MainWindowHigh
       id: instantRewardStoreButton
       anchors.left: prev.right
       anchors.top: footerSeparator.bottom
+      margin-top: 5
       margin-left: 2
       !tooltip: tr('Get more Instant Reward Access in the Store')
       @onClick: modules.game_rewardwall.rewardWallController:onClickGetInstantRewardAccess()
