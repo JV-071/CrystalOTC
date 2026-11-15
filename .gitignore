@@ -393,3 +393,6 @@ assets_crypto.py
 __pycache__/
 records/
 _wip_stance_icons/
+
+# CipSoft 15.33 UI graphics, copied by cip1533-ui/tools/install_ui_graphics.py
+data/images/1533/
