@@ -72,6 +72,13 @@ function loadGemAtelierWindow()
 
 	if qualitiesBox then
 		function qualitiesBox.onOptionChange(widget, text, data)
+			-- 15.33: a new quality filter drops the vessel selection like the official client
+			-- (a vessel click sets the filter first and selects its vessel after it)
+			if WheelVessels and WheelVessels.isActive() and WheelVessels.getSelectedVessel() >= 0 then
+				WheelVessels.resetSelection()
+				WheelVessels.setupAtelierPanel()
+			end
+
 			if GemAtelier and GemAtelier.onSortQuality then
 				GemAtelier.onSortQuality(widget, widget.currentIndex)
 			end
