@@ -245,7 +245,8 @@ void LocalPlayer::preWalk(Otc::Direction direction)
 
     // A step sent before the server is ready for it (the step after a diagonal, see getNextStepWait)
     // waits in the server queue until the walk delay of the previous step ends.
-    const int queued = static_cast<int>(m_walkQueueDelay) + getStepDuration() - static_cast<int>(m_walkTimer.ticksElapsed());
+    m_walkQueuePrevCost = getStepDuration();
+    const int queued = static_cast<int>(m_walkQueueDelay) + m_walkQueuePrevCost - static_cast<int>(m_walkTimer.ticksElapsed());
     m_walkQueueDelay = static_cast<uint16_t>(std::clamp<int>(queued, 0, UINT16_MAX));
 
     const auto& oldPos = getPosition();
@@ -256,6 +257,25 @@ void LocalPlayer::preWalk(Otc::Direction direction)
 
     Creature::onPositionChange(getLastStepToPosition(), getLastStepFromPosition());
     registerAdjustInvalidPosEvent();
+}
+
+// The server computes the walk delay of the previous step with the speed it has when it checks it,
+// so a slower speed (paralyze) set while the last step still waits in its queue makes the server hold
+// that step longer. The step after it has to wait as long, or it would reach the server while the
+// queued one is still there and replace it (snap back). The speed change arrives before the
+// confirmation of the queued step only when the server changed it before taking the step.
+void LocalPlayer::onSpeedChangeWhileQueued(const uint16_t oldStepDuration)
+{
+    if (m_walkQueueDelay == 0 || !isPreWalking() || oldStepDuration == 0)
+        return;
+
+    const uint16_t newStepDuration = getStepDuration(true);
+    if (newStepDuration <= oldStepDuration) // faster: the server still takes the step when planned
+        return;
+
+    const uint32_t prevCost = static_cast<uint32_t>(m_walkQueuePrevCost) * newStepDuration / oldStepDuration;
+    m_walkQueueDelay = static_cast<uint16_t>(std::min<uint32_t>(m_walkQueueDelay + prevCost - m_walkQueuePrevCost, UINT16_MAX));
+    m_walkQueuePrevCost = static_cast<uint16_t>(std::min<uint32_t>(prevCost, UINT16_MAX));
 }
 
 void LocalPlayer::onWalking() {

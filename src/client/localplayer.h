@@ -169,6 +169,7 @@ private:
     void cancelAdjustInvalidPosEvent();
     void registerAdjustInvalidPosEvent();
     uint16_t getNextStepWait();
+    void onSpeedChangeWhileQueued(uint16_t oldStepDuration);
 
     bool retryAutoWalk();
 
@@ -182,6 +183,8 @@ private:
     ticks_t m_walkLockExpiration{ 0 };
     // estimated time the last prewalk waits in the server walk queue before it is executed
     uint16_t m_walkQueueDelay{ 0 };
+    // server cost of the step before the last prewalk: the queued step waits for its walk delay
+    uint16_t m_walkQueuePrevCost{ 0 };
 
     bool m_knownCompletePath{ false };
     bool m_premium{ false };

@@ -1054,6 +1054,7 @@ void Creature::setSpeed(uint16_t speed)
         return;
 
     const uint16_t oldSpeed = m_speed;
+    const uint16_t oldStepDuration = isLocalPlayer() ? getStepDuration(true) : 0;
     m_speed = speed;
 
     // Cache for stepSpeed Law
@@ -1065,8 +1066,10 @@ void Creature::setSpeed(uint16_t speed)
         } else m_calculatedStepSpeed = 1;
     }
 
-    if (isLocalPlayer())
+    if (isLocalPlayer()) {
+        static_self_cast<LocalPlayer>()->onSpeedChangeWhileQueued(oldStepDuration);
         static_self_cast<LocalPlayer>()->registerAdjustInvalidPosEvent();
+    }
 
     // speed can change while walking (utani hur, paralyze, etc..)
     if (m_walking)
