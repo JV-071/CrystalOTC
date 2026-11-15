@@ -61,8 +61,19 @@ local function is1533()
 	return g_game.getClientVersion() >= 1533
 end
 
+-- the window asks for the same optional images on every open and every reward list,
+-- remember the answer instead of searching the resource paths again
+local imageExistsCache = {}
+
 local function imageExists(path)
-	return g_resources.fileExists(path .. ".png")
+	local exists = imageExistsCache[path]
+
+	if exists == nil then
+		exists = g_resources.fileExists(path .. ".png")
+		imageExistsCache[path] = exists
+	end
+
+	return exists
 end
 
 -- official 15.33 graphics copied by the owner into data/images/1533/ (git ignored, see
@@ -627,11 +638,21 @@ local function setupRewardGoldOverlay(slot, styleName)
 		return nil
 	end
 
+	-- every open refreshes all seven slots, keep the overlay when the day kept its state
+	local current = slot.rewardOverlay
+
+	if current and slot.rewardOverlayStyle == styleName and not current:isDestroyed() then
+		return current
+	end
+
 	slot:destroyChildren()
 
 	local overlay = g_ui.createWidget(styleName, slot)
 
 	overlay:setPhantom(true)
+
+	slot.rewardOverlay = overlay
+	slot.rewardOverlayStyle = styleName
 
 	return overlay
 end
