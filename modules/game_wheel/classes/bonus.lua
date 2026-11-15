@@ -2668,6 +2668,43 @@ function getValueByVocation(bonusType, steps)
 	return bonus
 end
 
+-- 15.33 order of the Vessels list: special mods first (leech, critical damage, augments,
+-- Revelation Mastery), then Hit Points, Mana, Capacity, Mitigation, then the resistances by name.
+local VESSEL_BONUS_RANK = {
+	special = 1,
+	augment = 1,
+	revelation = 1,
+	life = 2,
+	mana = 3,
+	capacity = 4,
+	mitigation = 5
+}
+
+local function stableSort(list, less)
+	for i, entry in ipairs(list) do
+		entry.sortIndex = i
+	end
+
+	table.sort(list, function(a, b)
+		if less(a, b) then
+			return true
+		elseif less(b, a) then
+			return false
+		end
+
+		return a.sortIndex < b.sortIndex
+	end)
+end
+
+function sortVesselBonuses(bonuses, defenses)
+	stableSort(bonuses, function(a, b)
+		return (VESSEL_BONUS_RANK[a.bonusType] or 6) < (VESSEL_BONUS_RANK[b.bonusType] or 6)
+	end)
+	stableSort(defenses, function(a, b)
+		return tostring(a.text) < tostring(b.text)
+	end)
+end
+
 function getVesselBonus()
 	local bonuses = {}
 	local defenses = {}
@@ -2855,6 +2892,10 @@ function getVesselBonus()
 		end
 
 		::label_13_0::
+	end
+
+	if WheelVessels.isActive() then
+		sortVesselBonuses(bonuses, defenses)
 	end
 
 	if #defenses > 0 then

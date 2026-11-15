@@ -493,11 +493,37 @@ function WheelOfDestiny:onMouseRelease(mousePosition, mouseButton)
 	return true
 end
 
+-- The Information tab shows the hovered slice; with no slice under the mouse it shows the
+-- right-click hint like the official client.
+function WheelOfDestiny.showInformationHint(visible)
+	local information = wheelOfDestinyWindow and wheelOfDestinyWindow.info.tabContent.information
+
+	if not information then
+		return
+	end
+
+	information.hint:setVisible(visible)
+	information.tabContent:setVisible(not visible)
+
+	if visible then
+		WheelOfDestiny.mouseIndex = 0
+	end
+end
+
+-- Mouse moves over the rest of the Wheel of Destiny page (side panels): no slice is hovered.
+function WheelOfDestiny.onPageMouseMove(widget, position, offset)
+	if wheelPanel and not wheelPanel:containsPoint(position) then
+		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
+	end
+end
+
 function WheelOfDestiny.onMouseMove(widget, position, offset)
 	local index = WheelOfDestiny.getSliceIndex(position)
 
 	if index == 0 then
 		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
 
 		return
 	end
@@ -506,16 +532,19 @@ function WheelOfDestiny.onMouseMove(widget, position, offset)
 		return
 	end
 
-	WheelOfDestiny.mouseIndex = index
-
 	local bonus = WheelBonus[index - 1]
 	local pointInvested = WheelOfDestiny.pointInvested[index]
 
 	if not pointInvested then
 		wheelPanel.focusSelectedWheel:setVisible(false)
+		WheelOfDestiny.showInformationHint(true)
 
 		return
 	end
+
+	WheelOfDestiny.showInformationHint(false)
+
+	WheelOfDestiny.mouseIndex = index
 
 	local bar = wheelOfDestinyWindow.info.tabContent.information.tabContent.dedicationPB2
 
@@ -628,7 +657,7 @@ function WheelOfDestiny.insertPoint(index, points)
 						table.insert(WheelOfDestiny.vesselEnabled[bonus.domain - 1], index)
 					end
 				else
-					widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+					widget:setImageSource(WheelVessels.mediumPerkSheet())
 					widget:setImageClip(iconInfo.iconRect)
 					modIcon:setVisible(false)
 				end
@@ -688,7 +717,7 @@ function WheelOfDestiny.checkFilledVessels(originalIndex)
 		if not gem then
 			-- block empty
 		else
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 
@@ -765,7 +794,7 @@ function WheelOfDestiny.removePoint(index, points)
 				local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 				local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-				widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+				widget:setImageSource(WheelVessels.mediumPerkSheet())
 				widget:setImageClip(iconInfo.iconRect)
 				widget:setSize(tosize("30 30"))
 				modIcon:setVisible(false)
@@ -801,7 +830,7 @@ function WheelOfDestiny.removePoint(index, points)
 			local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 			local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 			modIcon:setVisible(false)
@@ -876,8 +905,8 @@ function WheelOfDestiny.openPreviewWheel(playerId, vocationId)
 	local value = bankMoney + characterMoney
 
 	wheelWindow.moneyPanel.gold:setText(formatMoney(value, ","))
-	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
-	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
+	wheelWindow.lesserFragmentPanel.gold:setText(comma_value(lesserFragment))
+	wheelWindow.greaterFragmentPanel.gold:setText(comma_value(greaterFragment))
 	WheelOfDestiny.create(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
 
 	if GemAtelier and gemAtelierWindow and gemAtelierWindow:isVisible() and GemAtelier.setupVesselPanel then
@@ -1052,8 +1081,8 @@ function WheelOfDestiny.onDestinyWheel(playerId, canView, changeState, vocationI
 	local value = bankMoney + characterMoney
 
 	wheelWindow.moneyPanel.gold:setText(formatMoney(value, ","))
-	wheelWindow.lesserFragmentPanel.gold:setText(lesserFragment)
-	wheelWindow.greaterFragmentPanel.gold:setText(greaterFragment)
+	wheelWindow.lesserFragmentPanel.gold:setText(comma_value(lesserFragment))
+	wheelWindow.greaterFragmentPanel.gold:setText(comma_value(greaterFragment))
 	WheelOfDestiny.create(playerId, canView, changeState, vocationId, points, scrollPoints, pointInvested, usedPromotionScrolls, equipedGems, atelierGems, basicUpgraded, supremeUpgraded, earnedFromAchievements)
 	WheelVessels.rememberServerState()
 
@@ -1159,13 +1188,13 @@ function WheelOfDestiny.onCreate(vocationId)
 						widget:setSize(tosize("35 35"))
 						modIcon:setVisible(true)
 					else
-						widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+						widget:setImageSource(WheelVessels.mediumPerkSheet())
 						widget:setImageClip(iconInfo.iconRect)
 						widget:setSize(tosize("30 30"))
 						modIcon:setVisible(false)
 					end
 				else
-					widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+					widget:setImageSource(WheelVessels.mediumPerkSheet())
 					widget:setImageClip(iconInfo.iconRect)
 					widget:setSize(tosize("30 30"))
 
@@ -1174,6 +1203,7 @@ function WheelOfDestiny.onCreate(vocationId)
 					end
 				end
 			else
+				widget:setImageSource(WheelVessels.mediumPerkSheet())
 				widget:setImageClip(iconInfo.iconRect)
 			end
 		end
@@ -1201,7 +1231,7 @@ function WheelOfDestiny.onCreate(vocationId)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	wheelPanel:recursiveGetChildById("fullColorWheel_15"):setVisible(true)
 	wheelPanel:recursiveGetChildById("fullColorWheel_16"):setVisible(true)
 	wheelPanel:recursiveGetChildById("fullColorWheel_21"):setVisible(true)
@@ -1279,7 +1309,7 @@ function onAddMax(index)
 
 	WheelOfDestiny.usedPoints = usedPoints
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1341,7 +1371,7 @@ function onAddOne(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1405,7 +1435,7 @@ function onAddCustom(index, count)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1472,7 +1502,7 @@ function onRmvMax(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1534,7 +1564,7 @@ function onRmvOne(index)
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 	WheelOfDestiny.checkManagerPointsButtons(index)
 	WheelOfDestiny.configureDedicationPerk()
 	WheelOfDestiny.configureConvictionPerk()
@@ -1553,7 +1583,7 @@ function resetWheel(ignoreprotocol)
 			local modIcon = widget:recursiveGetChildById("modIcon" .. index)
 			local iconInfo = WheelIcons[WheelOfDestiny.vocationId][index]
 
-			widget:setImageSource("/images/game/wheel/icons-skillwheel-mediumperks")
+			widget:setImageSource(WheelVessels.mediumPerkSheet())
 			widget:setImageClip(iconInfo.iconRect)
 			widget:setSize(tosize("30 30"))
 
@@ -1657,24 +1687,88 @@ function WheelOfDestiny.configureDedicationPerk()
 		end
 	end
 
-	wheelOfDestinyWindow.dedicationPerks.tabContent.hitPoints.value:setText((health > 0 and "+" or "") .. health)
-	wheelOfDestinyWindow.dedicationPerks.tabContent.manaPoints.value:setText((mana > 0 and "+" or "") .. mana)
-	wheelOfDestinyWindow.dedicationPerks.tabContent.capPoints.value:setText((cap > 0 and "+" or "") .. cap)
+	wheelOfDestinyWindow.dedicationPerks.tabContent.hitPoints.value:setText((health > 0 and "+" or "") .. comma_value(health))
+	wheelOfDestinyWindow.dedicationPerks.tabContent.manaPoints.value:setText((mana > 0 and "+" or "") .. comma_value(mana))
+	wheelOfDestinyWindow.dedicationPerks.tabContent.capPoints.value:setText((cap > 0 and "+" or "") .. comma_value(cap))
 	wheelOfDestinyWindow.dedicationPerks.tabContent.mitigationPoints.value:setText(string.format("%.2f%%", mitigation))
 end
 
-function WheelOfDestiny.configureConvictionPerk()
-	wheelOfDestinyWindow.convictionPerks.tabContent:destroyChildren()
-	wheelOfDestinyWindow.convictionPerks.tabContentScroll:setVisible(false)
+-- Rows of the compact perk lists (Conviction Perks, Vessels): one text line each, 9 fit without scrolling.
+local PERK_ROW_HEIGHT = 15
+local PERK_ROWS_VISIBLE = 9
 
-	local convictions = getConvictionPerks()
-
-	if #convictions > 8 then
-		wheelOfDestinyWindow.convictionPerks.tabContentScroll:setVisible(true)
+-- 15.33 order of the Conviction Perks list: Gem Vessel, skill boost, vocation specials, spell
+-- augments by name, Life Leech, Mana Leech, Revelation Mastery by name. Keys are the ones
+-- getConvictionPerks uses (1-4 specials, 5 skill, 6 life leech, 7 mana leech, 8-12 augments,
+-- 13 Gem Vessel, 21-24 Revelation Mastery).
+local function getConvictionRank(key)
+	if key == 13 then
+		return 1
+	elseif key == 5 then
+		return 2
+	elseif key >= 1 and key <= 4 then
+		return 3
+	elseif key >= 8 and key <= 12 then
+		return 4
+	elseif key == 6 then
+		return 5
+	elseif key == 7 then
+		return 6
+	elseif key >= 21 and key <= 24 then
+		return 7
 	end
 
-	for _, i in pairs(convictions) do
-		local widget = g_ui.createWidget("PerksPanel", wheelOfDestinyWindow.convictionPerks.tabContent)
+	return 8
+end
+
+local function sortConvictionPerks(convictions)
+	local list = {}
+
+	for key, entry in pairs(convictions) do
+		table.insert(list, {
+			key = key,
+			entry = entry
+		})
+	end
+
+	local byRank = WheelVessels.isActive()
+
+	table.sort(list, function(a, b)
+		if byRank then
+			local rankA = getConvictionRank(a.key)
+			local rankB = getConvictionRank(b.key)
+
+			if rankA ~= rankB then
+				return rankA < rankB
+			end
+
+			if (rankA == 4 or rankA == 7) and a.entry.perk ~= b.entry.perk then
+				return tostring(a.entry.perk) < tostring(b.entry.perk)
+			end
+		end
+
+		return a.key < b.key
+	end)
+
+	return list
+end
+
+function WheelOfDestiny.configureConvictionPerk()
+	local panel = wheelOfDestinyWindow.convictionPerks
+
+	panel.tabContent:destroyChildren()
+
+	local list = sortConvictionPerks(getConvictionPerks())
+	local scrolling = #list > PERK_ROWS_VISIBLE
+
+	panel.tabContentScroll:setVisible(scrolling)
+	panel.tabContent:setMarginRight(scrolling and 16 or 6)
+
+	for _, item in ipairs(list) do
+		local i = item.entry
+		local widget = g_ui.createWidget("PerksPanel", panel.tabContent)
+
+		widget:setHeight(PERK_ROW_HEIGHT)
 
 		widget.perk:setText(i.perk)
 
@@ -1692,54 +1786,86 @@ function WheelOfDestiny.configureConvictionPerk()
 	end
 end
 
+-- Up to two decimals without trailing zeros, thousands separators on the integer part.
+local function formatPerkNumber(number)
+	local text = string.format("%.2f", number):gsub("0+$", ""):gsub("%.$", "")
+
+	return comma_value(text)
+end
+
+-- Value column of the Vessels list: "+3", "+0.8%", "+12%", resistances already carry their sign.
+local function formatVesselValue(data)
+	local value = data.value
+
+	if value == nil or value == -1 then
+		return nil
+	end
+
+	if type(value) == "string" and value:find("%%$") then
+		return value
+	end
+
+	local number = tonumber(value)
+
+	if not number then
+		return tostring(value)
+	end
+
+	local text = (number >= 0 and "+" or "-") .. formatPerkNumber(math.abs(number))
+
+	if data.bonusType == "special" or data.bonusType == "augment" or data.bonusType == "mitigation" then
+		text = text .. "%"
+	end
+
+	return text
+end
+
 function WheelOfDestiny.configureVessels()
-	local container = wheelOfDestinyWindow.vessels.tabContent
-	local scrollBar = wheelOfDestinyWindow.vessels.tabContentScroll
+	local panel = wheelOfDestinyWindow.vessels
+	local container = panel.tabContent
+	local scrollBar = panel.tabContentScroll
 
 	container:destroyChildren()
-	scrollBar:setVisible(false)
 
 	local bonus = getVesselBonus()
+	local scrolling = #bonus > PERK_ROWS_VISIBLE
+
+	scrollBar:setVisible(scrolling)
+	container:setMarginRight(scrolling and 16 or 6)
 
 	for i, data in ipairs(bonus) do
 		local widget = g_ui.createWidget("PerksPanel", container)
 
-		widget:setHeight(20)
+		widget:setHeight(PERK_ROW_HEIGHT)
 
 		if not data.text or data.text == "" then
 			data.text = "(Unknown)"
 		end
 
-		widget.perk:setText(data.text)
+		-- the resistances are listed one per row under "Resistances:", indented
+		local text = data.text
+		local indented = text:find("^%s+") ~= nil
 
-		if data.value == -1 then
-			widget.value:setVisible(false)
+		if indented then
+			text = text:gsub("^%s+", "")
+
+			widget.perk:setMarginLeft(8)
+		end
+
+		widget.perk:setText(text)
+
+		local value = formatVesselValue(data)
+
+		if value then
+			widget.value:setText(value)
 		else
-			local value = tostring(data.value)
-
-			if not value:match("[+-I]") then
-				if data.value and tonumber(data.value) < 15 then
-					widget.value:setText("+" .. value .. "%")
-				else
-					widget.value:setText("+" .. value)
-				end
-			elseif data.text:find("RM") then
-				widget.value:setText("+" .. value)
-			elseif data.bonusType == "augment" or data.bonusType == "mitigation" then
-				widget.value:setText("+" .. value .. "%")
-			else
-				widget.value:setText(data.value)
-			end
+			widget.value:setVisible(false)
 		end
 
 		if data.tooltip then
 			widget.info:setVisible(true)
 			widget.info:setTooltip(data.tooltip)
 		end
-	end
-
-	if scrollBar:getMaximum() > 0 then
-		scrollBar:setVisible(true)
 	end
 end
 
@@ -1863,11 +1989,11 @@ function WheelOfDestiny.configureSummary()
 		widget.info:setVisible(false)
 
 		if t == "Hit Points" then
-			widget.value:setText((health > 0 and "+" or "") .. health)
+			widget.value:setText((health > 0 and "+" or "") .. comma_value(health))
 		elseif t == "Mana" then
-			widget.value:setText((mana > 0 and "+" or "") .. mana)
+			widget.value:setText((mana > 0 and "+" or "") .. comma_value(mana))
 		elseif t == "Capacity" then
-			widget.value:setText((cap > 0 and "+" or "") .. cap)
+			widget.value:setText((cap > 0 and "+" or "") .. comma_value(cap))
 		elseif t == "Mitigation Mult." then
 			widget.value:setText(string.format("%.2f%%", mitigation))
 			widget.info:setTooltip("Increase your mitigation multiplicatively.")
@@ -2389,7 +2515,7 @@ function WheelOfDestiny.create(playerId, canView, changeState, vocationId, point
 
 	local totalPoints = WheelOfDestiny.points + (WheelOfDestiny.extraGemPoints + WheelOfDestiny.scrollPoints)
 
-	wheelOfDestinyWindow.selection.points:setText(totalPoints - WheelOfDestiny.usedPoints .. " / " .. totalPoints)
+	wheelOfDestinyWindow.selection.points:setText(comma_value(totalPoints - WheelOfDestiny.usedPoints) .. " / " .. comma_value(totalPoints))
 
 	wheelPanel:recursiveGetChildById("perkIconTopLeft").onClick = function()
 		WheelOfDestiny.onWheelPassiveClick(1)
@@ -2791,6 +2917,75 @@ function WheelOfDestiny.configureRevelationPerks()
 	end
 
 	wheelOfDestinyWindow.revelationPerks.tabContent.infoSpell3:setTooltip(m1)
+
+	WheelOfDestiny.layoutRevelationPerks()
+end
+
+-- Name column of the Revelation Perks list, cut like the official client: "Executioner's Thr..".
+local REVELATION_NAME_CHARS = 18
+
+local function setRevelationName(label, name)
+	label:setTooltip(name)
+
+	if #name > REVELATION_NAME_CHARS then
+		name = name:sub(1, REVELATION_NAME_CHARS - 1) .. ".."
+	end
+
+	label:setText(name)
+end
+
+-- Rows below "Damage and Healing": 15.33 lists the four Revelation Perks by name (Avatar of Steel,
+-- Combat Mastery, Executioner's Throw, Gift of Life), older versions keep the avatar first.
+function WheelOfDestiny.layoutRevelationPerks()
+	local content = wheelOfDestinyWindow.revelationPerks.tabContent
+	local rows = {
+		{
+			widget = content.avatar,
+			label = content.avatar.perk1,
+			domain = 4
+		},
+		{
+			widget = content.spell1,
+			label = content.spell1.perk2,
+			domain = 2
+		},
+		{
+			widget = content.spell2,
+			label = content.spell2.perk3,
+			domain = 1
+		},
+		{
+			widget = content.spell3,
+			label = content.spell3.perk4,
+			domain = 3
+		}
+	}
+
+	for _, row in ipairs(rows) do
+		row.name = getRevelationDisplayName(row.domain) or ""
+
+		setRevelationName(row.label, row.name)
+	end
+
+	if WheelVessels.isActive() then
+		table.sort(rows, function(a, b)
+			return a.name < b.name
+		end)
+	end
+
+	content.damage:setHeight(15)
+
+	local previous = content.damage
+
+	for _, row in ipairs(rows) do
+		row.widget:breakAnchors()
+		row.widget:addAnchor(AnchorTop, previous:getId(), AnchorBottom)
+		row.widget:addAnchor(AnchorLeft, "parent", AnchorLeft)
+		row.widget:setMarginTop(0)
+		row.widget:setHeight(15)
+
+		previous = row.widget
+	end
 end
 
 local function checkValidName(text)
