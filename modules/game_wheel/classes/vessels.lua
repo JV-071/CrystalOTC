@@ -914,7 +914,9 @@ function WheelVessels.setupAtelierPanel()
 		box:setBorderWidth(vessel == selectedVessel and 2 or 0)
 		box:setBorderColor("white")
 
-		-- socket: dark backdrop of an unlocked vessel, the bezel of its quality, the gem inside
+		-- socket: dark backdrop, the bezel of its quality, the gem inside; a locked vessel shows the
+		-- same socket and empty mod slots as an unlocked one, dimmed by the dither overlay (QML
+		-- GemAtelierSocket only adds TibiaDisabledOverlay when locked)
 		if backdropImage then
 			box.backdrop:setImageSource(backdropImage)
 			box.backdrop:setSize(tosize("34 39"))
@@ -923,7 +925,7 @@ function WheelVessels.setupAtelierPanel()
 			box.backdrop:setSize(tosize("34 34"))
 		end
 
-		box.backdrop:setVisible(unlocked)
+		box.backdrop:setVisible(true)
 		box.bezel:setVisible(bezelImage ~= nil)
 
 		if bezelImage then
@@ -940,15 +942,18 @@ function WheelVessels.setupAtelierPanel()
 		for slot = 0, quality do
 			local frame = box.mods:getChildById("mod" .. slot)
 
-			frame:setTooltip("")
 			frame.hover:setVisible(false)
+			frame:setVisible(true)
 
 			if gem then
 				GemAtelier.setupModFrame(frame, gem, slot)
-				frame:setVisible(true)
 			else
-				-- an empty slot of an unlocked vessel, nothing in a locked one
-				frame:setVisible(unlocked)
+				-- an empty slot: the dark mod circle, no tooltip. Clearing a tooltip only when there
+				-- is one keeps a hovered frame from hiding and showing its label again on a redraw.
+				if frame.tooltip and frame.tooltip ~= "" then
+					frame:setTooltip("")
+				end
+
 				frame.icon:setVisible(false)
 				frame.potential:setVisible(false)
 

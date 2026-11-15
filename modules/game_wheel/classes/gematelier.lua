@@ -648,7 +648,10 @@ function GemAtelier.createGemInformation(widget, gemTypeID, supremeMod, tooltip,
 	local text = Workshop.getBonusDescription(search, currentTier)
 
 	if tooltip then
-		widget:setTooltip(text)
+		-- same text again (a redraw of the vessel row): keep the shown label as it is
+		if widget.tooltip ~= text then
+			widget:setTooltip(text)
+		end
 	else
 		local originalText = text
 
