@@ -1261,19 +1261,20 @@ local function layoutSetupBar1533(rerollBox, iconImage)
 	anchorWidget(label, AnchorLeft, "centerGroup", AnchorLeft, 0)
 	anchorWidget(combo, AnchorLeft, "difficultyLabel", AnchorRight, c.labelToCombo)
 
-	local groupWidth = widgetWidth(label, true) + c.labelToCombo + widgetWidth(combo)
+	-- each left to right anchor starts on the previous widget's last pixel, one pixel per link
+	local groupWidth = widgetWidth(label, true) + c.labelToCombo - 1 + widgetWidth(combo)
 
 	if iconImage then
 		anchorWidget(eliteIcon, AnchorLeft, "showFilterDifficulty", AnchorRight, c.comboToIcon)
 		anchorWidget(eliteCheck, AnchorLeft, "eliteIcon", AnchorRight, c.iconToCheck)
-		groupWidth = groupWidth + c.comboToIcon + widgetWidth(eliteIcon) + c.iconToCheck
+		groupWidth = groupWidth + c.comboToIcon - 1 + widgetWidth(eliteIcon) + c.iconToCheck - 1
 	else
 		anchorWidget(eliteCheck, AnchorLeft, "showFilterDifficulty", AnchorRight, c.comboToIcon)
-		groupWidth = groupWidth + c.comboToIcon
+		groupWidth = groupWidth + c.comboToIcon - 1
 	end
 
 	anchorWidget(preferred, AnchorLeft, "eliteCheck", AnchorRight, c.checkToPreferred)
-	groupWidth = groupWidth + widgetWidth(eliteCheck) + c.checkToPreferred + widgetWidth(preferred)
+	groupWidth = groupWidth + widgetWidth(eliteCheck) + c.checkToPreferred - 1 + widgetWidth(preferred)
 
 	if group then
 		group:setWidth(math.max(1, groupWidth))
