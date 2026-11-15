@@ -393,6 +393,3 @@ assets_crypto.py
 __pycache__/
 records/
 _wip_stance_icons/
-
-# CipSoft 15.33 UI graphics, installed locally by install_ui_graphics.py
-data/images/1533/
