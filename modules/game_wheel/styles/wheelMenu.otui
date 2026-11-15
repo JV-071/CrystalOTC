@@ -888,10 +888,10 @@ Panel
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.bottom: parent.bottom
-      margin-top: 22
-      margin-left: 6
+      margin-top: 21
+      margin-left: 14
       margin-right: 16
-      margin-bottom: 4
+      margin-bottom: 2
       vertical-scrollbar: tabContentScroll
       text-wrap: true
       layout:
@@ -932,16 +932,15 @@ Panel
       anchors.left: parent.left
       anchors.right: parent.right
       anchors.bottom: parent.bottom
-      margin-top: 22
-      margin-left: 6
+      margin-top: 21
+      margin-left: 14
       margin-right: 16
-      margin-bottom: 4
+      margin-bottom: 2
       vertical-scrollbar: tabContentScroll
       text-wrap: true
       layout:
         type: verticalBox
         align-top: true
-        spacing: 4
 
     VerticalScrollBar
       id: tabContentScroll

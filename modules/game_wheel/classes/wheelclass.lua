@@ -1756,54 +1756,86 @@ function WheelOfDestiny.configureConvictionPerk()
 	end
 end
 
+-- Up to two decimals without trailing zeros, thousands separators on the integer part.
+local function formatPerkNumber(number)
+	local text = string.format("%.2f", number):gsub("0+$", ""):gsub("%.$", "")
+
+	return comma_value(text)
+end
+
+-- Value column of the Vessels list: "+3", "+0.8%", "+12%", resistances already carry their sign.
+local function formatVesselValue(data)
+	local value = data.value
+
+	if value == nil or value == -1 then
+		return nil
+	end
+
+	if type(value) == "string" and value:find("%%$") then
+		return value
+	end
+
+	local number = tonumber(value)
+
+	if not number then
+		return tostring(value)
+	end
+
+	local text = (number >= 0 and "+" or "-") .. formatPerkNumber(math.abs(number))
+
+	if data.bonusType == "special" or data.bonusType == "augment" or data.bonusType == "mitigation" then
+		text = text .. "%"
+	end
+
+	return text
+end
+
 function WheelOfDestiny.configureVessels()
-	local container = wheelOfDestinyWindow.vessels.tabContent
-	local scrollBar = wheelOfDestinyWindow.vessels.tabContentScroll
+	local panel = wheelOfDestinyWindow.vessels
+	local container = panel.tabContent
+	local scrollBar = panel.tabContentScroll
 
 	container:destroyChildren()
-	scrollBar:setVisible(false)
 
 	local bonus = getVesselBonus()
+	local scrolling = #bonus > PERK_ROWS_VISIBLE
+
+	scrollBar:setVisible(scrolling)
+	container:setMarginRight(scrolling and 16 or 6)
 
 	for i, data in ipairs(bonus) do
 		local widget = g_ui.createWidget("PerksPanel", container)
 
-		widget:setHeight(20)
+		widget:setHeight(PERK_ROW_HEIGHT)
 
 		if not data.text or data.text == "" then
 			data.text = "(Unknown)"
 		end
 
-		widget.perk:setText(data.text)
+		-- the resistances are listed one per row under "Resistances:", indented
+		local text = data.text
+		local indented = text:find("^%s+") ~= nil
 
-		if data.value == -1 then
-			widget.value:setVisible(false)
+		if indented then
+			text = text:gsub("^%s+", "")
+
+			widget.perk:setMarginLeft(8)
+		end
+
+		widget.perk:setText(text)
+
+		local value = formatVesselValue(data)
+
+		if value then
+			widget.value:setText(value)
 		else
-			local value = tostring(data.value)
-
-			if not value:match("[+-I]") then
-				if data.value and tonumber(data.value) < 15 then
-					widget.value:setText("+" .. value .. "%")
-				else
-					widget.value:setText("+" .. value)
-				end
-			elseif data.text:find("RM") then
-				widget.value:setText("+" .. value)
-			elseif data.bonusType == "augment" or data.bonusType == "mitigation" then
-				widget.value:setText("+" .. value .. "%")
-			else
-				widget.value:setText(data.value)
-			end
+			widget.value:setVisible(false)
 		end
 
 		if data.tooltip then
 			widget.info:setVisible(true)
 			widget.info:setTooltip(data.tooltip)
 		end
-	end
-
-	if scrollBar:getMaximum() > 0 then
-		scrollBar:setVisible(true)
 	end
 end
 
