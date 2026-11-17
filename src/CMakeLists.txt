@@ -511,7 +511,8 @@ add_library(otclient_core STATIC ${SOURCE_FILES})
 
 target_link_libraries(otclient_core PRIVATE unofficial::inih::inireader)
 
-if(NOT MSVC)
+# -flto=auto at link time only helps when the objects were compiled with LTO (see OPTIONS_ENABLE_IPO)
+if(NOT MSVC AND OPTIONS_ENABLE_IPO AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_link_options(otclient_core PUBLIC -flto=auto)
 endif()
 

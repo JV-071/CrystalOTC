@@ -47,7 +47,8 @@ function(otclient_add_gtest TARGET_NAME)
         endif()
     endif()
 
-    gtest_discover_tests(${TARGET_NAME})
+    # Discover at test time, not as a post-build step: the build then never has to run a test binary.
+    gtest_discover_tests(${TARGET_NAME} DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 60 PROPERTIES TIMEOUT 60)
 endfunction()
 
 add_subdirectory(map)

@@ -28,7 +28,9 @@
       },
       "vendor": {
         "microsoft.com/VisualStudioSettings/CMake/1.0": {
-          "hostOS": [ "Windows" ]
+          "hostOS": [
+            "Windows"
+          ]
         }
       },
       "condition": {
@@ -149,6 +151,94 @@
         "ASAN_ENABLED": "ON",
         "BUILD_STATIC_LIBRARY": "OFF"
       }
+    },
+    {
+      "name": "linux-ci-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OPTIONS_ENABLE_CCACHE": "ON",
+        "OPTIONS_LINKER": "mold"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-ci-release",
+      "inherits": "linux-ci-base",
+      "displayName": "Linux - CI Release",
+      "description": "Release with LTO. No PCH and no unity so the compiler cache hits on every unchanged file; dependencies built release-only.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OPTIONS_ENABLE_IPO": "ON",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-release",
+        "VCPKG_HOST_TRIPLET": "x64-linux-release"
+      }
+    },
+    {
+      "name": "linux-ci-debug",
+      "inherits": "linux-ci-base",
+      "displayName": "Linux - CI Debug",
+      "description": "Debug with asserts and the debug log, plus the unit tests. No LTO, no PCH, no unity.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "OPTIONS_ENABLE_IPO": "OFF",
+        "OTCLIENT_BUILD_TESTS": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_HOST_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "linux-local",
+      "generator": "Ninja",
+      "displayName": "Linux - local build for small machines",
+      "description": "Release without LTO, with PCH and compiler cache. Low-memory mode: compile jobs capped from the installed RAM, one link at a time, GCC tuned to use CPU instead of RAM.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "Release",
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "ON",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OPTIONS_ENABLE_IPO": "OFF",
+        "OPTIONS_ENABLE_CCACHE": "ON",
+        "OPTIONS_LINKER": "mold",
+        "OPTIONS_LOW_MEMORY_BUILD": "ON",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-release",
+        "VCPKG_HOST_TRIPLET": "x64-linux-release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-local-debug",
+      "inherits": "linux-local",
+      "displayName": "Linux - local debug build for small machines",
+      "description": "Same as linux-local, as a Debug build with the debug log. Uses the release-only dependencies of linux-local.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -183,6 +273,35 @@
     {
       "name": "macos-debug",
       "configurePreset": "macos-debug"
+    },
+    {
+      "name": "linux-ci-release",
+      "configurePreset": "linux-ci-release"
+    },
+    {
+      "name": "linux-ci-debug",
+      "configurePreset": "linux-ci-debug"
+    },
+    {
+      "name": "linux-local",
+      "configurePreset": "linux-local"
+    },
+    {
+      "name": "linux-local-debug",
+      "configurePreset": "linux-local-debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-ci-debug",
+      "configurePreset": "linux-ci-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "timeout": 120
+      }
     }
   ]
 }
