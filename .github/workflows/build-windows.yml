@@ -11,9 +11,10 @@ on:
       - "CMakePresets.json"
       - ".github/workflows/build-windows.yml"
   push:
-    branches: [main]
+    branches: [main, "15.33", "ci/**"]
     paths:
       - "src/**"
+      - "cmake/**"
       - "vcpkg.json"
       - "CMakeLists.txt"
       - "CMakePresets.json"
@@ -35,11 +36,16 @@ env:
 jobs:
   build:
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
-    name: windows-2022-release
+    name: windows-2022-${{ matrix.configuration }}
     runs-on: windows-2022
 
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [release, debug]
+
     concurrency:
-      group: crystalotc-${{ github.workflow }}-${{ github.ref }}
+      group: crystalotc-${{ github.workflow }}-${{ github.ref }}-${{ matrix.configuration }}
       cancel-in-progress: true
 
     steps:
@@ -85,18 +91,18 @@ jobs:
             ${{ github.workspace }}/vcpkg/installed
             ${{ github.workspace }}/vcpkg/buildtrees
             ${{ github.workspace }}/vcpkg/downloads
-          key: vcpkg-windows-release-${{ steps.hash.outputs.hash }}
+          key: vcpkg-windows-${{ matrix.configuration }}-${{ steps.hash.outputs.hash }}
           restore-keys: |
-            vcpkg-windows-release-
+            vcpkg-windows-${{ matrix.configuration }}-
 
       - name: Compiler cache (sccache)
         uses: hendrikmuhs/ccache-action@main
         with:
           max-size: "1G"
           variant: "sccache"
-          key: ccache-windows-release
+          key: ccache-windows-${{ matrix.configuration }}
           restore-keys: |
-            ccache-windows-release
+            ccache-windows-${{ matrix.configuration }}
 
       - name: Remove Windows pre-installed MySQL (for clean builds)
         run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:/mysql*"
@@ -115,9 +121,10 @@ jobs:
       - name: Configure and Build
         uses: lukka/run-cmake@main
         with:
-          configurePreset: windows-release
-          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF', '-DTOGGLE_BIN_FOLDER=ON']"
-          buildPreset: windows-release
+          configurePreset: windows-${{ matrix.configuration }}
+          # /Z7 (debug info inside the .obj) instead of /Zi: sccache cannot cache objects that write to a shared PDB
+          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF', '-DTOGGLE_BIN_FOLDER=ON', '-DCMAKE_POLICY_DEFAULT_CMP0141=NEW', '-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded']"
+          buildPreset: windows-${{ matrix.configuration }}
           buildPresetAdditionalArgs: "['--target', 'otclient']"
 
       - name: Prepare artifact folder
@@ -126,7 +133,7 @@ jobs:
           $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-          $binDir = "$env:GITHUB_WORKSPACE\build\windows-release\bin"
+          $binDir = "$env:GITHUB_WORKSPACE\build\windows-${{ matrix.configuration }}\bin"
           $exePath = Get-Item "$binDir\otclient.exe" -ErrorAction SilentlyContinue
 
           if (-not $exePath) {
@@ -140,8 +147,10 @@ jobs:
           $bytes = [System.IO.File]::ReadAllBytes($exePath.FullName)
           $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
           $subsystem = [BitConverter]::ToUInt16($bytes, $peOffset + 0x5C)
-          if ($subsystem -ne 2) {
-            Write-Error "otclient.exe has PE subsystem $subsystem, expected 2 (Windows GUI)"
+          # Release is a GUI program (2); the Debug build keeps its console (3) for the log.
+          $expectedSubsystem = if ("${{ matrix.configuration }}" -eq "release") { 2 } else { 3 }
+          if ($subsystem -ne $expectedSubsystem) {
+            Write-Error "otclient.exe has PE subsystem $subsystem, expected $expectedSubsystem"
             exit 1
           }
           $text = [System.Text.Encoding]::ASCII.GetString($bytes)
@@ -174,7 +183,7 @@ jobs:
       - name: Upload executable artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CrystalOTC-windows-release
+          name: CrystalOTC-windows-${{ matrix.configuration }}
           path: ${{ github.workspace }}/artifacts
 
   release:
