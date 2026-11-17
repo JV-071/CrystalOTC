@@ -90,6 +90,10 @@ if (ANDROID)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=3)
 elseif(WASM)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=2)
+elseif(MSVC)
+  # Windows renders through ANGLE (GLES3), which picks Direct3D 11 or desktop OpenGL at
+  # startup (config.ini renderBackend), so one build serves every renderer.
+  set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=3)
 endif()
 
 set(VERSION "1.0.0")
@@ -252,7 +256,12 @@ if(ANDROID)
   find_package(game-activity REQUIRED CONFIG)
   find_package(EGL REQUIRED)
 else()
-  if(NOT WASM)
+  if(MSVC)
+    # ANGLE replaces OpenGL32 + GLEW on Windows; it loads opengl32.dll itself when the
+    # OpenGL backend is chosen.
+    find_package(unofficial-angle CONFIG REQUIRED)
+    find_package(LuaJIT REQUIRED)
+  elseif(NOT WASM)
     find_package(OpenGL REQUIRED)
     if(DEFINED VCPKG_TARGET_TRIPLET)
       find_package(GLEW REQUIRED)
@@ -602,7 +611,8 @@ if(MSVC)
 
   target_compile_definitions(otclient_core PRIVATE CRASH_HANDLER)
 
-  target_compile_options(otclient_core PUBLIC /MP /FS /Zf /EHsc /bigobj)
+  # /utf-8 matches the vc18 project: sources are UTF-8, not the build machine's code page.
+  target_compile_options(otclient_core PUBLIC /MP /FS /Zf /EHsc /bigobj /utf-8)
 
   if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     string(REPLACE "/Zi" "/Z7" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
@@ -659,7 +669,12 @@ if(MSVC)
           ${PHYSFS_LIBRARY}
           ${ZLIB_LIBRARY}
           ${NLOHMANN_JSON_LIBRARY}
-          ${OPENGL_LIBRARIES}
+          unofficial::angle::libEGL
+          unofficial::angle::libGLESv2
+          d3d11.lib
+          dxgi.lib
+          dxguid.lib
+          d3d9.lib
           ${DirectX_LIBRARY}
           ${DirectX_LIBRARIES}
           ${OGG_LIBRARY}
@@ -671,7 +686,6 @@ if(MSVC)
           ${STDUUID}
           absl::log_internal_check_op
           Threads::Threads
-          GLEW::GLEW
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
@@ -956,12 +970,14 @@ endif()
 # *****************************************************************************
 # Enable otclient console only for debug build
 # *****************************************************************************
+# RelWithDebInfo is what the windows-release preset (and CI) ships, so it is a
+# GUI program like the vc18 build; only Debug keeps the console window.
 if(WIN32)
   set_target_properties(${PROJECT_NAME}
           PROPERTIES
           LINK_FLAGS_DEBUG "/SUBSYSTEM:CONSOLE"
           LINK_FLAGS_RELEASE "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
-          LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:CONSOLE"
+          LINK_FLAGS_RELWITHDEBINFO "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
           LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:windows /ENTRY:mainCRTStartup"
   )
 endif(WIN32)

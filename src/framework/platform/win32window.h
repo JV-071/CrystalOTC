@@ -37,6 +37,11 @@ class WIN32Window : public PlatformWindow
     void internalCreateGLContext();
     void internalDestroyGLContext();
     void internalRestoreGLContext() const;
+#ifdef OPENGL_ES
+    // Creates display, surface and context on one ANGLE platform (D3D11, OpenGL) or,
+    // with platformType 0, on ANGLE's default display. Cleans up and returns false on failure.
+    bool tryCreateEGLContext(int platformType);
+#endif
 
     void* getExtensionProcAddress(const char* ext);
     bool isExtensionSupported(const char* ext);

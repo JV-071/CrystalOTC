@@ -191,8 +191,10 @@ void printHelp(const std::string& executableName)
         if (g_configs.getPublicConfig().graphics.renderBackend == "vulkan") {
 #ifdef WIN32
             const auto& size = g_window.getSize();
-            if (!VkContext::instance().init(g_window.getNativeWindowHandle(), size.width(), size.height())) {
-                g_logger.info("[vulkan] backend unavailable, rendering with OpenGL");
+            if (VkContext::instance().init(g_window.getNativeWindowHandle(), size.width(), size.height())) {
+                g_window.setActiveRenderBackend("Vulkan");
+            } else {
+                g_logger.info("[vulkan] backend unavailable, falling back to the automatic choice (DirectX 11, then OpenGL)");
 
                 // The window started WITHOUT a GL context (driver savings in Vulkan mode) -
                 // we create one now and repeat the GL part of graphics initialization. The Painter
@@ -212,6 +214,9 @@ void printHelp(const std::string& executableName)
             // foundation test alone - confirms in the log that Vulkan works on this machine
             VkLoader::instance().probeDevices();
         }
+
+        g_logger.info("[graphics] render backend requested={} active={}",
+                      g_configs.getPublicConfig().graphics.renderBackend, g_window.getActiveRenderBackend());
 #endif
 
         // the run application main loop

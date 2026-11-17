@@ -1,4 +1,4 @@
-﻿-- chunkname: @/game_wheel/wheel.lua
+-- chunkname: @/game_wheel/wheel.lua
 
 wheelWindow = nil
 wheelOfDestinyWindow = nil
@@ -204,6 +204,8 @@ function showWheelWindow()
 end
 
 function hideWheelWindow()
+	WheelOfDestiny.openRequested = false
+
 	if not wheelWindow then
 		return
 	end
@@ -223,6 +225,7 @@ function toggle()
 	if wheelWindow:isVisible() then
 		hide()
 	else
+		WheelOfDestiny.openRequested = true
 		wheelWindow:focus()
 		loadMenu("wheelMenu")
 
@@ -247,6 +250,8 @@ function setWheelButtonOn(on)
 end
 
 function hide()
+	WheelOfDestiny.openRequested = false
+
 	if not wheelWindow then
 		if wheelButton then
 			wheelButton:setOn(false)
@@ -300,6 +305,7 @@ function onGameEnd()
 end
 
 function show()
+	WheelOfDestiny.openRequested = true
 	g_game.openWheel(g_game.getLocalPlayer():getId())
 end
 
@@ -318,6 +324,7 @@ function openForPlayer(playerId)
 		id = player:getId()
 	end
 
+	WheelOfDestiny.openRequested = true
 	wheelWindow:focus()
 	loadMenu("wheelMenu")
 

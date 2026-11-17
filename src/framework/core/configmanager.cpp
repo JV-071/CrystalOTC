@@ -24,6 +24,9 @@
 #include <INIReader.h>
 #include "resourcemanager.h"
 
+#include <cctype>
+#include <fstream>
+
 ConfigManager g_configs;
 
 void ConfigManager::init() {
@@ -112,40 +115,97 @@ ConfigPtr ConfigManager::load(const std::string& file)
     return config;
 }
 
-void ConfigManager::setRenderBackend(const std::string& backend)
+std::string ConfigManager::normalizeRenderBackend(const std::string& backend)
 {
-    if (backend != "gl" && backend != "vulkan") {
-        g_logger.warning("[config] unknown render backend '{}' - ignoring", backend);
-        return;
-    }
+    std::string value = backend;
+    stdext::trim(value);
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    if (value == "d3d11" || value == "opengl" || value == "vulkan")
+        return value;
+    return "auto";
+}
+
+void ConfigManager::setRenderBackend(const std::string& requested)
+{
+    const std::string backend = normalizeRenderBackend(requested);
+    if (backend == "auto" && requested != "auto" && requested != "gl")
+        g_logger.warning("[config] unknown render backend '{}' - using auto", requested);
 
     m_publicConfig.graphics.renderBackend = backend;
 
-    // config.ini sits next to the exe and is a plain text file; we replace only this one
-    // line so we don't lose comments or the rest of the user's settings
+    // config.ini sits next to the exe and is a plain text file; we rewrite only the
+    // renderBackend key of the [graphics] section (the only place loadPublicConfig reads it
+    // from), so comments and the rest of the user's settings stay. The file is not shipped
+    // with the client (it is gitignored), so it is created when missing.
     const std::string path = "config.ini";
-    std::ifstream in(path);
-    if (!in.is_open()) {
-        g_logger.warning("[config] cannot open {} to write the backend", path);
-        return;
-    }
+    const std::string entry = "renderBackend = " + backend;
 
     std::vector<std::string> lines;
-    std::string line;
-    bool replaced = false;
-
-    while (std::getline(in, line)) {
-        if (line.rfind("renderBackend", 0) == 0) {
-            lines.push_back("renderBackend = " + backend);
-            replaced = true;
-        } else {
+    if (std::ifstream in(path); in.is_open()) {
+        std::string line;
+        while (std::getline(in, line)) {
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
             lines.push_back(line);
         }
     }
-    in.close();
 
-    if (!replaced)
-        lines.push_back("renderBackend = " + backend);
+    const auto lowerTrimmed = [](std::string text) {
+        stdext::trim(text);
+        std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        return text;
+    };
+    const auto isRenderBackendKey = [&](const std::string& line) {
+        const std::string text = lowerTrimmed(line);
+        if (text.rfind("renderbackend", 0) != 0)
+            return false;
+        std::string rest = text.substr(13);
+        stdext::trim(rest);
+        return !rest.empty() && (rest[0] == '=' || rest[0] == ':');
+    };
+
+    std::vector<std::string> output;
+    std::string section;
+    bool written = false;
+    bool hasGraphics = false;
+
+    for (const auto& line : lines) {
+        const std::string text = lowerTrimmed(line);
+        if (!text.empty() && text.front() == '[') {
+            // leaving [graphics] without a renderBackend key: add it at the end of the section
+            if (section == "[graphics]" && !written) {
+                output.push_back(entry);
+                written = true;
+            }
+            section = text;
+            if (section == "[graphics]")
+                hasGraphics = true;
+            output.push_back(line);
+            continue;
+        }
+
+        if (isRenderBackendKey(line)) {
+            // a key outside [graphics] is never read (older clients appended it at the end of
+            // the file, whatever section that was), so it is dropped instead of kept stale
+            if (section == "[graphics]" && !written) {
+                output.push_back(entry);
+                written = true;
+            }
+            continue;
+        }
+
+        output.push_back(line);
+    }
+
+    if (!written) {
+        if (!hasGraphics) {
+            if (!output.empty() && !output.back().empty())
+                output.emplace_back();
+            output.emplace_back("[graphics]");
+        }
+        output.push_back(entry);
+    }
 
     std::ofstream out(path, std::ios::trunc);
     if (!out.is_open()) {
@@ -153,7 +213,7 @@ void ConfigManager::setRenderBackend(const std::string& backend)
         return;
     }
 
-    for (const auto& l : lines)
+    for (const auto& l : output)
         out << l << "\n";
 
     g_logger.info("[config] render backend set to '{}' - takes effect after a client restart", backend);
@@ -191,7 +251,7 @@ void ConfigManager::loadPublicConfig(const std::string& fileName) {
         m_publicConfig.graphics.maxAtlasSize = std::max<int>(2048, reader.GetInteger("graphics", "maxAtlasSize", m_publicConfig.graphics.maxAtlasSize));
         m_publicConfig.graphics.mapAtlasSize = reader.GetInteger("graphics", "mapAtlasSize", m_publicConfig.graphics.mapAtlasSize);
         m_publicConfig.graphics.foregroundAtlasSize = reader.GetInteger("graphics", "foregroundAtlasSize", m_publicConfig.graphics.foregroundAtlasSize);
-        m_publicConfig.graphics.renderBackend = reader.Get("graphics", "renderBackend", m_publicConfig.graphics.renderBackend);
+        m_publicConfig.graphics.renderBackend = normalizeRenderBackend(reader.Get("graphics", "renderBackend", m_publicConfig.graphics.renderBackend));
         
         m_publicConfig.font.widget = reader.Get("font", "widget", m_publicConfig.font.widget);
         m_publicConfig.font.staticText = reader.Get("font", "static-text", m_publicConfig.font.staticText);

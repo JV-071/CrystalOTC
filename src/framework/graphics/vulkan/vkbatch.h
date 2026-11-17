@@ -48,7 +48,7 @@ struct VkSpriteQuad
     uint8_t color[4]{ 255, 255, 255, 255 };
 };
 
-// Must match the sprite.vert inputs (locations 0..3) byte for byte. Public since stage 4:
+// Must match the sprite.vert inputs (locations 0..4) byte for byte. Public since stage 4:
 // the feeder writes vertices directly, so it must know the layout.
 struct VkSpriteVertex
 {
@@ -56,6 +56,10 @@ struct VkSpriteVertex
     float uv[2];
     float layer;
     uint8_t color[4];
+    // Atlas uv rectangle (minU, minV, maxU, maxV) the fragment shader clamps the sample to: the
+    // centres of the first and last texel of the source rect this triangle shows. Flat, so all
+    // three vertices of a triangle carry the same value. (0,0,1,1) = no clamp.
+    float uvRect[4];
 };
 
 class VkSpriteBatch

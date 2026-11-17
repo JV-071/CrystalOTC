@@ -1555,6 +1555,14 @@ void Game::seekInContainer(const uint8_t containerId, const uint16_t index)
     m_protocolGame->sendSeekInContainer(containerId, index);
 }
 
+void Game::sendRewardCollectAll(const Position& position, const uint16_t itemId, const uint8_t stackpos)
+{
+    if (!canPerformGameAction())
+        return;
+
+    m_protocolGame->sendRewardCollectAll(position, itemId, stackpos);
+}
+
 void Game::buyStoreOffer(const uint32_t offerId, const uint8_t action, const std::string_view& name, const uint8_t type, const std::string_view& location, const bool useCosmeticTokens)
 {
     if (!canPerformGameAction())
