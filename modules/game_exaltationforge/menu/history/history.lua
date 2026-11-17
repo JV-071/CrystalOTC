@@ -25,7 +25,7 @@ function History:createButton()
 	Forge.setupTabButtonIcon(buttonPanel, "/images/icons_big/icon-history", 6, 3)
 
 	if not self.mainWindow then
-		g_ui.importStyle("History")
+		g_ui.importStyle("history")
 
 		self.mainWindow = g_ui.createWidget("HistoryWindow", Forge.mainWindow)
 

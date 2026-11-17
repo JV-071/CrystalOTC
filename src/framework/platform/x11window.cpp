@@ -29,6 +29,10 @@
 #include <framework/graphics/image.h>
 #include <unistd.h>
 
+#ifdef HAVE_XCURSOR
+#include <X11/Xcursor/Xcursor.h>
+#endif
+
 #define LSB_BIT_SET(p, n) (p[(n)/8] |= (1 <<((n)%8)))
 
 X11Window::X11Window()
@@ -922,6 +926,34 @@ int X11Window::internalLoadMouseCursor(const ImagePtr& image, const Point& hotSp
 {
     int width = image->getWidth();
     int height = image->getHeight();
+
+#ifdef HAVE_XCURSOR
+    // Full colour cursor with alpha. The core X11 cursor below only knows black, white and
+    // transparent pixels, so coloured or antialiased cursor images came out as garbage.
+    if (XcursorImage* cursorImage = XcursorImageCreate(width, height)) {
+        cursorImage->xhot = static_cast<XcursorDim>(std::clamp(hotSpot.x, 0, width - 1));
+        cursorImage->yhot = static_cast<XcursorDim>(std::clamp(hotSpot.y, 0, height - 1));
+
+        // image: RGBA bytes, straight alpha -> Xcursor: ARGB words, premultiplied alpha
+        const uint8_t* pixels = image->getPixelData();
+        for (int i = 0; i < width * height; ++i) {
+            const uint32_t r = pixels[i * 4 + 0];
+            const uint32_t g = pixels[i * 4 + 1];
+            const uint32_t b = pixels[i * 4 + 2];
+            const uint32_t a = pixels[i * 4 + 3];
+            cursorImage->pixels[i] = (a << 24) | ((r * a / 255) << 16) | ((g * a / 255) << 8) | (b * a / 255);
+        }
+
+        const Cursor cursor = XcursorImageLoadCursor(m_display, cursorImage);
+        XcursorImageDestroy(cursorImage);
+
+        if (cursor != 0) { // 0 == None (the X11 macro is not visible here)
+            m_cursors.push_back(cursor);
+            return m_cursors.size() - 1;
+        }
+    }
+#endif
+
     int numbits = width * height;
     int numbytes = (width * height) / 8;
 

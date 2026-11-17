@@ -184,6 +184,14 @@ if(APPLE)
 endif()
 if(UNIX AND NOT ANDROID AND NOT WASM)
   find_package(X11 REQUIRED)
+  # Xcursor draws full colour mouse cursors; without it only black and white ones are possible
+  if(TARGET X11::Xcursor)
+    set(OTC_XCURSOR_TARGET X11::Xcursor)
+    # only x11window.cpp needs to know: a global definition would recompile every file
+    set_source_files_properties(framework/platform/x11window.cpp PROPERTIES COMPILE_DEFINITIONS HAVE_XCURSOR)
+  else()
+    message(STATUS "Xcursor not found: mouse cursors will be black and white (install libxcursor-dev)")
+  endif()
 endif()
 if(WIN32)
   find_package(DbgHelp REQUIRED)
@@ -941,6 +949,7 @@ else() # Linux
           absl::log_internal_check_op
           Threads::Threads
           X11::X11
+          ${OTC_XCURSOR_TARGET}
           asio::asio
           OpenAL::OpenAL
           LibLZMA::LibLZMA
