@@ -52,7 +52,14 @@ function(otclient_add_gtest TARGET_NAME)
     endif()
 
     # Discover at test time, not as a post-build step: the build then never has to run a test binary.
-    gtest_discover_tests(${TARGET_NAME} DISCOVERY_MODE PRE_TEST DISCOVERY_TIMEOUT 60 PROPERTIES TIMEOUT 60)
+    # Run from the repository root: some tests read Lua modules through relative paths
+    # (modules/...), which must not depend on where the build directory is.
+    gtest_discover_tests(${TARGET_NAME}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        DISCOVERY_MODE PRE_TEST
+        DISCOVERY_TIMEOUT 60
+        PROPERTIES TIMEOUT 60
+    )
 endfunction()
 
 add_subdirectory(map)
