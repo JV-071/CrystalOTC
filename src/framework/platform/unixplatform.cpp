@@ -23,8 +23,12 @@
 #if !defined(WIN32) && !defined(__EMSCRIPTEN__)
 
 #include "platform.h"
+#include <algorithm>
+#include <cctype>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
+#include <system_error>
 #include <unistd.h>
 #include <framework/stdext/stdext.h>
 #include <framework/core/eventdispatcher.h>
@@ -226,6 +230,36 @@ std::string Platform::getOSName()
         return res;
     }
     return std::string();
+}
+
+std::vector<std::string> Platform::getMacAddresses()
+{
+    // Same format as the Windows implementation: the address bytes as lowercase hex without
+    // separators, padded to 8 bytes, sorted. Linux exposes one "address" file per interface.
+    std::vector<std::string> macAddresses;
+
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator("/sys/class/net", ec)) {
+        std::ifstream in(entry.path() / "address");
+        std::string line;
+        if (!in || !std::getline(in, line))
+            continue;
+
+        std::string mac;
+        for (const char c : line) {
+            if (std::isxdigit(static_cast<unsigned char>(c)))
+                mac += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        }
+
+        // skip loopback and interfaces without a hardware address
+        if (mac.size() != 12 || mac == "000000000000")
+            continue;
+
+        macAddresses.push_back(mac + "0000");
+    }
+
+    std::sort(macAddresses.begin(), macAddresses.end());
+    return macAddresses;
 }
 
 std::string Platform::traceback(const std::string_view where, int level, int maxDepth)
