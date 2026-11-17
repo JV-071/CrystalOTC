@@ -17,6 +17,12 @@ option(OPTIONS_LOW_MEMORY_BUILD "Use more CPU time to keep the peak RAM use of t
 set(OPTIONS_COMPILE_JOBS "" CACHE STRING "Max parallel compile jobs with Ninja (empty = no limit)")
 set(OPTIONS_LINK_JOBS "" CACHE STRING "Max parallel link jobs with Ninja (empty = no limit)")
 
+# === C++ module scanning ===
+# No source here uses C++20 modules. With CMake >= 3.28 policies (CMP0155) every C++20+ file would
+# get a dependency scan step and GCC would be called with -fmodules-ts, which ccache refuses to
+# cache ("unsupported compiler option"): the compiler cache would silently store nothing.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 # === Linker ===
 if(OPTIONS_LINKER AND NOT MSVC)
 	find_program(BUILD_TUNING_LINKER NAMES "${OPTIONS_LINKER}" "ld.${OPTIONS_LINKER}")
