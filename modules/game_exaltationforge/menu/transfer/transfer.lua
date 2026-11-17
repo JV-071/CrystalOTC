@@ -486,7 +486,7 @@ function Transfer:createButton()
 	Forge.setupTabButtonIcon(buttonPanel, "/images/icons_big/icon-transfer", 6, 3)
 
 	if not self.mainWindow then
-		g_ui.importStyle("Transfer")
+		g_ui.importStyle("transfer")
 
 		self.mainWindow = g_ui.createWidget("TransferWindow", Forge.mainWindow)
 

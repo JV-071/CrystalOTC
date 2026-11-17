@@ -231,7 +231,7 @@ function Conversion:createButton()
 	Forge.setupTabButtonIcon(buttonPanel, "/images/icons_big/icon-conversion", 6, 3)
 
 	if not self.mainWindow then
-		g_ui.importStyle("Conversion")
+		g_ui.importStyle("conversion")
 
 		self.mainWindow = g_ui.createWidget("ConversionWindow", Forge.mainWindow)
 
