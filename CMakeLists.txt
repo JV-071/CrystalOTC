@@ -89,12 +89,14 @@ option(OPTIONS_ENABLE_IPO "Check and Enable interprocedural optimization (IPO/LT
 # *****************************************************************************
 
 # === CCACHE ===
-if(OPTIONS_ENABLE_CCACHE)
+# A launcher given from outside (environment or -D) wins, so CI can pick its own cache tool.
+if(OPTIONS_ENABLE_CCACHE AND NOT CMAKE_CXX_COMPILER_LAUNCHER)
 	find_program(CCACHE ccache)
 	if(CCACHE)
 		log_option_enabled("ccache")
+		set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE})
 		set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE})
-		else()
+	else()
 		log_option_disabled("ccache")
 	endif()
 endif()
@@ -114,20 +116,24 @@ endif()
 
 
 # === IPO ===
-option(OPTIONS_ENABLE_IPO "Check and Enable interprocedural optimization (IPO/LTO)" ON)
+# Only for optimized configurations: LTO on a Debug build costs link time and RAM for nothing.
 if(OPTIONS_ENABLE_IPO)
 	log_option_enabled("ipo")
 
 	include(CheckIPOSupported)
 	check_ipo_supported(RESULT result OUTPUT output)
 	if(result)
-		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO TRUE)
 	else()
 		log_war("IPO is not supported: ${output}")
 	endif()
 else()
 	log_option_disabled("ipo")
 endif()
+
+# === Linker, parallelism and low-memory mode ===
+include(BuildTuning)
 
 
 # *****************************************************************************

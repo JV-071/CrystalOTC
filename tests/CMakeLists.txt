@@ -12,6 +12,10 @@ function(otclient_add_gtest TARGET_NAME)
 
     if(TOGGLE_PRE_COMPILED_HEADER)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src/framework/pch.h)
+    elseif(MSVC)
+        target_compile_options(${TARGET_NAME} PRIVATE "/FI${CMAKE_SOURCE_DIR}/src/framework/pch.h")
+    else()
+        target_compile_options(${TARGET_NAME} PRIVATE "SHELL:-include ${CMAKE_SOURCE_DIR}/src/framework/pch.h")
     endif()
 
     target_link_libraries(${TARGET_NAME}
@@ -47,7 +51,15 @@ function(otclient_add_gtest TARGET_NAME)
         endif()
     endif()
 
-    gtest_discover_tests(${TARGET_NAME})
+    # Discover at test time, not as a post-build step: the build then never has to run a test binary.
+    # Run from the repository root: some tests read Lua modules through relative paths
+    # (modules/...), which must not depend on where the build directory is.
+    gtest_discover_tests(${TARGET_NAME}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        DISCOVERY_MODE PRE_TEST
+        DISCOVERY_TIMEOUT 60
+        PROPERTIES TIMEOUT 60
+    )
 endfunction()
 
 add_subdirectory(map)

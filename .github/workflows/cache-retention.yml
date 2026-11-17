@@ -1,0 +1,65 @@
+name: Cache retention
+
+# The compiler caches use a new key on every run (ccache-...-<run id>-<attempt>). Without pruning,
+# those snapshots fill the 10 GB the repository gets and evict the vcpkg dependency caches, which
+# are the expensive ones to rebuild. Keep the newest snapshot per branch and configuration.
+# Dependency caches (deps-*) are never touched here.
+
+on:
+  workflow_run:
+    workflows: ["Build - Linux", "Build - Windows"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: cache-retention
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      # No checkout: nothing from the repository runs with this token.
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const caches = [];
+            for (let page = 1; ; page++) {
+              const { data } = await github.rest.actions.getActionsCacheList({ owner, repo, per_page: 100, page });
+              caches.push(...data.actions_caches);
+              if (data.actions_caches.length < 100) break;
+            }
+
+            // <prefix>-<run id>-<attempt>
+            const rolling = /^((?:ccache|sccache)-v[0-9]+-.+)-[0-9]+-[0-9]+$/;
+            const keep = 1;
+            const groups = new Map();
+            for (const cache of caches) {
+              const match = cache.key.match(rolling);
+              if (!match) continue;
+              const group = `${cache.ref}:${match[1]}`;
+              if (!groups.has(group)) groups.set(group, []);
+              groups.get(group).push(cache);
+            }
+
+            let removed = 0, bytes = 0;
+            for (const list of groups.values()) {
+              list.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+              for (const cache of list.slice(keep)) {
+                try {
+                  await github.rest.actions.deleteActionsCacheById({ owner, repo, cache_id: cache.id });
+                  removed++;
+                  bytes += cache.size_in_bytes;
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+            }
+            core.summary.addRaw(`Removed ${removed} compiler cache snapshot(s), ${(bytes / 1024 ** 2).toFixed(0)} MB.`).write();
