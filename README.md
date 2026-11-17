@@ -32,6 +32,13 @@ Extract it into `data/things/` so you end up with:
   "Map View" toggle (classic minimap palette with building outlines, generated
   by `tools/build_mapview_tiles.py`). Both folders are required.
 
+### Sounds
+
+`data/sounds/catalog-sound.json` points at `sounds-<hash>.dat`, the sound index of the same
+client version. That file is not in the repository (the `*.dat` rule of `.gitignore` keeps it
+out), so on a fresh clone the client logs `Failed to load soundbank` and plays no sound effects.
+Copy it from the client the assets come from into `data/sounds/`.
+
 ## Building (Windows)
 
 Requirements: Visual Studio 2022 (v143 toolset), [vcpkg](https://github.com/microsoft/vcpkg)
