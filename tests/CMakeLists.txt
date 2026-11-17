@@ -12,6 +12,8 @@ function(otclient_add_gtest TARGET_NAME)
 
     if(TOGGLE_PRE_COMPILED_HEADER)
         target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/src/framework/pch.h)
+    elseif(NOT MSVC)
+        target_compile_options(${TARGET_NAME} PRIVATE "SHELL:-include ${CMAKE_SOURCE_DIR}/src/framework/pch.h")
     endif()
 
     target_link_libraries(${TARGET_NAME}
