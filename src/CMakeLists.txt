@@ -522,10 +522,12 @@ if(TOGGLE_PRE_COMPILED_HEADER)
   message(STATUS "Use precompiled header: ON")
 else()
   message(STATUS "Use precompiled header: OFF")
-  if(NOT MSVC)
-    # The sources rely on pch.h for their standard and framework includes. Without a
-    # precompiled header, include it as a plain header: same result for the compiler and,
-    # unlike a .gch, every object stays cacheable by ccache.
+  # The sources rely on pch.h for their standard and framework includes. Without a
+  # precompiled header, include it as a plain header: same result for the compiler and,
+  # unlike a .pch/.gch, every object stays cacheable by ccache/sccache.
+  if(MSVC)
+    target_compile_options(otclient_core PRIVATE "/FI${CMAKE_CURRENT_SOURCE_DIR}/framework/pch.h")
+  else()
     target_compile_options(otclient_core PRIVATE "SHELL:-include ${CMAKE_CURRENT_SOURCE_DIR}/framework/pch.h")
   endif()
 endif(TOGGLE_PRE_COMPILED_HEADER)

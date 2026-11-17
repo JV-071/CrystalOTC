@@ -242,6 +242,36 @@
         "DEBUG_LOG": "ON",
         "VCPKG_TARGET_TRIPLET": "x64-linux"
       }
+    },
+    {
+      "name": "windows-ci-release",
+      "inherits": "windows-release",
+      "displayName": "Windows - CI Release",
+      "description": "windows-release for CI: no PCH and no unity so sccache hits on every unchanged file, /Z7 debug info (cacheable), client only.",
+      "cacheVariables": {
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "OPTIONS_ENABLE_SCCACHE": "ON",
+        "CMAKE_POLICY_DEFAULT_CMP0141": "NEW",
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded"
+      }
+    },
+    {
+      "name": "windows-ci-debug",
+      "inherits": "windows-debug",
+      "displayName": "Windows - CI Debug",
+      "description": "windows-debug for CI: no PCH and no unity so sccache hits on every unchanged file, /Z7 debug info (cacheable), client only.",
+      "cacheVariables": {
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "OPTIONS_ENABLE_SCCACHE": "ON",
+        "CMAKE_POLICY_DEFAULT_CMP0141": "NEW",
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded"
+      }
     }
   ],
   "buildPresets": [
@@ -292,6 +322,14 @@
     {
       "name": "linux-local-debug",
       "configurePreset": "linux-local-debug"
+    },
+    {
+      "name": "windows-ci-release",
+      "configurePreset": "windows-ci-release"
+    },
+    {
+      "name": "windows-ci-debug",
+      "configurePreset": "windows-ci-debug"
     }
   ],
   "testPresets": [

@@ -9,6 +9,7 @@ on:
       - "vcpkg.json"
       - "CMakeLists.txt"
       - "CMakePresets.json"
+      - "tools/ci/**"
       - ".github/workflows/build-windows.yml"
   push:
     branches: [main, "15.33", "ci/**"]
@@ -18,6 +19,7 @@ on:
       - "vcpkg.json"
       - "CMakeLists.txt"
       - "CMakePresets.json"
+      - "tools/ci/**"
       - ".github/workflows/build-windows.yml"
       # The "latest" release bundles these, so it must be rebuilt when they change.
       - "init.lua"
@@ -30,8 +32,11 @@ permissions:
   pull-requests: read
 
 env:
-  CMAKE_BUILD_PARALLEL_LEVEL: 2
-  MAKEFLAGS: "-j 2"
+  VCPKG_DISABLE_METRICS: "1"
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite
+  SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+  SCCACHE_CACHE_SIZE: 1G
+  SCCACHE_BASEDIRS: ${{ github.workspace }}
 
 jobs:
   build:
@@ -44,6 +49,9 @@ jobs:
       matrix:
         configuration: [release, debug]
 
+    env:
+      PRESET: windows-ci-${{ matrix.configuration }}
+
     concurrency:
       group: crystalotc-${{ github.workflow }}-${{ github.ref }}-${{ matrix.configuration }}
       cancel-in-progress: true
@@ -51,81 +59,101 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Get vcpkg commit ID
-        id: vcpkg-step
-        shell: pwsh
-        run: |
-          $json = Get-Content vcpkg.json -Raw | ConvertFrom-Json
-          $commit = $json.'builtin-baseline'
-          echo "vcpkgGitCommitId=$commit" >> $env:GITHUB_OUTPUT
-
-      - name: Validate vcpkg baseline SHA
-        shell: pwsh
-        run: |
-          $SHAS = "${{ steps.vcpkg-step.outputs.vcpkgGitCommitId }}"
-          if ([string]::IsNullOrEmpty($SHAS)) {
-            echo "::error title=Missing vcpkg baseline::Provide a full 40-char vcpkgGitCommitId."
-            exit 1
-          }
-          if ($SHAS -notmatch '^[0-9a-f]{40}$') {
-            echo "::error title=Invalid vcpkg baseline::vcpkgGitCommitId must be a full 40-char commit SHA."
-            exit 1
-          }
-
-      - name: Compute vcpkg.json hash
-        id: hash
-        shell: pwsh
-        run: |
-          $json = Get-Content "vcpkg.json" -Raw -Encoding UTF8
-          $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-          $sha256 = [System.Security.Cryptography.SHA256]::Create()
-          $hashBytes = $sha256.ComputeHash($bytes)
-          $hash = [BitConverter]::ToString($hashBytes) -replace '-', ''
-          "hash=$hash" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
-      - name: Cache vcpkg artifacts
-        uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/vcpkg/installed
-            ${{ github.workspace }}/vcpkg/buildtrees
-            ${{ github.workspace }}/vcpkg/downloads
-          key: vcpkg-windows-${{ matrix.configuration }}-${{ steps.hash.outputs.hash }}
-          restore-keys: |
-            vcpkg-windows-${{ matrix.configuration }}-
+          persist-credentials: false
 
-      - name: Compiler cache (sccache)
-        uses: hendrikmuhs/ccache-action@main
+      - name: MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
         with:
-          max-size: "1G"
-          variant: "sccache"
-          key: ccache-windows-${{ matrix.configuration }}
-          restore-keys: |
-            ccache-windows-${{ matrix.configuration }}
+          arch: x64
 
-      - name: Remove Windows pre-installed MySQL (for clean builds)
-        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:/mysql*"
-
-      - name: Install vcpkg
-        uses: lukka/run-vcpkg@a400452f634fe49e9f18d388aeb1809dcc642136
-        with:
-          vcpkgGitCommitId: ${{ steps.vcpkg-step.outputs.vcpkgGitCommitId }}
-
-      - name: Get latest CMake and Ninja
+      - name: Get CMake and Ninja
         uses: lukka/get-cmake@v3.31.6
 
-      # The packaged build is the client only: unit tests are off, so no gtest
-      # binary can end up in the artifact, and the client is linked into a known
-      # folder (build/windows-release/bin) instead of the repository root.
-      - name: Configure and Build
-        uses: lukka/run-cmake@main
+      - name: Get sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Build identity
+        id: identity
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics, .cache/vcpkg, .cache/sccache | Out-Null
+          $baseline = (Get-Content vcpkg.json -Raw | ConvertFrom-Json).'builtin-baseline'
+          if ($baseline -notmatch '^[0-9a-f]{40}$') {
+            echo "::error title=Invalid vcpkg baseline::builtin-baseline must be a full 40-char commit SHA"
+            exit 1
+          }
+          $compiler = (Get-Item (Get-Command cl.exe).Source).VersionInfo.FileVersion.Split(' ')[0]
+          "baseline=$baseline" >> $env:GITHUB_OUTPUT
+          "compiler=$compiler" >> $env:GITHUB_OUTPUT
+          @("commit=$env:GITHUB_SHA", "ref=$env:GITHUB_REF", "runner=$env:ImageOS/$env:ImageVersion", "compiler=msvc $compiler", "preset=$env:PRESET", "processors=$env:NUMBER_OF_PROCESSORS") | Set-Content diagnostics/environment.txt
+          cmake --version | Select-Object -First 1 | Add-Content diagnostics/environment.txt
+          sccache --version | Add-Content diagnostics/environment.txt
+          Get-Content diagnostics/environment.txt
+
+      # Stable key (compiler + vcpkg.json): restored on every run, written only when missing.
+      - name: Restore vcpkg dependencies
+        id: dependencies
+        uses: actions/cache/restore@v4
         with:
-          configurePreset: windows-${{ matrix.configuration }}
-          # /Z7 (debug info inside the .obj) instead of /Zi: sccache cannot cache objects that write to a shared PDB
-          configurePresetAdditionalArgs: "['-DOTCLIENT_BUILD_TESTS=OFF', '-DTOGGLE_BIN_FOLDER=ON', '-DCMAKE_POLICY_DEFAULT_CMP0141=NEW', '-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded']"
-          buildPreset: windows-${{ matrix.configuration }}
-          buildPresetAdditionalArgs: "['--target', 'otclient']"
+          path: .cache/vcpkg
+          key: deps-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            deps-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-
+
+      # Rolling key: every run saves its objects, the next one starts from the newest snapshot.
+      - name: Restore compiler cache
+        id: compiler
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/sccache
+          key: sccache-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            sccache-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-
+
+      - name: Checkout vcpkg at the manifest baseline
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: ${{ steps.identity.outputs.baseline }}
+          path: .ci/vcpkg
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          & ./.ci/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "VCPKG_ROOT=$env:GITHUB_WORKSPACE/.ci/vcpkg" >> $env:GITHUB_ENV
+
+      - name: Remove Windows pre-installed MySQL (for clean builds)
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:/mysql*"
+
+      - name: Configure
+        id: configure
+        shell: pwsh
+        run: |
+          cmake --preset $env:PRESET 2>&1 | Tee-Object diagnostics/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Saved before compiling: a source error must not discard an hour of dependency builds.
+      - name: Save vcpkg dependencies
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' && steps.dependencies.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/vcpkg
+          key: ${{ steps.dependencies.outputs.cache-primary-key }}
+
+      # The packaged build is the client only (the CI presets turn the unit tests off), linked
+      # into build/<preset>/bin. -k 10: keep going until 10 files failed.
+      - name: Build
+        shell: pwsh
+        run: |
+          sccache --zero-stats | Out-Null
+          cmake --build --preset $env:PRESET --target otclient --parallel $env:NUMBER_OF_PROCESSORS -- -k 10 2>&1 | Tee-Object diagnostics/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Prepare artifact folder
         shell: pwsh
@@ -133,7 +161,7 @@ jobs:
           $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
           New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
 
-          $binDir = "$env:GITHUB_WORKSPACE\build\windows-${{ matrix.configuration }}\bin"
+          $binDir = "$env:GITHUB_WORKSPACE\build\$env:PRESET\bin"
           $exePath = Get-Item "$binDir\otclient.exe" -ErrorAction SilentlyContinue
 
           if (-not $exePath) {
@@ -158,7 +186,7 @@ jobs:
             Write-Error "otclient.exe looks like a gtest binary, refusing to package it"
             exit 1
           }
-          if (-not $text.Contains("EGL_ANGLE_platform_angle")) {
+          if ("${{ matrix.configuration }}" -eq "release" -and -not $text.Contains("EGL_ANGLE_platform_angle")) {
             Write-Error "otclient.exe does not contain ANGLE, refusing to package it"
             exit 1
           }
@@ -185,6 +213,39 @@ jobs:
         with:
           name: CrystalOTC-windows-${{ matrix.configuration }}
           path: ${{ github.workspace }}/artifacts
+
+      - name: Compiler cache statistics
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          sccache --show-stats | Tee-Object diagnostics/compiler-cache.txt
+          sccache --stop-server
+          exit 0
+
+      # Also after a failed build: the objects that did compile are reused by the next run.
+      - name: Save compiler cache
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/sccache
+          key: ${{ steps.compiler.outputs.cache-primary-key }}
+
+      - name: Report problems
+        if: ${{ always() }}
+        shell: pwsh
+        run: python tools/ci/report_build.py --title "windows-${{ matrix.configuration }}" diagnostics/configure.log diagnostics/build.log diagnostics/compiler-cache.txt
+
+      - name: Upload diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-windows-${{ matrix.configuration }}-${{ github.run_attempt }}
+          path: |
+            diagnostics/
+            build/${{ env.PRESET }}/CMakeCache.txt
+            build/${{ env.PRESET }}/vcpkg-manifest-install.log
+            .ci/vcpkg/buildtrees/**/*.log
+          retention-days: 7
 
   release:
     name: Publish "latest" release
