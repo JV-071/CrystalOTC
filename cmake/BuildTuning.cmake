@@ -5,7 +5,8 @@
 #   OPTIONS_LINKER            mold | lld | (empty = toolchain default). GCC/Clang only.
 #   OPTIONS_LOW_MEMORY_BUILD  ON = trade CPU time for a lower peak RAM use:
 #                               - GCC collects garbage more often (--param ggc-*),
-#                               - compile jobs are capped from the installed RAM,
+#                               - compile jobs are capped from the installed RAM
+#                                 (~1.5 GB reserved for the system, one job per ~1.5 GB left),
 #                               - links run one at a time.
 #   OPTIONS_COMPILE_JOBS      max parallel compile jobs (Ninja only), overrides the RAM-based cap
 #   OPTIONS_LINK_JOBS         max parallel link jobs (Ninja only)
@@ -47,10 +48,11 @@ if(OPTIONS_LOW_MEMORY_BUILD)
 	endif()
 
 	if(NOT _build_tuning_compile_jobs)
-		# A heavy C++ translation unit of these projects needs about 1.5 GB at its peak.
+		# The heaviest translation units of these projects peak at about 1.6 GB in the compiler.
+		# Keep ~1.5 GB for the rest of the system and allow one job per remaining ~1.5 GB.
 		cmake_host_system_information(RESULT _build_tuning_ram_mib QUERY TOTAL_PHYSICAL_MEMORY)
 		cmake_host_system_information(RESULT _build_tuning_cpus QUERY NUMBER_OF_LOGICAL_CORES)
-		math(EXPR _build_tuning_compile_jobs "${_build_tuning_ram_mib} / 1536")
+		math(EXPR _build_tuning_compile_jobs "(${_build_tuning_ram_mib} - 1536) / 1536")
 		if(_build_tuning_compile_jobs LESS 1)
 			set(_build_tuning_compile_jobs 1)
 		endif()
