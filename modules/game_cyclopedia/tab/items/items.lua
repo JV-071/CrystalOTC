@@ -1971,6 +1971,7 @@ function Cyclopedia.loadItemDetail(itemId, descriptions)
 	descriptions = descriptions or {}
 
 	for _, description in ipairs(descriptions) do
+		-- our C++ pushes {key=..., value=...}; keep the array shape as a fallback
 		local key = description.key or description[1] or ""
 		local value = description.value or description[2] or ""
 

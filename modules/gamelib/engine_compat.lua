@@ -439,6 +439,9 @@ if InputMessage then
 end
 
 if ThingType then
+	install(ThingType, "isCyclopediaItem", function(self)
+		return self.getCyclopediaType and self:getCyclopediaType() > 0 or false
+	end)
 	install(ThingType, "isDualWielding", function()
 		return false
 	end)
