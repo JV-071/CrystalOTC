@@ -184,8 +184,9 @@ jobs:
         run: |
           set -o pipefail
           ccache --zero-stats > /dev/null
-          # -k 0: keep going, so one run reports every error instead of the first one
-          cmake --build --preset ${{ env.PRESET }} --parallel "$(nproc)" -- -k 0 2>&1 | tee diagnostics/build.log
+          # -k 10: keep going until 10 files failed, so one run shows the errors of a broken change
+          # without compiling the rest of the tree for nothing
+          cmake --build --preset ${{ env.PRESET }} --parallel "$(nproc)" -- -k 10 2>&1 | tee diagnostics/build.log
 
       - name: Unit tests
         if: ${{ matrix.configuration == 'debug' }}
@@ -203,8 +204,15 @@ jobs:
             echo "::error title=Missing shared library::$(grep 'not found' diagnostics/ldd.txt | tr '\n' ' ')"
             exit 1
           fi
-          mkdir -p package
+          mkdir -p package symbols
           cp "$binary" package/CrystalOTC
+          if [ "${{ matrix.configuration }}" = "release" ]; then
+            # Ship a small binary and keep its debug info next to it as a separate download:
+            # gdb and addr2line find CrystalOTC.debug through the debug link.
+            objcopy --only-keep-debug package/CrystalOTC symbols/CrystalOTC.debug
+            strip --strip-debug package/CrystalOTC
+            (cd symbols && objcopy --add-gnu-debuglink=CrystalOTC.debug ../package/CrystalOTC)
+          fi
           for item in init.lua data modules mods; do
             if [ -e "$item" ]; then cp -r "$item" package/; fi
           done
@@ -220,6 +228,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
+
+      - name: Upload debug symbols
+        if: ${{ matrix.configuration == 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-linux-release-symbols
+          path: symbols/CrystalOTC.debug
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Compiler cache statistics
         if: ${{ always() }}

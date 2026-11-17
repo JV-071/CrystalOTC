@@ -178,13 +178,15 @@
       "name": "linux-ci-release",
       "inherits": "linux-ci-base",
       "displayName": "Linux - CI Release",
-      "description": "Release with LTO. No PCH and no unity so the compiler cache hits on every unchanged file; dependencies built release-only.",
+      "description": "Release with LTO and minimal debug info (-g1: function names and line numbers for stack traces; CI ships it as a separate symbols file). No PCH and no unity so the compiler cache hits on every unchanged file; dependencies built release-only.",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "OPTIONS_ENABLE_IPO": "ON",
         "OTCLIENT_BUILD_TESTS": "OFF",
         "VCPKG_TARGET_TRIPLET": "x64-linux-release",
-        "VCPKG_HOST_TRIPLET": "x64-linux-release"
+        "VCPKG_HOST_TRIPLET": "x64-linux-release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -g1",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -g1"
       }
     },
     {
@@ -234,10 +236,11 @@
       "name": "linux-local-debug",
       "inherits": "linux-local",
       "displayName": "Linux - local debug build for small machines",
-      "description": "Same as linux-local, as a Debug build with the debug log. Uses the release-only dependencies of linux-local.",
+      "description": "Same as linux-local, as a Debug build with the debug log. Links the debug variants of the dependencies (full x64-linux triplet, built once and cached).",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "DEBUG_LOG": "ON"
+        "DEBUG_LOG": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
       }
     }
   ],
