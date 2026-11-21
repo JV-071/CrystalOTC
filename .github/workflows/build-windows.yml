@@ -1,0 +1,280 @@
+name: Build - Windows
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "vcpkg.json"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "tools/ci/**"
+      - ".github/workflows/build-windows.yml"
+  push:
+    branches: [main, "15.33", "ci/**"]
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "vcpkg.json"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "tools/ci/**"
+      - ".github/workflows/build-windows.yml"
+      # The "latest" release bundles these, so it must be rebuilt when they change.
+      - "init.lua"
+      - "data/**"
+      - "modules/**"
+      - "mods/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  VCPKG_DISABLE_METRICS: "1"
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite
+  SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+  SCCACHE_CACHE_SIZE: 1G
+  SCCACHE_BASEDIRS: ${{ github.workspace }}
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: windows-2022-${{ matrix.configuration }}
+    runs-on: windows-2022
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [release, debug]
+
+    env:
+      PRESET: windows-ci-${{ matrix.configuration }}
+
+    concurrency:
+      group: crystalotc-${{ github.workflow }}-${{ github.ref }}-${{ matrix.configuration }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Get CMake and Ninja
+        uses: lukka/get-cmake@v3.31.6
+
+      - name: Get sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Build identity
+        id: identity
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force diagnostics, .cache/vcpkg, .cache/sccache | Out-Null
+          $baseline = (Get-Content vcpkg.json -Raw | ConvertFrom-Json).'builtin-baseline'
+          if ($baseline -notmatch '^[0-9a-f]{40}$') {
+            echo "::error title=Invalid vcpkg baseline::builtin-baseline must be a full 40-char commit SHA"
+            exit 1
+          }
+          $compiler = (Get-Item (Get-Command cl.exe).Source).VersionInfo.FileVersion.Split(' ')[0]
+          "baseline=$baseline" >> $env:GITHUB_OUTPUT
+          "compiler=$compiler" >> $env:GITHUB_OUTPUT
+          @("commit=$env:GITHUB_SHA", "ref=$env:GITHUB_REF", "runner=$env:ImageOS/$env:ImageVersion", "compiler=msvc $compiler", "preset=$env:PRESET", "processors=$env:NUMBER_OF_PROCESSORS") | Set-Content diagnostics/environment.txt
+          cmake --version | Select-Object -First 1 | Add-Content diagnostics/environment.txt
+          sccache --version | Add-Content diagnostics/environment.txt
+          Get-Content diagnostics/environment.txt
+
+      # Stable key (compiler + vcpkg.json): restored on every run, written only when missing.
+      - name: Restore vcpkg dependencies
+        id: dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/vcpkg
+          key: deps-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            deps-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-
+
+      # Rolling key: every run saves its objects, the next one starts from the newest snapshot.
+      - name: Restore compiler cache
+        id: compiler
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/sccache
+          key: sccache-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            sccache-v1-windows-${{ matrix.configuration }}-msvc${{ steps.identity.outputs.compiler }}-
+
+      - name: Checkout vcpkg at the manifest baseline
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: ${{ steps.identity.outputs.baseline }}
+          path: .ci/vcpkg
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          & ./.ci/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "VCPKG_ROOT=$env:GITHUB_WORKSPACE/.ci/vcpkg" >> $env:GITHUB_ENV
+
+      - name: Remove Windows pre-installed MySQL (for clean builds)
+        shell: pwsh
+        run: Remove-Item -Recurse -Force -ErrorAction SilentlyContinue "C:/mysql*"
+
+      - name: Configure
+        id: configure
+        shell: pwsh
+        run: |
+          cmake --preset $env:PRESET 2>&1 | Tee-Object diagnostics/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Saved before compiling: a source error must not discard an hour of dependency builds.
+      - name: Save vcpkg dependencies
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' && steps.dependencies.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/vcpkg
+          key: ${{ steps.dependencies.outputs.cache-primary-key }}
+
+      # The packaged build is the client only (the CI presets turn the unit tests off), linked
+      # into build/<preset>/bin. -k 10: keep going until 10 files failed.
+      - name: Build
+        shell: pwsh
+        run: |
+          sccache --zero-stats | Out-Null
+          cmake --build --preset $env:PRESET --target otclient --parallel $env:NUMBER_OF_PROCESSORS -- -k 10 2>&1 | Tee-Object diagnostics/build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Prepare artifact folder
+        shell: pwsh
+        run: |
+          $artifactDir = "$env:GITHUB_WORKSPACE\artifacts"
+          New-Item -ItemType Directory -Force -Path $artifactDir | Out-Null
+
+          $binDir = "$env:GITHUB_WORKSPACE\build\$env:PRESET\bin"
+          $exePath = Get-Item "$binDir\otclient.exe" -ErrorAction SilentlyContinue
+
+          if (-not $exePath) {
+            Write-Error "otclient.exe not found in $binDir"
+            exit 1
+          }
+
+          # Refuse to ship anything that is not the real client: it must be a GUI
+          # program (no console window), must not be a gtest binary and must carry
+          # the ANGLE renderer that the DirectX 11 / OpenGL options use.
+          $bytes = [System.IO.File]::ReadAllBytes($exePath.FullName)
+          $peOffset = [BitConverter]::ToInt32($bytes, 0x3C)
+          $subsystem = [BitConverter]::ToUInt16($bytes, $peOffset + 0x5C)
+          # Release is a GUI program (2); the Debug build keeps its console (3) for the log.
+          $expectedSubsystem = if ("${{ matrix.configuration }}" -eq "release") { 2 } else { 3 }
+          if ($subsystem -ne $expectedSubsystem) {
+            Write-Error "otclient.exe has PE subsystem $subsystem, expected $expectedSubsystem"
+            exit 1
+          }
+          $text = [System.Text.Encoding]::ASCII.GetString($bytes)
+          if ($text.Contains("gtest_filter")) {
+            Write-Error "otclient.exe looks like a gtest binary, refusing to package it"
+            exit 1
+          }
+          if ("${{ matrix.configuration }}" -eq "release" -and -not $text.Contains("EGL_ANGLE_platform_angle")) {
+            Write-Error "otclient.exe does not contain ANGLE, refusing to package it"
+            exit 1
+          }
+
+          Copy-Item $exePath.FullName -Destination "$artifactDir\CrystalOTC.exe"
+
+          $dlls = Get-ChildItem -Path $exePath.Directory.FullName -Filter "*.dll"
+          foreach ($dll in $dlls) {
+            Copy-Item $dll.FullName -Destination $artifactDir
+          }
+
+          # Bundle the tracked runtime files so the download is an actual client,
+          # not a bare exe. Only the large game assets (data/things: appearances and
+          # sprites) stay out - they are gitignored and never present in CI.
+          foreach ($item in @("init.lua", "data", "modules", "mods")) {
+            $src = Join-Path $env:GITHUB_WORKSPACE $item
+            if (Test-Path $src) {
+              Copy-Item $src -Destination $artifactDir -Recurse -Force
+            }
+          }
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-windows-${{ matrix.configuration }}
+          path: ${{ github.workspace }}/artifacts
+
+      - name: Compiler cache statistics
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          sccache --show-stats | Tee-Object diagnostics/compiler-cache.txt
+          sccache --stop-server
+          exit 0
+
+      # Also after a failed build: the objects that did compile are reused by the next run.
+      - name: Save compiler cache
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/sccache
+          key: ${{ steps.compiler.outputs.cache-primary-key }}
+
+      - name: Report problems
+        if: ${{ always() }}
+        shell: pwsh
+        run: python tools/ci/report_build.py --title "windows-${{ matrix.configuration }}" diagnostics/configure.log diagnostics/build.log diagnostics/compiler-cache.txt
+
+      - name: Upload diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-windows-${{ matrix.configuration }}-${{ github.run_attempt }}
+          path: |
+            diagnostics/
+            build/${{ env.PRESET }}/CMakeCache.txt
+            build/${{ env.PRESET }}/vcpkg-manifest-install.log
+            .ci/vcpkg/buildtrees/**/*.log
+          retention-days: 7
+
+  release:
+    name: Publish "latest" release
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: CrystalOTC-windows-release
+          path: artifacts
+
+      - name: Zip binaries
+        run: cd artifacts && zip -r ../CrystalOTC-windows.zip .
+
+      - name: Recreate "latest" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -R "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create latest CrystalOTC-windows.zip \
+            -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Latest build ($(date -u +%Y-%m-%d), ${GITHUB_SHA::7})" \
+            --notes "Automatic build of the latest \`main\` commit ${GITHUB_SHA::7}.
+
+          Contains a runnable client: the executable plus init.lua, data, modules and mods. Only the large game assets (\`data/things\`: appearances and sprites) are NOT included - add them separately (see the README or the wiki's Game Assets page)."

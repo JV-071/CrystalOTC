@@ -1,0 +1,348 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-release",
+      "displayName": "Windows - Release",
+      "description": "Sets Ninja generator, compilers, build and install directory and set build type as release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "BUILD_STATIC_LIBRARY": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "OPTIONS_ENABLE_SCCACHE": "ON"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "windows-debug-msbuild",
+      "inherits": "windows-debug",
+      "displayName": "Windows - Debug (msbuild)",
+      "description": "Windows Debug build using vcpkg-test manifest",
+      "generator": "Visual Studio 17 2022",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "ASAN_ENABLED": "ON",
+        "BUILD_STATIC_LIBRARY": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      }
+    },
+    {
+      "name": "linux-release",
+      "displayName": "Linux - Release",
+      "description": "Sets Ninja generator, compilers, build and install directory and set build type as release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "OPTIONS_ENABLE_CCACHE": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows-release-asan",
+      "inherits": "windows-release",
+      "displayName": "Windows - Release + ASAN",
+      "description": "Release Mode with ASAN",
+      "cacheVariables": {
+        "ASAN_ENABLED": "ON",
+        "BUILD_STATIC_LIBRARY": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "inherits": "windows-release",
+      "displayName": "Windows - Debug",
+      "description": "Build Debug Mode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "ASAN_ENABLED": "OFF",
+        "BUILD_STATIC_LIBRARY": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-windows"
+      },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "inherits": "linux-release",
+      "displayName": "Linux - Debug Build",
+      "description": "Build Debug Mode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "ASAN_ENABLED": "OFF",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF"
+      }
+    },
+    {
+      "name": "macos-release",
+      "displayName": "macOS - Release",
+      "description": "Sets Ninja generator, compilers, build and install directory and set build type as release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "BUILD_STATIC_LIBRARY": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "OPTIONS_ENABLE_SCCACHE": "ON",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O1 -DNDEBUG"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "macos-debug",
+      "inherits": "macos-release",
+      "displayName": "macOS - Debug",
+      "description": "Build Debug Mode",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "ASAN_ENABLED": "ON",
+        "BUILD_STATIC_LIBRARY": "OFF"
+      }
+    },
+    {
+      "name": "linux-ci-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OPTIONS_ENABLE_CCACHE": "ON",
+        "OPTIONS_LINKER": "mold"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-ci-release",
+      "inherits": "linux-ci-base",
+      "displayName": "Linux - CI Release",
+      "description": "Release with LTO and minimal debug info (-g1: function names and line numbers for stack traces; CI ships it as a separate symbols file). No PCH and no unity so the compiler cache hits on every unchanged file; dependencies built release-only.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OPTIONS_ENABLE_IPO": "ON",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-release",
+        "VCPKG_HOST_TRIPLET": "x64-linux-release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-O3 -DNDEBUG -g1",
+        "CMAKE_C_FLAGS_RELEASE": "-O3 -DNDEBUG -g1"
+      }
+    },
+    {
+      "name": "linux-ci-debug",
+      "inherits": "linux-ci-base",
+      "displayName": "Linux - CI Debug",
+      "description": "Debug with asserts and the debug log, plus the unit tests. No LTO, no PCH, no unity.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "OPTIONS_ENABLE_IPO": "OFF",
+        "OTCLIENT_BUILD_TESTS": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-linux",
+        "VCPKG_HOST_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "linux-local",
+      "generator": "Ninja",
+      "displayName": "Linux - local build for small machines",
+      "description": "Release without LTO, with PCH and compiler cache. Low-memory mode: compile jobs capped from the installed RAM, one link at a time, GCC tuned to use CPU instead of RAM.",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": {
+          "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+          "type": "FILEPATH"
+        },
+        "CMAKE_BUILD_TYPE": "Release",
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "ON",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OPTIONS_ENABLE_IPO": "OFF",
+        "OPTIONS_ENABLE_CCACHE": "ON",
+        "OPTIONS_LINKER": "mold",
+        "OPTIONS_LOW_MEMORY_BUILD": "ON",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-release",
+        "VCPKG_HOST_TRIPLET": "x64-linux-release"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "linux-local-debug",
+      "inherits": "linux-local",
+      "displayName": "Linux - local debug build for small machines",
+      "description": "Same as linux-local, as a Debug build with the debug log. Links the debug variants of the dependencies (full x64-linux triplet, built once and cached).",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DEBUG_LOG": "ON",
+        "VCPKG_TARGET_TRIPLET": "x64-linux"
+      }
+    },
+    {
+      "name": "windows-ci-release",
+      "inherits": "windows-release",
+      "displayName": "Windows - CI Release",
+      "description": "windows-release for CI: no PCH and no unity so sccache hits on every unchanged file, /Z7 debug info (cacheable), client only.",
+      "cacheVariables": {
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "OPTIONS_ENABLE_SCCACHE": "ON",
+        "CMAKE_POLICY_DEFAULT_CMP0141": "NEW",
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded"
+      }
+    },
+    {
+      "name": "windows-ci-debug",
+      "inherits": "windows-debug",
+      "displayName": "Windows - CI Debug",
+      "description": "windows-debug for CI: no PCH and no unity so sccache hits on every unchanged file, /Z7 debug info (cacheable), client only.",
+      "cacheVariables": {
+        "TOGGLE_BIN_FOLDER": "ON",
+        "TOGGLE_PRE_COMPILED_HEADER": "OFF",
+        "SPEED_UP_BUILD_UNITY": "OFF",
+        "OTCLIENT_BUILD_TESTS": "OFF",
+        "OPTIONS_ENABLE_SCCACHE": "ON",
+        "CMAKE_POLICY_DEFAULT_CMP0141": "NEW",
+        "CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "Embedded"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "linux-release",
+      "configurePreset": "linux-release"
+    },
+    {
+      "name": "linux-debug",
+      "configurePreset": "linux-debug"
+    },
+    {
+      "name": "windows-release",
+      "configurePreset": "windows-release"
+    },
+    {
+      "name": "windows-release-asan",
+      "configurePreset": "windows-release-asan"
+    },
+    {
+      "name": "windows-debug",
+      "configurePreset": "windows-debug"
+    },
+    {
+      "name": "windows-debug-msbuild",
+      "configurePreset": "windows-debug-msbuild"
+    },
+    {
+      "name": "macos-release",
+      "configurePreset": "macos-release"
+    },
+    {
+      "name": "macos-debug",
+      "configurePreset": "macos-debug"
+    },
+    {
+      "name": "linux-ci-release",
+      "configurePreset": "linux-ci-release"
+    },
+    {
+      "name": "linux-ci-debug",
+      "configurePreset": "linux-ci-debug"
+    },
+    {
+      "name": "linux-local",
+      "configurePreset": "linux-local"
+    },
+    {
+      "name": "linux-local-debug",
+      "configurePreset": "linux-local-debug"
+    },
+    {
+      "name": "windows-ci-release",
+      "configurePreset": "windows-ci-release"
+    },
+    {
+      "name": "windows-ci-debug",
+      "configurePreset": "windows-ci-debug"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "linux-ci-debug",
+      "configurePreset": "linux-ci-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error",
+        "timeout": 120
+      }
+    }
+  ]
+}

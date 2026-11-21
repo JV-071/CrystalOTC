@@ -1,0 +1,271 @@
+name: Build - Linux
+
+# Linux builds of the client: Release (LTO) and Debug.
+#
+#  - runs only when something that ends up in the binary changes (modules/mods/data never recompile)
+#  - vcpkg dependencies come from a binary cache with a STABLE key (hash of vcpkg.json): it is saved
+#    only when missing, right after configure, so a later compile error never throws the
+#    dependency build away
+#  - compiler objects (ccache) use a rolling key per run; "Cache retention" prunes the old ones
+#  - no PCH and no unity in CI, so every unchanged source file is a cache hit
+#  - the artifact is a runnable client: binary + init.lua, data, modules, mods (game assets under
+#    data/things are not in the repository and are never included)
+#  - errors are reported as annotations and in the run summary (tools/ci/report_build.py)
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build both configurations or only one
+        type: choice
+        required: true
+        default: both
+        options:
+          - both
+          - release
+          - debug
+  push:
+    branches:
+      - main
+      - "15.33"
+      - "ci/**"
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "tests/**"
+      - "tools/ci/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/workflows/build-linux.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "cmake/**"
+      - "tests/**"
+      - "tools/ci/**"
+      - "CMakeLists.txt"
+      - "CMakePresets.json"
+      - "vcpkg.json"
+      - ".github/workflows/build-linux.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-linux-${{ github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.configuration || 'both' }}
+  # Long-lived branches finish every run (each one refreshes the caches); the others keep only the newest.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/15.33' }}
+
+env:
+  CC: gcc-14
+  CXX: g++-14
+  VCPKG_DISABLE_METRICS: "1"
+  VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}/.cache/vcpkg,readwrite
+  VCPKG_DOWNLOADS: ${{ github.workspace }}/.cache/downloads
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_MAXSIZE: 800M
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPILERCHECK: content
+  CCACHE_NOHASHDIR: "true"
+
+jobs:
+  build:
+    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
+    name: linux-${{ matrix.configuration }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: ${{ github.event_name == 'workflow_dispatch' && inputs.configuration != 'both' && fromJSON(format('["{0}"]', inputs.configuration)) || fromJSON('["release", "debug"]') }}
+
+    env:
+      PRESET: linux-ci-${{ matrix.configuration }}
+      # Release links release-only dependencies (half the vcpkg build); Debug needs both variants.
+      TRIPLET: ${{ matrix.configuration == 'release' && 'x64-linux-release' || 'x64-linux' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install compiler and system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-14 g++-14 build-essential ninja-build ccache mold pkg-config \
+            autoconf autoconf-archive automake libtool m4 nasm \
+            curl zip unzip tar ca-certificates linux-libc-dev python3 \
+            libgl1-mesa-dev libglu1-mesa-dev libglew-dev libx11-dev libxrandr-dev libxi-dev \
+            libxcursor-dev libxinerama-dev libxext-dev libxxf86vm-dev libasound2-dev libpulse-dev
+
+      - name: Get CMake
+        uses: lukka/get-cmake@v3.31.6
+
+      - name: Build identity
+        id: identity
+        run: |
+          mkdir -p diagnostics .cache/vcpkg .cache/downloads .cache/ccache
+          baseline="$(python3 -c "import json; print(json.load(open('vcpkg.json'))['builtin-baseline'])")"
+          if ! [[ "$baseline" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error title=Invalid vcpkg baseline::builtin-baseline must be a full 40-char commit SHA"
+            exit 1
+          fi
+          compiler="$(g++-14 -dumpfullversion)"
+          echo "baseline=$baseline" >> "$GITHUB_OUTPUT"
+          echo "compiler=$compiler" >> "$GITHUB_OUTPUT"
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "ref=$GITHUB_REF"
+            echo "runner=$ImageOS/$ImageVersion"
+            echo "compiler=g++ $compiler"
+            echo "preset=${{ env.PRESET }}"
+            echo "processors=$(nproc)"
+            cmake --version | head -1
+            echo "ninja $(ninja --version)"
+            ccache --version | head -1
+            mold --version
+          } | tee diagnostics/environment.txt
+
+      - name: Restore vcpkg dependencies
+        id: dependencies
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/vcpkg
+          key: deps-v1-linux-${{ env.TRIPLET }}-gcc${{ steps.identity.outputs.compiler }}-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            deps-v1-linux-${{ env.TRIPLET }}-gcc${{ steps.identity.outputs.compiler }}-
+
+      - name: Restore compiler cache
+        id: compiler
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/ccache
+          key: ccache-v1-linux-${{ matrix.configuration }}-gcc${{ steps.identity.outputs.compiler }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-v1-linux-${{ matrix.configuration }}-gcc${{ steps.identity.outputs.compiler }}-
+
+      - name: Checkout vcpkg at the manifest baseline
+        uses: actions/checkout@v4
+        with:
+          repository: microsoft/vcpkg
+          ref: ${{ steps.identity.outputs.baseline }}
+          path: .ci/vcpkg
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Bootstrap vcpkg
+        run: |
+          ./.ci/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          echo "VCPKG_ROOT=$GITHUB_WORKSPACE/.ci/vcpkg" >> "$GITHUB_ENV"
+
+      - name: Configure
+        id: configure
+        run: |
+          set -o pipefail
+          ccache --zero-stats > /dev/null
+          cmake --preset ${{ env.PRESET }} 2>&1 | tee diagnostics/configure.log
+
+      # Saved before compiling: a source error must not discard an hour of dependency builds.
+      # A partial restore (restore-keys) counts as a miss, so the new exact key gets written.
+      - name: Save vcpkg dependencies
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' && steps.dependencies.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/vcpkg
+          key: ${{ steps.dependencies.outputs.cache-primary-key }}
+
+      - name: Build
+        id: compile
+        run: |
+          set -o pipefail
+          ccache --zero-stats > /dev/null
+          # -k 10: keep going until 10 files failed, so one run shows the errors of a broken change
+          # without compiling the rest of the tree for nothing
+          cmake --build --preset ${{ env.PRESET }} --parallel "$(nproc)" -- -k 10 2>&1 | tee diagnostics/build.log
+
+      - name: Unit tests
+        if: ${{ matrix.configuration == 'debug' }}
+        run: |
+          set -o pipefail
+          ctest --preset ${{ env.PRESET }} 2>&1 | tee diagnostics/tests.log
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          binary="build/${{ env.PRESET }}/bin/otclient"
+          test -x "$binary"
+          # every shared library the binary needs must exist on a stock system
+          if ldd "$binary" | tee diagnostics/ldd.txt | grep -q "not found"; then
+            echo "::error title=Missing shared library::$(grep 'not found' diagnostics/ldd.txt | tr '\n' ' ')"
+            exit 1
+          fi
+          mkdir -p package symbols
+          cp "$binary" package/CrystalOTC
+          if [ "${{ matrix.configuration }}" = "release" ]; then
+            # Ship a small binary and keep its debug info next to it as a separate download:
+            # gdb and addr2line find CrystalOTC.debug through the debug link.
+            objcopy --only-keep-debug package/CrystalOTC symbols/CrystalOTC.debug
+            strip --strip-debug package/CrystalOTC
+            (cd symbols && objcopy --add-gnu-debuglink=CrystalOTC.debug ../package/CrystalOTC)
+          fi
+          for item in init.lua data modules mods; do
+            if [ -e "$item" ]; then cp -r "$item" package/; fi
+          done
+          # a tarball keeps the executable bit (artifact zips do not)
+          tar -czf "CrystalOTC-linux-${{ matrix.configuration }}.tar.gz" -C package .
+          ls -lh "CrystalOTC-linux-${{ matrix.configuration }}.tar.gz"
+
+      - name: Upload client
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-linux-${{ matrix.configuration }}
+          path: CrystalOTC-linux-${{ matrix.configuration }}.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload debug symbols
+        if: ${{ matrix.configuration == 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: CrystalOTC-linux-release-symbols
+          path: symbols/CrystalOTC.debug
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Compiler cache statistics
+        if: ${{ always() }}
+        run: ccache --show-stats | tee diagnostics/compiler-cache.txt || true
+
+      # Also after a failed build: the objects that did compile are reused by the next run.
+      - name: Save compiler cache
+        if: ${{ !cancelled() && steps.configure.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/ccache
+          key: ${{ steps.compiler.outputs.cache-primary-key }}
+
+      - name: Report problems
+        if: ${{ always() }}
+        run: |
+          python3 tools/ci/report_build.py --title "linux-${{ matrix.configuration }}" \
+            diagnostics/configure.log diagnostics/build.log diagnostics/tests.log diagnostics/compiler-cache.txt
+
+      - name: Upload diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics-linux-${{ matrix.configuration }}-${{ github.run_attempt }}
+          path: |
+            diagnostics/
+            build/${{ env.PRESET }}/CMakeCache.txt
+            build/${{ env.PRESET }}/vcpkg-manifest-install.log
+            build/${{ env.PRESET }}/CMakeFiles/CMakeConfigureLog.yaml
+            build/${{ env.PRESET }}/.ninja_log
+            .ci/vcpkg/buildtrees/**/*.log
+          retention-days: 7
