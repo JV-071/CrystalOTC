@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -674,7 +674,7 @@ Fw::Key WIN32Window::retranslateVirtualKey(const WPARAM wParam, const LPARAM lPa
 
     // lParam will have this state when receiving insert,end,down,etc presses from numpad
     if (!(((HIWORD(lParam) >> 8) & 0xFF) & 1)) {
-        const bool numlockOn = GetKeyState(VK_NUMLOCK);
+        const bool numlockOn = (GetKeyState(VK_NUMLOCK) & 1) != 0;
         // retranslate numpad keys
         switch (wParam) {
             case VK_INSERT:
