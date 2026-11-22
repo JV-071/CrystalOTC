@@ -1,4 +1,4 @@
-﻿-- chunkname: @/game_walk/walk.lua
+-- chunkname: @/game_walk/walk.lua
 
 local smartWalkDirs = {}
 local smartWalkDir, walkEvent
@@ -111,6 +111,14 @@ local function restartWalkRepeatDelay()
 	end, getKeyboardDelay())
 end
 
+local function ensureWalkRepeatDelay()
+	if walkRepeatActive or walkRepeatEvent then
+		return
+	end
+
+	restartWalkRepeatDelay()
+end
+
 local DIAGONAL_MAP = {
 	[North] = {
 		[West] = NorthWest,
@@ -188,35 +196,35 @@ local keys = {
 		West
 	},
 	{
-		"Num+Up",
+		"Num+8",
 		North
 	},
 	{
-		"Num+PgUp",
+		"Num+9",
 		NorthEast
 	},
 	{
-		"Num+Right",
+		"Num+6",
 		East
 	},
 	{
-		"Num+PgDown",
+		"Num+3",
 		SouthEast
 	},
 	{
-		"Num+Down",
+		"Num+2",
 		South
 	},
 	{
-		"Num+End",
+		"Num+1",
 		SouthWest
 	},
 	{
-		"Num+Left",
+		"Num+4",
 		West
 	},
 	{
-		"Num+Home",
+		"Num+7",
 		NorthWest
 	}
 }
@@ -237,10 +245,10 @@ local TURN_WASD_KEYS = {
 	"A"
 }
 local TURN_NUMPAD_KEYS = {
-	"Num+Up",
-	"Num+Right",
-	"Num+Down",
-	"Num+Left"
+	"Num+8",
+	"Num+6",
+	"Num+2",
+	"Num+4"
 }
 local TURN_BASE_DIRS = {
 	North,
@@ -266,6 +274,10 @@ local TURN_CLEANUP_KEY_NAMES = {
 	"D",
 	"S",
 	"A",
+	"Num+8",
+	"Num+6",
+	"Num+2",
+	"Num+4",
 	"Num+Up",
 	"Num+Right",
 	"Num+Down",
@@ -468,11 +480,9 @@ local function walk(dir)
 	end
 
 	if not player:canWalk() then
-		if lastWalkDir ~= dir then
-			nextWalkDir = dir
-		end
+		nextWalkDir = dir
 
-		return
+		return false
 	end
 
 	nextWalkDir = nil
@@ -652,24 +662,32 @@ local function onTeleport(player, newPos, oldPos)
 end
 
 local function onWalkFinish(player)
+	pruneStaleWalkDirs()
+
 	if walkRepeatActive and smartWalkDir then
 		continueWalk(0)
 
 		return
 	end
 
-	if nextWalkDir and canContinueHeldWalk() then
-		if not hasPhysicallyPressedWalkKey() then
-			nextWalkDir = nil
+	if nextWalkDir then
+		local dir = nextWalkDir
 
-			return
-		end
+		nextWalkDir = nil
 
 		if not g_game.getFeature(GameAllowPreWalk) then
-			walk(nextWalkDir)
+			walk(dir)
 		else
-			addWalkEvent(nextWalkDir, 0)
+			addWalkEvent(dir, 0)
 		end
+
+		return
+	end
+
+	if smartWalkDir and canContinueHeldWalk() then
+		walkRepeatActive = true
+
+		continueWalk(0)
 	end
 end
 
@@ -750,7 +768,7 @@ function bindWalkKey(key, dir)
 			activeWalkKeys[key] = true
 
 			changeWalkDir(dir)
-			restartWalkRepeatDelay()
+			ensureWalkRepeatDelay()
 			walk(smartWalkDir or dir)
 		end,
 		up = function()
@@ -778,7 +796,7 @@ function bindWalkKey(key, dir)
 				stopWalkRepeat()
 			elseif smartWalkDir ~= previousDir then
 				cancelWalkEvent()
-				restartWalkRepeatDelay()
+				ensureWalkRepeatDelay()
 				walk(smartWalkDir)
 			end
 		end
@@ -916,30 +934,10 @@ local WASD_MOVEMENT_KEYS = {
 	Z = SouthWest
 }
 
--- Numpad digits (Num Lock ON) walk only while chat is OFF; the console binds/unbinds
--- them together with WASD via getWasdMovementKeyDirs, so they stay typeable in chat.
-local NUMPAD_MOVEMENT_KEYS = {
-	["Num+8"] = North,
-	["Num+9"] = NorthEast,
-	["Num+6"] = East,
-	["Num+3"] = SouthEast,
-	["Num+2"] = South,
-	["Num+1"] = SouthWest,
-	["Num+4"] = West,
-	["Num+7"] = NorthWest
-}
-
 function getWasdMovementKeyDirs()
 	local list = {}
 
 	for key, dir in pairs(WASD_MOVEMENT_KEYS) do
-		table.insert(list, {
-			key,
-			dir
-		})
-	end
-
-	for key, dir in pairs(NUMPAD_MOVEMENT_KEYS) do
 		table.insert(list, {
 			key,
 			dir

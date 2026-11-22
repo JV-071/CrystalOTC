@@ -1,4 +1,4 @@
-﻿-- chunkname: @/corelib/keybind.lua
+-- chunkname: @/corelib/keybind.lua
 
 CHAT_MODE = {
 	ON = 1,
@@ -202,6 +202,20 @@ function Keybind.offline()
 	end
 end
 
+function Keybind.isAllowedKeybindShare(category1, action1, category2, action2, keyCombo)
+	if keyCombo == "Enter" then
+		local index1 = (category1 and action1) and (category1 .. "_" .. action1) or ""
+		local index2 = (category2 and action2) and (category2 .. "_" .. action2) or ""
+
+		if (index1 == "Chat_Send current chat line" and index2 == "Chat Mode_Set to Chat Off") or
+		   (index1 == "Chat Mode_Set to Chat Off" and index2 == "Chat_Send current chat line") then
+			return true
+		end
+	end
+
+	return false
+end
+
 function Keybind.new(category, action, primary, secondary, alone)
 	local index = category .. "_" .. action
 
@@ -253,36 +267,44 @@ function Keybind.new(category, action, primary, secondary, alone)
 		local primaryIndex = Keybind.defaultKeys[CHAT_MODE.ON][keys[CHAT_MODE.ON].primary]
 		local primaryKeybind = Keybind.defaultKeybinds[primaryIndex]
 
-		perror(string.format("Default primary key (Chat Mode On) assigned to [%s: %s] is already in use by [%s: %s]", category, action, primaryKeybind.category, primaryKeybind.action))
+		if not Keybind.isAllowedKeybindShare(category, action, primaryKeybind.category, primaryKeybind.action, keys[CHAT_MODE.ON].primary) then
+			perror(string.format("Default primary key (Chat Mode On) assigned to [%s: %s] is already in use by [%s: %s]", category, action, primaryKeybind.category, primaryKeybind.action))
 
-		return
+			return
+		end
 	end
 
 	if Keybind.defaultKeys[CHAT_MODE.OFF][keys[CHAT_MODE.OFF].primary] then
 		local primaryIndex = Keybind.defaultKeys[CHAT_MODE.OFF][keys[CHAT_MODE.OFF].primary]
 		local primaryKeybind = Keybind.defaultKeybinds[primaryIndex]
 
-		perror(string.format("Default primary key (Chat Mode Off) assigned to [%s: %s] is already in use by [%s: %s]", category, action, primaryKeybind.category, primaryKeybind.action))
+		if not Keybind.isAllowedKeybindShare(category, action, primaryKeybind.category, primaryKeybind.action, keys[CHAT_MODE.OFF].primary) then
+			perror(string.format("Default primary key (Chat Mode Off) assigned to [%s: %s] is already in use by [%s: %s]", category, action, primaryKeybind.category, primaryKeybind.action))
 
-		return
+			return
+		end
 	end
 
 	if keys[CHAT_MODE.ON].secondary and Keybind.defaultKeys[CHAT_MODE.ON][keys[CHAT_MODE.ON].secondary] then
 		local secondaryIndex = Keybind.defaultKeys[CHAT_MODE.ON][keys[CHAT_MODE.ON].secondary]
 		local secondaryKeybind = Keybind.defaultKeybinds[secondaryIndex]
 
-		perror(string.format("Default secondary key (Chat Mode On) assigned to [%s: %s] is already in use by [%s: %s]", category, action, secondaryKeybind.category, secondaryKeybind.action))
+		if not Keybind.isAllowedKeybindShare(category, action, secondaryKeybind.category, secondaryKeybind.action, keys[CHAT_MODE.ON].secondary) then
+			perror(string.format("Default secondary key (Chat Mode On) assigned to [%s: %s] is already in use by [%s: %s]", category, action, secondaryKeybind.category, secondaryKeybind.action))
 
-		return
+			return
+		end
 	end
 
 	if keys[CHAT_MODE.OFF].secondary and Keybind.defaultKeys[CHAT_MODE.OFF][keys[CHAT_MODE.OFF].secondary] then
 		local secondaryIndex = Keybind.defaultKeys[CHAT_MODE.OFF][keys[CHAT_MODE.OFF].secondary]
 		local secondaryKeybind = Keybind.defaultKeybinds[secondaryIndex]
 
-		perror(string.format("Default secondary key (Chat Mode Off) assigned to [%s: %s] is already in use by [%s: %s]", category, action, secondaryKeybind.category, secondaryKeybind.action))
+		if not Keybind.isAllowedKeybindShare(category, action, secondaryKeybind.category, secondaryKeybind.action, keys[CHAT_MODE.OFF].secondary) then
+			perror(string.format("Default secondary key (Chat Mode Off) assigned to [%s: %s] is already in use by [%s: %s]", category, action, secondaryKeybind.category, secondaryKeybind.action))
 
-		return
+			return
+		end
 	end
 
 	if keys[CHAT_MODE.ON].primary then
@@ -814,10 +836,12 @@ function Keybind.isKeyComboUsed(keyCombo, category, action, chatMode)
 		local targetKeys = Keybind.getKeybindKeys(category, action, chatMode, Keybind.currentPreset)
 
 		for _, keybind in pairs(Keybind.defaultKeybinds) do
-			local keys = Keybind.getKeybindKeys(keybind.category, keybind.action, chatMode, Keybind.currentPreset)
+			if not Keybind.isAllowedKeybindShare(category, action, keybind.category, keybind.action, keyCombo) then
+				local keys = Keybind.getKeybindKeys(keybind.category, keybind.action, chatMode, Keybind.currentPreset)
 
-			if keys.primary == keyCombo and targetKeys.primary ~= keyCombo or keys.secondary == keyCombo and targetKeys.secondary ~= keyCombo then
-				return true
+				if keys.primary == keyCombo and targetKeys.primary ~= keyCombo or keys.secondary == keyCombo and targetKeys.secondary ~= keyCombo then
+					return true
+				end
 			end
 		end
 	else

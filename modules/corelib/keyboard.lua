@@ -1,4 +1,4 @@
-﻿-- chunkname: @/corelib/keyboard.lua
+-- chunkname: @/corelib/keyboard.lua
 
 g_keyboard = {}
 
@@ -50,7 +50,20 @@ local KeyDescAliases = {
 	numpadadd = "Num++",
 	numpadenter = "Num+Enter",
 	numpad2 = "Num+2",
-	numpad1 = "Num+1"
+	numpad1 = "Num+1",
+	["num+up"] = "Num+8",
+	["num+pgup"] = "Num+9",
+	["num+pageup"] = "Num+9",
+	["num+right"] = "Num+6",
+	["num+pgdown"] = "Num+3",
+	["num+pagedown"] = "Num+3",
+	["num+down"] = "Num+2",
+	["num+end"] = "Num+1",
+	["num+left"] = "Num+4",
+	["num+home"] = "Num+7",
+	["num+insert"] = "Num+0",
+	["num+ins"] = "Num+0",
+	["num+clear"] = "Num+5"
 }
 local NumpadKeyTokens = {
 	"Num++",
@@ -220,6 +233,14 @@ local RESERVED_MOVEMENT_HOTKEYS = {
 	Left = true,
 	Down = true,
 	Up = true,
+	["Num+9"] = true,
+	["Num+8"] = true,
+	["Num+7"] = true,
+	["Num+6"] = true,
+	["Num+4"] = true,
+	["Num+3"] = true,
+	["Num+2"] = true,
+	["Num+1"] = true,
 	["Num+PgUp"] = true,
 	["Num+Up"] = true,
 	["Num+Home"] = true,

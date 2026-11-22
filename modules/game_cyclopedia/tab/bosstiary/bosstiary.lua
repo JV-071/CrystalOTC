@@ -1,4 +1,4 @@
-﻿-- chunkname: @/game_cyclopedia/tab/bosstiary/bosstiary.lua
+-- chunkname: @/game_cyclopedia/tab/bosstiary/bosstiary.lua
 
 local UI
 
@@ -168,9 +168,10 @@ function Cyclopedia.CreateBosstiaryCreature(data)
 	widget.ProgressValue:setText(data.kills)
 	Cyclopedia.SetBestiaryProgress(46, widget.ProgressBack, widget.ProgressBack33, widget.ProgressBack55, data.kills, CONFIG[data.category].PROWESS, CONFIG[data.category].EXPERTISE, CONFIG[data.category].MASTERY, 47, 12)
 
-	-- raceId unknown to the client (missing in staticdata.dat) -> outfit.type == 0; setOutfit would
+	-- raceId unknown to the client (missing in staticdata.dat) -> outfit.type == 0 and auxType == 0; setOutfit would
 	-- only spam the log with "invalid thing type client id 0 in category 4" and draw an empty tile
-	if raceData and raceData.outfit and (raceData.outfit.type or 0) > 0 then
+	local hasOutfit = raceData and raceData.outfit and ((raceData.outfit.type or 0) > 0 or (raceData.outfit.auxType or 0) > 0)
+	if hasOutfit then
 		widget.Sprite:setOutfit(raceData.outfit)
 	end
 

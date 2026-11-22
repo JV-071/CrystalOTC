@@ -527,6 +527,16 @@ void Creature::walk(const Position& oldPos, const Position& newPos)
     // set current walking direction
     setDirection(m_lastStepDirection);
 
+    // Continuity across tiles (Approach 1): if already walking or within the inter-step beat window,
+    // carry over the leg cycle offset from the previous tile instead of resetting to phase 1.
+    const bool continuousWalk = m_walking || m_walkFinishAnimEvent != nullptr;
+    if (continuousWalk) {
+        m_walkCycleBaseOffset = m_walkCycleLastTotal >= 0.99f ? 0.f : m_walkCycleLastTotal;
+    } else {
+        m_walkCycleBaseOffset = 0.f;
+        m_walkCycleLastTotal = 0.f;
+    }
+
     // starts counting walk
     m_walking = true;
     m_walkTimer.restart();
@@ -700,6 +710,8 @@ void Creature::updateWalkAnimation()
     // diagonal walk is taking longer than the animation, thus why don't animate continously
     if (m_walkTimer.ticksElapsed() < getStepDuration() && m_walkedPixels == g_gameConfig.getSpriteSize()) {
         m_walkAnimationPhase = 0;
+        m_walkCycleBaseOffset = 0.f;
+        m_walkCycleLastTotal = 0.f;
         return;
     }
 
@@ -713,21 +725,27 @@ void Creature::updateWalkAnimation()
             footAnimDelay /= 1.5;
     }
 
-    // Walk phases used to be driven by a free-running m_footTimer with a hard clamp [minFootDelay,
-    // maxFootDelay], so they had nothing to do with the step tempo: at slow walk the character jogged
-    // in place, and at fast walk it slid (frames could not keep up with the offset). We tie them to
-    // STEP PROGRESS, so that one full frame cycle lands exactly on one tile.
-    // The phase range stays as before (1..footAnimPhases), so sprite indexing is left untouched.
-    // we compute progress against the SAME step duration the movement uses (diagonal-aware),
-    // otherwise on diagonals the frames would run ahead of the character's offset
-    const uint16_t stepDurationMs = getStepDuration(false);
-    const float stepProgress = stepDurationMs > 0
-        ? m_walkTimer.ticksElapsed() / static_cast<float>(stepDurationMs)
-        : -1.f;
+    // Approach 1: Cadence ceiling with inter-tile continuity.
+    // Enforce a minimum safe duration per phase (~40 ms for multi-frame outfits, 80 ms for 2-frame
+    // outfits). At low/medium speed (visualStepDurationMs >= minCycleDurationMs), 1 step = 1 exact
+    // animation cycle. At high speed, the leg cycle continues smoothly across consecutive tiles.
+    const uint16_t visualStepDurationMs = getStepDuration(true);
+    if (visualStepDurationMs > 0) {
+        const int minPhaseDurationMs = footAnimPhases > 2 ? 40 : 80;
+        const float minCycleDurationMs = static_cast<float>(footAnimPhases * minPhaseDurationMs);
+        const float cycleDurationMs = std::max<float>(static_cast<float>(visualStepDurationMs), minCycleDurationMs);
 
-    if (std::isfinite(stepProgress) && stepProgress >= 0.f) {
-        const float progress = std::min(stepProgress, 0.999f);
-        m_walkAnimationPhase = static_cast<uint8_t>(1 + static_cast<int>(progress * footAnimPhases));
+        const float stepElapsedMs = std::min<float>(
+            static_cast<float>(m_walkTimer.ticksElapsed()),
+            static_cast<float>(visualStepDurationMs)
+        );
+        const float totalCycle = m_walkCycleBaseOffset + (stepElapsedMs / cycleDurationMs);
+        const float wrappedCycle = totalCycle - std::floor(totalCycle);
+
+        m_walkCycleLastTotal = wrappedCycle;
+        m_walkAnimationPhase = static_cast<uint8_t>(
+            1 + std::min<int>(static_cast<int>(wrappedCycle * footAnimPhases), footAnimPhases - 1)
+        );
         return;
     }
 
@@ -818,10 +836,7 @@ void Creature::nextWalkUpdate()
 
 void Creature::updateWalk()
 {
-    // This used getStepDuration(true), i.e. 32 px covered in the time of a REGULAR step - when walking
-    // diagonally the character crossed the tile too fast, then stood still for the remaining 2/3 of
-    // the step time (hence the infamous diagonal "stutter"). We spread the pixels over the full step time.
-    const float walkTicksPerPixel = getStepDuration(false) / static_cast<float>(g_gameConfig.getSpriteSize());
+    const float walkTicksPerPixel = getStepDuration(true) / static_cast<float>(g_gameConfig.getSpriteSize());
 
     const int totalPixelsWalked = std::min<int>(m_walkTimer.ticksElapsed() / walkTicksPerPixel, g_gameConfig.getSpriteSize());
 
@@ -838,7 +853,7 @@ void Creature::updateWalk()
         g_map.notificateCameraMove(m_walkOffset);
     }
 
-    if (m_walkedPixels == g_gameConfig.getSpriteSize()) {
+    if (m_walkedPixels == g_gameConfig.getSpriteSize() && m_walkTimer.ticksElapsed() >= getStepDuration()) {
         terminateWalk();
     }
 }
@@ -862,6 +877,26 @@ void Creature::terminateWalk()
         m_walkingTile = nullptr;
     }
 
+    const uint16_t visualStepDurationMs = getStepDuration(true);
+    if (visualStepDurationMs > 0 && m_walkTimer.ticksElapsed() <= visualStepDurationMs + g_game.getServerBeat()) {
+        int footAnimPhases = m_outfit.isCreature()
+            ? (m_outfit.hasMount() ? getMountThingType()->getAnimationPhases() : getAnimationPhases())
+            : 0;
+        if (!g_game.getFeature(Otc::GameEnhancedAnimations) && footAnimPhases > 2) {
+            --footAnimPhases;
+        }
+        if (footAnimPhases > 0) {
+            const int minPhaseDurationMs = footAnimPhases > 2 ? 40 : 80;
+            const float minCycleDurationMs = static_cast<float>(footAnimPhases * minPhaseDurationMs);
+            const float cycleDurationMs = std::max<float>(static_cast<float>(visualStepDurationMs), minCycleDurationMs);
+            const float totalCycle = m_walkCycleBaseOffset + (static_cast<float>(visualStepDurationMs) / cycleDurationMs);
+            m_walkCycleLastTotal = totalCycle - std::floor(totalCycle);
+        }
+    } else {
+        m_walkCycleBaseOffset = 0.f;
+        m_walkCycleLastTotal = 0.f;
+    }
+
     m_walkedPixels = 0;
     m_walkOffset = {};
     m_walking = false;
@@ -869,8 +904,10 @@ void Creature::terminateWalk()
     const auto self = static_self_cast<Creature>();
     m_walkFinishAnimEvent = g_dispatcher.scheduleEvent([self] {
         self->m_walkAnimationPhase = 0;
+        self->m_walkCycleBaseOffset = 0.f;
+        self->m_walkCycleLastTotal = 0.f;
         self->m_walkFinishAnimEvent = nullptr;
-    }, g_game.getServerBeat());
+    }, std::max<int>(g_game.getServerBeat(), 75));
 }
 
 void Creature::setHealthPercent(const uint8_t healthPercent)
@@ -1181,7 +1218,9 @@ uint16_t Creature::getStepDuration(const bool ignoreDiagonal, const Otc::Directi
 
     if (isCameraFollowing() && isLocalPlayer()) {
         const auto& localPlayer = static_self_cast<LocalPlayer>();
-        duration += 10 * std::max<int>(1, localPlayer->getPreWalkingSize());
+        if (localPlayer->getPreWalkingSize() > 1) {
+            duration += 10 * static_cast<int>(localPlayer->getPreWalkingSize());
+        }
     }
 
     return duration;
