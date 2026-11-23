@@ -33,6 +33,9 @@ vcpkg_cmake_configure(
         -DRMLUI_SAMPLES=OFF
         -DBUILD_TESTING=OFF
         -DRMLUI_COMPILER_OPTIONS=OFF
+        # the runtime DLLs (freetype, lua51) come from vcpkg itself; RmlUi copying them at install
+        # time fails on the dynamic Windows triplet ("Could not resolve runtime dependencies")
+        -DRMLUI_INSTALL_RUNTIME_DEPENDENCIES=OFF
 )
 
 vcpkg_cmake_install()
