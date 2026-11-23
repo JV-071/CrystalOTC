@@ -19,8 +19,9 @@ vcpkg_from_github(
     REF 6.3
     SHA512 b66d2a3621ca2690d6e826661203fc3a4babe16243ed01b2f884d149f5b7ee598241f1f743262c7a8fbf8ae98641d5c5526fc63d8a6283638b6dc021d23e103e
     HEAD_REF master
-    PATCHES
-        lua-datamodel-lifetime.patch
+    # lua-datamodel-lifetime.patch is not in the repository (the .gitignore has *.patch), so nobody
+    # but its author could build this port. Left out until it is committed upstream; without it the
+    # Lua data models of RmlUi windows keep the lifetime bug described above (only demo modules use them).
 )
 
 vcpkg_cmake_configure(
