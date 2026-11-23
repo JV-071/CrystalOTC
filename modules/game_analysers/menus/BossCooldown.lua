@@ -143,10 +143,12 @@ function BossCooldown:setupCooldown(rows)
 		return
 	end
 
+	-- the engine pushes each row as { bossRaceId = ..., cooldownTime = ... }
+	-- (push_luavalue(BossCooldownData)); positional rows are accepted as well
 	for _, row in pairs(rows) do
-		if type(row) == "table" and row[1] then
-			local rid = tonumber(row[1])
-			local raw = tonumber(row[2])
+		if type(row) == "table" then
+			local rid = tonumber(row.bossRaceId or row[1])
+			local raw = tonumber(row.cooldownTime or row[2])
 
 			if rid then
 				self.entries[#self.entries + 1] = {

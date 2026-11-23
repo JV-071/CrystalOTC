@@ -171,7 +171,7 @@
       <Optimization>Disabled</Optimization>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
 		$(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -197,7 +197,7 @@
       <Optimization>Disabled</Optimization>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
         $(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -223,7 +223,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
         $(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -253,7 +253,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
         $(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -284,7 +284,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
         $(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -313,7 +313,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <AdditionalIncludeDirectories>
-        $(VcpkgInstalledDir)\include\luajit;
+        $(VcpkgInstalledDir)$(VcpkgTriplet)\include\luajit;
         $(VcpkgInstalledDir)\include\;
         generated;
         %(AdditionalIncludeDirectories)
@@ -341,6 +341,17 @@
     <ClCompile Include="..\src\framework\graphics\vulkan\vkcontext.cpp" />
     <ClCompile Include="..\src\framework\graphics\vulkan\vkloader.cpp" />
     <ClCompile Include="..\src\framework\graphics\vulkan\vkrect.cpp" />
+    <ClCompile Include="..\src\framework\rml\rmlbackend.cpp" />
+    <ClCompile Include="..\src\framework\rml\rmlbackend_gl.cpp" />
+    <ClCompile Include="..\src\framework\rml\rmlmanager.cpp" />
+    <ClCompile Include="..\src\framework\rml\uirmlwidget.cpp" />
+    <ClCompile Include="..\src\client\rmlimages.cpp" />
+    <ClCompile Include="..\src\framework\rml\rmlrenderer.cpp" />
+    <ClCompile Include="..\src\framework\rml\RmlUi_Renderer_GL3.cpp">
+      <IncludeInUnityFile>false</IncludeInUnityFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles></ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\src\client\paperdoll.cpp" />
     <ClCompile Include="..\src\client\paperdollmanager.cpp" />
     <ClCompile Include="..\src\framework\pch.cpp">
@@ -526,6 +537,13 @@
     <ClInclude Include="..\src\framework\graphics\vulkan\vkcontext.h" />
     <ClInclude Include="..\src\framework\graphics\vulkan\vkloader.h" />
     <ClInclude Include="..\src\framework\graphics\vulkan\vkrect.h" />
+    <ClInclude Include="..\src\framework\rml\rmlbackend.h" />
+    <ClInclude Include="..\src\framework\rml\rmlbackend_gl.h" />
+    <ClInclude Include="..\src\framework\rml\rmlmanager.h" />
+    <ClInclude Include="..\src\framework\rml\uirmlwidget.h" />
+    <ClInclude Include="..\src\client\rmlimages.h" />
+    <ClInclude Include="..\src\framework\rml\rmlrenderer.h" />
+    <ClInclude Include="..\src\framework\rml\RmlUi_Renderer_GL3.h" />
     <ClInclude Include="..\src\client\animatedtext.h" />
     <ClInclude Include="..\src\client\animator.h" />
     <ClInclude Include="..\src\client\attachableobject.h" />

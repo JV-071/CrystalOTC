@@ -2833,6 +2833,16 @@ local function tryClassicAttack(player, attackCreature, creatureThing, autoWalkP
 	return false
 end
 
+-- A click that walks the character is manual movement: with "Auto Chase Off" enabled it ends
+-- the chase. The option check lives in game_inventory, next to the posture buttons it updates.
+local function cancelChaseOnManualWalk()
+	local inventory = modules.game_inventory
+
+	if inventory and inventory.cancelChaseOnManualWalk then
+		inventory.cancelChaseOnManualWalk()
+	end
+end
+
 function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, useThing, creatureThing, attackCreature)
 	local keyboardModifiers = g_keyboard.getModifiers()
 	local classicControl = modules.client_options.getOption("classicControl")
@@ -3096,17 +3106,11 @@ function processMouseAction(menuPosition, mouseButton, autoWalkPos, lookThing, u
 
 			if not lootTarget and (not lookThing or lookThing:isCreature() or not lookThing:isPickupable()) then
 				player:autoWalk(autoWalkPos)
-
-				if g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
-					g_game.setChaseMode(DontChase)
-				end
+				cancelChaseOnManualWalk()
 			end
 		else
 			player:autoWalk(autoWalkPos)
-
-			if g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
-				g_game.setChaseMode(DontChase)
-			end
+			cancelChaseOnManualWalk()
 		end
 
 		return true

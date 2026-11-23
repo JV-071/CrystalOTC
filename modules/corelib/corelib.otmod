@@ -35,6 +35,7 @@ Module
     dofile 'sidebar_widget_options'
     dofile 'http'
     dofile 'objectpool'
+    dofile 'rml'
 
     Keybind.init()
   

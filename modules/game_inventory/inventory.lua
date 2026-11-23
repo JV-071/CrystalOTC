@@ -253,7 +253,11 @@ local function updateSlotsDuration()
 	end
 end
 
-local function walkEvent()
+-- "Auto Chase Off": moving the character by hand while chasing switches back to standing.
+-- Only explicit movement input calls this: the walk keys (g_game.onWalk) and a click on the map
+-- or the minimap. It must not hang on g_game.onAutoWalk, which also fires for walks the engine
+-- issues on its own (continuing a long path, retrying after the server cancels a step).
+function cancelChaseOnManualWalk()
 	if modules.client_options.getOption("autoChaseOff") and g_game.isAttacking() and g_game.getChaseMode() == ChaseOpponent then
 		selectPosture("stand", false)
 	end
@@ -796,7 +800,6 @@ local function refreshInventorySizes()
 	refreshExpertPvpLayout()
 	bindPvpModeRadioGroup()
 	combatEvent()
-	walkEvent()
 	modules.game_mainpanel.reloadMainPanelSizes()
 end
 
@@ -864,8 +867,7 @@ function inventoryController:onGameStart()
 	end
 
 	inventoryController:registerEvents(g_game, {
-		onWalk = walkEvent,
-		onAutoWalk = walkEvent,
+		onWalk = cancelChaseOnManualWalk,
 		onChaseModeChange = combatEvent,
 		onSafeFightChange = combatEvent,
 		onPVPModeChange = combatEvent

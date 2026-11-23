@@ -15,6 +15,9 @@ with a set of in-house features:
   (`[mem]` / `[boot]` / `[gc]` log lines).
 - **Protocol 15.30 support** with protobuf appearances and per-version asset
   directories (`data/things/1530/`).
+- **RmlUi (HTML/CSS) interfaces** - `.rml` + `.rcss` documents drawn inside OTUI
+  widgets, with Lua data binding and game sprites as images. Works on the OpenGL
+  and ANGLE builds; see [docs/RMLUI.md](docs/RMLUI.md).
 
 ## Game assets (`data/things`)
 

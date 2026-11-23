@@ -66,3 +66,7 @@ add_subdirectory(map)
 add_subdirectory(stdext)
 add_subdirectory(otml)
 add_subdirectory(cyclopedia)
+
+if(TOGGLE_RMLUI AND TOGGLE_FRAMEWORK_GRAPHICS AND NOT WASM)
+    add_subdirectory(rml)
+endif()

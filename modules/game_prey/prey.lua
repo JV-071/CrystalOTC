@@ -93,8 +93,10 @@ function applyPreyCreaturePreview(spriteWidget)
 
 	local creature = spriteWidget:getCreature()
 
+	-- Speed 0 pins the creature to its first frame, so only the few with an idle animation of
+	-- their own moved. The same speed the prey tracker and the Bestiary use walks them in place.
 	if creature then
-		creature:setStaticWalking(0)
+		creature:setStaticWalking(1000)
 	end
 end
 
