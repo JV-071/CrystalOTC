@@ -10,6 +10,11 @@ namespace {
     // trying to draw (and must never create a GL context of its own).
     TEST(RmlBackendFactory, WithoutGlContextThereIsNoExecutor)
     {
+#ifndef _WIN32
+        // Only the Windows window reports a missing GL context; the other platforms always answer
+        // true (PlatformWindow::hasGLContext default), so the premise of this test does not hold.
+        GTEST_SKIP() << "hasGLContext() is only overridden by the Windows window";
+#endif
         ASSERT_FALSE(g_window.hasGLContext());
 
         EXPECT_EQ(rmlExpectedBackendName(), "none");
