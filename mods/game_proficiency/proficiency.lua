@@ -480,7 +480,8 @@ function onWeaponProficiency(itemId, experience, perks, marketCategory, modifier
 	WeaponProficiency.cacheList[itemId] = {
 		exp = experience,
 		perks = perks,
-		modifiers = modifiers or {}
+		modifiers = modifiers or {},
+		perksLoaded = true
 	}
 
 	sortWeaponProficiency(marketCategory)
@@ -543,10 +544,38 @@ function onWeaponProficiencyReshape(itemId, grade, slot, options)
 	WeaponProficiency:openReshapeDialog()
 end
 
+-- Asks the server for the assigned perks of a weapon whose cache entry only came from an
+-- experience update. Returns true when a request was sent. A weapon without experience has no
+-- server entry to answer with, so it is asked for only once it has some.
+function WeaponProficiency:requestPerksIfUnknown(itemId)
+	local entry = self.cacheList[itemId]
+
+	if not entry or entry.perksLoaded or entry._requestedInfo or (entry.exp or 0) <= 0 then
+		return false
+	end
+
+	if not g_game or not g_game.sendWeaponProficiencyAction then
+		return false
+	end
+
+	entry._requestedInfo = true
+
+	g_game.sendWeaponProficiencyAction(WEAPON_PROFICIENCY_ITEM_INFO, itemId)
+
+	return true
+end
+
 function WeaponProficiency:hasUnusedPerk(itemId, thingType)
 	local currentData = self.cacheList[itemId]
 	if not currentData then
 		return false
+	end
+
+	-- The experience update (0x5C) carries no perk list. Until the item info (0xC4) arrives the
+	-- assigned perks are unknown: an empty table here would read as "every unlocked lane is
+	-- free", so only the server's own flag counts.
+	if not currentData.perksLoaded then
+		return currentData.serverHighlight == true
 	end
 
 	local profId = thingType and thingType.getProficiencyId and thingType:getProficiencyId()
@@ -607,14 +636,17 @@ function onProficiencyNotification(itemId, experience, hasHighlight, thingType)
 	local itemCache = WeaponProficiency.cacheList[itemId]
 
 	if not itemCache then
-		WeaponProficiency.cacheList[itemId] = {
+		itemCache = {
 			exp = experience,
 			perks = {},
 			modifiers = {}
 		}
+		WeaponProficiency.cacheList[itemId] = itemCache
 	elseif experience > 0 then
 		itemCache.exp = experience
 	end
+
+	itemCache.serverHighlight = hasHighlight == true
 
 	if thingType then
 		sortWeaponProficiency(thingType:getMarketData().category)
@@ -626,10 +658,7 @@ function onProficiencyNotification(itemId, experience, hasHighlight, thingType)
 		return
 	end
 
-	if not WeaponProficiency.cacheList[itemId]._requestedInfo and g_game and g_game.sendWeaponProficiencyAction then
-		WeaponProficiency.cacheList[itemId]._requestedInfo = true
-		g_game.sendWeaponProficiencyAction(Otc.WEAPON_PROFICIENCY_ITEM_INFO, itemId)
-	end
+	WeaponProficiency:requestPerksIfUnknown(itemId)
 
 	local realHighlight = WeaponProficiency:hasUnusedPerk(itemId, thingType)
 	modules.game_interface.StatsBar.onUpdateProficiencyData(WeaponProficiency.cacheList[itemId], realHighlight, thingType)
@@ -1719,6 +1748,9 @@ function WeaponProficiency:onApplyChanges(button, targetItem)
 	else
 		self.cacheList[clientId].perks = toSend
 	end
+
+	-- the perks were just chosen here, so they are known without asking the server
+	self.cacheList[clientId].perksLoaded = true
 
 	self.applyButton:setOn(false)
 	self.okButton:setOn(true)

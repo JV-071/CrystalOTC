@@ -36,6 +36,10 @@
       "platform": "!android & !wasm32"
     },
     {
+      "name": "rmlui",
+      "platform": "!android & !wasm32"
+    },
+    {
       "name": "opengl",
       "platform": "windows | linux"
     },

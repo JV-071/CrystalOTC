@@ -66,6 +66,35 @@ local function tryLoadDatWithFallbacks(datPath)
 	return false
 end
 
+-- Object Builder writes Tibia.otfi next to the files it saves; honor its options so .dat/.spr
+-- exported with transparency/extended/frame groups are read the same way OB wrote them.
+local function applyOtfi(basePath)
+	local otfiPath = basePath .. ".otfi"
+
+	if not g_resources.fileExists(otfiPath) then
+		return
+	end
+
+	local options = {}
+
+	for key, value in g_resources.readFileContents(otfiPath):gmatch("([%w%-]+)%s*:%s*(%w+)") do
+		options[key] = value == "true"
+	end
+
+	local features = {
+		extended = GameSpritesU32,
+		transparency = GameSpritesAlphaChannel,
+		["frame-durations"] = GameEnhancedAnimations,
+		["frame-groups"] = GameIdleAnimations
+	}
+
+	for key, feature in pairs(features) do
+		if options[key] ~= nil then
+			g_game.setFeature(feature, options[key])
+		end
+	end
+end
+
 local function load(version)
 	local errorList = {}
 	-- CrystalOTC: per-version assets (/things/1530/), not /things/assets/
@@ -104,6 +133,7 @@ local function load(version)
 			sprPath = resolvepath(THINGS_ASSETS_PATH .. "Tibia")
 		end
 
+		applyOtfi(datPath)
 		g_logger.setLevel(5)
 
 		if not tryLoadDatWithFallbacks(datPath) then

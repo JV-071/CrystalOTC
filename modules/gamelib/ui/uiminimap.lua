@@ -765,6 +765,15 @@ function UIMinimap:save()
 	g_settings.setNode("Minimap", settings)
 end
 
+-- walking by a click on the minimap is manual movement, like a click on the game map
+local function cancelChaseOnManualWalk()
+	local inventory = modules.game_inventory
+
+	if inventory and inventory.cancelChaseOnManualWalk then
+		inventory.cancelChaseOnManualWalk()
+	end
+end
+
 local function onFlagMouseRelease(widget, pos, button)
 	if button == MouseLeftButton then
 		local player = g_game.getLocalPlayer()
@@ -777,6 +786,7 @@ local function onFlagMouseRelease(widget, pos, button)
 
 		if widget:getParent().autowalk then
 			player:autoWalk(widget.pos)
+			cancelChaseOnManualWalk()
 		end
 
 		return true
@@ -1288,6 +1298,7 @@ function UIMinimap:onMouseRelease(pos, button)
 
 		if self.autowalk then
 			player:autoWalk(mapPos)
+			cancelChaseOnManualWalk()
 		end
 
 		return true

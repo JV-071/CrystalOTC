@@ -256,29 +256,32 @@ local function syncNpcToggleChatButton(wasdMode)
 	npcToggleBtn:setText(wasdMode and tr("Chat Off") or tr("Chat On"))
 end
 
-function setChatModeOn()
+function setChatModeOn(temporary)
 	if not g_game.isOnline() or HotkeyUtils.areHotkeysDisabled() then
-		return
+		return false
 	end
 
 	if not consoleToggleChat or not consoleTextEdit then
-		return
+		return false
 	end
 
-	temporaryChatViaEnter = false
+	temporaryChatViaEnter = temporary and true or false
 
 	syncToggleChatToTypingButton()
 	syncNpcToggleChatButton(false)
 	switchChat(true)
+	consoleTextEdit:focus()
+
+	return true
 end
 
 function setChatModeOff()
 	if not g_game.isOnline() or HotkeyUtils.areHotkeysDisabled() then
-		return
+		return false
 	end
 
 	if not consoleToggleChat or not consoleTextEdit then
-		return
+		return false
 	end
 
 	temporaryChatViaEnter = false
@@ -286,6 +289,8 @@ function setChatModeOff()
 	syncToggleChatToWASDButton()
 	syncNpcToggleChatButton(true)
 	switchChat(false)
+
+	return true
 end
 
 local communicationSettings = {
@@ -356,8 +361,11 @@ function init()
 	connect(consoleTextEdit, {
 		onKeyDown = function(widget, keyCode, keyboardModifiers)
 			if g_keyboard.isEnterKey(keyCode) and keyboardModifiers == KeyboardNoModifier then
-				switchChatOnCall()
+				return handleChatEnter()
+			end
 
+			if keyCode == KeyEscape and keyboardModifiers == KeyboardNoModifier then
+				setChatModeOff()
 				return true
 			end
 
@@ -497,20 +505,28 @@ function init()
 			callback = openHelp
 		}
 	}, consolePanel)
-	Keybind.new("Chat Mode", "Set to Chat On", "", "")
+	Keybind.new("Chat Mode", "Set to Chat On", {
+		[CHAT_MODE.ON] = "",
+		[CHAT_MODE.OFF] = "Enter"
+	}, "")
 	Keybind.bind("Chat Mode", "Set to Chat On", {
 		{
 			type = KEY_DOWN,
-			callback = setChatModeOn
+			callback = function()
+				return setChatModeOn(true)
+			end
 		}
-	}, gameRootPanel)
-	Keybind.new("Chat Mode", "Set to Chat Off", "", "")
+	})
+	Keybind.new("Chat Mode", "Set to Chat Off", {
+		[CHAT_MODE.ON] = "Enter",
+		[CHAT_MODE.OFF] = ""
+	}, "")
 	Keybind.bind("Chat Mode", "Set to Chat Off", {
 		{
 			type = KEY_DOWN,
 			callback = setChatModeOff
 		}
-	}, gameRootPanel)
+	})
 
 	consoleToggleChat = consolePanel:getChildById("toggleChat")
 	readOnlyButton = consolePanel:getChildById("readOnlyButton")
@@ -597,14 +613,6 @@ local function unbindMovingKeys()
 	gameWalk.unbindWalkKey("Q")
 	gameWalk.unbindWalkKey("C")
 	gameWalk.unbindWalkKey("Z")
-	gameWalk.unbindWalkKey("Num+8")
-	gameWalk.unbindWalkKey("Num+9")
-	gameWalk.unbindWalkKey("Num+6")
-	gameWalk.unbindWalkKey("Num+3")
-	gameWalk.unbindWalkKey("Num+2")
-	gameWalk.unbindWalkKey("Num+1")
-	gameWalk.unbindWalkKey("Num+4")
-	gameWalk.unbindWalkKey("Num+7")
 
 	if gameWalk.syncWasdTurnKeyLayout then
 		gameWalk.syncWasdTurnKeyLayout(false)
@@ -946,21 +954,51 @@ local function wireNpcModalKeyboard(npcModalWindow)
 	end
 end
 
-function switchChatOnCall()
+function handleChatEnter()
 	if not g_game.isOnline() or HotkeyUtils.areHotkeysDisabled() then
-		return
+		return false
 	end
 
 	if not isChatEnabled() then
-		return
+		return false
 	end
 
-	sendCurrentMessage()
+	local offKeys = Keybind.getKeybindKeys("Chat Mode", "Set to Chat Off", CHAT_MODE.ON)
+	local isOffMappedToEnter = (offKeys.primary == "Enter" or offKeys.secondary == "Enter")
+	local sendKeys = Keybind.getKeybindKeys("Chat", "Send current chat line", CHAT_MODE.ON)
+	local isSendMappedToEnter = (sendKeys.primary == "Enter" or sendKeys.secondary == "Enter")
+
+	local wasTemporary = temporaryChatViaEnter
+	local input = getChatInputForSend()
+	local message = input and input:getText() or ""
+
+	if #message > 0 then
+		if isSendMappedToEnter then
+			sendCurrentMessage()
+
+			if wasTemporary and isOffMappedToEnter then
+				setChatModeOff()
+			end
+
+			return true
+		end
+	end
+
+	if isOffMappedToEnter then
+		setChatModeOff()
+		return true
+	end
+
+	return false
+end
+
+function switchChatOnCall()
+	return handleChatEnter()
 end
 
 function disableChatOnCall()
 	if not g_game.isOnline() or HotkeyUtils.areHotkeysDisabled() then
-		return
+		return false
 	end
 
 	if isNpcModalVisible() then
@@ -968,8 +1006,10 @@ function disableChatOnCall()
 			modules.game_npcmodal.closeNpcModal()
 		end
 
-		return
+		return true
 	end
+
+	return setChatModeOff()
 end
 
 function prepareConsoleTextEditForNpcModal()

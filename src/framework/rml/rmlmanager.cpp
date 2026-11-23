@@ -1,0 +1,489 @@
+/*
+ * Copyright (c) 2010-2026 OTClient <https://github.com/edubart/otclient>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#include "rmlmanager.h"
+#include "rmlbackend.h"
+#include "rmlrenderer.h"
+#include "uirmlwidget.h"
+
+#include <framework/core/eventdispatcher.h>
+#include <framework/core/resourcemanager.h>
+#include <framework/graphics/image.h>
+#include <framework/luaengine/luainterface.h>
+#include <framework/platform/platformwindow.h>
+#include <framework/stdext/string.h>
+#include <framework/stdext/time.h>
+
+#include <RmlUi/Core.h>
+#include <RmlUi/Debugger.h>
+#include <RmlUi/Lua.h>
+
+#include <regex>
+
+RmlManager g_rml;
+
+namespace
+{
+    // RmlUi resolves "/styles/x.rcss" to "styles/x.rcss"; g_resources wants the leading slash
+    std::string resourcePath(const std::string& path)
+    {
+        return !path.empty() && path.front() != '/' ? '/' + path : path;
+    }
+
+    class OtSystemInterface final : public Rml::SystemInterface
+    {
+    public:
+        double GetElapsedTime() override { return static_cast<double>(stdext::micros()) / 1000000.0; }
+
+        bool LogMessage(const Rml::Log::Type type, const Rml::String& message) override
+        {
+            switch (type) {
+                case Rml::Log::LT_ERROR:
+                case Rml::Log::LT_ASSERT:
+                    g_logger.error("[rmlui] {}", message);
+                    break;
+                case Rml::Log::LT_WARNING:
+                    g_logger.warning("[rmlui] {}", message);
+                    break;
+                case Rml::Log::LT_INFO:
+                    g_logger.info("[rmlui] {}", message);
+                    break;
+                default:
+                    g_logger.debug("[rmlui] {}", message);
+                    break;
+            }
+            return true;
+        }
+
+        // RmlUi works in UTF-8; the client's clipboard, like the rest of its text, in Latin-1.
+        void SetClipboardText(const Rml::String& text) override { g_window.setClipboardText(RmlManager::latin1(text)); }
+        void GetClipboardText(Rml::String& text) override { text = RmlManager::utf8(g_window.getClipboardText()); }
+    };
+
+    // Reads through g_resources, so documents, stylesheets and fonts come from the same
+    // (possibly packed/encrypted) archives as the rest of the client.
+    class OtFileInterface final : public Rml::FileInterface
+    {
+        struct File
+        {
+            std::string data;
+            size_t position{ 0 };
+        };
+
+    public:
+        Rml::FileHandle Open(const Rml::String& rmlPath) override
+        {
+            const auto path = resourcePath(rmlPath);
+            try {
+                if (!g_resources.fileExists(path))
+                    return 0;
+                return reinterpret_cast<Rml::FileHandle>(new File{ g_resources.readFileContents(path) });
+            } catch (const std::exception& e) {
+                g_logger.error("[rmlui] unable to read '{}': {}", path, e.what());
+                return 0;
+            }
+        }
+
+        void Close(const Rml::FileHandle handle) override { delete reinterpret_cast<File*>(handle); }
+
+        size_t Read(void* buffer, const size_t size, const Rml::FileHandle handle) override
+        {
+            auto* file = reinterpret_cast<File*>(handle);
+            const size_t count = std::min(size, file->data.size() - file->position);
+            std::memcpy(buffer, file->data.data() + file->position, count);
+            file->position += count;
+            return count;
+        }
+
+        bool Seek(const Rml::FileHandle handle, const long offset, const int origin) override
+        {
+            auto* file = reinterpret_cast<File*>(handle);
+            long base = 0;
+            if (origin == SEEK_CUR)
+                base = static_cast<long>(file->position);
+            else if (origin == SEEK_END)
+                base = static_cast<long>(file->data.size());
+
+            const long position = base + offset;
+            if (position < 0 || position > static_cast<long>(file->data.size()))
+                return false;
+            file->position = static_cast<size_t>(position);
+            return true;
+        }
+
+        size_t Tell(const Rml::FileHandle handle) override { return reinterpret_cast<File*>(handle)->position; }
+        size_t Length(const Rml::FileHandle handle) override { return reinterpret_cast<File*>(handle)->data.size(); }
+
+        bool LoadFile(const Rml::String& rmlPath, Rml::String& out_data) override
+        {
+            const auto path = resourcePath(rmlPath);
+            try {
+                if (!g_resources.fileExists(path))
+                    return false;
+                out_data = g_resources.readFileContents(path);
+                return true;
+            } catch (const std::exception& e) {
+                g_logger.error("[rmlui] unable to read '{}': {}", path, e.what());
+                return false;
+            }
+        }
+    };
+}
+
+RmlManager::RmlManager() = default;
+RmlManager::~RmlManager() = default;
+
+bool RmlManager::init()
+{
+    if (m_initialized)
+        return true;
+    if (m_initFailed || m_terminated)
+        return false;
+
+    // No OpenGL context means the client is drawing with its Vulkan renderer, for which there
+    // is no executor yet. Refusing here (once) keeps every widget context-less, so nothing is
+    // recorded for a replay that would never run, and no GL context is ever created for RmlUi.
+    if (!g_window.hasGLContext()) {
+        g_logger.warning("[rmlui] disabled: no executor for the active render backend");
+        m_initFailed = true;
+        m_backendFailed = true;
+        m_advancedEffects = false;
+        return false;
+    }
+
+    std::scoped_lock lock(m_mutex);
+
+    m_systemInterface = std::make_unique<OtSystemInterface>();
+    m_fileInterface = std::make_unique<OtFileInterface>();
+    Rml::SetSystemInterface(m_systemInterface.get());
+    Rml::SetFileInterface(m_fileInterface.get());
+
+    // No global render interface: every UIRmlWidget gives its own RmlRenderer to its context.
+    if (!Rml::Initialise()) {
+        g_logger.error("[rmlui] Rml::Initialise failed");
+        m_initFailed = true;
+        return false;
+    }
+
+    // RmlUi's Lua plugin replaces the global print with its own (routed to Rml::Log, so every
+    // line would show up as "[rmlui] ..."). The client keeps its print: Lua output has to look
+    // the same whether or not RmlUi was ever started.
+    lua_State* const L = g_lua.getLuaState();
+    lua_getglobal(L, "print");
+    const int clientPrint = luaL_ref(L, LUA_REGISTRYINDEX);
+    Rml::Lua::Initialise(L);
+    lua_rawgeti(L, LUA_REGISTRYINDEX, clientPrint);
+    lua_setglobal(L, "print");
+    luaL_unref(L, LUA_REGISTRYINDEX, clientPrint);
+
+    loadFonts();
+
+    m_tickEvent = g_dispatcher.cycleEvent([this] { tick(); }, 16);
+    m_initialized = true;
+
+    g_logger.info("[rmlui] ready - RmlUi {} (backend {})", Rml::GetVersion(), getBackendName());
+    return true;
+}
+
+void RmlManager::terminate()
+{
+    // From here on RmlUi must never be started again (e.g. by a Lua finalizer in lua_close()).
+    m_terminated = true;
+
+    if (!m_initialized)
+        return;
+
+    std::scoped_lock lock(m_mutex);
+
+    if (m_tickEvent) {
+        m_tickEvent->cancel();
+        m_tickEvent = nullptr;
+    }
+
+    // Widgets can outlive this call: Lua only collects them in lua_close(), which runs after
+    // us. Each one gives up its context now, so that its destructor finds nothing to release
+    // and never calls into a library that is already shut down.
+    for (auto* widget : std::vector(m_widgets)) {
+        widget->unloadDocument();
+        widget->releaseContext();
+    }
+
+    Rml::Shutdown();
+
+    // This is the graphics thread and the GPU is still up: free every executor here rather than
+    // leaving it to main-dispatcher events that will not run anymore.
+    for (const auto& renderer : m_retiredRenderers)
+        renderer->releaseBackend();
+
+    m_retiredRenderers.clear();
+    m_widgets.clear();
+    m_initialized = false;
+}
+
+bool RmlManager::isReady()
+{
+    return init() && !m_backendFailed;
+}
+
+std::string RmlManager::getBackendName() const
+{
+    if (m_backendFailed)
+        return "unavailable";
+
+    std::string name;
+    {
+        std::scoped_lock lock(m_backendNameMutex);
+        name = m_backendName;
+    }
+    // Before the first frame reaches the GPU no executor exists yet: report the one that will.
+    if (name.empty())
+        name = rmlExpectedBackendName();
+    return m_advancedEffects ? name + " (full effects)" : name;
+}
+
+void RmlManager::onBackendResult(const RmlBackend* backend)
+{
+    if (!backend) {
+        m_backendFailed = true;
+        m_advancedEffects = false;
+        return;
+    }
+
+    if (!backend->supportsAdvancedEffects())
+        m_advancedEffects = false;
+
+    std::scoped_lock lock(m_backendNameMutex);
+    m_backendName = backend->name();
+}
+
+std::shared_ptr<RmlRenderer> RmlManager::createRenderer()
+{
+    RmlRendererHooks hooks;
+    hooks.createBackend = [] { return createRmlBackend(); };
+    hooks.loadImage = [this](const std::string& source) -> ImagePtr {
+        // Called from inside RmlUi, which is not exception safe: nothing may propagate.
+        try {
+            return loadImage(source);
+        } catch (const std::exception& e) {
+            g_logger.error("[rmlui] image '{}' could not be loaded: {}", source, e.what());
+            return nullptr;
+        }
+    };
+    hooks.onBackendResult = [this](const RmlBackend* backend) { onBackendResult(backend); };
+    return std::make_shared<RmlRenderer>(std::move(hooks));
+}
+
+bool RmlManager::loadFontFace(const std::string& path, const bool fallback)
+{
+    if (!init())
+        return false;
+
+    std::scoped_lock lock(m_mutex);
+    if (!Rml::LoadFontFace(path, fallback)) {
+        g_logger.warning("[rmlui] font '{}' could not be loaded", path);
+        return false;
+    }
+    return true;
+}
+
+void RmlManager::loadFonts()
+{
+    int loaded = 0;
+    for (const char* dir : { "/fonts/rml", "/data/fonts/rml" }) {
+        std::list<std::string> files;
+        try {
+            files = g_resources.listDirectoryFiles(dir, true);
+        } catch (...) {
+            continue;
+        }
+
+        for (const auto& file : files) {
+            auto ext = file.size() > 4 ? file.substr(file.size() - 4) : std::string();
+            stdext::tolower(ext);
+            if (ext != ".ttf" && ext != ".otf")
+                continue;
+            // the first face loaded becomes the fallback for missing glyphs
+            if (Rml::LoadFontFace(file, loaded == 0))
+                ++loaded;
+            else
+                g_logger.warning("[rmlui] font '{}' could not be loaded", file);
+        }
+        if (loaded > 0)
+            break;
+    }
+
+    if (loaded == 0)
+        g_logger.warning("[rmlui] no font found in /fonts/rml - documents will have no text until g_rml.loadFontFace() is called");
+}
+
+std::string RmlManager::utf8(const std::string_view latin1Text)
+{
+    return stdext::latin1_to_utf8(latin1Text);
+}
+
+std::string RmlManager::latin1(const std::string_view utf8Text)
+{
+    return stdext::utf8_to_latin1(utf8Text);
+}
+
+int RmlManager::getContextCount() const
+{
+    return static_cast<int>(std::ranges::count_if(m_widgets, [](const UIRmlWidget* widget) { return widget->hasContext(); }));
+}
+
+int RmlManager::getReplayedFrameCount() const
+{
+    return static_cast<int>(RmlRenderer::replayedFrameCount());
+}
+
+std::vector<UIRmlWidgetPtr> RmlManager::getWidgets()
+{
+    std::vector<UIRmlWidgetPtr> widgets;
+    widgets.reserve(m_widgets.size());
+    for (auto* widget : m_widgets) {
+        if (!widget->isDestroyed())
+            widgets.emplace_back(widget->static_self_cast<UIRmlWidget>());
+    }
+    return widgets;
+}
+
+void RmlManager::registerWidget(UIRmlWidget* widget)
+{
+    m_widgets.emplace_back(widget);
+}
+
+void RmlManager::unregisterWidget(UIRmlWidget* widget)
+{
+    std::erase(m_widgets, widget);
+}
+
+void RmlManager::retireRenderer(const std::shared_ptr<RmlRenderer>& renderer)
+{
+    if (!renderer)
+        return;
+
+    {
+        std::scoped_lock lock(m_mutex);
+        Rml::ReleaseTextures(renderer.get());
+        Rml::ReleaseCompiledGeometry(renderer.get());
+        renderer->retire();
+    }
+
+    // RmlUi keeps a render manager per interface until Rml::Shutdown(), so the object itself
+    // must outlive the library; only its GPU objects go away now, on the graphics thread.
+    m_retiredRenderers.emplace_back(renderer);
+    g_mainDispatcher.addEvent([renderer] { renderer->releaseBackend(); });
+}
+
+void RmlManager::tick()
+{
+    if (m_assetsReady) {
+        const bool ready = m_assetsReady();
+        if (ready != m_lastAssetsReady) {
+            m_lastAssetsReady = ready;
+            if (ready)
+                invalidateVirtualImages();
+        }
+    }
+
+    if (++m_ticks % 60 == 0)
+        retryPendingImages();
+
+    // Strong references: a tick runs Lua callbacks, and one of them can drop the last reference
+    // to a widget further down this list.
+    for (const auto& widget : getWidgets())
+        widget->tick();
+}
+
+void RmlManager::invalidateVirtualImages()
+{
+    if (!m_initialized)
+        return;
+
+    std::scoped_lock lock(m_mutex);
+    // RmlUi reloads a released texture the next time an element renders it
+    for (const auto& source : m_virtualSources)
+        Rml::ReleaseTexture(source);
+    m_pendingImages.clear();
+}
+
+void RmlManager::retryPendingImages()
+{
+    std::scoped_lock lock(m_mutex);
+    for (auto& [source, attempts] : m_pendingImages) {
+        if (attempts > 0 && attempts <= 10)
+            Rml::ReleaseTexture(source);
+    }
+}
+
+namespace
+{
+    ImagePtr scaleNearest(const ImagePtr& image, const int factor)
+    {
+        const auto& size = image->getSize();
+        const int bpp = image->getBpp();
+        auto scaled = std::make_shared<Image>(size * factor, bpp);
+        const auto& in = image->getPixels();
+        auto& out = scaled->getPixels();
+        const int outWidth = size.width() * factor;
+        for (int y = 0; y < size.height() * factor; ++y) {
+            for (int x = 0; x < outWidth; ++x) {
+                const auto* src = &in[(static_cast<size_t>(y / factor) * size.width() + x / factor) * bpp];
+                std::copy_n(src, bpp, &out[(static_cast<size_t>(y) * outWidth + x) * bpp]);
+            }
+        }
+        return scaled;
+    }
+}
+
+ImagePtr RmlManager::loadImage(const std::string& source)
+{
+    // optional @2x..@8x: nearest-neighbour upscale, keeps pixel art sharp
+    static const std::regex virtualImage(R"((?:^|/)(item|effect|outfit)/(\d+(?:-\d+)*)(?:@([2-8])x)?\.png$)");
+    std::smatch match;
+    if (!std::regex_search(source, match, virtualImage))
+        return Image::load(resourcePath(source));
+
+    std::scoped_lock lock(m_mutex);
+    m_virtualSources.insert(source);
+
+    ImagePtr image;
+    if (m_imageProvider && (!m_assetsReady || m_assetsReady())) {
+        try {
+            image = m_imageProvider(match[1].str(), stdext::split<int>(match[2].str(), "-"));
+        } catch (const std::exception& e) {
+            g_logger.error("[rmlui] image '{}' could not be drawn: {}", source, e.what());
+        }
+    }
+
+    if (image) {
+        m_pendingImages.erase(source);
+        if (match[3].matched)
+            image = scaleNearest(image, std::stoi(match[3].str()));
+        return image;
+    }
+
+    // Not available yet (assets not loaded, sprite file busy): a transparent placeholder keeps
+    // the layout and avoids RmlUi's white box; the image is requested again later.
+    ++m_pendingImages[source];
+    return std::make_shared<Image>(Size(32, 32));
+}

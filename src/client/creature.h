@@ -342,6 +342,8 @@ private:
     uint8_t m_emblem{ Otc::EmblemNone };
 
     // walk related
+    float m_walkCycleBaseOffset{ 0.f };
+    float m_walkCycleLastTotal{ 0.f };
     uint8_t m_walkAnimationPhase{ 0 };
     uint8_t m_walkedPixels{ 0 };
 

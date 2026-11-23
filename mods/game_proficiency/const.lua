@@ -1,5 +1,8 @@
 ﻿-- chunkname: @/mods/game_proficiency/const.lua
 
+-- g_game.sendWeaponProficiencyAction request type (Otc::WeaponProficiency_t in src/client/const.h)
+WEAPON_PROFICIENCY_ITEM_INFO = 0
+
 PERK_ATTACK_DAMAGE = 0
 PERK_DEFENSE = 1
 PERK_DEFENSE_MODIFIER = 2

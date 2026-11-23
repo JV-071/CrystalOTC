@@ -12,6 +12,8 @@
         FRAMEWORK_NET;
         FRAMEWORK_SOUND;
         FRAMEWORK_PROTOBUF;
+        FRAMEWORK_RMLUI;
+        RMLUI_STATIC_LIB;
         BUILD_TYPE="RelWithDebInfo";
         NOMINMAX;
     </PREPROCESSOR_DEFS>

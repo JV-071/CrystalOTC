@@ -2379,12 +2379,21 @@ function StatsBar.syncProficiencyHighlightWithHandWeapon()
 		lastProficiencyCache = {}
 	end
 
-	if WeaponProficiency and WeaponProficiency.cacheList and WeaponProficiency.cacheList[hid] then
+	-- game_proficiency is sandboxed: its tables are reachable through modules.*, not as globals
+	local proficiency = modules.game_proficiency and modules.game_proficiency.WeaponProficiency
+
+	if proficiency and proficiency.cacheList and proficiency.cacheList[hid] then
+		-- the experience update can arrive before the hand slot does (login, weapon swap); the
+		-- perks of that weapon were then never asked for
+		if proficiency.requestPerksIfUnknown then
+			proficiency:requestPerksIfUnknown(hid)
+		end
+
 		local thingType = hand:getThingType()
 		if thingType then
-			local unused = WeaponProficiency:hasUnusedPerk(hid, thingType)
+			local unused = proficiency:hasUnusedPerk(hid, thingType)
 			if unused ~= proficiencyPerkHighlightActive then
-				StatsBar.onUpdateProficiencyData(WeaponProficiency.cacheList[hid], unused, thingType)
+				StatsBar.onUpdateProficiencyData(proficiency.cacheList[hid], unused, thingType)
 			end
 		end
 	end

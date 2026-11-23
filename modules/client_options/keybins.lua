@@ -1,4 +1,4 @@
-﻿-- chunkname: @/client_options/keybins.lua
+-- chunkname: @/client_options/keybins.lua
 
 local actionNameLimit = 39
 local changedOptions = {}
@@ -88,17 +88,26 @@ local function clearCustomHotkeyConflicts(keyCombo)
 end
 
 local function isKeyComboUsedInPendingKeybinds(keyCombo, category, action, preset)
-	if not changedKeybinds[preset] then
+	local chatMode = getChatMode()
+
+	if not changedKeybinds[preset] or not changedKeybinds[preset][chatMode] then
 		return false
 	end
 
-	for _, pending in pairs(changedKeybinds[preset]) do
-		if pending.primary and pending.primary.keyCombo == keyCombo and (pending.primary.category ~= category or pending.primary.action ~= action) then
-			return true
+	for _, pending in pairs(changedKeybinds[preset][chatMode]) do
+		local pPrimary = pending.primary
+		local pSecondary = pending.secondary
+
+		if pPrimary and not (Keybind.isAllowedKeybindShare and Keybind.isAllowedKeybindShare(category, action, pPrimary.category, pPrimary.action, keyCombo)) then
+			if pPrimary.keyCombo == keyCombo and (pPrimary.category ~= category or pPrimary.action ~= action) then
+				return true
+			end
 		end
 
-		if pending.secondary and pending.secondary.keyCombo == keyCombo and (pending.secondary.category ~= category or pending.secondary.action ~= action) then
-			return true
+		if pSecondary and not (Keybind.isAllowedKeybindShare and Keybind.isAllowedKeybindShare(category, action, pSecondary.category, pSecondary.action, keyCombo)) then
+			if pSecondary.keyCombo == keyCombo and (pSecondary.category ~= category or pSecondary.action ~= action) then
+				return true
+			end
 		end
 	end
 
@@ -106,9 +115,10 @@ local function isKeyComboUsedInPendingKeybinds(keyCombo, category, action, prese
 end
 
 local function getPendingKeybindKeys(category, action, preset)
-	local keys = Keybind.getKeybindKeys(category, action, getChatMode(), preset, changedOptions.resetKeybinds)
+	local chatMode = getChatMode()
+	local keys = Keybind.getKeybindKeys(category, action, chatMode, preset, changedOptions.resetKeybinds)
 	local index = category .. "_" .. action
-	local pending = changedKeybinds[preset] and changedKeybinds[preset][index]
+	local pending = changedKeybinds[preset] and changedKeybinds[preset][chatMode] and changedKeybinds[preset][chatMode][index]
 
 	if pending then
 		if pending.primary then
@@ -594,16 +604,21 @@ function editKeybindPrimary(button)
 
 	function keyEditWindow.buttons.ok.onClick()
 		local keyCombo = getKeyEditComboWidget():getText()
+		local chatMode = getChatMode()
 
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
 		end
 
-		if not changedKeybinds[preset][index] then
-			changedKeybinds[preset][index] = {}
+		if not changedKeybinds[preset][chatMode] then
+			changedKeybinds[preset][chatMode] = {}
 		end
 
-		changedKeybinds[preset][index].primary = {
+		if not changedKeybinds[preset][chatMode][index] then
+			changedKeybinds[preset][chatMode][index] = {}
+		end
+
+		changedKeybinds[preset][chatMode][index].primary = {
 			category = category,
 			action = action,
 			keyCombo = keyCombo
@@ -614,15 +629,21 @@ function editKeybindPrimary(button)
 	end
 
 	function keyEditWindow.buttons.clear.onClick()
+		local chatMode = getChatMode()
+
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
 		end
 
-		if not changedKeybinds[preset][index] then
-			changedKeybinds[preset][index] = {}
+		if not changedKeybinds[preset][chatMode] then
+			changedKeybinds[preset][chatMode] = {}
 		end
 
-		changedKeybinds[preset][index].primary = {
+		if not changedKeybinds[preset][chatMode][index] then
+			changedKeybinds[preset][chatMode][index] = {}
+		end
+
+		changedKeybinds[preset][chatMode][index].primary = {
 			keyCombo = "",
 			category = category,
 			action = action
@@ -652,16 +673,21 @@ function editKeybindSecondary(button)
 
 	function keyEditWindow.buttons.ok.onClick()
 		local keyCombo = getKeyEditComboWidget():getText()
+		local chatMode = getChatMode()
 
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
 		end
 
-		if not changedKeybinds[preset][index] then
-			changedKeybinds[preset][index] = {}
+		if not changedKeybinds[preset][chatMode] then
+			changedKeybinds[preset][chatMode] = {}
 		end
 
-		changedKeybinds[preset][index].secondary = {
+		if not changedKeybinds[preset][chatMode][index] then
+			changedKeybinds[preset][chatMode][index] = {}
+		end
+
+		changedKeybinds[preset][chatMode][index].secondary = {
 			category = category,
 			action = action,
 			keyCombo = keyCombo
@@ -672,15 +698,21 @@ function editKeybindSecondary(button)
 	end
 
 	function keyEditWindow.buttons.clear.onClick()
+		local chatMode = getChatMode()
+
 		if not changedKeybinds[preset] then
 			changedKeybinds[preset] = {}
 		end
 
-		if not changedKeybinds[preset][index] then
-			changedKeybinds[preset][index] = {}
+		if not changedKeybinds[preset][chatMode] then
+			changedKeybinds[preset][chatMode] = {}
 		end
 
-		changedKeybinds[preset][index].secondary = {
+		if not changedKeybinds[preset][chatMode][index] then
+			changedKeybinds[preset][chatMode][index] = {}
+		end
+
+		changedKeybinds[preset][chatMode][index].secondary = {
 			keyCombo = "",
 			category = category,
 			action = action
@@ -996,9 +1028,6 @@ function performeSearchActions()
 end
 
 function chatModeChange()
-	changedHotkeys = {}
-	changedKeybinds = {}
-
 	panels.keybindsPanel.search.field:clearText()
 	updateKeybinds()
 end
@@ -1036,21 +1065,25 @@ function applyChangedOptions()
 
 	changedOptions = {}
 
-	for preset, keybinds in pairs(changedKeybinds) do
-		for index, keybind in pairs(keybinds) do
-			if keybind.primary then
-				clearActionBarHotkeyConflicts(keybind.primary.keyCombo)
-				clearCustomHotkeyConflicts(keybind.primary.keyCombo)
+	for preset, modes in pairs(changedKeybinds) do
+		for chatMode, keybinds in pairs(modes) do
+			for index, keybind in pairs(keybinds) do
+				if keybind.primary then
+					clearActionBarHotkeyConflicts(keybind.primary.keyCombo)
+					clearCustomHotkeyConflicts(keybind.primary.keyCombo)
 
-				if Keybind.setPrimaryActionKey(keybind.primary.category, keybind.primary.action, preset, keybind.primary.keyCombo, getChatMode()) then
-					needKeybindsUpdate = true
+					if Keybind.setPrimaryActionKey(keybind.primary.category, keybind.primary.action, preset, keybind.primary.keyCombo, chatMode) then
+						needKeybindsUpdate = true
+					end
 				end
-			elseif keybind.secondary then
-				clearActionBarHotkeyConflicts(keybind.secondary.keyCombo)
-				clearCustomHotkeyConflicts(keybind.secondary.keyCombo)
 
-				if Keybind.setSecondaryActionKey(keybind.secondary.category, keybind.secondary.action, preset, keybind.secondary.keyCombo, getChatMode()) then
-					needKeybindsUpdate = true
+				if keybind.secondary then
+					clearActionBarHotkeyConflicts(keybind.secondary.keyCombo)
+					clearCustomHotkeyConflicts(keybind.secondary.keyCombo)
+
+					if Keybind.setSecondaryActionKey(keybind.secondary.category, keybind.secondary.action, preset, keybind.secondary.keyCombo, chatMode) then
+						needKeybindsUpdate = true
+					end
 				end
 			end
 		end

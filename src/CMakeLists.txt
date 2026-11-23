@@ -96,6 +96,15 @@ elseif(MSVC)
   set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DOPENGL_ES=3)
 endif()
 
+# RmlUi: HTML/CSS documents hosted by UIRmlWidget (never on Android / WebAssembly)
+option(TOGGLE_RMLUI "Enable RmlUi (UIRmlWidget, g_rml)" ON)
+if (TOGGLE_RMLUI AND TOGGLE_FRAMEWORK_GRAPHICS AND NOT ANDROID AND NOT WASM)
+  set(OTCLIENT_RMLUI ON)
+  set(FRAMEWORK_DEFINITIONS ${FRAMEWORK_DEFINITIONS} -DFRAMEWORK_RMLUI)
+else()
+  set(OTCLIENT_RMLUI OFF)
+endif()
+
 set(VERSION "1.0.0")
 
 # *****************************************************************************
@@ -290,6 +299,21 @@ else()
     set(LUA_LIBRARY ${LUA_LIBRARY} ${CMAKE_SOURCE_DIR}/browser/include/lua51/liblua.a)
     set(BROWSER_INCLUDE_DIR ${BROWSER_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/browser/include)
   endif()
+endif()
+
+# *****************************************************************************
+# RmlUi (vcpkg overlay port: vcpkg-overlays/rmlui, Lua plugin on top of our LuaJIT)
+# *****************************************************************************
+if(OTCLIENT_RMLUI)
+  # RmlUi's package config resolves its Lua dependency through this target.
+  if(NOT TARGET LuaJIT::LuaJIT)
+    add_library(LuaJIT::LuaJIT INTERFACE IMPORTED)
+    set_target_properties(LuaJIT::LuaJIT PROPERTIES
+      INTERFACE_LINK_LIBRARIES "${LUAJIT_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${LUAJIT_INCLUDE_DIR}")
+  endif()
+  find_package(RmlUi CONFIG REQUIRED)
+  log_option_enabled("RMLUI")
 endif()
 
 # *****************************************************************************
@@ -515,9 +539,28 @@ if(ANDROID)
   )
 endif()
 
+if(OTCLIENT_RMLUI)
+  set(SOURCE_FILES ${SOURCE_FILES}
+          framework/rml/rmlbackend.cpp
+          framework/rml/rmlbackend_gl.cpp
+          framework/rml/rmlmanager.cpp
+          framework/rml/rmlrenderer.cpp
+          framework/rml/uirmlwidget.cpp
+          client/rmlimages.cpp
+          framework/rml/RmlUi_Renderer_GL3.cpp
+  )
+  # vendored RmlUi backend: keep it out of the PCH and of the unity build
+  set_source_files_properties(framework/rml/RmlUi_Renderer_GL3.cpp PROPERTIES
+    SKIP_PRECOMPILE_HEADERS ON
+    SKIP_UNITY_BUILD_INCLUSION ON)
+endif()
+
 add_library(otclient_core STATIC ${SOURCE_FILES})
 
 target_link_libraries(otclient_core PRIVATE unofficial::inih::inireader)
+if(OTCLIENT_RMLUI)
+  target_link_libraries(otclient_core PUBLIC RmlUi::RmlUi)
+endif()
 
 # -flto=auto at link time only helps when the objects were compiled with LTO (see OPTIONS_ENABLE_IPO)
 if(NOT MSVC AND OPTIONS_ENABLE_IPO AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")

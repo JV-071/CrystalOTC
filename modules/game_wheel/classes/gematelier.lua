@@ -13,6 +13,7 @@ local totalGemList = {}
 local currentSearchText = ""
 local cachedBasicMods = {}
 local cachedSupremeMods = {}
+local pendingRevealedGemId
 
 GemRevealPrice = {
 	[0] = 125000,
@@ -35,6 +36,7 @@ function GemAtelier.resetFields()
 	currentSearchText = ""
 	totalGemList = {}
 	currentPage = 1
+	pendingRevealedGemId = nil
 
 	gemAtelierWindow:recursiveGetChildById("filterPanel").searchText:clearText()
 	gemAtelierWindow:recursiveGetChildById("affinitiesBox"):setCurrentIndex(1, true)
@@ -163,6 +165,13 @@ function GemAtelier.redirectToGem(gemData)
 	GemAtelier.onSelectGem(focusedGem, true)
 end
 
+-- 0xC5: the server names the gem it just revealed by its position in the revealed gem list,
+-- which is the gemID that gem gets in the wheel data sent right after. It is kept until that
+-- data rebuilds the list (showGems).
+function GemAtelier.onGemRevealed(gemIndex)
+	pendingRevealedGemId = tonumber(gemIndex)
+end
+
 function GemAtelier.showGems(selectFirst, lastIndex)
 	if not WheelOfDestiny or not gemAtelierWindow then
 		return true
@@ -198,6 +207,29 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 		end
 
 		::label_4_0::
+	end
+
+	-- a gem that was just revealed: open the page it landed on, unless the filters hide it
+	local revealedGemId = pendingRevealedGemId
+
+	pendingRevealedGemId = nil
+
+	if revealedGemId then
+		local revealedPosition
+
+		for position, data in ipairs(totalGemList) do
+			if data.gemID == revealedGemId then
+				revealedPosition = position
+
+				break
+			end
+		end
+
+		if revealedPosition then
+			currentPage = math.ceil(revealedPosition / 15)
+		else
+			revealedGemId = nil
+		end
 	end
 
 	gemList:destroyChildren()
@@ -247,7 +279,21 @@ function GemAtelier.showGems(selectFirst, lastIndex)
 		gemList:focusChild(nil)
 		panel.cleanContent:setVisible(false)
 
-		if selectFirst then
+		local revealedWidget
+
+		if revealedGemId then
+			for _, widget in ipairs(children) do
+				if widget.gemID == revealedGemId then
+					revealedWidget = widget
+
+					break
+				end
+			end
+		end
+
+		if revealedWidget then
+			gemList:focusChild(revealedWidget)
+		elseif selectFirst then
 			gemList:focusChild(gemList:getFirstChild())
 		elseif lastIndex then
 			gemList:focusChild(children[lastIndex])

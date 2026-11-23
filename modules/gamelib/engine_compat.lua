@@ -494,12 +494,23 @@ local EXTENDED_MONSTERS = {
 	[2852] = { name = "Moonspawn Oozecrown", outfit = { type = 1971, head = 0, body = 0, legs = 0, feet = 0, addons = 0 }, stars = 4 },
 	[2856] = { name = "Jaracal", outfit = { type = 1961, head = 82, body = 97, legs = 76, feet = 76, addons = 0 }, stars = 4 },
 	[2857] = { name = "Moonstone Excavator", outfit = { type = 1952, head = 0, body = 0, legs = 0, feet = 0, addons = 1 }, stars = 4 },
-	[2858] = { name = "Moonstone Overseer", outfit = { type = 1956, head = 0, body = 0, legs = 0, feet = 0, addons = 0 }, stars = 4 }
+	[2858] = { name = "Moonstone Overseer", outfit = { type = 1956, head = 0, body = 0, legs = 0, feet = 0, addons = 0 }, stars = 4 },
+
+	-- Summer Update 2026 Bosses
+	[2806] = { name = "The Moonsnow Magnolia", outfit = { type = 1068, head = 85, body = 13, legs = 109, feet = 3, addons = 3 }, boss = true },
+	[2812] = { name = "Mimar Haffar", outfit = { type = 1953, head = 0, body = 0, legs = 0, feet = 0, addons = 0 }, boss = true },
+	[2813] = { name = "Mimar Haffar (Final)", outfit = { type = 1953, head = 0, body = 0, legs = 0, feet = 0, addons = 2 }, boss = true },
+	[2815] = { name = "Maior Domus", outfit = { type = 1959, head = 0, body = 0, legs = 0, feet = 0, addons = 2 }, boss = true },
+	[2826] = { name = "Phosphorus", outfit = { type = 1963, head = 0, body = 0, legs = 0, feet = 0, addons = 1 }, boss = true },
+	[2827] = { name = "Phosphorus (Final)", outfit = { type = 1955, head = 0, body = 0, legs = 0, feet = 0, addons = 1 }, boss = true },
+	[2855] = { name = "Rakesh Moonfang", outfit = { type = 1648, head = 0, body = 10, legs = 52, feet = 85, addons = 0 }, boss = true }
 }
 
 for raceId, data in pairs(EXTENDED_MONSTERS) do
 	data.raceId = raceId
-	data.boss = false
+	if data.boss == nil then
+		data.boss = false
+	end
 end
 
 local origGetRaceData = g_things.getRaceData

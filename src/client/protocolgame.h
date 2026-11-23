@@ -414,6 +414,7 @@ private:
     void parseMapShader(const InputMessagePtr& msg);
     void parseOpenWheelWindow(const InputMessagePtr& msg);
     void parseWheelSpellAugments(const InputMessagePtr& msg);
+    void parseGemAtelierGemRevealed(const InputMessagePtr& msg);
 
     void parseAttachedPaperdoll(const InputMessagePtr& msg);
     void parseDetachPaperdoll(const InputMessagePtr& msg);

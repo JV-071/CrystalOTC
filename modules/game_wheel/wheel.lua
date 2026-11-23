@@ -116,6 +116,10 @@ local function onDestinyWheelProxy(...)
 	return WheelOfDestiny.onDestinyWheel(...)
 end
 
+local function onGemAtelierGemRevealed(gemIndex)
+	GemAtelier.onGemRevealed(gemIndex)
+end
+
 function init()
 	-- cheap json with strings - we load it right away so that potential external consumers
 	-- of SkillwheelStringsLibrary do not depend on whether the wheel was already opened
@@ -125,6 +129,7 @@ function init()
 		onGameEnd = onGameEnd,
 		onGameStart = onGameStart,
 		onDestinyWheel = onDestinyWheelProxy,
+		onGemAtelierGemRevealed = onGemAtelierGemRevealed,
 		onResourcesBalanceChange = onResourceBalance
 	})
 
@@ -140,6 +145,7 @@ function terminate()
 		onGameEnd = onGameEnd,
 		onGameStart = onGameStart,
 		onDestinyWheel = onDestinyWheelProxy,
+		onGemAtelierGemRevealed = onGemAtelierGemRevealed,
 		onResourcesBalanceChange = onResourceBalance
 	})
 
