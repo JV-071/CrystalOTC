@@ -7938,21 +7938,6 @@ void ProtocolGame::parseWheelSpellAugments(const InputMessagePtr& msg)
     g_lua.callGlobalField("g_game", "onWheelSpellAugments", augments);
 }
 
-void ProtocolGame::parseGemAtelierGemRevealed(const InputMessagePtr& msg)
-{
-    // Sent right before the refreshed wheel data (0x5F) when a gem is revealed. Left unparsed,
-    // the unknown-opcode fallback skipped the rest of the message and that refresh with it.
-    const uint16_t gemIndex = msg->getU16(); // position in the revealed gem list
-
-    // The index is a u16 on the wire, which is what the official client reads. A server that still
-    // writes it as a u32 leaves two zero bytes behind; no game opcode is 0, so two zero bytes here
-    // can only be that tail.
-    if (msg->getUnreadSize() >= 2 && msg->peekU16() == 0)
-        msg->skipBytes(2);
-
-    g_lua.callGlobalField("g_game", "onGemAtelierGemRevealed", gemIndex);
-}
-
 void ProtocolGame::parseAttachedPaperdoll(const InputMessagePtr& msg) {
     const uint32_t id = msg->getU32();
     const auto& paperdoll = getPaperdoll(msg);
@@ -8285,7 +8270,16 @@ void ProtocolGame::parseGemAtelierGemRevealed(const InputMessagePtr& msg)
         return;
     }
 
+    // Sent right before the refreshed wheel data (0x5F) when a gem is revealed. Left unparsed,
+    // the unknown-opcode fallback skipped the rest of the message and that refresh with it.
     const uint16_t gemIndex = msg->getU16(); // index of the gem just revealed in the gem atelier
+
+    // The index is a u16 on the wire, which is what the official client reads. A server that still
+    // writes it as a u32 leaves two zero bytes behind; no game opcode is 0, so two zero bytes here
+    // can only be that tail.
+    if (msg->getUnreadSize() >= 2 && msg->peekU16() == 0)
+        msg->skipBytes(2);
+
     g_lua.callGlobalField("g_game", "onGemAtelierGemRevealed", gemIndex);
 }
 
